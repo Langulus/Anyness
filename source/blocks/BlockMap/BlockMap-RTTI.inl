@@ -13,39 +13,63 @@
 namespace Langulus::Anyness
 {
    
-   /// Checks type compatibility and sets type for the type-erased map        
+   /// Checks type compatibility and sets type of type-erased maps            
    ///   @tparam K - the key type                                             
    ///   @tparam V - the value type                                           
-   template<CT::NotSemantic K, CT::NotSemantic V> LANGULUS(INLINED)
-   void BlockMap::Mutate() {
-      Mutate(MetaDataOf<K>(), MetaDataOf<V>());
+   template<CT::Map THIS, CT::NotSemantic K, CT::NotSemantic V>
+   LANGULUS(INLINED) void BlockMap::Mutate() {
+      if constexpr (CT::Typed<THIS>) {
+         static_assert(CT::Similar<K, typename THIS::Key>,
+            "Can't mutate to incompatible key");
+         static_assert(CT::Similar<V, typename THIS::Value>,
+            "Can't mutate to incompatible value");
+
+         // Set the type for type-erased map compatiblity               
+         mKeys.mType = MetaDataOf<typename THIS::Key>();
+         mValues.mType = MetaDataOf<typename THIS::Value>();
+      }
+      else Mutate<THIS>(MetaDataOf<K>(), MetaDataOf<V>());
    }
 
    /// Checks type compatibility and sets type for the type-erased map        
    ///   @param key - the key type                                            
    ///   @param value - the value type                                        
-   LANGULUS(INLINED)
+   template<CT::Map THIS> LANGULUS(INLINED)
    void BlockMap::Mutate(DMeta key, DMeta value) {
-      if (not mKeys.mType) {
-         // Set a fresh key type                                        
-         mKeys.mType = key;
-      }
-      else {
-         // Key type already set, so check compatibility                
-         LANGULUS_ASSERT(mKeys.IsExact(key), Mutate,
-            "Attempting to mutate type-erased unordered map's key type"
-         );
-      }
+      if constexpr (CT::Typed<THIS>) {
+         // Set the type for type-erased map compatiblity               
+         mKeys.mType = MetaDataOf<typename THIS::Key>();
+         mValues.mType = MetaDataOf<typename THIS::Value>();
 
-      if (not mValues.mType) {
-         // Set a fresh value type                                      
-         mValues.mType = value;
+         LANGULUS_ASSERT(mKeys.mType->IsSimilar(key), Mutate,
+            "Can't mutate to incompatible key");
+         LANGULUS_ASSERT(mValues.mType->IsSimilar(value), Mutate,
+            "Can't mutate to incompatible value");
       }
       else {
-         // Value type already set, so check compatibility              
-         LANGULUS_ASSERT(mValues.IsExact(value), Mutate,
-            "Attempting to mutate type-erased unordered map's value type"
-         );
+         // Type-erased maps are free to mutate, as long as types aren't
+         // specified yet                                               
+         if (not mKeys.mType) {
+            // Set a fresh key type                                     
+            mKeys.mType = key;
+         }
+         else {
+            // Key type already set, so check compatibility             
+            LANGULUS_ASSERT(mKeys.IsExact(key), Mutate,
+               "Attempting to mutate type-erased unordered map's key type"
+            );
+         }
+
+         if (not mValues.mType) {
+            // Set a fresh value type                                   
+            mValues.mType = value;
+         }
+         else {
+            // Value type already set, so check compatibility           
+            LANGULUS_ASSERT(mValues.IsExact(value), Mutate,
+               "Attempting to mutate type-erased unordered map's value type"
+            );
+         }
       }
    }
    
@@ -157,13 +181,40 @@ namespace Langulus::Anyness
       return mValues.IsExact(meta);
    }
 
-   /// Check if types of two maps are compatible for writing                  
+   /// Check if types of a map is compatible with this map                    
    ///   @param other - map to test with                                      
    ///   @return true if both maps are type-compatible                        
-   LANGULUS(INLINED)
-   bool BlockMap::IsTypeCompatibleWith(const BlockMap& other) const noexcept {
-      return mKeys.IsExact(other.mKeys.mType)
-         and mValues.IsExact(other.mValues.mType);
+   template<CT::Map THIS> LANGULUS(INLINED)
+   constexpr bool BlockMap::IsTypeCompatibleWith(CT::Map auto const& other) const noexcept {
+      using RHS = Deref<decltype(other)>;
+      if constexpr (CT::Typed<THIS, RHS>) {
+         // Static type check                                           
+         return CT::Similar<typename THIS::Key,   typename RHS::Key>
+            and CT::Similar<typename THIS::Value, typename RHS::Value>;
+      }
+      else {
+         // Dynamic type check                                          
+         return mKeys.IsSimilar(other.GetKeyType())
+            and mValues.IsSimilar(other.GetValueType());
+      }
+   }
+
+   /// Check if types of a pair are compatible with this map                  
+   ///   @param other - map to test with                                      
+   ///   @return true if both maps are type-compatible                        
+   template<CT::Map THIS> LANGULUS(INLINED)
+   constexpr bool BlockMap::IsTypeCompatibleWith(CT::Pair auto const& other) const noexcept {
+      using RHS = Deref<decltype(other)>;
+      if constexpr (CT::Typed<THIS, RHS>) {
+         // Static type check                                           
+         return CT::Similar<typename THIS::Key,   typename RHS::Key>
+            and CT::Similar<typename THIS::Value, typename RHS::Value>;
+      }
+      else {
+         // Dynamic type check                                          
+         return mKeys.IsSimilar(other.GetKeyType())
+            and mValues.IsSimilar(other.GetValueType());
+      }
    }
 
 } // namespace Langulus::Anyness

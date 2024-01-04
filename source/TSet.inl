@@ -271,323 +271,8 @@ namespace Langulus::Anyness
    ///   @attention does nothing if reserving less than current reserve       
    ///   @param count - number of pairs to allocate                           
    TEMPLATE() LANGULUS(INLINED)
-   void TABLE()::Reserve(const Count& count) {
-      AllocateInner(Roof2(count < MinimalAllocation ? MinimalAllocation : count));
-   }
-
-   /// Allocate a fresh set keys and values (for internal use only)           
-   ///   @attention doesn't initialize anything, but the memory state         
-   ///   @attention doesn't modify count, doesn't set info sentinel           
-   ///   @attention assumes count is a power-of-two                           
-   ///   @param count - the new number of pairs                               
-   TEMPLATE()
-   void TABLE()::AllocateFresh(const Count& count) {
-      LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(count),
-         "Table reallocation count is not a power-of-two");
-
-      Offset infoOffset;
-      const auto keyAndInfoSize = RequestKeyAndInfoSize(count, infoOffset);
-      mKeys.mEntry = Allocator::Allocate(mKeys.mType, keyAndInfoSize);
-      LANGULUS_ASSERT(mKeys.mEntry, Allocate, "Out of memory");
-
-      mKeys.mReserved = count;
-
-      // Precalculate the info pointer, it's costly                     
-      mKeys.mRaw = const_cast<Byte*>(mKeys.mEntry->GetBlockStart());
-      mInfo = reinterpret_cast<InfoType*>(mKeys.mRaw + infoOffset);
-   }
-
-   /// Allocate or reallocate key and info array                              
-   ///   @attention assumes count is a power-of-two                           
-   ///   @tparam REUSE - true to reallocate, false to allocate fresh          
-   ///   @param count - the new number of pairs                               
-   TEMPLATE() template<bool REUSE>
-   void TABLE()::AllocateData(const Count& count) {
-      LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(count),
-         "Table reallocation count is not a power-of-two");
-
-      Offset infoOffset;
-      auto oldInfo = mInfo;
-      const auto oldCount = GetReserved();
-      const auto oldInfoEnd = oldInfo + oldCount;
-
-      // Allocate new keys                                              
-      const Block oldKeys {mKeys};
-      const auto keyAndInfoSize = RequestKeyAndInfoSize(count, infoOffset);
-      if constexpr (REUSE)
-         mKeys.mEntry = Allocator::Reallocate(
-            keyAndInfoSize, const_cast<Allocation*>(mKeys.mEntry));
-      else {
-         mKeys.mType = MetaDataOf<T>();
-         mKeys.mEntry = Allocator::Allocate(mKeys.mType, keyAndInfoSize);
-      }
-
-      LANGULUS_ASSERT(mKeys.mEntry, Allocate, "Out of memory");
-
-      mKeys.mReserved = count;
-
-      // Precalculate the info pointer, it's costly                     
-      mKeys.mRaw = const_cast<Byte*>(mKeys.mEntry->GetBlockStart());
-      mInfo = reinterpret_cast<InfoType*>(mKeys.mRaw + infoOffset);
-      // Set the sentinel                                               
-      mInfo[count] = 1;
-
-      // Zero or move the info array                                    
-      if constexpr (REUSE) {
-         // Check if keys were reused                                   
-         if (mKeys.mEntry == oldKeys.mEntry) {
-            // Keys were reused, but info always moves (null the rest)  
-            MoveMemory(mInfo, oldInfo, oldCount);
-            ZeroMemory(mInfo + oldCount, count - oldCount);
-
-            // Data was reused, but entries always move if sparse keys  
-            if constexpr (CT::Sparse<T>) {
-               MoveMemory(
-                  mKeys.mRawSparse + count,
-                  mKeys.mRawSparse + oldCount,
-                  oldCount
-               );
-            };
-
-            Rehash(oldCount);
-            return;
-         }
-         else ZeroMemory(mInfo, count);
-      }
-      else ZeroMemory(mInfo, count);
-
-      if (oldKeys.IsEmpty()) {
-         // There are no old values, the previous map was empty         
-         // Just do an early return right here                          
-         return;
-      }
-
-      // If reached, then keys moved - reinsert all pairs to rehash     
-      mKeys.mCount = 0;
-      auto key = oldKeys.GetHandle<T>(0);
-      const auto hashmask = GetReserved() - 1;
-      while (oldInfo != oldInfoEnd) {
-         if (*oldInfo) {
-            const auto index = GetBucket(hashmask, key.Get());
-            InsertInner<false>(index, Abandon(key));
-            key.Destroy();
-         }
-         
-         ++oldInfo;
-         ++key;
-      }
-
-      // Free the old allocations                                       
-      if constexpr (REUSE) {
-         // When reusing, keys and values can potentially remain same   
-         // Avoid deallocating them if that's the case                  
-         if (oldKeys.mEntry != mKeys.mEntry)
-            Allocator::Deallocate(const_cast<Allocation*>(oldKeys.mEntry));
-      }
-      else if (oldKeys.mEntry) {
-         // Not reusing, so either deallocate, or dereference           
-         if (oldKeys.mEntry->GetUses() > 1)
-            const_cast<Allocation*>(oldKeys.mEntry)->Free();
-         else
-            Allocator::Deallocate(const_cast<Allocation*>(oldKeys.mEntry));
-      }
-   }
-
-   /// Rehashes each element and reinserts it                                 
-   ///   @attention assumes counts are a power-of-two number                  
-   ///   @param oldCount - the old number of pairs                            
-   TEMPLATE()
-   void TABLE()::Rehash(const Count& oldCount) {
-      LANGULUS_ASSUME(DevAssumes, mKeys.mReserved > oldCount,
-         "New count is not larger than oldCount");
-      LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(mKeys.mReserved),
-         "New count is not a power-of-two");
-      LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(oldCount),
-         "Old count is not a power-of-two");
-
-      auto oldKey = GetHandle(0);
-      auto oldInfo = GetInfo();
-      const auto oldInfoEnd = oldInfo + oldCount;
-      const auto hashmask = mKeys.mReserved - 1;
-
-      // First run: move elements closer to their new buckets           
-      while (oldInfo != oldInfoEnd) {
-         if (*oldInfo) {
-            // Rehash and check if hashes match                         
-            const Offset oldIndex = oldInfo - GetInfo();
-            Offset oldBucket = (oldCount + oldIndex) - *oldInfo + 1;
-            const auto newBucket = GetBucket(hashmask, oldKey.Get());
-            if (oldBucket < oldCount or oldBucket - oldCount != newBucket) {
-               // Move element only if it won't end up in same bucket   
-               HandleLocal<T> keyswap {Abandon(oldKey)};
-
-               // Destroy the key and info                              
-               oldKey.Destroy();
-               *oldInfo = 0;
-               --mKeys.mCount;
-
-               // Reinsert at the new bucket                            
-               InsertInner<false>(newBucket, Abandon(keyswap));
-            }
-         }
-
-         ++oldKey;
-         ++oldInfo;
-      }
-
-      // First run might cause gaps                                     
-      // Second run: shift elements left, where possible                
-      BlockSet::template ShiftPairs<T>();
-   }
-
-   /// Reserves space for the specified number of pairs                       
-   ///   @attention does nothing if reserving less than current reserve       
-   ///   @attention assumes count is a power-of-two number                    
-   ///   @param count - number of pairs to allocate                           
-   TEMPLATE()
-   void TABLE()::AllocateInner(const Count& count) {
-      // Shrinking is never allowed, you'll have to do it explicitly    
-      // via Compact()                                                  
-      if (count <= GetReserved())
-         return;
-
-      // Allocate/Reallocate the keys and info                          
-      if (IsAllocated() and GetUses() == 1)
-         AllocateData<true>(count);
-      else
-         AllocateData<false>(count);
-   }
-
-   /// Inner insertion function                                               
-   ///   @tparam CHECK_FOR_MATCH - false if you guarantee key doesn't exist   
-   ///   @param start - the starting index                                    
-   ///   @param key - key to move in                                          
-   ///   @return the index at which item was inserted                         
-   TEMPLATE() template<bool CHECK_FOR_MATCH, class T1>
-   Offset TABLE()::InsertInner(const Offset& start, T1&& key) {
-      HandleLocal<T> keyswap {Forward<T1>(key)};
-
-      // Get the starting index based on the key hash                   
-      auto psl = GetInfo() + start;
-      const auto pslEnd = GetInfoEnd();
-      InfoType attempts {1};
-      while (*psl) {
-         const auto index = psl - GetInfo();
-         if constexpr (CHECK_FOR_MATCH) {
-            const auto& candidate = GetRaw(index);
-            if (keyswap.Compare(candidate)) {
-               // Neat, the key already exists - just return            
-               return index;
-            }
-         }
-
-         if (attempts > *psl) {
-            // The pair we're inserting is closer to bucket, so swap    
-            GetHandle(index).Swap(keyswap);
-            ::std::swap(attempts, *psl);
-         }
-
-         ++attempts;
-
-         if (psl < pslEnd - 1)
-            ++psl;
-         else
-            psl = GetInfo();
-      } 
-
-      // If reached, empty slot reached, so put the pair there          
-      // Might not seem like it, but we gave a guarantee, that this is  
-      // eventually reached, unless key exists and returns early        
-      const auto index = psl - GetInfo();
-      GetHandle(index).New(Abandon(keyswap));
-      *psl = attempts;
-      ++mKeys.mCount;
-      return index;
-   }
-   
-   /// Insert an element, array of elements, or another set                   
-   ///   @param item - the argument to unfold and insert, can be semantic     
-   ///   @return the number of inserted elements after unfolding              
-   TEMPLATE() LANGULUS(INLINED)
-   Count TABLE()::UnfoldInsert(auto&& item) {
-      using S = SemanticOf<decltype(item)>;
-      using T1 = TypeOf<S>;
-
-      if constexpr (CT::Array<T1>) {
-         if constexpr (CT::Inner::MakableFrom<T, Deext<T1>>) {
-            // Construct from an array of elements, each of which can   
-            // be used to initialize a T, nesting any semantic while    
-            // doing it                                                 
-            Reserve(GetCount() + ExtentOf<T1>);
-            for (auto& key : item) {
-               InsertInner<true>(
-                  GetBucket(GetReserved() - 1, DesemCast(key)),
-                  S::Nest(key)
-               );
-            }
-            return ExtentOf<T1>;
-         }
-         else if constexpr (CT::Inner::MakableFrom<T, Unfold<Deext<T1>>>) {
-            // Construct from an array of elements, which can't be used 
-            // to directly construct Ts, so nest the unfolding insert   
-            Count inserted = 0;
-            for (auto& key : item)
-               inserted += UnfoldInsert(S::Nest(key));
-            return inserted;
-         }
-         else LANGULUS_ERROR("Array elements aren't insertable");
-      }
-      else if constexpr (CT::Inner::MakableFrom<T, T1>) {
-         // Some of the arguments might still be used directly to       
-         // make an element, forward these to standard insertion here   
-         Reserve(GetCount() + 1);
-         InsertInner<true>(
-            GetBucket(GetReserved() - 1, DesemCast(item)),
-            S::Nest(item)
-         );
-         return 1;
-      }
-      else if constexpr (CT::Set<T1>) {
-         // Construct from any kind of set (ordered or not, type-erased 
-         // or not), even sets of a different, but (fold)compatible type
-         if constexpr (CT::TypedSet<T1>) {
-            // The contained type is known at compile-time              
-            using T2 = TypeOf<T1>;
-            if constexpr (CT::Inner::MakableFrom<T, T2>) {
-               // Each set element can be mapped to one T element       
-               Reserve(GetCount() + item.GetCount());
-               for (auto& key : item) {
-                  InsertInner<true>(
-                     GetBucket(GetReserved() - 1, key),
-                     S::Nest(key)
-                  );
-               }
-               return item.GetCount();
-            }
-            else if constexpr (CT::Inner::MakableFrom<T, Unfold<T2>>) {
-               // Set elements need to be unfolded, in order to be      
-               // inserted as Ts                                        
-               Count inserted = 0;
-               for (auto& key : item)
-                  inserted += UnfoldInsert(S::Nest(key));
-               return inserted;
-            }
-            else LANGULUS_ERROR("Set elements aren't insertable");
-         }
-         else {
-            // The set is type-erased                                   
-            LANGULUS_ASSERT(IsSimilar(item.GetType()), Meta, "Type mismatch");
-            Reserve(GetCount() + item.GetCount());
-            for (auto& key : item) {
-               InsertInnerUnknown<true, Ordered>(
-                  GetBucketUnknown(GetReserved() - 1, key),
-                  S::Nest(key)
-               );
-            }
-            return item.GetCount();
-         }
-      }
-      else LANGULUS_ERROR("Can't insert argument");
+   void TABLE()::Reserve(Count count) {
+      BlockSet::Reserve<TSet>(count);
    }
 
    /// Unfold-insert elements, semantically or not                            
@@ -597,8 +282,8 @@ namespace Langulus::Anyness
    requires CT::Inner::UnfoldMakableFrom<T, T1, TAIL...> LANGULUS(INLINED)
    Count TABLE()::Insert(T1&& t1, TAIL&&...tail){
       Count inserted = 0;
-      inserted   += UnfoldInsert(Forward<T1>(t1));
-      ((inserted += UnfoldInsert(Forward<TAIL>(tail))), ...);
+      inserted   += UnfoldInsert<TSet>(Forward<T1>(t1));
+      ((inserted += UnfoldInsert<TSet>(Forward<TAIL>(tail))), ...);
       return inserted;
    }
    
@@ -612,69 +297,16 @@ namespace Langulus::Anyness
       return *this;
    }
 
-   /// Destroy everything valid inside the map                                
-   TEMPLATE()
-   void TABLE()::ClearInner() {
-      auto inf = GetInfo();
-      const auto infEnd = GetInfoEnd();
-      while (inf != infEnd) {
-         if (*inf) {
-            const auto offset = inf - GetInfo();
-            GetHandle(offset).Destroy();
-         }
-
-         ++inf;
-      }
-   }
-
    /// Clears all data, but doesn't deallocate, and retains state             
    TEMPLATE()
    void TABLE()::Clear() {
-      if (IsEmpty())
-         return;
-
-      if (mKeys.mEntry->GetUses() == 1) {
-         // Remove all used keys and values, they're used only here     
-         ClearInner();
-
-         // Clear all info to zero                                      
-         ZeroMemory(mInfo, GetReserved());
-         mKeys.mCount = 0;
-      }
-      else {
-         // Data is used from multiple locations, don't change data     
-         // We're forced to dereference and reset memory pointers       
-         // Notice keys are not dereferenced, we use only value refs    
-         // to save on some redundancy                                  
-         mInfo = nullptr;
-         const_cast<Allocation*>(mKeys.mEntry)->Free();
-         mKeys.ResetMemory();
-      }
+      BlockSet::Clear<TSet>();
    }
 
    /// Clears all data, state, and deallocates                                
    TEMPLATE()
    void TABLE()::Reset() {
-      if (not mKeys.mEntry)
-         return;
-
-      if (mKeys.mEntry->GetUses() == 1) {
-         // Remove all used keys and values, they're used only here     
-         ClearInner();
-
-         // No point in resetting info, we'll be deallocating it        
-         Allocator::Deallocate(const_cast<Allocation*>(mKeys.mEntry));
-      }
-      else {
-         // Data is used from multiple locations, just deref values     
-         // Notice keys are not dereferenced, we use only value refs    
-         // to save on some redundancy                                  
-         const_cast<Allocation*>(mKeys.mEntry)->Free();
-      }
-
-      mInfo = nullptr;
-      mKeys.ResetState();
-      mKeys.ResetMemory();
+      BlockSet::Reset<TSet>();
    }
    
    /// Safely erases element at a specific iterator                           
@@ -723,48 +355,34 @@ namespace Langulus::Anyness
    ///   @param other - the table to compare against                          
    ///   @return true if tables match                                         
    TEMPLATE() LANGULUS(INLINED)
-   bool TABLE()::operator == (const TSet& other) const {
-      if (other.GetCount() != GetCount())
-         return false;
-
-      auto info = GetInfo();
-      const auto infoEnd = GetInfoEnd();
-      while (info != infoEnd) {
-         if (*info) {
-            const auto lhs = info - GetInfo();
-            const auto rhs = other.template FindInner<TABLE()>(GetRaw(lhs));
-            if (rhs == InvalidOffset)
-               return false;
-         }
-
-         ++info;
-      }
-
-      return true;
+   bool TABLE()::operator == (CT::Set auto const& other) const {
+      return BlockSet::operator == <TSet> (other);
    }
 
    /// Search for a key inside the table                                      
    ///   @param key - the key to search for                                   
    ///   @return true if key is found, false otherwise                        
-   TEMPLATE() LANGULUS(INLINED)
-   bool TABLE()::Contains(const T& key) const {
-      return FindInner<TABLE()>(key) != InvalidOffset;
+   TEMPLATE() template<CT::NotSemantic T1>
+   requires ::std::equality_comparable_with<T, T1> LANGULUS(INLINED)
+   bool TABLE()::Contains(T1 const& key) const {
+      return BlockSet::Contains<TSet>(key);
    }
 
    /// Search for a key inside the table, and return it if found              
    ///   @param key - the key to search for                                   
    ///   @return the index if key was found, or IndexNone if not              
-   TEMPLATE() LANGULUS(INLINED)
-   Index TABLE()::Find(const T& key) const {
-      const auto offset = FindInner<TABLE()>(key);
-      return offset != InvalidOffset ? Index {offset} : IndexNone;
+   TEMPLATE() template<CT::NotSemantic T1>
+   requires ::std::equality_comparable_with<T, T1> LANGULUS(INLINED)
+   Index TABLE()::Find(T1 const& key) const {
+      return BlockSet::Find<TSet>(key);
    }
    
    /// Search for a key inside the table, and return an iterator to it        
    ///   @param key - the key to search for                                   
    ///   @return the iterator                                                 
-   TEMPLATE() LANGULUS(INLINED)
-   typename TABLE()::Iterator TABLE()::FindIt(const T& key) {
+   TEMPLATE() template<CT::NotSemantic T1>
+   requires ::std::equality_comparable_with<T, T1> LANGULUS(INLINED)
+   typename TABLE()::Iterator TABLE()::FindIt(T1 const& key) {
       const auto found = FindInner<TABLE()>(key);
       if (found == InvalidOffset)
          return end();
@@ -778,8 +396,9 @@ namespace Langulus::Anyness
    /// Search for a key inside the table, and return an iterator to it        
    ///   @param key - the key to search for                                   
    ///   @return the iterator                                                 
-   TEMPLATE() LANGULUS(INLINED)
-   typename TABLE()::ConstIterator TABLE()::FindIt(const T& key) const {
+   TEMPLATE() template<CT::NotSemantic T1>
+   requires ::std::equality_comparable_with<T, T1> LANGULUS(INLINED)
+   typename TABLE()::ConstIterator TABLE()::FindIt(T1 const& key) const {
       return const_cast<TABLE()*>(this)->FindIt(key);
    }
 
@@ -801,7 +420,7 @@ namespace Langulus::Anyness
    ///   @param i - the index                                                 
    ///   @return the mutable key reference                                    
    TEMPLATE()
-   T& TABLE()::Get(const CT::Index auto& i) {
+   T& TABLE()::Get(CT::Index auto i) {
       auto offset = mKeys.SimplifyIndex<T, true>(i);
       auto info = GetInfo();
       const auto infoEnd = GetInfoEnd();
@@ -821,7 +440,7 @@ namespace Langulus::Anyness
    ///   @param i - the index                                                 
    ///   @return the immutable key reference                                  
    TEMPLATE() LANGULUS(INLINED)
-   const T& TABLE()::Get(const CT::Index auto& i) const {
+   const T& TABLE()::Get(CT::Index auto i) const {
       return const_cast<TABLE()*>(this)->Get(i);
    }
 
@@ -829,7 +448,7 @@ namespace Langulus::Anyness
    ///   @param i - the index                                                 
    ///   @return the mutable key reference                                    
    TEMPLATE() LANGULUS(INLINED)
-   T& TABLE()::operator[] (const CT::Index auto& i) {
+   T& TABLE()::operator[] (CT::Index auto i) {
       return Get(i);
    }
 
@@ -837,7 +456,7 @@ namespace Langulus::Anyness
    ///   @param i - the index                                                 
    ///   @return the mutable key reference                                    
    TEMPLATE() LANGULUS(INLINED)
-   const T& TABLE()::operator[] (const CT::Index auto& i) const {
+   const T& TABLE()::operator[] (CT::Index auto i) const {
       return Get(i);
    }
 

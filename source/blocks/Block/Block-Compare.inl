@@ -282,7 +282,7 @@ namespace Langulus::Anyness
    ///   @param cookie - continue search from a given offset                  
    ///   @return the index of the found item, or IndexNone if not found       
    template<bool REVERSE>
-   Index Block::FindKnown(const CT::NotSemantic auto& item, const Offset& cookie) const {
+   Index Block::FindKnown(const CT::NotSemantic auto& item, Offset cookie) const {
       using T = Deref<decltype(item)>;
 
       // First check if element is contained inside this block's        
@@ -330,7 +330,7 @@ namespace Langulus::Anyness
    ///   @param cookie - continue search from a given offset                  
    ///   @return the index of the found item, or IndexNone if not found       
    template<bool REVERSE>
-   Index Block::FindUnknown(const Block& item, const Offset& cookie) const {
+   Index Block::FindUnknown(const Block& item, Offset cookie) const {
       // First check if element is contained inside this block's        
       // memory, because if so, we can easily find it, without calling  
       // a single compare function                                      

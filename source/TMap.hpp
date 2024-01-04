@@ -52,12 +52,6 @@ namespace Langulus::Anyness
 
       LANGULUS(TYPED) Pair;
 
-      template<bool MUTABLE>
-      struct TIterator;
-
-      using Iterator = TIterator<true>;
-      using ConstIterator = TIterator<false>;
-
    protected:
       static_assert(CT::Inner::Comparable<K>,
          "Map's key type must be equality-comparable to itself");
@@ -155,33 +149,55 @@ namespace Langulus::Anyness
 
    protected:
       template<CT::NotSemantic, CT::NotSemantic>
-      constexpr void Mutate() noexcept;
+      void Mutate() noexcept;
       void Mutate(DMeta, DMeta);
 
    public:
       ///                                                                     
       ///   Comparison                                                        
       ///                                                                     
-      bool operator == (const TMap&) const
-      requires CT::Inner::Comparable<V>;
+      bool operator == (CT::Map  auto const&) const requires CT::Inner::Comparable<V>;
+      bool operator == (CT::Pair auto const&) const requires CT::Inner::Comparable<V>;
 
-      NOD() bool ContainsKey(const K&) const;
+      template<CT::NotSemantic K1>
+      requires ::std::equality_comparable_with<K, K1>
+      NOD() bool ContainsKey(K1 const&) const;
 
-      NOD() bool ContainsValue(const V&) const
-      requires CT::Inner::Comparable<V>;
+      template<CT::NotSemantic V1>
+      requires ::std::equality_comparable_with<V, V1>
+      NOD() bool ContainsValue(V1 const&) const;
 
-      NOD() bool ContainsPair(const Pair&) const
-      requires CT::Inner::Comparable<V>;
+      template<CT::Pair P>
+      requires ::std::equality_comparable_with<TPair<K, V>, P>
+      NOD() bool ContainsPair(P const&) const;
 
-      NOD() Index Find(const K&) const;
-      NOD() Iterator FindIt(const K&);
-      NOD() ConstIterator FindIt(const K&) const;
+      template<CT::NotSemantic K1>
+      requires ::std::equality_comparable_with<K, K1>
+      NOD() Index Find(K1 const&) const;
 
-      NOD() decltype(auto) At(const K&);
-      NOD() decltype(auto) At(const K&) const;
+      template<CT::NotSemantic K1>
+      requires ::std::equality_comparable_with<K, K1>
+      NOD() auto FindIt(K1 const&);
 
-      NOD() decltype(auto) operator[] (const K&);
-      NOD() decltype(auto) operator[] (const K&) const;
+      template<CT::NotSemantic K1>
+      requires ::std::equality_comparable_with<K, K1>
+      NOD() auto FindIt(K1 const&) const;
+
+      template<CT::NotSemantic K1>
+      requires ::std::equality_comparable_with<K, K1>
+      NOD() decltype(auto) At(K1 const&);
+
+      template<CT::NotSemantic K1>
+      requires ::std::equality_comparable_with<K, K1>
+      NOD() decltype(auto) At(K1 const&) const;
+
+      template<CT::NotSemantic K1>
+      requires ::std::equality_comparable_with<K, K1>
+      NOD() decltype(auto) operator[] (K1 const&);
+
+      template<CT::NotSemantic K1>
+      requires ::std::equality_comparable_with<K, K1>
+      NOD() decltype(auto) operator[] (K1 const&) const;
 
       NOD()       K& GetKey(CT::Index auto);
       NOD() const K& GetKey(CT::Index auto) const;
@@ -203,12 +219,15 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Iteration                                                         
       ///                                                                     
-      NOD() Iterator begin() noexcept;
-      NOD() Iterator end() noexcept;
-      NOD() Iterator last() noexcept;
-      NOD() ConstIterator begin() const noexcept;
-      NOD() ConstIterator end() const noexcept;
-      NOD() ConstIterator last() const noexcept;
+      template<CT::Map MAP>
+      using TIterator = typename Base::template TIterator<MAP>;
+
+      NOD() TIterator<TMap> begin() noexcept;
+      NOD() TIterator<TMap> end() noexcept;
+      NOD() TIterator<TMap> last() noexcept;
+      NOD() TIterator<const TMap> begin() const noexcept;
+      NOD() TIterator<const TMap> end() const noexcept;
+      NOD() TIterator<const TMap> last() const noexcept;
       NOD() decltype(auto) Last() const;
       NOD() decltype(auto) Last();
 
@@ -256,7 +275,7 @@ namespace Langulus::Anyness
       ///                                                                     
       Count RemoveKey(const K&);
       Count RemoveValue(const V&);
-      Iterator RemoveIt(const Iterator&);
+      TIterator<TMap> RemoveIt(const TIterator<TMap>&);
 
       void Clear();
       void Reset();
@@ -278,45 +297,6 @@ namespace Langulus::Anyness
       NOD() constexpr       V&  GetRawValue(Offset) noexcept;
       NOD() constexpr const V&  GetRawValue(Offset) const noexcept;
       NOD() constexpr Handle<V> GetValueHandle(Offset) noexcept;
-   };
-
-
-   ///                                                                        
-   ///   Unordered map iterator                                               
-   ///                                                                        
-   template<CT::Data K, CT::Data V, bool ORDERED> template<bool MUTABLE>
-   struct TMap<K, V, ORDERED>::TIterator {
-   protected:
-      template<CT::Data, CT::Data, bool>
-      friend struct TMap;
-
-      using InfoType = TMap<K, V, ORDERED>::InfoType;
-      const InfoType* mInfo {};
-      const InfoType* mSentinel {};
-      const K* mKey {};
-      const V* mValue {};
-
-      TIterator(const InfoType*, const InfoType*, const K*, const V*) noexcept;
-
-   public:
-      TIterator(const TIterator<true>&) noexcept;
-      TIterator& operator = (const TIterator&) noexcept;
-
-      NOD() bool operator == (const TIterator&) const noexcept;
-
-      NOD() PairRef      operator *  () const noexcept requires (MUTABLE);
-      NOD() PairConstRef operator *  () const noexcept requires (not MUTABLE);
-
-      NOD() PairRef      operator -> () const noexcept requires (MUTABLE);
-      NOD() PairConstRef operator -> () const noexcept requires (not MUTABLE);
-
-      // Prefix operator                                                
-      TIterator& operator ++ () noexcept;
-
-      // Suffix operator                                                
-      NOD() TIterator operator ++ (int) noexcept;
-
-      constexpr explicit operator bool() const noexcept;
    };
 
 } // namespace Langulus::Anyness

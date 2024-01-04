@@ -93,9 +93,17 @@ namespace Langulus::Anyness
    /// Check if types of two sets are compatible for writing                  
    ///   @param other - set to test with                                      
    ///   @return true if both sets are type-compatible                        
-   LANGULUS(INLINED)
-   bool BlockSet::IsTypeCompatibleWith(const BlockSet& other) const noexcept {
-      return mKeys.IsExact(other.mKeys.mType);
+   template<CT::Set THIS> LANGULUS(INLINED)
+   constexpr bool BlockSet::IsTypeCompatibleWith(CT::Set auto const& other) const noexcept {
+      using RHS = Deref<decltype(other)>;
+      if constexpr (CT::Typed<THIS, RHS>) {
+         // Static type check                                           
+         return CT::Similar<TypeOf<THIS>, TypeOf<RHS>>;
+      }
+      else {
+         // Dynamic type check                                          
+         return mKeys.IsSimilar(other.GetKeyType());
+      }
    }
 
 } // namespace Langulus::Anyness

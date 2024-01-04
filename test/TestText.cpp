@@ -545,7 +545,6 @@ TEMPLATE_TEST_CASE("Containing literals", "[text]",
 }
 
 void CheckState_Default(const Text& text) {
-   REQUIRE_FALSE(text.IsAbstract());
    REQUIRE_FALSE(text.IsCompressed());
    REQUIRE_FALSE(text.IsConstant());
    REQUIRE_FALSE(text.IsDeep());
@@ -584,7 +583,6 @@ void CheckState_Default(const Text& text) {
 }
 
 void CheckState_OwnedEmpty(const Text& text) {
-   REQUIRE_FALSE(text.IsAbstract());
    REQUIRE_FALSE(text.IsCompressed());
    REQUIRE_FALSE(text.IsConstant());
    REQUIRE_FALSE(text.IsDeep());
@@ -623,7 +621,6 @@ void CheckState_OwnedEmpty(const Text& text) {
 }
 
 void CheckState_OwnedFull(const Text& text) {
-   REQUIRE_FALSE(text.IsAbstract());
    REQUIRE_FALSE(text.IsCompressed());
    REQUIRE_FALSE(text.IsConstant());
    REQUIRE_FALSE(text.IsDeep());

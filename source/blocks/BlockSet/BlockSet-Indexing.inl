@@ -17,7 +17,7 @@ namespace Langulus::Anyness
    ///   @param index - the index to use                                      
    ///   @return the element, wrapped in a Block                              
    LANGULUS(INLINED)
-   Block BlockSet::Get(const CT::Index auto& index) {
+   Block BlockSet::Get(CT::Index auto index) {
       auto offset = mKeys.SimplifyIndex<void, true>(index);
       auto info = GetInfo();
       const auto infoEnd = GetInfoEnd();
@@ -37,7 +37,7 @@ namespace Langulus::Anyness
    ///   @param index - the index to use                                      
    ///   @return the element, wrapped in a Block                              
    LANGULUS(INLINED)
-   Block BlockSet::Get(const CT::Index auto& index) const {
+   Block BlockSet::Get(CT::Index auto index) const {
       return const_cast<BlockSet*>(this)->Get(index);
    }
    
@@ -45,7 +45,7 @@ namespace Langulus::Anyness
    ///   @param index - the index to use                                      
    ///   @return the element, wrapped in a Block                              
    LANGULUS(INLINED)
-   Block BlockSet::operator[] (const CT::Index auto& index) {
+   Block BlockSet::operator[] (CT::Index auto index) {
       return Get(index);
    }
 
@@ -53,7 +53,7 @@ namespace Langulus::Anyness
    ///   @param index - the index to use                                      
    ///   @return the element, wrapped in a Block                              
    LANGULUS(INLINED)
-   Block BlockSet::operator[] (const CT::Index auto& index) const {
+   Block BlockSet::operator[] (CT::Index auto index) const {
       return Get(index);
    }
 
@@ -62,7 +62,7 @@ namespace Langulus::Anyness
    ///   @param i - the offset to use                                         
    ///   @return the element, wrapped in a Block                              
    LANGULUS(INLINED)
-   Block BlockSet::GetInner(const Offset& i) IF_UNSAFE(noexcept) {
+   Block BlockSet::GetInner(Offset i) IF_UNSAFE(noexcept) {
       return mKeys.GetElement(i);
    }
 
@@ -71,7 +71,7 @@ namespace Langulus::Anyness
    ///   @param i - the offset to use                                         
    ///   @return the element, wrapped in a Block                              
    LANGULUS(INLINED)
-   Block BlockSet::GetInner(const Offset& i) const IF_UNSAFE(noexcept) {
+   Block BlockSet::GetInner(Offset i) const IF_UNSAFE(noexcept) {
       return mKeys.GetElement(i);
    }
 

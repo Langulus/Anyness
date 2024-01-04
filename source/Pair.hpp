@@ -68,10 +68,7 @@ namespace Langulus
 
       /// Check if a type is a statically typed pair                          
       template<class...T>
-      concept TypedPair = ((Pair<T> and requires {
-            typename Decay<T>::Key;
-            typename Decay<T>::Value;
-         }) and ...);
+      concept TypedPair = Pair<T...> and Typed<T...>;
 
    } // namespace Langulus::CT
 
