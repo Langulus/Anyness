@@ -79,8 +79,7 @@ namespace Langulus::Anyness
    /// only provides the functionality to do so. You can use BlockSet as a    
    /// lightweight intermediate structure for iteration, etc.                 
    ///                                                                        
-   class BlockSet : public A::BlockSet {
-   public:
+   struct BlockSet : A::BlockSet {
       static constexpr bool Ownership = false;
 
       ///                                                                     
@@ -124,13 +123,13 @@ namespace Langulus::Anyness
 
    protected:
       template<CT::Data T>
-      NOD() const TAny<T>& GetValues() const noexcept;
+      NOD() TAny<T> const& GetValues() const noexcept;
       template<CT::Data T>
-      NOD() TAny<T>& GetValues() noexcept;
+      NOD() TAny<T>&       GetValues() noexcept;
 
-      NOD() const InfoType* GetInfo() const noexcept;
-      NOD() InfoType* GetInfo() noexcept;
-      NOD() const InfoType* GetInfoEnd() const noexcept;
+      NOD() InfoType const* GetInfo() const noexcept;
+      NOD() InfoType*       GetInfo() noexcept;
+      NOD() InfoType const* GetInfoEnd() const noexcept;
 
       NOD() Count GetCountDeep(const Block&) const noexcept;
       NOD() Count GetCountElementsDeep(const Block&) const noexcept;
@@ -139,23 +138,23 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Indexing                                                          
       ///                                                                     
-      NOD() Block Get(const CT::Index auto&);
-      NOD() Block Get(const CT::Index auto&) const;
+      NOD() Block Get(CT::Index auto);
+      NOD() Block Get(CT::Index auto) const;
 
-      NOD() Block operator[] (const CT::Index auto&);
-      NOD() Block operator[] (const CT::Index auto&) const;
+      NOD() Block operator[] (CT::Index auto);
+      NOD() Block operator[] (CT::Index auto) const;
 
    protected:
-      NOD() Block GetInner(const Offset&) IF_UNSAFE(noexcept);
-      NOD() Block GetInner(const Offset&) const IF_UNSAFE(noexcept);
+      NOD() Block GetInner(Offset)       IF_UNSAFE(noexcept);
+      NOD() Block GetInner(Offset) const IF_UNSAFE(noexcept);
 
       NOD() static Offset GetBucket(Offset, const CT::NotSemantic auto&) noexcept;
       NOD() static Offset GetBucketUnknown(Offset, const Block&) noexcept;
 
       template<CT::Data T>
-      NOD() constexpr T& GetRaw(Offset) IF_UNSAFE(noexcept);
+      NOD() constexpr T&       GetRaw(Offset)       IF_UNSAFE(noexcept);
       template<CT::Data T>
-      NOD() constexpr const T& GetRaw(Offset) const IF_UNSAFE(noexcept);
+      NOD() constexpr T const& GetRaw(Offset) const IF_UNSAFE(noexcept);
 
       template<CT::Data T>
       NOD() constexpr Handle<T> GetHandle(Offset) const IF_UNSAFE(noexcept);
@@ -221,9 +220,6 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   RTTI                                                              
       ///                                                                     
-      template<CT::NotSemantic>
-      void Mutate();
-      void Mutate(DMeta);
       template<CT::Data, CT::Data...>
       NOD() bool Is() const noexcept;
       NOD() bool Is(DMeta) const noexcept;
@@ -236,26 +232,34 @@ namespace Langulus::Anyness
       NOD() bool IsExact() const noexcept;
       NOD() bool IsExact(DMeta) const noexcept;
 
-      NOD() bool IsTypeCompatibleWith(const BlockSet&) const noexcept;
-
+   protected:
+      template<CT::Set = UnorderedSet>
+      NOD() constexpr bool IsTypeCompatibleWith(CT::Set auto const&) const noexcept;
+      
+   public:
       ///                                                                     
       ///   Comparison                                                        
       ///                                                                     
-      bool operator == (const BlockSet&) const;
+      template<CT::Set = UnorderedSet>
+      bool operator == (CT::Set auto const&) const;
 
       NOD() Hash GetHash() const;
 
-      template<CT::Set = BlockSet>
+      template<CT::Set = UnorderedSet>
       NOD() bool Contains(const CT::NotSemantic auto&) const;
 
-      template<CT::Set = BlockSet>
+      template<CT::Set = UnorderedSet>
       NOD() Index Find(const CT::NotSemantic auto&) const;
-      template<CT::Set = BlockSet>
+      template<CT::Set = UnorderedSet>
       NOD() Iterator FindIt(const CT::NotSemantic auto&);
-      template<CT::Set = BlockSet>
+      template<CT::Set = UnorderedSet>
       NOD() ConstIterator FindIt(const CT::NotSemantic auto&) const;
 
    protected:
+      template<CT::NotSemantic>
+      void Mutate();
+      void Mutate(DMeta);
+
       template<CT::Set>
       NOD() Offset FindInner(const CT::NotSemantic auto&) const;
       NOD() Offset FindInnerUnknown(const Block&) const;
@@ -264,7 +268,7 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Memory management                                                 
       ///                                                                     
-      template<CT::Set = BlockSet>
+      template<CT::Set = UnorderedSet>
       void Reserve(Count);
 
    protected:
@@ -298,7 +302,7 @@ namespace Langulus::Anyness
       NOD() Size RequestKeyAndInfoSize(Count, Offset&) const IF_UNSAFE(noexcept);
 
       template<CT::Set>
-      void Rehash(const Count&);
+      void Rehash(Count);
       template<CT::Set>
       void ShiftPairs();
 
@@ -317,13 +321,14 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Removal                                                           
       ///                                                                     
-      template<CT::Set = BlockSet>
+      template<CT::Set = UnorderedSet>
       Count Remove(const CT::NotSemantic auto&);
 
-      template<CT::Set = BlockSet>
+      template<CT::Set = UnorderedSet>
       void Clear();
-      template<CT::Set = BlockSet>
+      template<CT::Set = UnorderedSet>
       void Reset();
+      template<CT::Set = UnorderedSet>
       void Compact();
 
    protected:
@@ -331,7 +336,7 @@ namespace Langulus::Anyness
       void ClearInner();
 
       template<CT::Set>
-      void RemoveInner(const Offset&) IF_UNSAFE(noexcept);
+      void RemoveInner(Offset) IF_UNSAFE(noexcept);
       template<CT::Set>
       Count RemoveKeyInner(const CT::NotSemantic auto&);
 
@@ -348,7 +353,7 @@ namespace Langulus::Anyness
    template<bool MUTABLE>
    struct BlockSet::TIterator {
    protected:
-      friend class BlockSet;
+      friend struct BlockSet;
 
       const InfoType* mInfo {};
       const InfoType* mSentinel {};

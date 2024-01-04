@@ -275,7 +275,7 @@ namespace Langulus::Anyness
    ///                     iteration (iteration is slower if true)            
    ///   @param call - the constexpr noexcept function to call on each item   
    template<class R, CT::Data A, bool REVERSE, bool MUTABLE> LANGULUS(INLINED)
-   void Block::IterateInner(const Count& count, auto&& f) noexcept(NoexceptIterator<decltype(f)>) {
+   void Block::IterateInner(const Count count, auto&& f) noexcept(NoexceptIterator<decltype(f)>) {
       static_assert(CT::Complete<Decay<A>> or CT::Sparse<A>,
          "Can't iterate with incomplete type, use pointer instead");
       static_assert(CT::Constant<Deptr<A>> or MUTABLE,

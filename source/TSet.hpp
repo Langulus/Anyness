@@ -17,17 +17,18 @@ namespace Langulus::CT
    /// set can be constructed                                                 
    template<class T, class...A>
    concept DeepSetMakable = Inner::UnfoldMakableFrom<T, A...>
-        or (sizeof...(A) == 1 and Set<Desem<FirstOf<A...>>>
-           and SemanticOf<FirstOf<A...>>::Shallow or (
-              Inner::SemanticMakableAlt<typename SemanticOf<FirstOf<A...>>::template As<T>>
+        or (sizeof...(A) == 1 and Set<Desem<FirstOf<A...>>> and (
+              SemanticOf<FirstOf<A...>>::Shallow
+           or Inner::SemanticMakableAlt<typename SemanticOf<FirstOf<A...>>::template As<T>>
         ));
 
    /// Concept for recognizing argument, with which a statically typed        
    /// set can be assigned                                                    
    template<class T, class A>
-   concept DeepSetAssignable = Inner::UnfoldMakableFrom<T, A> or (Set<Desem<A>>
-       and SemanticOf<A>::Shallow or (
-          Inner::SemanticAssignableAlt<typename SemanticOf<A>::template As<T>>));
+   concept DeepSetAssignable = Inner::UnfoldMakableFrom<T, A> or (Set<Desem<A>> and (
+            SemanticOf<A>::Shallow
+         or Inner::SemanticAssignableAlt<typename SemanticOf<A>::template As<T>>)
+      );
 
 } // namespace Langulus::CT
 
@@ -49,6 +50,7 @@ namespace Langulus::Anyness
          "Set's type must be equality-comparable to itself");
 
       using typename Base::InfoType;
+      using Base::InvalidOffset;
       using Base::MinimalAllocation;
       using Base::mKeys;
       using Base::mInfo;
@@ -157,25 +159,29 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Comparison                                                        
       ///                                                                     
-      bool operator == (const TSet&) const;
+      bool operator == (CT::Set auto const&) const;
 
-      NOD() bool Contains(const T&) const;
-      NOD() Index Find(const T&) const;
-      NOD() Iterator FindIt(const T&);
-      NOD() ConstIterator FindIt(const T&) const;
+      template<CT::NotSemantic T1>
+      requires ::std::equality_comparable_with<T, T1>
+      NOD() bool Contains(T1 const&) const;
+
+      template<CT::NotSemantic T1>
+      requires ::std::equality_comparable_with<T, T1>
+      NOD() Index Find(T1 const&) const;
+
+      template<CT::NotSemantic T1>
+      requires ::std::equality_comparable_with<T, T1>
+      NOD() Iterator FindIt(T1 const&);
+
+      template<CT::NotSemantic T1>
+      requires ::std::equality_comparable_with<T, T1>
+      NOD() ConstIterator FindIt(T1 const&) const;
 
       ///                                                                     
       ///   Memory management                                                 
       ///                                                                     
       void Reserve(Count);
 
-   protected:
-      void AllocateFresh(Count);
-      template<bool REUSE>
-      void AllocateData(Count);
-      void AllocateInner(Count);
-
-   public:
       ///                                                                     
       ///   Insertion                                                         
       ///                                                                     
@@ -187,17 +193,6 @@ namespace Langulus::Anyness
       requires CT::Inner::UnfoldMakableFrom<T, T1>
       TSet& operator << (T1&&);
 
-   protected:
-      void Rehash(Count);
-      Count UnfoldInsert(auto&&);
-
-      template<bool CHECK_FOR_MATCH, class T1>
-      Offset InsertInner(Offset, T1&&);
-
-      template<class ALT_T>
-      void CloneInner(const ALT_T&, ALT_T&) const;
-
-   public:
       ///                                                                     
       ///   Removal                                                           
       ///                                                                     
@@ -207,9 +202,6 @@ namespace Langulus::Anyness
       void Clear();
       void Reset();
       void Compact();
-
-   protected:
-      void ClearInner();
    };
 
 

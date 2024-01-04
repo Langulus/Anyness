@@ -324,7 +324,7 @@ namespace Langulus::Anyness
             auto key = GetKeyHandle<THIS>(offset);
             auto val = GetValueHandle<THIS>(offset);
 
-            if constexpr (CT::TypedMap<THIS>) {
+            if constexpr (CT::Typed<THIS>) {
                key.Destroy();
                val.Destroy();
             }

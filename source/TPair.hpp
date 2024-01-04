@@ -44,6 +44,8 @@ namespace Langulus::Anyness
       using Key = K;
       using Value = V;
 
+      LANGULUS(TYPED) TPair<K, V>;
+
       Key   mKey;
       Value mValue;
 

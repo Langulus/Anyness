@@ -19,11 +19,36 @@ namespace Langulus::Anyness
    ///   @return the number of inserted elements after unfolding              
    template<CT::Set THIS>
    Count BlockSet::UnfoldInsert(auto&& item) {
+      using E = Conditional<CT::Typed<THIS>, TypeOf<THIS>, void>;
       using S = SemanticOf<decltype(item)>;
       using T = TypeOf<S>;
 
       if constexpr (CT::Array<T>) {
-         if constexpr (CT::StringLiteral<T>) {
+         if constexpr (not CT::TypeErased<E>) {
+            if constexpr (CT::Inner::MakableFrom<E, Deext<T>>) {
+               // Construct from an array of elements, each of which    
+               // can be used to initialize an element, nesting any     
+               // semantic while doing it                               
+               Reserve(GetCount() + ExtentOf<T>);
+               for (auto& key : item) {
+                  InsertInner<THIS, true>(
+                     GetBucket(GetReserved() - 1, DesemCast(key)),
+                     S::Nest(key)
+                  );
+               }
+               return ExtentOf<T>;
+            }
+            else if constexpr (CT::Inner::MakableFrom<E, Unfold<Deext<T>>>) {
+               // Construct from an array of things, which can't be used
+               // to directly construct elements, so nest this insert   
+               Count inserted = 0;
+               for (auto& key : item)
+                  inserted += UnfoldInsert<THIS>(S::Nest(key));
+               return inserted;
+            }
+            else LANGULUS_ERROR("Array elements aren't insertable");
+         }
+         else if constexpr (CT::StringLiteral<T>) {
             // Implicitly convert string literals to Text containers    
             Reserve(GetCount() + 1);
             Text text {S::Nest(item)};
@@ -45,7 +70,60 @@ namespace Langulus::Anyness
             return inserted;
          }
       }
+      else if constexpr (not CT::TypeErased<E>) {
+         if constexpr (CT::Inner::MakableFrom<E, T>) {
+            // Some of the arguments might still be used directly to    
+            // make an element, forward these to standard insertion here
+            Reserve(GetCount() + 1);
+            InsertInner<THIS, true>(
+               GetBucket(GetReserved() - 1, DesemCast(item)),
+               S::Nest(item)
+            );
+            return 1;
+         }
+         else if constexpr (CT::Set<T>) {
+            // Construct from any kind of set                           
+            if constexpr (CT::Typed<T>) {
+               // The contained type is known at compile-time           
+               using T2 = TypeOf<T>;
+
+               if constexpr (CT::Inner::MakableFrom<E, T2>) {
+                  // Elements are mappable                              
+                  Reserve(GetCount() + item.GetCount());
+                  for (auto& key : item) {
+                     InsertInner<THIS, true>(
+                        GetBucket(GetReserved() - 1, key),
+                        S::Nest(key)
+                     );
+                  }
+                  return item.GetCount();
+               }
+               else if constexpr (CT::Inner::MakableFrom<E, Unfold<T2>>) {
+                  // Set elements need to be unfolded one by one        
+                  Count inserted = 0;
+                  for (auto& key : item)
+                     inserted += UnfoldInsert<THIS>(S::Nest(key));
+                  return inserted;
+               }
+               else LANGULUS_ERROR("Sets aren't mappable to each other");
+            }
+            else {
+               // The rhs set is type-erased                            
+               LANGULUS_ASSERT(item.IsSimilar<E>(), Meta, "Type mismatch");
+               Reserve(GetCount() + item.GetCount());
+               for (auto& key : item) {
+                  InsertInnerUnknown<THIS, true>(
+                     GetBucketUnknown(GetReserved() - 1, key),
+                     S::Nest(key)
+                  );
+               }
+               return item.GetCount();
+            }
+         }
+         else LANGULUS_ERROR("Can't insert argument");
+      }
       else {
+         // This set is type-erased                                     
          // Some of the arguments might still be used directly to       
          // make an element, forward these to standard insertion here   
          Reserve(GetCount() + 1);
@@ -140,7 +218,7 @@ namespace Langulus::Anyness
    ///   @attention assumes count > oldCount                                  
    ///   @param oldCount - the old number of pairs                            
    template<CT::Set THIS>
-   void BlockSet::Rehash(const Count& oldCount) {
+   void BlockSet::Rehash(const Count oldCount) {
       LANGULUS_ASSUME(DevAssumes, mKeys.mReserved > oldCount,
          "New count is not larger than oldCount");
       LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(mKeys.mReserved),

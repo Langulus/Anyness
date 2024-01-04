@@ -70,8 +70,8 @@ namespace Langulus::Anyness
                if (mKeys.mType   == DesemCast(t1).GetKeyType()
                and mValues.mType == DesemCast(t1).GetValueType()) {
                   // If types are exactly the same, it is safe to       
-                  // absorb the set, essentially converting a type-     
-                  // erased Set back to its TSet equivalent             
+                  // absorb the map, essentially converting a type-     
+                  // erased Map back to its TMap equivalent             
                   BlockTransfer<TMap>(S::Nest(t1));
                }
                else InsertPair(Forward<T1>(t1));
@@ -409,22 +409,12 @@ namespace Langulus::Anyness
       return GetValueType()->IsExact(value);
    }
 
-   /// Checks type compatibility and sets type for the map                    
-   /// Does only compile-time checks for this templated variant               
-   ///   @tparam ALT_K - the key type to check                                
-   ///   @tparam ALT_V - the value type to check                              
-   TEMPLATE()
-   template<CT::NotSemantic ALT_K, CT::NotSemantic ALT_V>
-   LANGULUS(INLINED)
-   constexpr void TABLE()::Mutate() noexcept {
-      static_assert(CT::Similar<K, ALT_K>,
-         "Can't mutate to incompatible key");
-      static_assert(CT::Similar<V, ALT_V>,
-         "Can't mutate to incompatible value");
-
-      // Since this is not a type-erased map, GetType() will also set it
-      (void) GetKeyType();
-      (void) GetValueType();
+   /// Checks type compatibility and sets type for the type-erased map        
+   ///   @param key - the key type                                            
+   ///   @param value - the value type                                        
+   TEMPLATE() template<CT::NotSemantic K1, CT::NotSemantic V1>
+   LANGULUS(INLINED) void TABLE()::Mutate() noexcept {
+      return BlockMap::Mutate<TMap, K1, V1>();
    }
 
    /// Checks type compatibility and sets type for the type-erased map        
@@ -432,12 +422,7 @@ namespace Langulus::Anyness
    ///   @param value - the value type                                        
    TEMPLATE() LANGULUS(INLINED)
    void TABLE()::Mutate(DMeta key, DMeta value) {
-      // Types known at compile-time, so check compatibility            
-      // Since this is not a type-erased map, GetType() will also set it
-      LANGULUS_ASSERT(GetKeyType()->IsSimilar(key), Mutate,
-         "Can't mutate to incompatible key");
-      LANGULUS_ASSERT(GetValueType()->IsSimilar(value), Mutate,
-         "Can't mutate to incompatible value");
+      return BlockMap::Mutate<TMap>(key, value);
    }
 
    /// Reserve a new table size                                               
@@ -621,7 +606,7 @@ namespace Langulus::Anyness
    ///   @return 1 if key was found and pair was removed                      
    TEMPLATE() LANGULUS(INLINED)
    Count TABLE()::RemoveKey(const K& key) {
-      return BlockMap::template RemoveKey<TABLE()>(key);
+      return BlockMap::template RemoveKey<TMap>(key);
    }
 
    /// Erase all pairs with a given value                                     
@@ -629,7 +614,7 @@ namespace Langulus::Anyness
    ///   @return the number of removed pairs                                  
    TEMPLATE() LANGULUS(INLINED)
    Count TABLE()::RemoveValue(const V& value) {
-      return BlockMap::template RemoveValue<TABLE()>(value);
+      return BlockMap::template RemoveValue<TMap>(value);
    }
      
    /// Safely erases element at a specific iterator                           
@@ -684,43 +669,39 @@ namespace Langulus::Anyness
    ///   Comparison                                                           
    ///                                                                        
    
-   /// Checks if both tables contain the same entries                         
-   ///   @param other - the table to compare against                          
-   ///   @return true if tables match                                         
+   /// Compare this map against another map, type-erased or not               
+   ///   @param rhs - map to compare against                                  
+   ///   @return true if contents of both maps are the same                   
    TEMPLATE() LANGULUS(INLINED)
-   bool TABLE()::operator == (const TMap& other) const requires CT::Inner::Comparable<V> {
-      if (other.GetCount() != GetCount())
-         return false;
+   bool TABLE()::operator == (CT::Map auto const& rhs) const
+   requires CT::Inner::Comparable<V> {
+      return BlockMap::operator == <TMap> (rhs);
+   }
 
-      auto info = GetInfo();
-      const auto infoEnd = GetInfoEnd();
-      while (info != infoEnd) {
-         if (*info) {
-            const auto lhs = info - GetInfo();
-            const auto rhs = other.template FindInner<TMap>(GetRawKey(lhs));
-            if (rhs == InvalidOffset or GetRawValue(lhs) != other.GetRawValue(rhs))
-               return false;
-         }
-
-         ++info;
-      }
-
-      return true;
+   /// Compare this map against a pair, type-erased or not                    
+   ///   @param rhs - pair to compare against                                 
+   ///   @return true this map contains only this exact pair                  
+   TEMPLATE() LANGULUS(INLINED)
+   bool TABLE()::operator == (CT::Pair auto const& rhs) const
+   requires CT::Inner::Comparable<V> {
+      return BlockMap::operator == <TMap> (rhs);
    }
 
    /// Search for a key inside the table                                      
    ///   @param key - the key to search for                                   
    ///   @return true if key is found, false otherwise                        
-   TEMPLATE() LANGULUS(INLINED)
-   bool TABLE()::ContainsKey(const K& key) const {
-      return FindInner<TMap>(key) != InvalidOffset;
+   TEMPLATE() template<CT::NotSemantic K1>
+   requires ::std::equality_comparable_with<K, K1> LANGULUS(INLINED)
+   bool TABLE()::ContainsKey(K1 const& key) const {
+      return BlockMap::ContainsKey<TMap>(key);
    }
 
    /// Search for a value inside the table                                    
-   ///   @param value - the value to search for                               
+   ///   @param match - the value to search for                               
    ///   @return true if value is found, false otherwise                      
-   TEMPLATE()
-   bool TABLE()::ContainsValue(const V& match) const requires CT::Inner::Comparable<V> {
+   TEMPLATE() template<CT::NotSemantic V1>
+   requires ::std::equality_comparable_with<V, V1> LANGULUS(INLINED)
+   bool TABLE()::ContainsValue(V1 const& match) const {
       if (IsEmpty())
          return false;
 
@@ -741,51 +722,46 @@ namespace Langulus::Anyness
    /// Search for a pair inside the table                                     
    ///   @param pair - the pair to search for                                 
    ///   @return true if pair is found, false otherwise                       
-   TEMPLATE() LANGULUS(INLINED)
-   bool TABLE()::ContainsPair(const Pair& pair) const requires CT::Inner::Comparable<V> {
-      const auto found = FindInner<TMap>(pair.mKey);
-      return found != InvalidOffset and GetValue(found) == pair.mValue;
+   TEMPLATE() template<CT::Pair P>
+   requires ::std::equality_comparable_with<TPair<K, V>, P>
+   LANGULUS(INLINED) bool TABLE()::ContainsPair(P const& pair) const {
+      return BlockMap::ContainsPair<TMap>(pair);
    }
 
    /// Search for a key inside the table, and return it if found              
    ///   @param key - the key to search for                                   
    ///   @return the index if key was found, or IndexNone if not              
-   TEMPLATE() LANGULUS(INLINED)
-   Index TABLE()::Find(const K& key) const {
-      const auto offset = FindInner<TMap>(key);
-      return offset != InvalidOffset ? Index {offset} : IndexNone;
+   TEMPLATE() template<CT::NotSemantic K1>
+   requires ::std::equality_comparable_with<K, K1> LANGULUS(INLINED)
+   Index TABLE()::Find(K1 const& key) const {
+      return BlockMap::Find<TMap>(key);
    }
    
    /// Search for a key inside the table, and return an iterator to it        
    ///   @param key - the key to search for                                   
    ///   @return the iterator                                                 
-   TEMPLATE() LANGULUS(INLINED)
-   typename TABLE()::Iterator TABLE()::FindIt(const K& key) {
-      const auto found = FindInner<TMap>(key);
-      if (found == InvalidOffset)
-         return end();
-
-      return {
-         GetInfo() + found, GetInfoEnd(),
-         &GetRawKey(found),
-         &GetRawValue(found)
-      };
+   TEMPLATE() template<CT::NotSemantic K1>
+   requires ::std::equality_comparable_with<K, K1> LANGULUS(INLINED)
+   auto TABLE()::FindIt(K1 const& key) {
+      return BlockMap::FindIt<TMap>(key);
    }
       
    /// Search for a key inside the table, and return an iterator to it        
    ///   @param key - the key to search for                                   
    ///   @return the iterator                                                 
-   TEMPLATE() LANGULUS(INLINED)
-   typename TABLE()::ConstIterator TABLE()::FindIt(const K& key) const {
-      return const_cast<TABLE()*>(this)->FindIt(key);
+   TEMPLATE() template<CT::NotSemantic K1>
+   requires ::std::equality_comparable_with<K, K1> LANGULUS(INLINED)
+   auto TABLE()::FindIt(K1 const& key) const {
+      return BlockMap::FindIt<TMap>(key);
    }
    
    /// Returns a reference to the value found for key                         
    /// Throws Except::OutOfRange if element cannot be found                   
    ///   @param key - the key to search for                                   
    ///   @return a reference to the value                                     
-   TEMPLATE() LANGULUS(INLINED)
-   decltype(auto) TABLE()::At(const K& key) {
+   TEMPLATE() template<CT::NotSemantic K1>
+   requires ::std::equality_comparable_with<K, K1> LANGULUS(INLINED)
+   decltype(auto) TABLE()::At(K1 const& key) {
       const auto found = FindInner<TMap>(key);
       LANGULUS_ASSERT(found != InvalidOffset, OutOfRange, "Key not found");
       return GetRawValue(found);
@@ -795,24 +771,27 @@ namespace Langulus::Anyness
    /// Throws Except::OutOfRange if element cannot be found                   
    ///   @param key - the key to search for                                   
    ///   @return a reference to the value                                     
-   TEMPLATE() LANGULUS(INLINED)
-   decltype(auto) TABLE()::At(const K& key) const {
+   TEMPLATE() template<CT::NotSemantic K1>
+   requires ::std::equality_comparable_with<K, K1> LANGULUS(INLINED)
+   decltype(auto) TABLE()::At(K1 const& key) const {
       return const_cast<TABLE()*>(this)->At(key);
    }
 
    /// Access value by key                                                    
    ///   @param key - the key to find                                         
    ///   @return a reference to the value                                     
-   TEMPLATE() LANGULUS(INLINED)
-   decltype(auto) TABLE()::operator[] (const K& key) {
+   TEMPLATE() template<CT::NotSemantic K1>
+   requires ::std::equality_comparable_with<K, K1> LANGULUS(INLINED)
+   decltype(auto) TABLE()::operator[] (K1 const& key) {
       return At(key);
    }
 
    /// Access value by key                                                    
    ///   @param key - the key to find                                         
    ///   @return a reference to the value                                     
-   TEMPLATE() LANGULUS(INLINED)
-   decltype(auto) TABLE()::operator[] (const K& key) const {
+   TEMPLATE() template<CT::NotSemantic K1>
+   requires ::std::equality_comparable_with<K, K1> LANGULUS(INLINED)
+   decltype(auto) TABLE()::operator[] (K1 const& key) const {
       return At(key);
    }
 

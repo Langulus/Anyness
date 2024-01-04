@@ -44,18 +44,18 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Insertion                                                         
       ///                                                                     
-      Map& operator <<  (CT::Inner::UnfoldInsertable auto&&);
-      Map& operator >>  (CT::Inner::UnfoldInsertable auto&&);
+      Map& operator << (CT::Inner::UnfoldInsertable auto&&);
+      Map& operator >> (CT::Inner::UnfoldInsertable auto&&);
 
       ///                                                                     
       ///   Iteration                                                         
       ///                                                                     
-      NOD() Iterator begin() noexcept;
-      NOD() Iterator end() noexcept;
-      NOD() Iterator last() noexcept;
-      NOD() ConstIterator begin() const noexcept;
-      NOD() ConstIterator end() const noexcept;
-      NOD() ConstIterator last() const noexcept;
+      NOD() TIterator<Map> begin() noexcept;
+      NOD() TIterator<Map> end() noexcept;
+      NOD() TIterator<Map> last() noexcept;
+      NOD() TIterator<const Map> begin() const noexcept;
+      NOD() TIterator<const Map> end() const noexcept;
+      NOD() TIterator<const Map> last() const noexcept;
    };
 
 } // namespace Langulus::Anyness

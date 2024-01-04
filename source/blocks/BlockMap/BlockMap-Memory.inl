@@ -17,7 +17,7 @@ namespace Langulus::Anyness
    ///   @attention does nothing if reserving less than current reserve       
    ///   @param count - number of pairs to allocate                           
    template<CT::Map THIS> LANGULUS(INLINED)
-   void BlockMap::Reserve(Count count) {
+   void BlockMap::Reserve(const Count count) {
       AllocateInner<THIS>(
          Roof2(count < MinimalAllocation ? MinimalAllocation : count)
       );
@@ -29,7 +29,7 @@ namespace Langulus::Anyness
    ///   @attention assumes count is a power-of-two                           
    ///   @param count - the new number of pairs                               
    template<CT::Map THIS> LANGULUS(INLINED)
-   void BlockMap::AllocateFresh(Count count) {
+   void BlockMap::AllocateFresh(const Count count) {
       LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(count),
          "Table reallocation count is not a power-of-two");
 
@@ -61,7 +61,7 @@ namespace Langulus::Anyness
    ///   @tparam REUSE - true to reallocate, false to allocate fresh          
    ///   @param count - the new number of pairs                               
    template<CT::Map THIS, bool REUSE>
-   void BlockMap::AllocateData(Count count) {
+   void BlockMap::AllocateData(const Count count) {
       LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(count),
          "Table reallocation count is not a power-of-two");
       LANGULUS_ASSUME(DevAssumes, mKeys.mType and mValues.mType,

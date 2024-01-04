@@ -99,8 +99,7 @@ namespace Langulus::Anyness
    /// completely changing the behavior of a program, by simply removing a    
    /// 'const' qualifier doesn't seem like a sound design decision in my book 
    ///                                                                        
-   class BlockMap : public A::BlockMap {
-   public:
+   struct BlockMap : A::BlockMap {
       using Pair = Anyness::Pair;
 
       static constexpr bool Ownership = false;
@@ -222,18 +221,15 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Iteration                                                         
       ///                                                                     
-      template<bool MUTABLE>
+      template<CT::Map MAP>
       struct TIterator;
 
-      using Iterator = TIterator<true>;
-      using ConstIterator = TIterator<false>;
-
-      NOD() Iterator begin() noexcept;
-      NOD() Iterator end() noexcept;
-      NOD() Iterator last() noexcept;
-      NOD() ConstIterator begin() const noexcept;
-      NOD() ConstIterator end() const noexcept;
-      NOD() ConstIterator last() const noexcept;
+      NOD() auto begin()       noexcept;
+      NOD() auto begin() const noexcept;
+      NOD() auto end()       noexcept;
+      NOD() auto end() const noexcept;
+      NOD() auto last()       noexcept;
+      NOD() auto last() const noexcept;
 
       template<bool REVERSE = false, class F>
       Count ForEach(F&&) const;
@@ -278,10 +274,6 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   RTTI                                                              
       ///                                                                     
-      template<CT::NotSemantic, CT::NotSemantic>
-      void Mutate();
-      void Mutate(DMeta, DMeta);
-      
       template<CT::Data, CT::Data...>
       NOD() bool KeyIs() const noexcept;
       NOD() bool KeyIs(DMeta) const noexcept;
@@ -306,32 +298,45 @@ namespace Langulus::Anyness
       NOD() bool ValueIsExact() const noexcept;
       NOD() bool ValueIsExact(DMeta) const noexcept;
 
-      NOD() bool IsTypeCompatibleWith(const BlockMap&) const noexcept;
+   protected:
+      template<CT::Map = UnorderedMap, CT::NotSemantic, CT::NotSemantic>
+      void Mutate();
+      template<CT::Map = UnorderedMap>
+      void Mutate(DMeta, DMeta);
 
+      template<CT::Map = UnorderedMap>
+      NOD() constexpr bool IsTypeCompatibleWith(CT::Map  auto const&) const noexcept;
+      template<CT::Map = UnorderedMap>
+      NOD() constexpr bool IsTypeCompatibleWith(CT::Pair auto const&) const noexcept;
+
+   public:
       ///                                                                     
       ///   Comparison                                                        
       ///                                                                     
-      bool operator == (const BlockMap&) const;
+      template<CT::Map = UnorderedMap>
+      bool operator == (CT::Map  auto const&) const;
+      template<CT::Map = UnorderedMap>
+      bool operator == (CT::Pair auto const&) const;
 
       NOD() Hash GetHash() const;
 
-      template<CT::Map = BlockMap>
+      template<CT::Map = UnorderedMap>
       NOD() bool ContainsKey(const CT::NotSemantic auto&) const;
-      template<CT::Map = BlockMap>
+      template<CT::Map = UnorderedMap>
       NOD() bool ContainsValue(const CT::NotSemantic auto&) const;
-      template<CT::Map = BlockMap>
+      template<CT::Map = UnorderedMap>
       NOD() bool ContainsPair(const CT::Pair auto&) const;
 
-      template<CT::Map = BlockMap>
+      template<CT::Map = UnorderedMap>
       NOD() Index Find(const CT::NotSemantic auto&) const;
-      template<CT::Map = BlockMap>
-      NOD() Iterator FindIt(const CT::NotSemantic auto&);
-      template<CT::Map = BlockMap>
-      NOD() ConstIterator FindIt(const CT::NotSemantic auto&) const;
+      template<CT::Map THIS = UnorderedMap>
+      NOD() TIterator<THIS> FindIt(const CT::NotSemantic auto&);
+      template<CT::Map THIS = UnorderedMap>
+      NOD() TIterator<const THIS> FindIt(const CT::NotSemantic auto&) const;
 
-      template<CT::Map = BlockMap>
+      template<CT::Map = UnorderedMap>
       NOD() Block At(const CT::NotSemantic auto&);
-      template<CT::Map = BlockMap>
+      template<CT::Map = UnorderedMap>
       NOD() Block At(const CT::NotSemantic auto&) const;
 
       NOD() Block operator[] (const CT::NotSemantic auto&);
@@ -346,7 +351,7 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Memory management                                                 
       ///                                                                     
-      template<CT::Map = BlockMap>
+      template<CT::Map = UnorderedMap>
       void Reserve(Count);
 
    protected:
@@ -368,14 +373,14 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Insertion                                                         
       ///                                                                     
-      template<CT::Map>
+      template<CT::Map = UnorderedMap>
       Count Insert(auto&&, auto&&);
 
-      template<CT::Map, class T1, class T2>
+      template<CT::Map = UnorderedMap, class T1, class T2>
       requires CT::Block<Desem<T1>, Desem<T2>>
       Count InsertBlock(T1&&, T2&&);
 
-      template<CT::Map, class T1, class...TAIL>
+      template<CT::Map = UnorderedMap, class T1, class...TAIL>
       Count InsertPair(T1&&, TAIL&&...);
 
    protected:
@@ -407,11 +412,11 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Removal                                                           
       ///                                                                     
-      template<CT::Map>
+      template<CT::Map = UnorderedMap>
       Count RemoveKey(const CT::NotSemantic auto&);
-      template<CT::Map>
+      template<CT::Map = UnorderedMap>
       Count RemoveValue(const CT::NotSemantic auto&);
-      template<CT::Map>
+      template<CT::Map = UnorderedMap>
       Count RemovePair(const CT::Pair auto&);
 
       template<CT::Map>
@@ -444,17 +449,32 @@ namespace Langulus::Anyness
    ///                                                                        
    ///   Map iterator                                                         
    ///                                                                        
-   template<bool MUTABLE>
+   template<CT::Map MAP>
    struct BlockMap::TIterator {
+      static constexpr bool Mutable = CT::Constant<MAP>;
+      static constexpr bool Typed = CT::Typed<MAP>;
+      using Key   = Conditional<Typed, typename MAP::Key,   void>;
+      using Value = Conditional<Typed, typename MAP::Value, void>;
+      using Pair  = Conditional<Typed
+         , TPair<Conditional<Mutable, Key&, const Key&>, 
+                 Conditional<Mutable, Value&, const Value&>>
+         , Anyness::Pair>;
+
+      LANGULUS(UNINSERTABLE) true;
+      LANGULUS(UNALLOCATABLE) true;
+      LANGULUS(TYPED) Conditional<Typed, Pair, void>;
+
    protected:
-      friend class BlockMap;
+      friend struct BlockMap;
+      using K = Conditional<Typed, const Key*,   Block>;
+      using V = Conditional<Typed, const Value*, Block>;
 
       const InfoType* mInfo {};
       const InfoType* mSentinel {};
-      Block mKey;
-      Block mValue;
+      K mKey;
+      V mValue;
 
-      TIterator(const InfoType*, const InfoType*, const Block&, const Block&) noexcept;
+      TIterator(const InfoType*, const InfoType*, K&&, V&&) noexcept;
 
    public:
       TIterator() noexcept = default;

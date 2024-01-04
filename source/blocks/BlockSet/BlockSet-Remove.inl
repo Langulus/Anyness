@@ -15,49 +15,41 @@ namespace Langulus::Anyness
 
    /// Erase a key                                                            
    /// The key may not match the contained key type                           
-   ///   @tparam SET - set we're removing from, using to deduce type,         
-   ///                 and as runtime optimization                            
    ///   @param key - the key to search for                                   
    ///   @return the number of removed pairs                                  
-   template<class SET> LANGULUS(INLINED)
+   template<CT::Set THIS> LANGULUS(INLINED)
    Count BlockSet::Remove(const CT::NotSemantic auto& key) {
-      static_assert(CT::Set<SET>, "SET must be a set type");
       using K = Deref<decltype(key)>;
       if (IsEmpty())
          return 0;
 
-      auto& THIS = reinterpret_cast<SET&>(*this);
-      if constexpr (CT::Array<K> and CT::ExactAsOneOf<Decvq<Deext<K>>, char, wchar_t>) {
-         if (THIS.template IsSimilar<Text>()) {
+      auto& me = reinterpret_cast<THIS&>(*this);
+      if constexpr (CT::StringLiteral<K>) {
+         if (me.template IsSimilar<Text>()) {
             // Implicitly make a text container on string literal       
-            return RemoveKeyInner<SET>(Text {Disown(key)});
+            return RemoveKeyInner<THIS>(Text {Disown(key)});
          }
-         else if (THIS.template IsSimilar<char*, wchar_t*>()) {
+         else if (me.template IsSimilar<char*, wchar_t*>()) {
             // Cast away the extent, search for pointer                 
-            return RemoveKeyInner<SET>(static_cast<const Deext<K>*>(key));
+            return RemoveKeyInner<THIS>(static_cast<const Deext<K>*>(key));
          }
          else return 0;
       }
-      else if (THIS.template IsSimilar<K>())
-         return RemoveKeyInner<SET>(key);
+      else if (me.template IsSimilar<K>())
+         return RemoveKeyInner<THIS>(key);
       
       return 0;
    }
    
    /// Erase a key (inner)                                                    
-   ///   @tparam SET - set we're removing from, using to deduce value type,   
-   ///                 and as runtime optimization                            
    ///   @param key - the key to search for                                   
    ///   @return 1 if pair was removed                                        
-   template<class SET> LANGULUS(INLINED)
+   template<CT::Set THIS> LANGULUS(INLINED)
    Count BlockSet::RemoveKeyInner(const CT::NotSemantic auto& key) {
-      static_assert(CT::Set<SET>, "SET must be a set type");
-      using K = Deref<decltype(key)>;
-
-      const auto found = FindInner<SET>(key);
+      const auto found = FindInner<THIS>(key);
       if (found != InvalidOffset) {
          // Key found, remove it                                        
-         RemoveInner<K>(found);
+         RemoveInner<THIS>(found);
          return 1;
       }
 
@@ -69,10 +61,10 @@ namespace Langulus::Anyness
    ///   @attention assumes that index points to a valid entry                
    ///   @attention assumes the set contains type similar to T, unless void   
    ///              (aka type-erased)                                         
-   ///   @param K - type of key (use void for type-erasure)                   
    ///   @param index - the index to remove                                   
-   template<class K>
-   void BlockSet::RemoveInner(const Offset& index) IF_UNSAFE(noexcept) {
+   template<CT::Set THIS> LANGULUS(INLINED)
+   void BlockSet::RemoveInner(Offset index) IF_UNSAFE(noexcept) {
+      using K = Conditional<CT::Typed<THIS>, TypeOf<THIS>, void>;
       auto psl = GetInfo() + index;
       LANGULUS_ASSUME(DevAssumes, *psl, "Removing an invalid key");
 
@@ -86,7 +78,7 @@ namespace Langulus::Anyness
             return key;
          }
          else {
-            auto key = GetHandle<Decvq<K>>(index);
+            auto key = GetHandle<K>(index);
             (key++).Destroy();
             return key;
          }
@@ -140,8 +132,8 @@ namespace Langulus::Anyness
             key.Next();
          }
          else {
-            key = GetHandle<Decvq<K>>(0);
-            GetHandle<Decvq<K>>(last).New(Abandon(key));
+            key = GetHandle<K>(0);
+            GetHandle<K>(last).New(Abandon(key));
             (key++).Destroy();
          }
 
@@ -156,16 +148,14 @@ namespace Langulus::Anyness
    }
 
    /// Clears all data, but doesn't deallocate                                
-   ///   @tparam SET - set we're searching in, potentially providing runtime  
-   ///                 optimization on type checks                            
-   template<class SET> LANGULUS(INLINED)
+   template<CT::Set THIS> LANGULUS(INLINED)
    void BlockSet::Clear() {
       if (IsEmpty())
          return;
 
       if (mKeys.mEntry->GetUses() == 1) {
          // Remove all used keys and values, they're used only here     
-         ClearInner<SET>();
+         ClearInner<THIS>();
 
          // Clear all info to zero                                      
          ZeroMemory(mInfo, GetReserved());
@@ -181,17 +171,12 @@ namespace Langulus::Anyness
    }
 
    /// Clears all data and deallocates                                        
-   ///   @tparam SET - set we're searching in, potentially providing runtime  
-   ///                 optimization on type checks                            
-   template<class SET> LANGULUS(INLINED)
+   template<CT::Set THIS> LANGULUS(INLINED)
    void BlockSet::Reset() {
-      static_assert(CT::Set<SET>, "SET must be a set type");
-      
       if (mKeys.mEntry) {
          if (mKeys.mEntry->GetUses() == 1) {
             // Remove all used keys and values, they're used only here  
-            if (not IsEmpty())
-               ClearInner<SET>();
+            ClearInner<THIS>();
 
             // No point in resetting info, we'll be deallocating it     
             Allocator::Deallocate(const_cast<Allocation*>(mKeys.mEntry));
@@ -209,35 +194,36 @@ namespace Langulus::Anyness
    }
 
    /// If possible reallocates the map to a smaller one                       
-   LANGULUS(INLINED)
+   template<CT::Set THIS> LANGULUS(INLINED)
    void BlockSet::Compact() {
-      //TODO();
+      TODO();
    }
    
-   /// Destroy everything valid inside the set                                
-   ///   @tparam SET - set we're searching in, potentially providing runtime  
-   ///                 optimization on type checks                            
-   ///   @attention assumes there's at least one valid key                    
-   template<class SET> LANGULUS(INLINED)
+   /// Destroy everything valid inside the set, but don't deallocate          
+   ///   @attention doesn't affect count, or any container state              
+   template<CT::Set THIS> LANGULUS(INLINED)
    void BlockSet::ClearInner() {
-      LANGULUS_ASSUME(DevAssumes, not IsEmpty(), "Set is empty");
-      static_assert(CT::Set<SET>, "SET must be a set type");
-
+      auto remaining = GetCount();
       auto inf = GetInfo();
       const auto infEnd = GetInfoEnd();
-      while (inf != infEnd) {
+
+      while (inf != infEnd and remaining) {
          if (*inf) {
             const auto offset = inf - GetInfo();
-            if constexpr (CT::TypedSet<SET>) {
-               GetHandle<TypeOf<SET>>(offset).Destroy();
-            }
-            else {
-               GetInner(offset).CallUnknownDestructors();
-            }
+            auto key = GetHandle<THIS>(offset);
+
+            if constexpr (CT::Typed<THIS>)
+               key.Destroy();
+            else
+               key.CallUnknownDestructors();
+
+            --remaining;
          }
 
          ++inf;
       }
+
+      LANGULUS_ASSUME(DevAssumes, not remaining, "Leftover");
    }
 
 } // namespace Langulus::Anyness

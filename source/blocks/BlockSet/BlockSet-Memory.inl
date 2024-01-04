@@ -15,12 +15,10 @@ namespace Langulus::Anyness
 
    /// Reserves space for the specified number of pairs                       
    ///   @attention does nothing if reserving less than current reserve       
-   ///   @tparam SET - set we're searching in, potentially providing runtime  
-   ///                 optimization on type checks                            
    ///   @param count - number of pairs to allocate                           
-   template<class SET> LANGULUS(INLINED)
-   void BlockSet::Reserve(const Count& count) {
-      AllocateInner<SET>(
+   template<CT::Set THIS> LANGULUS(INLINED)
+   void BlockSet::Reserve(const Count count) {
+      AllocateInner<THIS>(
          Roof2(count < MinimalAllocation ? MinimalAllocation : count)
       );
    }
@@ -30,12 +28,13 @@ namespace Langulus::Anyness
    ///   @attention doesn't modify count, doesn't set info sentinel           
    ///   @attention assumes count is a power-of-two                           
    ///   @param count - the new number of elements                            
-   inline void BlockSet::AllocateFresh(const Count& count) {
+   template<CT::Set THIS> LANGULUS(INLINED)
+   void BlockSet::AllocateFresh(const Count count) {
       LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(count),
          "Table reallocation count is not a power-of-two");
 
       Offset infoOffset;
-      const auto keyAndInfoSize = RequestKeyAndInfoSize(count, infoOffset);
+      const auto keyAndInfoSize = RequestKeyAndInfoSize<THIS>(count, infoOffset);
       mKeys.mEntry = Allocator::Allocate(mKeys.mType, keyAndInfoSize);
       LANGULUS_ASSERT(mKeys.mEntry, Allocate, "Out of memory");
 
@@ -50,26 +49,20 @@ namespace Langulus::Anyness
    ///   @attention assumes count is a power-of-two                           
    ///   @attention assumes key type have been set prior                      
    ///   @tparam REUSE - true to reallocate, false to allocate fresh          
-   ///   @tparam SET - set we're searching in, potentially providing runtime  
-   ///                 optimization on type checks                            
    ///   @param count - the new number of pairs                               
-   template<bool REUSE, class SET>
-   void BlockSet::AllocateData(const Count& count) {
+   template<CT::Set THIS, bool REUSE>
+   void BlockSet::AllocateData(Count count) {
       LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(count),
          "Table reallocation count is not a power-of-two");
       LANGULUS_ASSUME(DevAssumes, mKeys.mType,
          "Key type haven't been set");
-      static_assert(CT::Set<SET>, "SET must be a set type");
-      UNUSED() auto& THIS = reinterpret_cast<const SET&>(*this); //TODO
 
+      auto& me = reinterpret_cast<const THIS&>(*this);
       Offset infoOffset;
-      auto oldInfo = mInfo;
-      const auto oldCount = GetReserved();
-      const auto oldInfoEnd = oldInfo + oldCount;
 
       // Allocate new keys                                              
-      Block oldKeys {mKeys};
-      const auto keyAndInfoSize = THIS.RequestKeyAndInfoSize(count, infoOffset);
+      BlockSet old = *this;
+      const auto keyAndInfoSize = RequestKeyAndInfoSize<THIS>(count, infoOffset);
       if constexpr (REUSE)
          mKeys.mEntry = Allocator::Reallocate(
             keyAndInfoSize, const_cast<Allocation*>(mKeys.mEntry));
@@ -90,28 +83,28 @@ namespace Langulus::Anyness
       // Zero or move the info array                                    
       if constexpr (REUSE) {
          // Check if keys were reused                                   
-         if (mKeys.mEntry == oldKeys.mEntry) {
+         if (mKeys.mEntry == old.mKeys.mEntry) {
             // Data was reused, but info always moves (null the rest)   
-            MoveMemory(mInfo, oldInfo, oldCount);
-            ZeroMemory(mInfo + oldCount, count - oldCount);
+            MoveMemory(mInfo, old.mInfo, old.GetCount());
+            ZeroMemory(mInfo + old.GetCount(), count - old.GetCount());
 
             // Data was reused, but entries always move if sparse keys  
-            if (THIS.IsSparse()) {
+            if (me.IsSparse()) {
                MoveMemory(
                   mKeys.mRawSparse + count,
-                  mKeys.mRawSparse + oldCount,
-                  oldCount
+                  mKeys.mRawSparse + old.GetCount(),
+                  old.GetCount()
                );
             };
 
-            Rehash<SET>(oldCount);
+            Rehash<THIS>(old.GetCount());
             return;
          }
       }
 
       // If reached, then keys are newly allocated                      
       ZeroMemory(mInfo, count);
-      if (not oldKeys) {
+      if (not old.mKeys) {
          // There are no old values, the previous set was empty         
          // Just do an early return right here                          
          return;
@@ -119,27 +112,21 @@ namespace Langulus::Anyness
 
       // If reached, then keys moved - reinsert all keys to rehash     
       mKeys.mCount = 0;
-      IF_SAFE(oldKeys.mCount = oldCount);
       
-      auto key = [&oldKeys]{
-         if constexpr (CT::TypedSet<SET>)
-            return oldKeys.template GetHandle<TypeOf<SET>>(0);
-         else
-            return oldKeys.GetElement();
-      }();
-
+      auto key = old.GetHandle<THIS>(0);
       const auto hashmask = GetReserved() - 1;
-      while (oldInfo != oldInfoEnd) {
-         if (*oldInfo) {
-            if constexpr (CT::TypedSet<SET>) {
-               InsertInner<false, SET::Ordered>(
+      const auto oldInfoEnd = old.GetInfoEnd();
+      while (old.mInfo != oldInfoEnd) {
+         if (*old.mInfo) {
+            if constexpr (CT::Typed<THIS>) {
+               InsertInner<THIS, false>(
                   GetBucket(hashmask, key.Get()),
                   Abandon(key)
                );
                key.Destroy();
             }
             else {
-               InsertInnerUnknown<false, SET::Ordered>(
+               InsertInnerUnknown<THIS, false>(
                   GetBucketUnknown(hashmask, key),
                   Abandon(key)
                );
@@ -151,34 +138,30 @@ namespace Langulus::Anyness
             }
          }
 
-         if constexpr (CT::TypedSet<SET>) {
+         if constexpr (CT::TypedSet<THIS>)
             ++key;
-         }
-         else {
+         else
             key.Next();
-         }
 
-         ++oldInfo;
+         ++old.mInfo;
       }
 
       // Free the old allocations                                       
-      if (oldKeys.mEntry and oldKeys.mEntry != mKeys.mEntry) {
+      if (old.mKeys.mEntry and old.mKeys.mEntry != mKeys.mEntry) {
          // Not reusing, so either deallocate, or dereference           
-         if (oldKeys.mEntry->GetUses() > 1)
-            const_cast<Allocation*>(oldKeys.mEntry)->Free();
+         if (old.mKeys.mEntry->GetUses() > 1)
+            const_cast<Allocation*>(old.mKeys.mEntry)->Free();
          else
-            Allocator::Deallocate(const_cast<Allocation*>(oldKeys.mEntry));
+            Allocator::Deallocate(const_cast<Allocation*>(old.mKeys.mEntry));
       }
    }
 
    /// Reserves space for the specified number of pairs                       
    ///   @attention does nothing if reserving less than current reserve       
    ///   @attention assumes count is a power-of-two number                    
-   ///   @tparam SET - set we're searching in, potentially providing runtime  
-   ///                 optimization on type checks                            
    ///   @param count - number of pairs to allocate                           
-   template<class SET> LANGULUS(INLINED)
-   void BlockSet::AllocateInner(const Count& count) {
+   template<CT::Set THIS> LANGULUS(INLINED)
+   void BlockSet::AllocateInner(Count count) {
       // Shrinking is never allowed, you'll have to do it explicitly    
       // via Compact()                                                  
       if (count <= GetReserved())
@@ -186,15 +169,15 @@ namespace Langulus::Anyness
 
       // Allocate/Reallocate the keys and info                          
       if (IsAllocated() and GetUses() == 1)
-         AllocateData<true,  SET>(count);
+         AllocateData<THIS, true>(count);
       else
-         AllocateData<false, SET>(count);
+         AllocateData<THIS, false>(count);
    }
    
    /// Reference memory block if we own it                                    
    ///   @param times - number of references to add                           
    LANGULUS(INLINED)
-   void BlockSet::Reference(const Count& times) const noexcept {
+   void BlockSet::Reference(Count times) const noexcept {
       mKeys.Reference(times);
    }
    
@@ -216,8 +199,7 @@ namespace Langulus::Anyness
          mKeys.mEntry->GetUses() >= 1, "Bad memory dereferencing");
 
       if (mKeys.mEntry->GetUses() == 1) {
-         if (not IsEmpty())
-            ClearInner<THIS>();
+         ClearInner<THIS>();
 
          // Deallocate stuff                                            
          Allocator::Deallocate(const_cast<Allocation*>(mKeys.mEntry));

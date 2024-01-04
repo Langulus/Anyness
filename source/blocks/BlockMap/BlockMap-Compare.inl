@@ -12,28 +12,74 @@
 
 namespace Langulus::Anyness
 {
-   
-   /// Checks if both tables contain the same entries                         
-   ///   @attention assumes both maps are of same orderness                   
-   ///   @param other - the table to compare against                          
-   ///   @return true if tables match                                         
-   inline bool BlockMap::operator == (const BlockMap& other) const {
-      if (other.GetCount() != GetCount() or not IsTypeCompatibleWith(other))
+
+   /// Compare this map against another map, type-erased or not               
+   ///   @param rhs - map to compare against                                  
+   ///   @return true if contents of both maps are the same                   
+   template<CT::Map THIS>
+   bool BlockMap::operator == (CT::Map auto const& rhs) const {
+      if (rhs.GetCount() != GetCount()
+      or not IsTypeCompatibleWith<THIS>(rhs))
          return false;
 
+      // If reached, then both maps contain similar types of data       
+      using RHS = Conditional<CT::Typed<THIS>, THIS, Deref<decltype(rhs)>>;
       auto info = GetInfo();
       const auto infoEnd = GetInfoEnd();
       while (info != infoEnd) {
          if (*info) {
-            const auto lhs = info - GetInfo();
-            const auto rhs = other.FindInnerUnknown(GetKeyInner(lhs));
-            if (rhs == InvalidOffset or GetValueInner(lhs) != other.GetValueInner(rhs))
-               return false;
+            // Compare each valid pair...                               
+            const auto index = info - GetInfo();
+            if constexpr (CT::Typed<RHS>) {
+               // ...with known types, if any of the maps are typed     
+               const auto r = rhs.template FindInner<RHS>(GetRawKey<RHS>(index));
+               if (r == InvalidOffset
+               or GetRawValue<RHS>(index) != rhs.GetRawValue<RHS>(r))
+                  return false;
+            }
+            else {
+               // ...via rtti, since all maps are type-erased           
+               const auto r = rhs.FindInnerUnknown(GetKeyInner(index));
+               if (r == InvalidOffset
+               or GetValueInner(index) != rhs.GetValueInner(r))
+                  return false;
+            }
          }
 
          ++info;
       }
 
+      // If reached, then both maps are the same                        
+      return true;
+   }
+
+   /// Compare this map against a pair, type-erased or not                    
+   ///   @param rhs - pair to compare against                                 
+   ///   @return true this map contains only this exact pair                  
+   template<CT::Map THIS>
+   bool BlockMap::operator == (CT::Pair auto const& rhs) const {
+      if (1 != GetCount() or not IsTypeCompatibleWith<THIS>(rhs))
+         return false;
+
+      // If reached, then pair contains similar types of data           
+      using P = Deref<decltype(rhs)>;
+      using RHS = Conditional<CT::Typed<THIS>, THIS, TMap<typename P::Key,
+                                                          typename P::Value,
+                                                          THIS::Ordered>>;
+      if constexpr (CT::Typed<RHS>) {
+         // ...with known types, if any of the maps are typed           
+         const auto r = FindInner<RHS>(rhs.mKey);
+         if (r == InvalidOffset or GetRawValue<RHS>(0) != rhs.mValue)
+            return false;
+      }
+      else {
+         // ...via rtti, since all maps are type-erased                 
+         const auto r = FindInnerUnknown(rhs.mKey);
+         if (r == InvalidOffset or GetValueInner(0) != rhs.mValue)
+            return false;
+      }
+
+      // If reached, then map contains that exact pair                  
       return true;
    }
    
@@ -61,24 +107,40 @@ namespace Langulus::Anyness
    ///   @return true if value is found, false otherwise                      
    template<CT::Map THIS> LANGULUS(INLINED)
    bool BlockMap::ContainsValue(const CT::NotSemantic auto& value) const {
+      using V = Deref<decltype(value)>;
       if (IsEmpty())
          return false;
 
-      auto& me = reinterpret_cast<const THIS&>(*this);
-      using V = Decvq<Deref<decltype(value)>>;
-      if (not me.template ValueIsSimilar<V>()
-      and not (CT::Typed<THIS> and ::std::equality_comparable_with<typename THIS::Value, V>))
-         return false;
+      if constexpr (CT::Typed<THIS>) {
+         // Search in a statically-typed map                            
+         static_assert(::std::equality_comparable_with<V, typename THIS::Value>,
+            "Provided value is not comparable to map's value type");
+         auto test = &GetRawValue<THIS>(0);
+         auto info = GetInfo();
+         const auto infoEnd = GetInfoEnd();
 
-      auto elem = &GetRawValue<V>(0);
-      auto info = GetInfo();
-      const auto infoEnd = GetInfoEnd();
+         while (info != infoEnd) {
+            if (*info and *test == value)
+               return true;
 
-      while (info != infoEnd) {
-         if (*info and *elem == value)
-            return true;
+            ++test; ++info;
+         }
+      }
+      else {
+         // Search in a type-erased map                                 
+         if (not ValueIsSimilar<V>())
+            return false;
 
-         ++elem; ++info;
+         auto elem = &mValues.template Get<V>(0);
+         auto info = GetInfo();
+         const auto infoEnd = GetInfoEnd();
+
+         while (info != infoEnd) {
+            if (*info and *elem == value)
+               return true;
+
+            ++elem; ++info;
+         }
       }
 
       return false;

@@ -270,7 +270,7 @@ namespace Langulus::Anyness
    ///   @tparam CREATE - true to call constructors and set count             
    ///   @param elements - number of elements to allocate                     
    template<CT::Block THIS, bool CREATE>
-   void Block::AllocateInner(const Count& elements) {
+   void Block::AllocateInner(Count elements) {
       LANGULUS_ASSERT(mType, Allocate,
          "Invalid type");
       LANGULUS_ASSERT(not mType->mIsAbstract or IsSparse(), Allocate,
@@ -355,7 +355,7 @@ namespace Langulus::Anyness
    /// Reference memory block if we own it                                    
    ///   @param times - number of references to add                           
    LANGULUS(INLINED)
-   void Block::Reference(const Count& times) const noexcept {
+   void Block::Reference(Count times) const noexcept {
       if (mEntry)
          const_cast<Allocation*>(mEntry)->Keep(times);
    }

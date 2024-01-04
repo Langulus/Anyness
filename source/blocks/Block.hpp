@@ -186,13 +186,13 @@ namespace Langulus::Anyness
       template<CT::Data>
       friend class TAny;
 
-      friend class BlockMap;
+      friend struct BlockMap;
       template<bool>
       friend struct Map;
       template<CT::Data, CT::Data, bool>
       friend struct TMap;
 
-      friend class BlockSet;
+      friend struct BlockSet;
       template<bool>
       friend struct Set;
       template<CT::Data, bool>
@@ -329,41 +329,39 @@ namespace Langulus::Anyness
       ///   Indexing                                                          
       ///                                                                     
       template<bool COUNT_CONSTRAINED = true>
-      NOD() constexpr Index Constrain(const Index&) const noexcept;
+      NOD() constexpr Index Constrain(Index) const noexcept;
       template<CT::Data, bool COUNT_CONSTRAINED = true>
-      NOD() Index ConstrainMore(const Index&) const IF_UNSAFE(noexcept);
+      NOD() Index ConstrainMore(Index) const IF_UNSAFE(noexcept);
 
       NOD() IF_UNSAFE(constexpr)
-      Byte* At(const Offset& = 0) IF_UNSAFE(noexcept);
+      Byte* At(Offset = 0) IF_UNSAFE(noexcept);
       NOD() IF_UNSAFE(constexpr)
-      const Byte* At(const Offset& = 0) const IF_UNSAFE(noexcept);
+      const Byte* At(Offset = 0) const IF_UNSAFE(noexcept);
    
-      template<CT::Index IDX = Offset>
-      NOD() Block operator[] (const IDX&);
-      template<CT::Index IDX = Offset>
-      NOD() Block operator[] (const IDX&) const;
+      NOD() Block operator[] (CT::Index auto);
+      NOD() Block operator[] (CT::Index auto) const;
 
       template<CT::Data> NOD() IF_UNSAFE(constexpr)
-      decltype(auto) Get(const Offset& = 0, const Offset& = 0) IF_UNSAFE(noexcept);
+      decltype(auto) Get(Offset = 0, Offset = 0) IF_UNSAFE(noexcept);
       template<CT::Data> NOD() IF_UNSAFE(constexpr)
-      decltype(auto) Get(const Offset& = 0, const Offset& = 0) const IF_UNSAFE(noexcept);
+      decltype(auto) Get(Offset = 0, Offset = 0) const IF_UNSAFE(noexcept);
    
-      template<CT::Data, CT::Index IDX = Offset>
-      NOD() decltype(auto) As(const IDX& = {});
-      template<CT::Data, CT::Index IDX = Offset>
-      NOD() decltype(auto) As(const IDX& = {}) const;
+      template<CT::Data>
+      NOD() decltype(auto) As(CT::Index auto = 0);
+      template<CT::Data>
+      NOD() decltype(auto) As(CT::Index auto = 0) const;
    
       // Intentionally undefined, because it requires Langulus::Flow    
       // and relies on Verbs::Interpret                                 
       // If you receive missing externals, include the following:       
       //    #include <Flow/Verbs/Interpret.hpp>                         
-      template<CT::Data T, bool FATAL_FAILURE = true, CT::Index IDX = Offset>
-      NOD() T AsCast(const IDX& = {}) const;
+      template<CT::Data T, bool FATAL_FAILURE = true>
+      NOD() T AsCast(CT::Index auto = 0) const;
    
       template<CT::Block THIS> NOD() IF_UNSAFE(constexpr)
-      THIS Crop(const Offset&, const Count&) IF_UNSAFE(noexcept);
+      THIS Crop(Offset, Count) IF_UNSAFE(noexcept);
       template<CT::Block THIS> NOD() IF_UNSAFE(constexpr)
-      THIS Crop(const Offset&, const Count&) const IF_UNSAFE(noexcept);
+      THIS Crop(Offset, Count) const IF_UNSAFE(noexcept);
 
       NOD() Block GetElementDense(Offset);
       NOD() Block GetElementDense(Offset) const;
@@ -386,9 +384,9 @@ namespace Langulus::Anyness
       NOD() Block GetResolved();
       NOD() Block GetResolved() const;
 
-      template<Count COUNT = CountMax>
+      template<Count = CountMax>
       NOD() Block GetDense();
-      template<Count COUNT = CountMax>
+      template<Count = CountMax>
       NOD() Block GetDense() const;
 
       template<CT::Data>
@@ -408,7 +406,7 @@ namespace Langulus::Anyness
       template<CT::Data T>
       NOD() Handle<T> GetHandle(Offset) const IF_UNSAFE(noexcept);
 
-      NOD() Block CropInner(const Offset&, const Count&) const IF_UNSAFE(noexcept);
+      NOD() Block CropInner(Offset, Count) const IF_UNSAFE(noexcept);
 
       void Next() IF_UNSAFE(noexcept);
       void Prev() IF_UNSAFE(noexcept);
@@ -416,7 +414,7 @@ namespace Langulus::Anyness
       NOD() Block Prev() const IF_UNSAFE(noexcept);
 
       template<class, bool COUNT_CONSTRAINED = true, CT::Index INDEX>
-      Offset SimplifyIndex(const INDEX&) const
+      Offset SimplifyIndex(INDEX) const
       noexcept(not LANGULUS_SAFE() and CT::BuiltinInteger<INDEX>);
 
    public:
@@ -464,7 +462,7 @@ namespace Langulus::Anyness
       Count ForEachDeepInner(auto&&);
 
       template<class R, CT::Data A, bool REVERSE = false, bool MUTABLE = false>
-      void IterateInner(const Count&, auto&& f) noexcept(NoexceptIterator<decltype(f)>);
+      void IterateInner(Count, auto&& f) noexcept(NoexceptIterator<decltype(f)>);
 
    public:
       ///                                                                     
@@ -548,9 +546,9 @@ namespace Langulus::Anyness
       NOD() Hash GetHash() const;
 
       template<bool REVERSE = false>
-      NOD() Index FindKnown(const CT::NotSemantic auto&, const Offset& = 0) const;
+      NOD() Index FindKnown(const CT::NotSemantic auto&, Offset = 0) const;
       template<bool REVERSE = false>
-      NOD() Index FindUnknown(const Block&, const Offset& = 0) const;
+      NOD() Index FindUnknown(const Block&, Offset = 0) const;
       template<bool REVERSE = false>
       NOD() Index FindDeep(const CT::NotSemantic auto&, Offset = 0) const;
 
@@ -569,28 +567,28 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Memory management                                                 
       ///                                                                     
-      template<CT::Block THIS = Any>
+      template<CT::Block = Any>
       void Reserve(Count);
 
    protected:
       /// @cond show_protected                                                
-      template<CT::Block THIS>
+      template<CT::Block>
       NOD() AllocationRequest RequestSize(const Count&) const IF_UNSAFE(noexcept);
 
-      template<CT::Block THIS, bool CREATE = false, bool SETSIZE = false>
+      template<CT::Block, bool CREATE = false, bool SETSIZE = false>
       void AllocateMore(Count);
-      template<CT::Block THIS>
+      template<CT::Block>
       void AllocateLess(Count);
 
-      template<CT::Block THIS>
+      template<CT::Block>
       void TakeAuthority();
-      template<CT::Block THIS, bool CREATE = false>
-      void AllocateInner(const Count&);
+      template<CT::Block, bool CREATE = false>
+      void AllocateInner(Count);
       void AllocateFresh(const AllocationRequest&);
 
-      void Reference(const Count&) const noexcept;
+      void Reference(Count) const noexcept;
       void Keep() const noexcept;
-      template<CT::Block THIS = Any>
+      template<CT::Block = Any>
       void Free();
 
       void SetMemory(const DataState&, DMeta, Count, const void*) IF_UNSAFE(noexcept);
@@ -605,24 +603,24 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Insertion                                                         
       ///                                                                     
-      template<CT::Block THIS = Any, class FORCE = Any, bool MOVE_ASIDE = true, class T1, class...TAIL>
+      template<CT::Block = Any, class FORCE = Any, bool MOVE_ASIDE = true, class T1, class...TAIL>
       Count Insert(CT::Index auto, T1&&, TAIL&&...);
 
-      template<CT::Block THIS = Any, class FORCE = Any, bool MOVE_ASIDE = true, class T>
+      template<CT::Block = Any, class FORCE = Any, bool MOVE_ASIDE = true, class T>
       requires CT::Block<Desem<T>>
       Count InsertBlock(CT::Index auto, T&&);
 
-      template<CT::Block THIS = Any, class FORCE = Any, bool MOVE_ASIDE = true, class T1, class...TAIL>
+      template<CT::Block = Any, class FORCE = Any, bool MOVE_ASIDE = true, class T1, class...TAIL>
       Count Merge(CT::Index auto, T1&&, TAIL&&...);
 
-      template<CT::Block THIS = Any, class FORCE = Any, bool MOVE_ASIDE = true, class T>
+      template<CT::Block = Any, class FORCE = Any, bool MOVE_ASIDE = true, class T>
       requires CT::Block<Desem<T>>
       Count MergeBlock(CT::Index auto, T&&);
    
-      template<CT::Block THIS = Any, bool MOVE_ASIDE = true, class...A>
+      template<CT::Block = Any, bool MOVE_ASIDE = true, class...A>
       Count Emplace(CT::Index auto, A&&...);
 
-      template<CT::Block THIS = Any, class...A>
+      template<CT::Block = Any, class...A>
       Count New(Count, A&&...);
 
       template<bool CONCAT = true, class FORCE = Any, CT::Block THIS = Any>
@@ -632,37 +630,37 @@ namespace Langulus::Anyness
       requires CT::CanBeDeepened<T, THIS>
       T& Deepen();
 
-      template<CT::Block THIS>
+      template<CT::Block>
       void Null(Count);
 
-      template<CT::Block THIS>
+      template<CT::Block>
       Count New(Count);
 
    protected:
-      template<CT::Block THIS, template<class> class S>
+      template<CT::Block, template<class> class S>
       requires CT::Semantic<S<Block>>
       void SwapInner(S<Block>&&);
 
-      template<CT::Block THIS, class FORCE, bool MOVE_ASIDE, class T = void, template<class> class S>
+      template<CT::Block, class FORCE, bool MOVE_ASIDE, class T = void, template<class> class S>
       requires CT::Semantic<S<Block>>
       void InsertContiguousInner(CT::Index auto, S<Block>&&);
 
-      template<CT::Block THIS, class FORCE, bool MOVE_ASIDE>
+      template<CT::Block, class FORCE, bool MOVE_ASIDE>
       void InsertInner(CT::Index auto, auto&&);
 
-      template<CT::Block THIS, class... A>
+      template<CT::Block, class... A>
       void EmplaceInner(const Block&, Count, A&&...);
 
-      template<CT::Block THIS, class FORCE, bool MOVE_ASIDE>
+      template<CT::Block, class FORCE, bool MOVE_ASIDE>
       Count UnfoldInsert(CT::Index auto, auto&&);
-      template<CT::Block THIS, class FORCE, bool MOVE_ASIDE>
+      template<CT::Block, class FORCE, bool MOVE_ASIDE>
       Count UnfoldMerge(CT::Index auto, auto&&);
 
-      template<CT::Block THIS, class FORCE, template<class> class S, CT::Deep T>
+      template<CT::Block, class FORCE, template<class> class S, CT::Deep T>
       requires CT::Semantic<S<T>>
       Count SmartConcat(const CT::Index auto, bool, S<T>&&, DataState);
 
-      template<CT::Block THIS, class FORCE, template<class> class S, class T>
+      template<CT::Block, class FORCE, template<class> class S, class T>
       requires CT::Semantic<S<T>>
       Count SmartPushInner(const CT::Index auto, S<T>&&, DataState);
 
@@ -744,8 +742,8 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Encryption                                                        
       ///                                                                     
-      Size Encrypt(Block&, const ::std::size_t*, const Count&) const;
-      Size Decrypt(Block&, const ::std::size_t*, const Count&) const;
+      Size Encrypt(Block&, const ::std::size_t*, Count) const;
+      Size Decrypt(Block&, const ::std::size_t*, Count) const;
 
       ///                                                                     
       ///   Serialization                                                     

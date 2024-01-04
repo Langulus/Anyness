@@ -64,7 +64,7 @@ namespace Langulus
       template<CT::Data>
       class TAny;
 
-      class BlockMap;
+      struct BlockMap;
 
       template<bool>
       struct Map;
@@ -78,7 +78,7 @@ namespace Langulus
       template<CT::Data K, CT::Data V>
       using TUnorderedMap = TMap<K, V, false>;
 
-      class BlockSet;
+      struct BlockSet;
 
       template<bool>
       struct Set;

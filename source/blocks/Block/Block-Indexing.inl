@@ -20,7 +20,7 @@ namespace Langulus::Anyness
    ///   @param idx - the index to constrain                                  
    ///   @return the constrained index or a special one of constrain fails    
    template<bool COUNT_CONSTRAINED> LANGULUS(INLINED)
-   constexpr Index Block::Constrain(const Index& idx) const noexcept {
+   constexpr Index Block::Constrain(Index idx) const noexcept {
       return idx.Constrained(COUNT_CONSTRAINED ? mCount : mReserved);
    }
    
@@ -31,7 +31,7 @@ namespace Langulus::Anyness
    ///   @param idx - the index to constrain                                  
    ///   @return the constrained index or a special one of constrain fails    
    template<CT::Data T, bool COUNT_CONSTRAINED> LANGULUS(INLINED)
-   Index Block::ConstrainMore(const Index& idx) const IF_UNSAFE(noexcept) {
+   Index Block::ConstrainMore(Index idx) const IF_UNSAFE(noexcept) {
       const auto result = Constrain<COUNT_CONSTRAINED>(idx);
 
       if (result == IndexBiggest) {
@@ -63,7 +63,7 @@ namespace Langulus::Anyness
    ///   @param byteOffset - number of bytes to add                           
    ///   @return pointer to the selected raw data offset                      
    LANGULUS(INLINED) IF_UNSAFE(constexpr)
-   Byte* Block::At(const Offset& byteOffset) IF_UNSAFE(noexcept) {
+   Byte* Block::At(Offset byteOffset) IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, mRaw,
          "Invalid memory");
       LANGULUS_ASSUME(DevAssumes, byteOffset < GetReservedSize(),
@@ -77,7 +77,7 @@ namespace Langulus::Anyness
    ///   @param byteOffset - number of bytes to add                           
    ///   @return pointer to the selected raw data offset                      
    LANGULUS(INLINED) IF_UNSAFE(constexpr)
-   const Byte* Block::At(const Offset& byte_offset) const IF_UNSAFE(noexcept) {
+   const Byte* Block::At(Offset byte_offset) const IF_UNSAFE(noexcept) {
       return const_cast<Block*>(this)->At(byte_offset);
    }
 
@@ -85,7 +85,7 @@ namespace Langulus::Anyness
    ///   @param idx - the index                                               
    ///   @return mutable type-erased element, wrapped in a Block              
    LANGULUS(INLINED)
-   Block Block::operator[] (const CT::Index auto& idx) {
+   Block Block::operator[] (CT::Index auto idx) {
       const auto index = SimplifyIndex<void>(idx);
       return GetElement(index);
    }
@@ -94,7 +94,7 @@ namespace Langulus::Anyness
    ///   @param idx - the index                                               
    ///   @return immutable type-erased element, wrapped in a Block            
    LANGULUS(INLINED)
-   Block Block::operator[] (const CT::Index auto& idx) const {
+   Block Block::operator[] (CT::Index auto idx) const {
       const auto index = SimplifyIndex<void>(idx);
       return GetElement(index);
    }
@@ -108,7 +108,7 @@ namespace Langulus::Anyness
    ///   @param baseOffset - byte offset from the element to apply            
    ///   @return either pointer or reference to the element (depends on T)    
    template<CT::Data T> LANGULUS(INLINED) IF_UNSAFE(constexpr)
-   decltype(auto) Block::Get(const Offset& idx, const Offset& baseOffset) IF_UNSAFE(noexcept) {
+   decltype(auto) Block::Get(Offset idx, Offset baseOffset) IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, IsTyped(), "Block is not typed");
 
       Byte* pointer;
@@ -132,7 +132,7 @@ namespace Langulus::Anyness
    ///   @param baseOffset - byte offset from the element to apply            
    ///   @return either pointer or reference to the element (depends on T)    
    template<CT::Data T> LANGULUS(INLINED) IF_UNSAFE(constexpr)
-   decltype(auto) Block::Get(const Offset& idx, const Offset& baseOffset) const IF_UNSAFE(noexcept) {
+   decltype(auto) Block::Get(Offset idx, Offset baseOffset) const IF_UNSAFE(noexcept) {
       return const_cast<Block*>(this)->template Get<T>(idx, baseOffset);
    }
    
@@ -143,7 +143,7 @@ namespace Langulus::Anyness
    ///   @param index - the index                                             
    ///   @return either pointer or reference to the element (depends on T)    
    template<CT::Data T>
-   decltype(auto) Block::As(const CT::Index auto& index) {
+   decltype(auto) Block::As(CT::Index auto index) {
       if (not mType)
          LANGULUS_THROW(Access, "Untyped block");
 
@@ -190,7 +190,7 @@ namespace Langulus::Anyness
    ///   @param index - the index                                             
    ///   @return either pointer or reference to the element (depends on T)    
    template<CT::Data T> LANGULUS(INLINED)
-   decltype(auto) Block::As(const CT::Index auto& index) const {
+   decltype(auto) Block::As(CT::Index auto index) const {
       return const_cast<Block&>(*this).template As<T>(index);
    }
    
@@ -199,7 +199,7 @@ namespace Langulus::Anyness
    ///   @param count - number of elements to remain after 'start'            
    ///   @return the block representing the region                            
    template<CT::Block THIS> LANGULUS(INLINED) IF_UNSAFE(constexpr)
-   THIS Block::Crop(const Offset& start, const Count& count)
+   THIS Block::Crop(Offset start, Count count)
    IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, start + count <= mCount, "Out of limits");
 
@@ -222,7 +222,7 @@ namespace Langulus::Anyness
    ///   @param count - number of elements                                    
    ///   @return the block representing the region                            
    template<CT::Block THIS> LANGULUS(INLINED) IF_UNSAFE(constexpr)
-   THIS Block::Crop(const Offset& start, const Count& count)
+   THIS Block::Crop(Offset start, Count count)
    const IF_UNSAFE(noexcept) {
       auto result = const_cast<Block*>(this)
          ->template Crop<THIS>(start, count);
@@ -620,7 +620,7 @@ namespace Langulus::Anyness
    ///   @param count - number of elements                                    
    ///   @return the block representing the region                            
    LANGULUS(INLINED)
-   Block Block::CropInner(const Offset& start, const Count& count) const IF_UNSAFE(noexcept) {
+   Block Block::CropInner(Offset start, Count count) const IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, mRaw,
          "Block is not allocated");
       LANGULUS_ASSUME(DevAssumes, IsTyped(),
@@ -695,11 +695,10 @@ namespace Langulus::Anyness
    ///      use void to skip these indices at no cost                         
    ///   @tparam COUNT_CONSTRAINED - will check count limits if true or       
    ///      reserve limit if false, when DevAssumes is enabled                
-   ///   @tparam INDEX - type of the index to simplify                        
    ///   @param index - the index to simplify                                 
    ///   @return the simplified index, as a simple offset                     
    template<class T, bool COUNT_CONSTRAINED, CT::Index INDEX> LANGULUS(INLINED)
-   Offset Block::SimplifyIndex(const INDEX& index) const
+   Offset Block::SimplifyIndex(INDEX index) const
    noexcept(not LANGULUS_SAFE() and CT::BuiltinInteger<INDEX>) {
       if constexpr (CT::Same<INDEX, Index>) {
          // This is the most safe path, throws on errors                
