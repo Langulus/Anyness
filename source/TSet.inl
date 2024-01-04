@@ -267,23 +267,6 @@ namespace Langulus::Anyness
       return GetType()->IsExact(value);
    }
 
-   /// Request a new size of keys and info via the value container            
-   /// The memory layout is:                                                  
-   ///   [keys for each bucket]                                               
-   ///         [padding for alignment]                                        
-   ///               [info for each bucket]                                   
-   ///                     [one sentinel byte for terminating loops]          
-   ///   @param infoStart - [out] the offset at which info bytes start        
-   ///   @return the requested byte size                                      
-   TEMPLATE() LANGULUS(INLINED)
-   Size TABLE()::RequestKeyAndInfoSize(const Count count, Offset& infoStart) noexcept {
-      Size keymemory = count * sizeof(T);
-      if constexpr (CT::Sparse<T>)
-         keymemory *= 2;
-      infoStart = keymemory + Alignment - (keymemory % Alignment);
-      return infoStart + count + 1;
-   }
-
    /// Reserves space for the specified number of pairs                       
    ///   @attention does nothing if reserving less than current reserve       
    ///   @param count - number of pairs to allocate                           
@@ -607,8 +590,8 @@ namespace Langulus::Anyness
       else LANGULUS_ERROR("Can't insert argument");
    }
 
-   /// Insert elements, semantically or not                                   
-   ///   @param t1, tail... - elements to insert                              
+   /// Unfold-insert elements, semantically or not                            
+   ///   @param t1, tail... - elements, or arrays of elements, to insert      
    ///   @return the number of inserted elements                              
    TEMPLATE() template<class T1, class... TAIL>
    requires CT::Inner::UnfoldMakableFrom<T, T1, TAIL...> LANGULUS(INLINED)

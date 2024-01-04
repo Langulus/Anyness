@@ -73,12 +73,24 @@ namespace Langulus::Anyness
    ///   @param request - number of keys to allocate                          
    ///   @param infoStart - [out] the offset at which info bytes start        
    ///   @return the requested byte size                                      
-   LANGULUS(INLINED)
-   Size BlockMap::RequestKeyAndInfoSize(const Count request, Offset& infoStart) const IF_UNSAFE(noexcept) {
-      LANGULUS_ASSUME(DevAssumes, mKeys.mType, "Key type was not set");
-      auto keymemory = request * mKeys.mType->mSize;
-      if (mKeys.mType->mIsSparse)
-         keymemory *= 2;
+   template<CT::Map THIS> LANGULUS(INLINED)
+   Size BlockMap::RequestKeyAndInfoSize(
+      const Count request, Offset& infoStart
+   ) const IF_UNSAFE(noexcept) {
+      Size keymemory;
+      if constexpr (CT::Typed<THIS>) {
+         using K = typename THIS::Key;
+         keymemory = request * sizeof(K);
+         if constexpr (CT::Sparse<K>)
+            keymemory *= 2;
+      }
+      else {
+         LANGULUS_ASSUME(DevAssumes, mKeys.mType, "Key type was not set");
+         keymemory = request * mKeys.mType->mSize;
+         if (mKeys.mType->mIsSparse)
+            keymemory *= 2;
+      }
+
       infoStart = keymemory + Alignment - (keymemory % Alignment);
       return infoStart + request + 1;
    }
@@ -286,8 +298,7 @@ namespace Langulus::Anyness
                --mValues.mCount;
                
                InsertInnerUnknown<THIS, false>(
-                  newBucket,
-                  Copy(oldKey), Abandon(valswap)
+                  newBucket, Copy(oldKey), Abandon(valswap)
                );
 
                valswap.Free();
@@ -300,14 +311,14 @@ namespace Langulus::Anyness
 
       // First run might cause gaps                                     
       // Second run: shift elements left, where possible                
-      ShiftPairs<void, void>();
+      ShiftPairs<THIS>();
    }
    
    /// Shift elements left, where possible                                    
    template<CT::Map THIS>
    void BlockMap::ShiftPairs() {
-      using K = Conditional<CT::Typed<THIS>, THIS::Key,   void>;
-      using V = Conditional<CT::Typed<THIS>, THIS::Value, void>;
+      using K = Conditional<CT::Typed<THIS>, typename THIS::Key,   void>;
+      using V = Conditional<CT::Typed<THIS>, typename THIS::Value, void>;
 
       auto oldInfo = mInfo;
       const auto newInfoEnd = GetInfoEnd();
@@ -390,18 +401,18 @@ namespace Langulus::Anyness
          const auto index = psl - GetInfo();
 
          if constexpr (CHECK_FOR_MATCH) {
-            const auto& candidate = GetRawKey<K>(index);
+            const auto& candidate = GetRawKey<THIS>(index);
             if (keyswapper.Compare(candidate)) {
                // Neat, the key already exists - just set value and go  
-               GetValueHandle<V>(index).Assign(Abandon(valswapper));
+               GetValueHandle<THIS>(index).Assign(Abandon(valswapper));
                return index;
             }
          }
 
          if (attempts > *psl) {
             // The pair we're inserting is closer to bucket, so swap    
-            GetKeyHandle<K>(index).Swap(keyswapper);
-            GetValueHandle<V>(index).Swap(valswapper);
+            GetKeyHandle<THIS>(index).Swap(keyswapper);
+            GetValueHandle<THIS>(index).Swap(valswapper);
             ::std::swap(attempts, *psl);
             if (insertedAt == mValues.mReserved)
                insertedAt = index;
@@ -420,8 +431,8 @@ namespace Langulus::Anyness
       // Might not seem like it, but we gave a guarantee, that this is  
       // eventually reached, unless key exists and returns early        
       const auto index = psl - GetInfo();
-      GetKeyHandle<K>(index).New(Abandon(keyswapper));
-      GetValueHandle<V>(index).New(Abandon(valswapper));
+      GetKeyHandle<THIS>(index).New(Abandon(keyswapper));
+      GetValueHandle<THIS>(index).New(Abandon(valswapper));
       if (insertedAt == mValues.mReserved)
          insertedAt = index;
 
@@ -436,17 +447,9 @@ namespace Langulus::Anyness
    ///   @param key - key to move in                                          
    ///   @param val - value to move in                                        
    ///   @return the offset at which pair was inserted                        
-   template<CT::Map THIS, bool CHECK_FOR_MATCH>
-   Offset BlockMap::InsertInnerUnknown(
-      Offset start, CT::Semantic auto&& key, CT::Semantic auto&& val
-   ) {
-      using SK = Deref<decltype(key)>;
-      using SV = Deref<decltype(val)>;
-      static_assert(CT::Exact<TypeOf<SK>, Block>,
-         "SK type must be exactly Block (build-time optimization)");
-      static_assert(CT::Exact<TypeOf<SV>, Block>,
-         "SV type must be exactly Block (build-time optimization)");
-
+   template<CT::Map, bool CHECK_FOR_MATCH, template<class> class S1, template<class> class S2, CT::Block T>
+   requires CT::Semantic<S1<T>, S2<T>>
+   Offset BlockMap::InsertInnerUnknown(Offset start, S1<T>&& key, S2<T>&& val) {
       // Get the starting index based on the key hash                   
       auto psl = GetInfo() + start;
       const auto pslEnd = GetInfoEnd();
@@ -461,7 +464,7 @@ namespace Langulus::Anyness
                GetValueInner(index)
                   .CallUnknownSemanticAssignment(1, val.Forward());
 
-               if constexpr (SV::Move) {
+               if constexpr (S2<T>::Move) {
                   val->CallUnknownDestructors();
                   val->mCount = 0;
                }
@@ -502,12 +505,12 @@ namespace Langulus::Anyness
       if (insertedAt == mValues.mReserved)
          insertedAt = index;
 
-      if constexpr (SK::Move) {
+      if constexpr (S1<T>::Move) {
          key->CallUnknownDestructors();
          key->mCount = 0;
       }
 
-      if constexpr (SV::Move) {
+      if constexpr (S2<T>::Move) {
          val->CallUnknownDestructors();
          val->mCount = 0;
       }
@@ -521,26 +524,23 @@ namespace Langulus::Anyness
    ///   @tparam CHECK_FOR_MATCH - false if you guarantee key doesn't exist   
    ///   @param hashmask - precalculated hashmask                             
    ///   @param pair - the semantic and pair type to insert                   
-   template<CT::Map THIS, bool CHECK_FOR_MATCH>
-   void BlockMap::InsertPairInner(Count hashmask, CT::Semantic auto&& pair) {
-      using S = Deref<decltype(pair)>;
-      using ST = TypeOf<S>;
-      static_assert(CT::Pair<ST>, "ST must be a pair type");
-
-      if constexpr (CT::TypedPair<ST>) {
+   template<CT::Map THIS, bool CHECK_FOR_MATCH, template<class> class S, CT::Pair T>
+   requires CT::Semantic<S<T>>
+   void BlockMap::InsertPairInner(Count hashmask, S<T>&& pair) {
+      if constexpr (CT::TypedPair<T>) {
          // Insert a statically typed pair                              
-         InsertInner<CHECK_FOR_MATCH, ORDERED>(
+         InsertInner<THIS, CHECK_FOR_MATCH>(
             GetBucket(hashmask, pair->mKey),
-            S::Nest(pair->mKey),
-            S::Nest(pair->mValue)
+            S<T>::Nest(pair->mKey),
+            S<T>::Nest(pair->mValue)
          );
       }
       else {
          // Insert a type-erased pair                                   
-         InsertInnerUnknown<CHECK_FOR_MATCH, ORDERED>(
+         InsertInnerUnknown<THIS, CHECK_FOR_MATCH>(
             GetBucketUnknown(hashmask, pair->mKey),
-            S::Nest(pair->mKey),
-            S::Nest(pair->mValue)
+            S<T>::Nest(pair->mKey),
+            S<T>::Nest(pair->mValue)
          );
       }
    }

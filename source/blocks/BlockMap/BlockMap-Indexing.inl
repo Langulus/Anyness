@@ -192,27 +192,6 @@ namespace Langulus::Anyness
       return const_cast<BlockMap*>(this)->template GetRawKey<THIS>(i);
    }
 
-   /// Get a key handle                                                       
-   ///   @attention assumes index is in container's limits                    
-   ///   @attention assumes K is similar to the contained key type            
-   ///   @param i - the key index                                             
-   ///   @return the handle                                                   
-   template<CT::Map THIS> LANGULUS(INLINED)
-   auto BlockMap::GetKeyHandle(Offset i) const IF_UNSAFE(noexcept) {
-      LANGULUS_ASSUME(DevAssumes, i < GetReserved(),
-         "Index out of limits when accessing map key",
-         ", index ", i, " is beyond the reserved ", GetReserved(), " elements");
-
-      if constexpr (CT::TypedMap<THIS>) {
-         using K = typename THIS::Key;
-         LANGULUS_ASSUME(DevAssumes, mKeys.template IsSimilar<K>(),
-            "Wrong type when accessing map key",
-            ", using type `", NameOf<K>(), "` instead of `", mKeys.GetType(), '`');
-         return GetKeys<THIS>().GetHandle(i);
-      }
-      else return GetKeyInner(i);
-   }
-
    /// Get a value reference                                                  
    ///   @attention assumes index is in container's limits                    
    ///   @attention assumes V is similar to the contained value type          
@@ -235,6 +214,27 @@ namespace Langulus::Anyness
    auto& BlockMap::GetRawValue(Offset i) const IF_UNSAFE(noexcept) {
       return const_cast<BlockMap*>(this)->template GetRawValue<THIS>(i);
    }
+
+   /// Get a key handle                                                       
+   ///   @attention assumes index is in container's limits                    
+   ///   @attention assumes K is similar to the contained key type            
+   ///   @param i - the key index                                             
+   ///   @return the handle                                                   
+   template<CT::Map THIS> LANGULUS(INLINED)
+   auto BlockMap::GetKeyHandle(Offset i) const IF_UNSAFE(noexcept) {
+      LANGULUS_ASSUME(DevAssumes, i < GetReserved(),
+         "Index out of limits when accessing map key",
+         ", index ", i, " is beyond the reserved ", GetReserved(), " elements");
+
+      if constexpr (CT::TypedMap<THIS>) {
+         using K = typename THIS::Key;
+         LANGULUS_ASSUME(DevAssumes, mKeys.template IsSimilar<K>(),
+            "Wrong type when accessing map key",
+            ", using type `", NameOf<K>(), "` instead of `", mKeys.GetType(), '`');
+         return GetKeys<THIS>().GetHandle(i);
+      }
+      else return GetKeyInner(i);
+   }
    
    /// Get a value handle                                                     
    ///   @attention assumes index is in container's limits                    
@@ -243,15 +243,18 @@ namespace Langulus::Anyness
    ///   @return the handle                                                   
    template<CT::Map THIS> LANGULUS(INLINED)
    auto BlockMap::GetValueHandle(Offset i) const IF_UNSAFE(noexcept) {
-      using V = typename THIS::Value;
-
       LANGULUS_ASSUME(DevAssumes, i < GetReserved(),
-         "Index out of limits when accessing map value", 
+         "Index out of limits when accessing map value",
          ", index ", i, " is beyond the reserved ", GetReserved(), " elements");
-      LANGULUS_ASSUME(DevAssumes, mValues.template IsSimilar<V>(), 
-         "Wrong type when accessing map value", 
-         ", using type `", NameOf<V>(), "` instead of `", mValues.GetType(), '`');
-      return GetValues<THIS>().GetHandle(i);
+
+      if constexpr (CT::TypedMap<THIS>) {
+         using V = typename THIS::Value;
+         LANGULUS_ASSUME(DevAssumes, mValues.template IsSimilar<V>(),
+            "Wrong type when accessing map value",
+            ", using type `", NameOf<V>(), "` instead of `", mValues.GetType(), '`');
+         return GetValues<THIS>().GetHandle(i);
+      }
+      else return GetValueInner(i);
    }
 
 } // namespace Langulus::Anyness

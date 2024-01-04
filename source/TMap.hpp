@@ -19,16 +19,17 @@ namespace Langulus::CT
    template<class K, class V, class...A>
    concept DeepMapMakable = Inner::UnfoldMakableFrom<Anyness::TPair<K, V>, A...>
         or (sizeof...(A) == 1 and Map<Desem<FirstOf<A...>>>
-           and SemanticOf<FirstOf<A...>>::Shallow or (
-              Inner::SemanticMakableAlt<typename SemanticOf<FirstOf<A...>>::template As<Anyness::TPair<K, V>>>
+           and (SemanticOf<FirstOf<A...>>::Shallow
+             or Inner::SemanticMakableAlt<typename SemanticOf<FirstOf<A...>>::template As<Anyness::TPair<K, V>>>
         ));
 
    /// Concept for recognizing argument, with which a statically typed        
    /// map can be assigned                                                    
-   template<class K, class  V, class A>
+   template<class K, class V, class A>
    concept DeepMapAssignable = Inner::UnfoldMakableFrom<Anyness::TPair<K, V>, A> or (Map<Desem<A>>
-       and SemanticOf<A>::Shallow or (
-          Inner::SemanticAssignableAlt<typename SemanticOf<A>::template As<Anyness::TPair<K, V>>>));
+       and (SemanticOf<A>::Shallow
+         or Inner::SemanticAssignableAlt<typename SemanticOf<A>::template As<Anyness::TPair<K, V>>>
+       ));
 
 } // namespace Langulus::CT
 
@@ -40,6 +41,7 @@ namespace Langulus::Anyness
    ///                                                                        
    template<CT::Data K, CT::Data V, bool ORDERED>
    struct TMap : Map<ORDERED> {
+      friend struct BlockMap;
       using Key = K;
       using Value = V;
       using Base = Map<ORDERED>;
@@ -60,12 +62,15 @@ namespace Langulus::Anyness
       static_assert(CT::Inner::Comparable<K>,
          "Map's key type must be equality-comparable to itself");
 
+      using typename Base::InfoType;
+      using Base::InvalidOffset;
+      using Base::mInfo;
       using Base::mKeys;
       using Base::mValues;
 
    public:
       ///                                                                     
-      ///   Construction                                                      
+      ///   Construction & Assignment                                         
       ///                                                                     
       constexpr TMap();
       TMap(const TMap&);
@@ -77,9 +82,6 @@ namespace Langulus::Anyness
 
       ~TMap();
 
-      ///                                                                     
-      ///   Assignment                                                        
-      ///                                                                     
       TMap& operator = (const TMap&);
       TMap& operator = (TMap&&);
 
@@ -88,6 +90,9 @@ namespace Langulus::Anyness
       TMap& operator = (T1&&);
 
    public:
+      ///                                                                     
+      ///   Capsulation                                                       
+      ///                                                                     
       NOD() DMeta GetKeyType() const;
       NOD() DMeta GetValueType() const;
 
@@ -114,6 +119,12 @@ namespace Langulus::Anyness
 
       NOD() constexpr Size GetKeyStride() const noexcept;
       NOD() constexpr Size GetValueStride() const noexcept;
+
+      using Base::GetCount;
+      using Base::GetReserved;
+      using Base::GetInfo;
+      using Base::GetInfoEnd;
+      using Base::IsEmpty;
 
       ///                                                                     
       ///   RTTI                                                              
@@ -181,6 +192,14 @@ namespace Langulus::Anyness
       NOD()      PairRef GetPair(CT::Index auto);
       NOD() PairConstRef GetPair(CT::Index auto) const;
 
+   protected:
+      ///                                                                     
+      ///   Indexing                                                          
+      ///                                                                     
+      using Base::GetBucket;
+      using Base::GetBucketUnknown;
+
+   public:
       ///                                                                     
       ///   Iteration                                                         
       ///                                                                     
@@ -202,7 +221,12 @@ namespace Langulus::Anyness
       Count ForEachValueElement(F&&) const;
       template<class F>
       Count ForEachValueElement(F&&);
-      
+
+      ///                                                                     
+      ///   Memory management                                                 
+      ///                                                                     
+      void Reserve(Count);
+
       ///                                                                     
       ///   Insertion                                                         
       ///                                                                     
@@ -222,9 +246,8 @@ namespace Langulus::Anyness
       requires CT::Inner::UnfoldMakableFrom<TPair<K, V>, T1>
       TMap& operator >> (T1&&);
 
-      Count InsertBlock(CT::Semantic auto&&, CT::Semantic auto&&);
-
-      Count InsertPairBlock(CT::Semantic auto&&);
+      Count InsertBlock(auto&&, auto&&);
+      Count InsertPairBlock(auto&&);
 
       TMap& operator += (const TMap&);
 
@@ -235,8 +258,11 @@ namespace Langulus::Anyness
       Count RemoveValue(const V&);
       Iterator RemoveIt(const Iterator&);
 
+      void Clear();
+      void Reset();
+      void Compact();
+
    protected:
-      NOD() static Size RequestKeyAndInfoSize(Count, Offset&) noexcept;
       NOD() static Size RequestValuesSize(Count) noexcept;
 
       NOD()       TAny<K>& GetKeys() noexcept;
@@ -261,10 +287,10 @@ namespace Langulus::Anyness
    template<CT::Data K, CT::Data V, bool ORDERED> template<bool MUTABLE>
    struct TMap<K, V, ORDERED>::TIterator {
    protected:
-      friend TUnorderedMap<K, V>;
-      friend TOrderedMap<K, V>;
+      template<CT::Data, CT::Data, bool>
+      friend struct TMap;
 
-      using typename TMap<K, V, ORDERED>::InfoType;
+      using InfoType = TMap<K, V, ORDERED>::InfoType;
       const InfoType* mInfo {};
       const InfoType* mSentinel {};
       const K* mKey {};

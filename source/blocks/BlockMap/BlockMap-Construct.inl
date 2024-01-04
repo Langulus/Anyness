@@ -33,7 +33,7 @@ namespace Langulus::Anyness
          mKeys.mType = MetaDataOf<typename TO::Key>();
          mValues.mType = MetaDataOf<typename TO::Value>();
          mKeys.mState = other->mKeys.mState + DataState::Typed;
-         mValues.mState = other->mStateValues + DataState::Typed;
+         mValues.mState = other->mValues.mState + DataState::Typed;
       }
 
       if constexpr (S<FROM>::Shallow) {
