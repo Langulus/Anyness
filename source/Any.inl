@@ -77,7 +77,7 @@ namespace Langulus::Anyness
    ///   @param state - additional state of the container                     
    ///   @return the new container instance                                   
    LANGULUS(INLINED)
-   Any Any::FromBlock(const Block& block, DataState state) noexcept {
+   Any Any::FromBlock(const CT::Block auto& block, DataState state) noexcept {
       return Any::FromMeta(block.GetType(), block.GetUnconstrainedState() + state);
    }
 
@@ -86,7 +86,7 @@ namespace Langulus::Anyness
    ///   @param state - additional state of the container                     
    ///   @return the new container instance                                   
    LANGULUS(INLINED)
-   Any Any::FromState(const Block& block, DataState state) noexcept {
+   Any Any::FromState(const CT::Block auto& block, DataState state) noexcept {
       return Any::FromMeta(nullptr, block.GetUnconstrainedState() + state);
    }
 
@@ -165,28 +165,65 @@ namespace Langulus::Anyness
 
       return *this;
    }
+   
+   /// Iterate each element block and execute F for it                        
+   ///   @tparam REVERSE - whether to iterate in reverse                      
+   ///   @param call - function to execute for each element block             
+   ///   @return the number of executions                                     
+   template<bool REVERSE> LANGULUS(INLINED)
+   Count Any::ForEachElement(auto&& call) const {
+      return Block::ForEachElement<Any, REVERSE>(
+         Forward<Deref<decltype(call)>>(call));
+   }
 
-   /// Destroy all elements, but retain allocated memory if possible          
-   LANGULUS(INLINED)
-   void Any::Clear() {
-      if (IsEmpty())
-         return;
+   /// Execute functions for each element inside container                    
+   /// Each function has a distinct argument type, that is tested against the 
+   /// contained type. If argument is compatible with the type, the block is  
+   /// iterated, and F is executed for all elements. The rest of the provided 
+   /// functions are ignored, after the first function with viable argument.  
+   ///   @tparam REVERSE - whether to iterate in reverse                      
+   ///   @param calls - all potential functions to iterate with               
+   ///   @return the number of executions                                     
+   template<bool REVERSE> LANGULUS(INLINED)
+   Count Any::ForEach(auto&&...call) const {
+      return Block::ForEach<Any, REVERSE>(
+         Forward<Deref<decltype(call)>>(call)...);
+   }
 
-      if (GetUses() == 1) {
-         // Only one use - just destroy elements and reset count,       
-         // reusing the allocation for later                            
-         CallUnknownDestructors();
-         ClearInner();
-      }
-      else {
-         // We're forced to reset the memory, because it's in use       
-         // Keep the type and state, though                             
-         const auto state = GetUnconstrainedState();
-         const auto meta = mType;
-         Reset();
-         mType = meta;
-         mState += state;
-      }
+   /// Execute functions in each sub-block, inclusively                       
+   /// Unlike the flat variants above, this one reaches into sub-blocks.      
+   /// Each function has a distinct argument type, that is tested against the 
+   /// contained type. If argument is compatible with the type, the block is  
+   /// iterated, and F is executed for all elements. None of the provided     
+   /// functions are ignored.                                                 
+   ///   @tparam REVERSE - whether to iterate in reverse                      
+   ///   @tparam SKIP - set to false, to execute F for intermediate blocks,   
+   ///                  too; otherwise will execute only for non-blocks       
+   ///   @param calls - all potential functions to iterate with               
+   ///   @return the number of executions                                     
+   template<bool REVERSE, bool SKIP> LANGULUS(INLINED)
+   Count Any::ForEachDeep(auto&&...call) const {
+      return Block::ForEachDeep<Any, REVERSE, SKIP>(
+         Forward<Deref<decltype(call)>>(call)...);
+   }
+
+   /// Same as ForEachElement, but in reverse                                 
+   LANGULUS(INLINED) Count Any::ForEachElementRev(auto&&...call) const {
+      return Block::ForEachElementRev<Any>(
+         Forward<Deref<decltype(call)>>(call)...);
+   }
+
+   /// Same as ForEach, but in reverse                                        
+   LANGULUS(INLINED) Count Any::ForEachRev(auto&&...call) const {
+      return Block::ForEachRev<Any>(
+         Forward<Deref<decltype(call)>>(call)...);
+   }
+
+   /// Same as ForEachDeep, but in reverse                                    
+   template<bool SKIP> LANGULUS(INLINED)
+   Count Any::ForEachDeepRev(auto&&...call) const {
+      return Block::ForEachDeepRev<Any, SKIP>(
+         Forward<Deref<decltype(call)>>(call)...);
    }
 
    /// Move-insert an element at the back                                     
@@ -225,15 +262,6 @@ namespace Langulus::Anyness
       return *this;
    }
 
-   /// Reset the container                                                    
-   LANGULUS(INLINED)
-   void Any::Reset() {
-      Free<Any>();
-      mRaw = nullptr;
-      mCount = mReserved = 0;
-      ResetState();
-   }
-
    /// Swap two container's contents                                          
    ///   @param other - [in/out] the container to swap contents with          
    LANGULUS(INLINED)
@@ -246,7 +274,7 @@ namespace Langulus::Anyness
    ///   @param count - number of elements                                    
    ///   @return the container                                                
    LANGULUS(INLINED)
-   Any Any::Crop(const Offset& start, const Count& count) const {
+   Any Any::Crop(const Offset start, const Count count) const {
       return Block::Crop<Any>(start, count);
    }
 
@@ -255,7 +283,7 @@ namespace Langulus::Anyness
    ///   @param count - number of elements                                    
    ///   @return the container                                                
    LANGULUS(INLINED)
-   Any Any::Crop(const Offset& start, const Count& count) {
+   Any Any::Crop(const Offset start, const Count count) {
       return Block::Crop<Any>(start, count);
    }
 
@@ -288,83 +316,8 @@ namespace Langulus::Anyness
    ///   @param item - the item to search for                                 
    ///   @return the index of the found item, or IndexNone if none found      
    template<bool REVERSE> LANGULUS(INLINED)
-   Index Any::Find(const CT::Data auto& item, const Offset& cookie) const {
-      return Block::template FindKnown<REVERSE>(item, cookie);
-   }
-
-
-   ///                                                                        
-   ///   Iteration                                                            
-   ///                                                                        
-
-   /// Get iterator to first element                                          
-   ///   @return an iterator to the first element, or end if empty            
-   LANGULUS(INLINED)
-   typename Any::Iterator Any::begin() noexcept {
-      return IsEmpty() ? end() : GetElement();
-   }
-
-   /// Get iterator to end                                                    
-   ///   @return an iterator to the end element                               
-   LANGULUS(INLINED)
-   typename Any::Iterator Any::end() noexcept {
-      Block result {*this};
-      if (IsEmpty())
-         return result;
-
-      result.MakeStatic();
-      result.mRaw = mRaw + mType->mSize * mCount;
-      result.mCount = 0;
-      return result;
-   }
-
-   /// Get iterator to the last element                                       
-   ///   @return an iterator to the last element, or end if empty             
-   LANGULUS(INLINED)
-   typename Any::Iterator Any::last() noexcept {
-      Block result {*this};
-      if (IsEmpty())
-         return result;
-
-      result.MakeStatic();
-      result.mRaw = mRaw + mType->mSize * (mCount - 1);
-      result.mCount = 1;
-      return result;
-   }
-
-   /// Get iterator to first element                                          
-   ///   @return a constant iterator to the first element, or end if empty    
-   LANGULUS(INLINED)
-   typename Any::ConstIterator Any::begin() const noexcept {
-      return IsEmpty() ? end() : GetElement();
-   }
-
-   /// Get iterator to end                                                    
-   ///   @return a constant iterator to the end element                       
-   LANGULUS(INLINED)
-   typename Any::ConstIterator Any::end() const noexcept {
-      Block result {*this};
-      if (IsEmpty())
-         return result;
-
-      result.MakeStatic();
-      result.mRaw = mRaw + mType->mSize * mCount;
-      result.mCount = 0;
-      return result;
-   }
-
-   /// Get iterator to the last valid element                                 
-   ///   @return a constant iterator to the last element, or end if empty     
-   LANGULUS(INLINED)
-   typename Any::ConstIterator Any::last() const noexcept {
-      Block result {*this};
-      if (IsEmpty())
-         return result;
-
-      result.MakeStatic();
-      result.mRaw = mRaw + mType->mSize * (mCount - 1);
-      result.mCount = 1;
-      return result;
+   Index Any::Find(const CT::Data auto& item, const Offset cookie) const {
+      return Block::Find<Any, REVERSE>(item, cookie);
    }
    
    /// Construct an item of this container's type at the specified position   
@@ -380,34 +333,29 @@ namespace Langulus::Anyness
    ///      constructor, if such is reflected                                 
    ///   If none of these constructors are available, this function throws    
    ///   Except::Construct                                                    
-   ///   @tparam A... - argument types (deducible)                            
-   ///   @param region - the region to emplace at                             
+   ///   @param region - the region to emplace at, assumed to be part of this 
    ///   @param count - the number of elements to emplace                     
    ///   @param arguments... - the arguments to forward to constructor        
    ///   @return the number of emplaced elements                              
    template<CT::Block THIS, class... A>
-   void Block::EmplaceInner(const Block& region, Count count, A&&... arguments) {
+   void Block::EmplaceInner(const Block& region, Count count, A&&...arguments) {
       if constexpr (sizeof...(A) == 0) {
          // Attempt default construction                                
-         //TODO if stuff moved, we should move stuff back if this throws...
-         region.CallUnknownDefaultConstructors(count);
+         region.CallDefaultConstructors<THIS>(count);
          mCount += count;
          return;
       }
       else if constexpr (sizeof...(A) == 1) {
-         using F = Decvq<Deref<FirstOf<A...>>>;
-
-         if constexpr (CT::Exact<Neat, F>) {
+         using F = Deref<FirstOf<A...>>;
+         if constexpr (CT::Similar<Describe, F>) {
             // Attempt descriptor-construction                          
-            region.CallUnknownDescriptorConstructors(count, arguments...);
+            region.CallDescriptorConstructors<THIS>(count, arguments...);
             mCount += count;
             return;
          }
-         else if (IsExact<F>()) {
-            // Attempt move-construction, if available                  
-            region.template CallKnownConstructors<F>(
-               count, Forward<A>(arguments)...
-            );
+         else if (IsSimilar<F>()) {
+            // Use constructor signature directly                       
+            region.CallConstructors<TAny<F>>(count, Forward<A>(arguments)...);
             mCount += count;
             return;
          }
@@ -423,53 +371,8 @@ namespace Langulus::Anyness
 
       //TODO if stuff moved, we should move stuff back if this throws...
       const Neat descriptor {arguments...};
-      region.CallUnknownDescriptorConstructors(count, descriptor);
+      region.CallDescriptorConstructors<THIS>(count, descriptor);
       mCount += count;
    }
    
-
-   ///                                                                        
-   ///   Block iterator                                                       
-   ///                                                                        
-
-   /// Construct an iterator                                                  
-   ///   @param value - pointer to the value element                          
-   template<bool MUTABLE> LANGULUS(INLINED)
-   Any::TIterator<MUTABLE>::TIterator(const Block& value) noexcept
-      : mValue {value} {}
-
-   /// Prefix increment operator                                              
-   ///   @attention assumes iterator points to a valid element                
-   ///   @return the modified iterator                                        
-   template<bool MUTABLE> LANGULUS(INLINED)
-   typename Any::TIterator<MUTABLE>& Any::TIterator<MUTABLE>::operator ++ () noexcept {
-      mValue.mRaw += mValue.GetStride();
-      return *this;
-   }
-
-   /// Suffix increment operator                                              
-   ///   @attention assumes iterator points to a valid element                
-   ///   @return the previous value of the iterator                           
-   template<bool MUTABLE> LANGULUS(INLINED)
-   typename Any::TIterator<MUTABLE> Any::TIterator<MUTABLE>::operator ++ (int) noexcept {
-      const auto backup = *this;
-      operator ++ ();
-      return backup;
-   }
-
-   /// Compare block entries                                                  
-   ///   @param rhs - the other iterator                                      
-   ///   @return true if entries match                                        
-   template<bool MUTABLE> LANGULUS(INLINED)
-   bool Any::TIterator<MUTABLE>::operator == (const TIterator& rhs) const noexcept {
-      return mValue.mRaw == rhs.mValue.mRaw;
-   }
-
-   /// Iterator access operator                                               
-   ///   @return a pair at the current iterator position                      
-   template<bool MUTABLE> LANGULUS(INLINED)
-   const Block& Any::TIterator<MUTABLE>::operator * () const noexcept {
-      return mValue;
-   }
-
 } // namespace Langulus::Anyness

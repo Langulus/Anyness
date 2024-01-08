@@ -71,14 +71,14 @@ namespace Langulus::Anyness
       if (IsEmpty())
          return rhs;
 
-      if (last() == Separator) {
-         if (rhs.last() == Separator)
+      if (*last() == Separator) {
+         if (*rhs.last() == Separator)
             return *this + rhs.Crop(1, rhs.GetCount() - 1);
          else
             return *this + rhs;
       }
       else {
-         if (rhs.last() == Separator)
+         if (*rhs.last() == Separator)
             return *this + rhs;
          else {
             auto temp = *this + Text {Separator};
@@ -95,14 +95,14 @@ namespace Langulus::Anyness
       if (IsEmpty())
          return operator = (rhs);
 
-      if (last() == Separator) {
-         if (rhs.last() == Separator)
+      if (*last() == Separator) {
+         if (*rhs.last() == Separator)
             *this += rhs.Crop(1, rhs.GetCount() - 1);
          else
             *this += rhs;
       }
       else {
-         if (rhs.last() == Separator)
+         if (*rhs.last() == Separator)
             *this += rhs;
          else {
             *this += Text {Separator};

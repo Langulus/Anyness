@@ -215,8 +215,7 @@ namespace Langulus::Anyness
    ///   @return the meta definition of the key type                          
    TEMPLATE() LANGULUS(INLINED)
    DMeta TABLE()::GetType() const {
-      mKeys.mType = MetaDataOf<T>();
-      return mKeys.mType;
+      return BlockSet::GetType<TSet>();
    }
 
    /// Check if value origin type matches any of the list                     

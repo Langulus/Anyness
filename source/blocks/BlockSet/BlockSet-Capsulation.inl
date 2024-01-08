@@ -53,9 +53,12 @@ namespace Langulus::Anyness
    }
 
    /// Get the type of the set                                                
-   LANGULUS(INLINED)
+   template<CT::Set THIS> LANGULUS(INLINED)
    DMeta BlockSet::GetType() const noexcept {
-      return mKeys.GetType();
+      if constexpr (CT::Typed<THIS>)
+         return (mKeys.mType = MetaDataOf<TypeOf<THIS>>);
+      else
+         return mKeys.mType;
    }
 
    /// Get the info array (const)                                             

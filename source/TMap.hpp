@@ -18,18 +18,18 @@ namespace Langulus::CT
    /// map can be constructed                                                 
    template<class K, class V, class...A>
    concept DeepMapMakable = Inner::UnfoldMakableFrom<Anyness::TPair<K, V>, A...>
-        or (sizeof...(A) == 1 and Map<Desem<FirstOf<A...>>>
-           and (SemanticOf<FirstOf<A...>>::Shallow
-             or Inner::SemanticMakableAlt<typename SemanticOf<FirstOf<A...>>::template As<Anyness::TPair<K, V>>>
-        ));
+        or (sizeof...(A) == 1
+           and Map<Desem<FirstOf<A...>>>
+           and Inner::SemanticMakableAlt<
+              typename SemanticOf<FirstOf<A...>>::template As<Anyness::TPair<K, V>>>
+        );
 
    /// Concept for recognizing argument, with which a statically typed        
    /// map can be assigned                                                    
    template<class K, class V, class A>
-   concept DeepMapAssignable = Inner::UnfoldMakableFrom<Anyness::TPair<K, V>, A> or (Map<Desem<A>>
-       and (SemanticOf<A>::Shallow
-         or Inner::SemanticAssignableAlt<typename SemanticOf<A>::template As<Anyness::TPair<K, V>>>
-       ));
+   concept DeepMapAssignable = Inner::UnfoldMakableFrom<Anyness::TPair<K, V>, A>
+        or (Map<Desem<A>> and Inner::SemanticAssignableAlt<
+           typename SemanticOf<A>::template As<Anyness::TPair<K, V>>>);
 
 } // namespace Langulus::CT
 
@@ -41,7 +41,6 @@ namespace Langulus::Anyness
    ///                                                                        
    template<CT::Data K, CT::Data V, bool ORDERED>
    struct TMap : Map<ORDERED> {
-      friend struct BlockMap;
       using Key = K;
       using Value = V;
       using Base = Map<ORDERED>;
@@ -50,12 +49,15 @@ namespace Langulus::Anyness
       using PairRef = TPair<K&, V&>;
       using PairConstRef = TPair<const K&, const V&>;
 
+      LANGULUS(POD) false;
       LANGULUS(TYPED) Pair;
+      LANGULUS_BASES(Map<ORDERED>);
 
    protected:
       static_assert(CT::Inner::Comparable<K>,
          "Map's key type must be equality-comparable to itself");
 
+      friend struct BlockMap;
       using typename Base::InfoType;
       using Base::InvalidOffset;
       using Base::mInfo;
@@ -87,32 +89,25 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Capsulation                                                       
       ///                                                                     
-      NOD() DMeta GetKeyType() const;
-      NOD() DMeta GetValueType() const;
-
+      NOD() DMeta GetKeyType() const noexcept;
+      NOD() DMeta GetValueType() const noexcept;
       NOD() constexpr bool IsKeyUntyped() const noexcept;
       NOD() constexpr bool IsValueUntyped() const noexcept;
-
       NOD() constexpr bool IsKeyTypeConstrained() const noexcept;
       NOD() constexpr bool IsValueTypeConstrained() const noexcept;
-
-      NOD() constexpr bool IsKeyAbstract() const noexcept;
-      NOD() constexpr bool IsValueAbstract() const noexcept;
-
-      NOD() constexpr bool IsKeyConstructible() const noexcept;
-      NOD() constexpr bool IsValueConstructible() const noexcept;
-
       NOD() constexpr bool IsKeyDeep() const noexcept;
       NOD() constexpr bool IsValueDeep() const noexcept;
-
       NOD() constexpr bool IsKeySparse() const noexcept;
       NOD() constexpr bool IsValueSparse() const noexcept;
-
       NOD() constexpr bool IsKeyDense() const noexcept;
       NOD() constexpr bool IsValueDense() const noexcept;
-
       NOD() constexpr Size GetKeyStride() const noexcept;
       NOD() constexpr Size GetValueStride() const noexcept;
+      NOD() Count GetKeyCountDeep() const noexcept;
+      NOD() Count GetKeyCountElementsDeep() const noexcept;
+      NOD() Count GetValueCountDeep() const noexcept;
+      NOD() Count GetValueCountElementsDeep() const noexcept;
+      NOD() bool IsMissingDeep() const;
 
       using Base::GetCount;
       using Base::GetReserved;
@@ -154,6 +149,67 @@ namespace Langulus::Anyness
 
    public:
       ///                                                                     
+      ///   Indexing                                                          
+      ///                                                                     
+      NOD() K&           GetKey(CT::Index auto);
+      NOD() K const&     GetKey(CT::Index auto) const;
+      NOD() V&           GetValue(CT::Index auto);
+      NOD() V const&     GetValue(CT::Index auto) const;
+      NOD() PairRef      GetPair(CT::Index auto);
+      NOD() PairConstRef GetPair(CT::Index auto) const;
+
+   protected:
+      using Base::GetBucket;
+      using Base::GetBucketUnknown;
+
+   public:
+      ///                                                                     
+      ///   Iteration                                                         
+      ///                                                                     
+      using Iterator = BlockMap::Iterator<TMap>;
+      using ConstIterator = BlockMap::Iterator<const TMap>;
+
+      NOD() Iterator begin() noexcept;
+      NOD() Iterator last() noexcept;
+      NOD() ConstIterator begin() const noexcept;
+      NOD() ConstIterator last() const noexcept;
+
+      template<bool REVERSE = false>
+      Count ForEach(auto&&) const;
+      template<bool REVERSE = false>
+      Count ForEach(auto&&);
+
+      template<bool REVERSE = false>
+      Count ForEachKeyElement(auto&&) const;
+      template<bool REVERSE = false>
+      Count ForEachKeyElement(auto&&);
+
+      template<bool REVERSE = false>
+      Count ForEachValueElement(auto&&) const;
+      template<bool REVERSE = false>
+      Count ForEachValueElement(auto&&);
+
+      template<bool REVERSE = false>
+      Count ForEachKey(auto&&...) const;
+      template<bool REVERSE = false>
+      Count ForEachKey(auto&&...);
+
+      template<bool REVERSE = false>
+      Count ForEachValue(auto&&...) const;
+      template<bool REVERSE = false>
+      Count ForEachValue(auto&&...);
+
+      template<bool REVERSE = false, bool SKIP = true>
+      Count ForEachKeyDeep(auto&&...) const;
+      template<bool REVERSE = false, bool SKIP = true>
+      Count ForEachKeyDeep(auto&&...);
+
+      template<bool REVERSE = false, bool SKIP = true>
+      Count ForEachValueDeep(auto&&...) const;
+      template<bool REVERSE = false, bool SKIP = true>
+      Count ForEachValueDeep(auto&&...);
+
+      ///                                                                     
       ///   Comparison                                                        
       ///                                                                     
       bool operator == (CT::Map  auto const&) const requires CT::Inner::Comparable<V>;
@@ -177,11 +233,11 @@ namespace Langulus::Anyness
 
       template<CT::NotSemantic K1>
       requires ::std::equality_comparable_with<K, K1>
-      NOD() auto FindIt(K1 const&);
+      NOD() Iterator FindIt(K1 const&);
 
       template<CT::NotSemantic K1>
       requires ::std::equality_comparable_with<K, K1>
-      NOD() auto FindIt(K1 const&) const;
+      NOD() ConstIterator FindIt(K1 const&) const;
 
       template<CT::NotSemantic K1>
       requires ::std::equality_comparable_with<K, K1>
@@ -198,48 +254,6 @@ namespace Langulus::Anyness
       template<CT::NotSemantic K1>
       requires ::std::equality_comparable_with<K, K1>
       NOD() decltype(auto) operator[] (K1 const&) const;
-
-      NOD()       K& GetKey(CT::Index auto);
-      NOD() const K& GetKey(CT::Index auto) const;
-
-      NOD()       V& GetValue(CT::Index auto);
-      NOD() const V& GetValue(CT::Index auto) const;
-
-      NOD()      PairRef GetPair(CT::Index auto);
-      NOD() PairConstRef GetPair(CT::Index auto) const;
-
-   protected:
-      ///                                                                     
-      ///   Indexing                                                          
-      ///                                                                     
-      using Base::GetBucket;
-      using Base::GetBucketUnknown;
-
-   public:
-      ///                                                                     
-      ///   Iteration                                                         
-      ///                                                                     
-      template<CT::Map MAP>
-      using TIterator = typename Base::template TIterator<MAP>;
-
-      NOD() TIterator<TMap> begin() noexcept;
-      NOD() TIterator<TMap> end() noexcept;
-      NOD() TIterator<TMap> last() noexcept;
-      NOD() TIterator<const TMap> begin() const noexcept;
-      NOD() TIterator<const TMap> end() const noexcept;
-      NOD() TIterator<const TMap> last() const noexcept;
-      NOD() decltype(auto) Last() const;
-      NOD() decltype(auto) Last();
-
-      template<class F>
-      Count ForEachKeyElement(F&&) const;
-      template<class F>
-      Count ForEachKeyElement(F&&);
-
-      template<class F>
-      Count ForEachValueElement(F&&) const;
-      template<class F>
-      Count ForEachValueElement(F&&);
 
       ///                                                                     
       ///   Memory management                                                 
@@ -275,7 +289,7 @@ namespace Langulus::Anyness
       ///                                                                     
       Count RemoveKey(const K&);
       Count RemoveValue(const V&);
-      TIterator<TMap> RemoveIt(const TIterator<TMap>&);
+      Iterator RemoveIt(const Iterator&);
 
       void Clear();
       void Reset();
@@ -283,20 +297,6 @@ namespace Langulus::Anyness
 
    protected:
       NOD() static Size RequestValuesSize(Count) noexcept;
-
-      NOD()       TAny<K>& GetKeys() noexcept;
-      NOD() const TAny<K>& GetKeys() const noexcept;
-      NOD()       TAny<V>& GetValues() noexcept;
-      NOD() const TAny<V>& GetValues() const noexcept;
-
-   IF_LANGULUS_TESTING(public:)
-      NOD() constexpr       K&  GetRawKey(Offset) noexcept;
-      NOD() constexpr const K&  GetRawKey(Offset) const noexcept;
-      NOD() constexpr Handle<K> GetKeyHandle(Offset) noexcept;
-
-      NOD() constexpr       V&  GetRawValue(Offset) noexcept;
-      NOD() constexpr const V&  GetRawValue(Offset) const noexcept;
-      NOD() constexpr Handle<V> GetValueHandle(Offset) noexcept;
    };
 
 } // namespace Langulus::Anyness

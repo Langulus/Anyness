@@ -81,19 +81,18 @@ namespace Langulus::Anyness
          if constexpr (CT::TypedMap<TO> or CT::TypedMap<FROM>) {
             using B = Conditional<CT::Typed<FROM>, FROM, TO>;
             auto asFrom = reinterpret_cast<const B*>(&*other);
-            auto asTo = reinterpret_cast<B*>(this);
-            asTo->AllocateFresh(asFrom->GetReserved());
+            AllocateFresh<B>(asFrom->GetReserved());
 
             // Clone info array                                         
-            CopyMemory(asTo->mInfo, asFrom->mInfo, GetReserved() + 1);
+            CopyMemory(mInfo, asFrom->mInfo, GetReserved() + 1);
 
             // Clone keys and values                                    
-            auto info = asTo->GetInfo();
-            const auto infoEnd = asTo->GetInfoEnd();
-            auto dstKey = asTo->GetKeyHandle(0);
-            auto dstVal = asTo->GetValueHandle(0);
-            auto srcKey = asFrom->GetKeyHandle(0);
-            auto srcVal = asFrom->GetValueHandle(0);
+            auto info = GetInfo();
+            const auto infoEnd = GetInfoEnd();
+            auto dstKey = GetKeyHandle<B>(0);
+            auto dstVal = GetValueHandle<B>(0);
+            auto srcKey = asFrom->template GetKeyHandle<B>(0);
+            auto srcVal = asFrom->template GetValueHandle<B>(0);
             while (info != infoEnd) {
                if (*info) {
                   dstKey.New(Clone(srcKey));
@@ -107,23 +106,21 @@ namespace Langulus::Anyness
          }
          else {
             // Use type-erased cloning                                  
-            AllocateFresh(other->GetReserved());
+            AllocateFresh<TO>(other->GetReserved());
 
             // Clone info array                                         
             CopyMemory(mInfo, other->mInfo, GetReserved() + 1);
 
             auto info = GetInfo();
             const auto infoEnd = GetInfoEnd();
-            auto dstKey = GetKeyInner(0);
-            auto dstVal = GetValueInner(0);
-            auto srcKey = other->GetKeyInner(0);
-            auto srcVal = other->GetValueInner(0);
+            auto dstKey = GetRawKey<TO>(0);
+            auto dstVal = GetRawValue<TO>(0);
+            auto srcKey = other->GetKey(0);
+            auto srcVal = other->GetValue(0);
             while (info != infoEnd) {
                if (*info) {
-                  dstKey.CallUnknownSemanticConstructors(
-                     1, Clone(srcKey));
-                  dstVal.CallUnknownSemanticConstructors(
-                     1, Clone(srcVal));
+                  dstKey.CallSemanticConstructors(1, Clone(srcKey));
+                  dstVal.CallSemanticConstructors(1, Clone(srcVal));
                }
 
                ++info;

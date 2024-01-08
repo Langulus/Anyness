@@ -24,7 +24,7 @@ namespace Langulus::Anyness
       using SV = SemanticOf<decltype(val)>;
 
       Mutate<TypeOf<SK>, TypeOf<SV>>();
-      Reserve(GetCount() + 1);
+      Reserve<THIS>(GetCount() + 1);
       InsertInner<THIS, true>(
          GetBucket(GetReserved() - 1, DesemCast(key)), 
          SK::Nest(key), SV::Nest(val)
@@ -43,7 +43,7 @@ namespace Langulus::Anyness
       using SV = SemanticOf<decltype(val)>;
 
       Mutate(DesemCast(key).mType, DesemCast(val).mType);
-      Reserve(GetCount() + 1);
+      Reserve<THIS>(GetCount() + 1);
       InsertInnerUnknown<THIS, true>(
          GetBucketUnknown(GetReserved() - 1, DesemCast(key)),
          SK::Nest(key), SV::Nest(val)
@@ -112,7 +112,7 @@ namespace Langulus::Anyness
    ///   @attention assumes count > oldCount                                  
    ///   @param oldCount - the old number of pairs                            
    template<CT::Map THIS>
-   void BlockMap::Rehash(Count oldCount) {
+   void BlockMap::Rehash(const Count oldCount) {
       LANGULUS_ASSUME(DevAssumes, mValues.mReserved > oldCount,
          "New count is not larger than oldCount");
       LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(mValues.mReserved),
@@ -130,16 +130,16 @@ namespace Langulus::Anyness
          if (*oldInfo) {
             // Rehash and check if hashes match                         
             const Offset oldIndex = oldInfo - GetInfo();
-            Offset oldBucket = (oldCount + oldIndex) - *oldInfo + 1;
+            const Offset oldBucket = (oldCount + oldIndex) - *oldInfo + 1;
             Offset newBucket = 0;
-            if constexpr (CT::TypedMap<THIS>)
+            if constexpr (CT::Typed<THIS>)
                newBucket += GetBucket(hashmask, oldKey.Get());
             else
                newBucket += GetBucketUnknown(hashmask, oldKey);
 
             if (oldBucket < oldCount or oldBucket - oldCount != newBucket) {
                // Move pair only if it won't end up in same bucket      
-               if constexpr (CT::TypedMap<THIS>) {
+               if constexpr (CT::Typed<THIS>) {
                   using K = typename THIS::Key;
                   using V = typename THIS::Value;
 
@@ -159,20 +159,20 @@ namespace Langulus::Anyness
                   );
                }
                else {
-                  Block keyswap {mKeys.GetState(), GetKeyType()};
-                  keyswap.AllocateFresh(keyswap.RequestSize<Any>(1));
-                  keyswap.CallUnknownSemanticConstructors(1, Abandon(oldKey));
+                  Block keyswap {mKeys.GetState(), GetKeyType<THIS>()};
+                  keyswap.AllocateFresh<Any>(keyswap.RequestSize<Any>(1));
+                  keyswap.CallSemanticConstructors<Any>(1, Abandon(oldKey));
                   keyswap.mCount = 1;
 
-                  auto oldValue = GetValueInner(oldIndex);
-                  Block valswap {mValues.GetState(), GetValueType()};
-                  valswap.AllocateFresh(valswap.RequestSize<Any>(1));
-                  valswap.CallUnknownSemanticConstructors(1, Abandon(oldValue));
+                  auto oldValue = GetValueHandle<THIS>(oldIndex);
+                  Block valswap {mValues.GetState(), GetValueType<THIS>()};
+                  valswap.AllocateFresh<Any>(valswap.RequestSize<Any>(1));
+                  valswap.CallSemanticConstructors<Any>(1, Abandon(oldValue));
                   valswap.mCount = 1;
 
                   // Destroy the pair and info at old index             
-                  oldKey.CallUnknownDestructors();
-                  oldValue.CallUnknownDestructors();
+                  oldKey.template CallDestructors<Any>();
+                  oldValue.template CallDestructors<Any>();
                   *oldInfo = 0;
                   --mValues.mCount;
 
@@ -186,7 +186,7 @@ namespace Langulus::Anyness
             }
          }
 
-         if constexpr (CT::TypedMap<THIS>)
+         if constexpr (CT::Typed<THIS>)
             ++oldKey;
          else
             oldKey.Next();
@@ -203,52 +203,77 @@ namespace Langulus::Anyness
    /// values in from the provided block                                      
    ///   @attention assumes count and oldCount are power-of-two               
    ///   @attention assumes count > oldCount                                  
-   ///   @param oldCount - the old number of pairs                            
-   ///   @param values - the source of values                                 
+   ///   @param old - the old block, where keys and values come from          
    template<CT::Map THIS>
-   void BlockMap::RehashKeys(Count oldCount, Block& values) {
-      LANGULUS_ASSUME(DevAssumes, mValues.mReserved > oldCount,
+   void BlockMap::RehashKeys(BlockMap& old) {
+      LANGULUS_ASSUME(DevAssumes, GetReserved() > old.GetReserved(),
          "New count is not larger than oldCount");
-      LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(mValues.mReserved),
+      LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(GetReserved()),
          "New count is not a power-of-two");
-      LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(oldCount),
-         "Old count is not a power-of-two");
 
-      auto oldKey = GetKeyInner(0);
-      auto oldInfo = GetInfo();
-      const auto oldInfoEnd = oldInfo + oldCount;
-      const auto hashmask = mValues.mReserved - 1;
+      auto oldKey = old.GetKeyHandle<THIS>(0);
+      auto oldInfo = old.GetInfo();
+      const auto oldInfoEnd = old.GetInfoEnd();
+      const auto hashmask = GetReserved() - 1;
 
       // First run: move elements closer to their new buckets           
       while (oldInfo != oldInfoEnd) {
          if (*oldInfo) {
             // Rehash and check if hashes match                         
             const Offset oldIndex = oldInfo - GetInfo();
-            Offset oldBucket = (oldCount + oldIndex) - *oldInfo + 1;
-            const auto newBucket = GetBucketUnknown(hashmask, oldKey);
-            if (oldBucket < oldCount or oldBucket - oldCount != newBucket) {
-               // Move pair only if it won't end up in same bucket      
-               Block keyswap {mKeys.GetState(), GetKeyType()};
-               keyswap.AllocateFresh(keyswap.RequestSize<Any>(1));
-               keyswap.CallUnknownSemanticConstructors(1, Abandon(oldKey));
-               keyswap.mCount = 1;
-               
-               // Destroy the pair and info at old index                
-               oldKey.CallUnknownDestructors();
-               *oldInfo = 0;
-               --mValues.mCount;
-               
-               InsertInnerUnknown<THIS, false>(
-                  newBucket,
-                  Abandon(keyswap), 
-                  Copy(values.GetElement(oldIndex))
-               );
+            const Offset oldBucket = (old.GetReserved() + oldIndex) - *oldInfo + 1;
+            Offset newBucket = 0;
+            if constexpr (CT::Typed<THIS>)
+               newBucket += GetBucket(hashmask, oldKey.Get());
+            else
+               newBucket += GetBucketUnknown(hashmask, oldKey);
 
-               keyswap.Free();
+            if (oldBucket < old.GetReserved() or oldBucket - old.GetReserved() != newBucket) {
+               // Move pair only if it won't end up in same bucket      
+               if constexpr (CT::Typed<THIS>) {
+                  using K = typename THIS::Key;
+
+                  HandleLocal<K> keyswap {Abandon(oldKey)};
+
+                  // Destroy the key, info and value                    
+                  oldKey.Destroy();
+                  *oldInfo = 0;
+                  --mValues.mCount;
+
+                  // Reinsert at the new bucket                         
+                  InsertInner<THIS, false>(
+                     newBucket,
+                     Abandon(keyswap),
+                     Copy(old.GetValueHandle<THIS>(oldIndex))
+                  );
+               }
+               else {
+                  Block keyswap {mKeys.GetState(), GetKeyType<THIS>()};
+                  keyswap.AllocateFresh<Any>(keyswap.RequestSize<Any>(1));
+                  keyswap.CallSemanticConstructors<Any>(1, Abandon(oldKey));
+                  keyswap.mCount = 1;
+
+                  // Destroy the pair and info at old index             
+                  oldKey.template CallDestructors<Any>();
+                  *oldInfo = 0;
+                  --mValues.mCount;
+
+                  InsertInnerUnknown<THIS, false>(
+                     newBucket,
+                     Abandon(keyswap),
+                     Copy(old.GetValueHandle<THIS>(oldIndex))
+                  );
+
+                  keyswap.Free();
+               }
             }
          }
 
-         oldKey.Next();
+         if constexpr (CT::Typed<THIS>)
+            ++oldKey;
+         else
+            oldKey.Next();
+
          ++oldInfo;
       }
 
@@ -261,51 +286,73 @@ namespace Langulus::Anyness
    /// keys in from the provided block                                        
    ///   @attention assumes count and oldCount are power-of-two               
    ///   @attention assumes count > oldCount                                  
-   ///   @param oldCount - the old number of pairs                            
-   ///   @param keys - the source of keys                                     
+   ///   @param old - the old block, where keys and values come from          
    template<CT::Map THIS>
-   void BlockMap::RehashValues(Count oldCount, Block& keys) {
-      LANGULUS_ASSUME(DevAssumes, mValues.mReserved > oldCount,
+   void BlockMap::RehashValues(BlockMap& old) {
+      LANGULUS_ASSUME(DevAssumes, GetReserved() > old.GetReserved(),
          "New count is not larger than oldCount");
-      LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(mValues.mReserved),
+      LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(GetReserved()),
          "New count is not a power-of-two");
-      LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(oldCount),
-         "Old count is not a power-of-two");
 
-      auto oldKey = keys.GetElement(0);
-      auto oldInfo = GetInfo();
-      const auto oldInfoEnd = oldInfo + oldCount;
-      const auto hashmask = mValues.mReserved - 1;
+      auto oldKey = old.GetKeyHandle<THIS>(0);
+      auto oldInfo = old.GetInfo();
+      const auto oldInfoEnd = old.GetInfoEnd();
+      const auto hashmask = GetReserved() - 1;
 
       // First run: move elements closer to their new buckets           
       while (oldInfo != oldInfoEnd) {
          if (*oldInfo) {
             // Rehash and check if hashes match                         
             const Offset oldIndex = oldInfo - GetInfo();
-            Offset oldBucket = (oldCount + oldIndex) - *oldInfo + 1;
-            const auto newBucket = GetBucketUnknown(hashmask, oldKey);
-            if (oldBucket < oldCount or oldBucket - oldCount != newBucket) {
-               // Move pair only if it won't end up in same bucket      
-               auto oldValue = GetValueInner(oldIndex);
-               Block valswap {mValues.GetState(), GetValueType()};
-               valswap.AllocateFresh(valswap.RequestSize<Any>(1));
-               valswap.CallUnknownSemanticConstructors(1, Abandon(oldValue));
-               valswap.mCount = 1;
-               
-               // Destroy the pair and info at old index                
-               oldValue.CallUnknownDestructors();
-               *oldInfo = 0;
-               --mValues.mCount;
-               
-               InsertInnerUnknown<THIS, false>(
-                  newBucket, Copy(oldKey), Abandon(valswap)
-               );
+            const Offset oldBucket = (old.GetReserved() + oldIndex) - *oldInfo + 1;
+            Offset newBucket = 0;
+            if constexpr (CT::Typed<THIS>)
+               newBucket += GetBucket(hashmask, oldKey.Get());
+            else
+               newBucket += GetBucketUnknown(hashmask, oldKey);
 
-               valswap.Free();
+            if (oldBucket < old.GetReserved() or oldBucket - old.GetReserved() != newBucket) {
+               // Move pair only if it won't end up in same bucket      
+               if constexpr (CT::Typed<THIS>) {
+                  using V = typename THIS::Value;
+
+                  auto oldValue = old.GetValueHandle<THIS>(oldIndex);
+                  HandleLocal<V> valswap {Abandon(oldValue)};
+
+                  // Destroy the key, info and value                    
+                  oldValue.Destroy();
+                  *oldInfo = 0;
+                  --mValues.mCount;
+
+                  // Reinsert at the new bucket                         
+                  InsertInner<THIS, false>(
+                     newBucket, Copy(oldKey), Abandon(valswap));
+               }
+               else {
+                  auto oldValue = old.GetValueHandle<THIS>(oldIndex);
+                  Block valswap {mValues.GetState(), GetValueType<THIS>()};
+                  valswap.AllocateFresh<Any>(valswap.RequestSize<Any>(1));
+                  valswap.CallSemanticConstructors<Any>(1, Abandon(oldValue));
+                  valswap.mCount = 1;
+
+                  // Destroy the pair and info at old index             
+                  oldValue.template CallDestructors<Any>();
+                  *oldInfo = 0;
+                  --mValues.mCount;
+
+                  InsertInnerUnknown<THIS, false>(
+                     newBucket, Copy(oldKey), Abandon(valswap));
+
+                  valswap.Free();
+               }
             }
          }
 
-         oldKey.Next();
+         if constexpr (CT::Typed<THIS>)
+            ++oldKey;
+         else
+            oldKey.Next();
+
          ++oldInfo;
       }
 
@@ -317,9 +364,6 @@ namespace Langulus::Anyness
    /// Shift elements left, where possible                                    
    template<CT::Map THIS>
    void BlockMap::ShiftPairs() {
-      using K = Conditional<CT::Typed<THIS>, typename THIS::Key,   void>;
-      using V = Conditional<CT::Typed<THIS>, typename THIS::Value, void>;
-
       auto oldInfo = mInfo;
       const auto newInfoEnd = GetInfoEnd();
       while (oldInfo != newInfoEnd) {
@@ -342,28 +386,25 @@ namespace Langulus::Anyness
 
             if (not mInfo[to] and attempt < *oldInfo) {
                // Empty spot found, so move pair there                  
-               if constexpr (CT::Void<K>) {
-                  auto key = GetKeyInner(oldIndex);
-                  GetKeyInner(to)
+               if constexpr (CT::Typed<THIS>) {
+                  auto key = GetKeyHandle<THIS>(oldIndex);
+                  GetKeyHandle<THIS>(to).New(Abandon(key));
+                  key.Destroy();
+
+                  auto val = GetValueHandle<THIS>(oldIndex);
+                  GetValueHandle<THIS>(to).New(Abandon(val));
+                  val.Destroy();
+               }
+               else {
+                  auto key = GetKeyHandle<THIS>(oldIndex);
+                  GetKeyHandle<THIS>(to)
                      .CallUnknownSemanticConstructors(1, Abandon(key));
                   key.CallUnknownDestructors();
-               }
-               else {
-                  auto key = GetKeyHandle<Decvq<K>>(oldIndex);
-                  GetKeyHandle<Decvq<K>>(to).New(Abandon(key));
-                  key.Destroy();
-               }
 
-               if constexpr (CT::Void<V>) {
-                  auto val = GetValueInner(oldIndex);
-                  GetValueInner(to)
+                  auto val = GetValueHandle<THIS>(oldIndex);
+                  GetValueHandle<THIS>(to)
                      .CallUnknownSemanticConstructors(1, Abandon(val));
                   val.CallUnknownDestructors();
-               }
-               else {
-                  auto val = GetValueHandle<Decvq<V>>(oldIndex);
-                  GetValueHandle<Decvq<V>>(to).New(Abandon(val));
-                  val.Destroy();
                }
 
                mInfo[to] = attempt;
@@ -383,8 +424,9 @@ namespace Langulus::Anyness
    ///   @return the offset at which pair was inserted                        
    template<CT::Map THIS, bool CHECK_FOR_MATCH>
    Offset BlockMap::InsertInner(
-      Offset start, CT::Semantic auto&& key, CT::Semantic auto&& val
+      const Offset start, CT::Semantic auto&& key, CT::Semantic auto&& val
    ) {
+      static_assert(CT::Typed<THIS>, "THIS must be typed");
       using SK = Deref<decltype(key)>;
       using SV = Deref<decltype(val)>;
       using K = Conditional<CT::Handle<TypeOf<SK>>, TypeOf<TypeOf<SK>>, TypeOf<SK>>;
@@ -447,9 +489,11 @@ namespace Langulus::Anyness
    ///   @param key - key to move in                                          
    ///   @param val - value to move in                                        
    ///   @return the offset at which pair was inserted                        
-   template<CT::Map, bool CHECK_FOR_MATCH, template<class> class S1, template<class> class S2, CT::Block T>
+   template<CT::Map THIS, bool CHECK_FOR_MATCH, template<class> class S1, template<class> class S2, CT::Block T>
    requires CT::Semantic<S1<T>, S2<T>>
-   Offset BlockMap::InsertInnerUnknown(Offset start, S1<T>&& key, S2<T>&& val) {
+   Offset BlockMap::InsertInnerUnknown(const Offset start, S1<T>&& key, S2<T>&& val) {
+      static_assert(not CT::Typed<THIS>, "THIS must not be typed");
+
       // Get the starting index based on the key hash                   
       auto psl = GetInfo() + start;
       const auto pslEnd = GetInfoEnd();
@@ -458,10 +502,10 @@ namespace Langulus::Anyness
       while (*psl) {
          const auto index = psl - GetInfo();
          if constexpr (CHECK_FOR_MATCH) {
-            const auto candidate = GetKeyInner(index);
+            const auto candidate = GetRawKey<THIS>(index);
             if (candidate == *key) {
                // Neat, the key already exists - just set value and go  
-               GetValueInner(index)
+               GetRawValue<THIS>(index)
                   .CallUnknownSemanticAssignment(1, val.Forward());
 
                if constexpr (S2<T>::Move) {
@@ -475,8 +519,8 @@ namespace Langulus::Anyness
 
          if (attempts > *psl) {
             // The pair we're inserting is closer to bucket, so swap    
-            GetKeyInner(index).template   SwapInner<Any>(key.Forward());
-            GetValueInner(index).template SwapInner<Any>(val.Forward());
+            GetRawKey  <THIS>(index).template SwapInner<Any>(key.Forward());
+            GetRawValue<THIS>(index).template SwapInner<Any>(val.Forward());
 
             ::std::swap(attempts, *psl);
             if (insertedAt == mValues.mReserved)
@@ -497,9 +541,9 @@ namespace Langulus::Anyness
       // eventually reached, unless key exists and returns early        
       // We're moving only a single element, so no chance of overlap    
       const auto index = psl - GetInfo();
-      GetKeyInner(index)
+      GetRawKey<THIS>(index)
          .CallUnknownSemanticConstructors(1, key.Forward());
-      GetValueInner(index)
+      GetRawValue<THIS>(index)
          .CallUnknownSemanticConstructors(1, val.Forward());
 
       if (insertedAt == mValues.mReserved)
@@ -526,7 +570,7 @@ namespace Langulus::Anyness
    ///   @param pair - the semantic and pair type to insert                   
    template<CT::Map THIS, bool CHECK_FOR_MATCH, template<class> class S, CT::Pair T>
    requires CT::Semantic<S<T>>
-   void BlockMap::InsertPairInner(Count hashmask, S<T>&& pair) {
+   void BlockMap::InsertPairInner(const Count hashmask, S<T>&& pair) {
       if constexpr (CT::TypedPair<T>) {
          // Insert a statically typed pair                              
          InsertInner<THIS, CHECK_FOR_MATCH>(

@@ -15,14 +15,14 @@ namespace Langulus::Anyness
 
    /// Execute a call for each pair inside the map                            
    ///   @tparam REVERSE - whether or not to iterate in reverse               
-   ///   @tparam F - the call to execute for each pair (deducible)            
    ///   @param call - the function to execute for each pair                  
    ///   @return the number of successfull executions                         
-   template<bool REVERSE, class F>
-   Count BlockMap::ForEach(F&& call) const {
+   template<CT::Map, bool REVERSE>
+   Count BlockMap::ForEach(auto&& call) const {
       if (IsEmpty())
          return 0;
 
+      using F = Deref<decltype(call)>;
       using A = Decay<ArgumentOf<F>>;
       using R = ReturnOf<F>;
 
@@ -109,19 +109,25 @@ namespace Langulus::Anyness
       return executions;
    }
 
-   /// Iterate and execute call for each element                              
-   ///   @attention assumes map is not empty, and part is typed               
-   ///   @param call - the function to execute for each element of type T     
+   /// Iterate and execute call for each element in mKeys/mValues             
+   ///   @attention assumes map is not empty, and part is properly typed      
+   ///   @tparam R - the function return type                                 
+   ///               if R is boolean, loop will cease on returning false      
+   ///   @tparam A - the function argument type                               
+   ///               A must be a CT::Block type                               
+   ///   @tparam REVERSE - whether to iterate in reverse                      
+   ///   @param call - the function to execute for each element               
    ///   @return the number of executions that occured                        
-   template<class R, CT::Data A, bool REVERSE, bool MUTABLE, class F>
-   Count BlockMap::ForEachInner(Block& part, F&& call) {
-      LANGULUS_ASSUME(DevAssumes, not IsEmpty(), "Map is empty");
-      if (not part.mType->CastsTo<A, true>())
-         return 0;
+   template<CT::Map, class R, CT::Data A, bool REVERSE>
+   Count BlockMap::ForEachInner(const CT::Block auto& part, auto&& call) const {
+      LANGULUS_ASSUME(DevAssumes, not IsEmpty(),
+         "Map is empty");
+      LANGULUS_ASSUME(DevAssumes, (part.template CastsTo<A, true>()),
+         "Map is not typed properly");
        
       constexpr bool HasBreaker = CT::Bool<R>;
-      Count done {};
-      Count index {};
+      Count done = 0;
+      Count index = 0;
 
       while (index < mValues.mReserved) {
          if (not mInfo[index]) {
@@ -129,20 +135,12 @@ namespace Langulus::Anyness
             continue;
          }
 
-         if constexpr (REVERSE) {
-            if constexpr (HasBreaker) {
-               if (not call(part.Get<A>(mValues.mReserved - index - 1)))
-                  return ++done;
-            }
-            else call(part.Get<A>(mValues.mReserved - index - 1));
+         const auto dind = REVERSE ? mValues.mReserved - index - 1 : index;
+         if constexpr (HasBreaker) {
+            if (not call(part.template Get<A>(dind)))
+               return ++done;
          }
-         else {
-            if constexpr (HasBreaker) {
-               if (not call(part.Get<A>(index)))
-                  return ++done;
-            }
-            else call(part.Get<A>(index));
-         }
+         else call(part.template Get<A>(dind));
 
          ++index;
          ++done;
@@ -153,17 +151,19 @@ namespace Langulus::Anyness
    
    /// Iterate all keys inside the map, and perform f() on them               
    /// You can break the loop, by returning false inside f()                  
-   ///   @param f - the function to call for each key block                   
-   ///   @return the number of successful f() executions                      
-   template<bool REVERSE, bool MUTABLE>
-   Count BlockMap::ForEachElement(Block& part, auto&& call) {
+   ///   @tparam REVERSE - whether to iterate in reverse                      
+   ///   @param part - the block to iterate                                   
+   ///   @param call - the function to call for each key block                
+   ///   @return the number of successful executions                          
+   template<CT::Map THIS, bool REVERSE>
+   Count BlockMap::ForEachElement(const CT::Block auto& part, auto&& call) const {
       using F = Deref<decltype(call)>;
       using A = ArgumentOf<F>;
       using R = ReturnOf<F>;
 
       static_assert(CT::Block<A>,
          "Function argument must be a CT::Block binary-compatible type");
-      static_assert(CT::Constant<A> or MUTABLE,
+      static_assert(CT::Constant<A> or CT::Mutable<THIS>,
          "Non constant iterator for constant memory block");
 
       auto info = mInfo;
@@ -189,49 +189,48 @@ namespace Langulus::Anyness
    }
    
    /// Iterate and execute call for each deep element                         
-   ///   @tparam R - the function return type (deduced)                       
+   ///   @tparam R - the function return type                                 
    ///               if R is boolean, loop will cease on returning false      
-   ///   @tparam A - the function argument type (deduced)                     
+   ///   @tparam A - the function argument type                               
    ///               A must be a CT::Block type                               
    ///   @tparam REVERSE - whether to iterate in reverse                      
-   ///   @tparam MUTABLE - whether or not a change to container is allowed    
-   ///                     while iterating (iteration is slower if true)      
+   ///   @tparam SKIP - true to avoid executing call in intermediate blocks   
    ///   @param call - the function to execute for each element of type A     
    ///   @return the number of executions that occured                        
-   template<class R, CT::Data A, bool REVERSE, bool SKIP, bool MUTABLE>
-   Count BlockMap::ForEachDeepInner(Block& part, auto&& call) {
+   template<CT::Map THIS, class R, CT::Data A, bool REVERSE, bool SKIP>
+   Count BlockMap::ForEachDeepInner(const CT::Block auto& part, auto&& call) const {
       constexpr bool HasBreaker = CT::Bool<R>;
-      using DA = Decay<A>;
-
+      constexpr bool Mutable = CT::Mutable<THIS>;
+      using SubBlock = Conditional<Mutable, Block&, const Block&>;
       Count counter = 0;
-      if constexpr (CT::Deep<DA>) {
-         using BlockType = Conditional<MUTABLE, DA*, const DA*>;
 
+      if constexpr (CT::Deep<Decay<A>>) {
          if (not SKIP or not part.IsDeep()) {
             // Always execute for intermediate/non-deep *this           
             ++counter;
+
             if constexpr (CT::Dense<A>) {
                if constexpr (HasBreaker) {
-                  if (not call(*reinterpret_cast<BlockType>(&part)))
+                  if (not call(part))
                      return counter;
                }
-               else call(*reinterpret_cast<BlockType>(&part));
+               else call(part);
             }
             else {
                if constexpr (HasBreaker) {
-                  if (not call(reinterpret_cast<BlockType>(&part)))
+                  if (not call(&part))
                      return counter;
                }
-               else call(reinterpret_cast<BlockType>(&part));
+               else call(&part);
             }
          }
 
          if (part.IsDeep()) {
             // Iterate using a block type                               
-            ForEachInner<void, BlockType, REVERSE, MUTABLE>(part,
-               [&counter, &call](BlockType group) {
-                  counter += const_cast<DA*>(group)->
-                     template ForEachDeepInner<R, A, REVERSE, SKIP, MUTABLE>(
+            ForEachInner<THIS, void, SubBlock, REVERSE>(part,
+               [&counter, &call](SubBlock group) {
+                  counter += DenseCast(group).template
+                     ForEachDeepInner<SubBlock, R, A, REVERSE, SKIP>(
                         ::std::move(call));
                }
             );
@@ -240,243 +239,183 @@ namespace Langulus::Anyness
       else {
          if (part.IsDeep()) {
             // Iterate deep keys/values using non-block type            
-            using BlockType = Conditional<MUTABLE, Block&, const Block&>;
-            ForEachInner<void, BlockType, REVERSE, MUTABLE>(part,
-               [&counter, &call](BlockType group) {
-                  counter += const_cast<Block&>(group).
-                     template ForEachDeepInner<R, A, REVERSE, SKIP, MUTABLE>(
+            ForEachInner<THIS, void, SubBlock, REVERSE>(part,
+               [&counter, &call](SubBlock group) {
+                  counter += DenseCast(group).template
+                     ForEachDeepInner<SubBlock, R, A, REVERSE, SKIP>(
                         ::std::move(call));
                }
             );
          }
          else {
             // Equivalent to non-deep iteration                         
-            counter += ForEachInner<R, A, REVERSE, MUTABLE>(part, ::std::move(call));
+            counter += ForEachInner<THIS, R, A, REVERSE>(part,
+               ::std::move(call));
          }
       }
 
       return counter;
    }
 
-   /// Iterate all keys inside the map, and perform f() on them               
-   /// You can break the loop, by returning false inside f()                  
-   ///   @param f - the function to call for each key block                   
-   ///   @return the number of successful f() executions                      
-   template<bool REVERSE, bool MUTABLE, class F> LANGULUS(INLINED)
-   Count BlockMap::ForEachKeyElement(F&& f) {
-      return ForEachElement<REVERSE, MUTABLE>(mKeys, Forward<F>(f));
+   /// Iterate all keys inside the map, and perform call() on each            
+   /// You can break the loop, by returning false inside call()               
+   ///   @tparam REVERSE - whether to iterate in reverse                      
+   ///   @param call - the function to call for each key block                
+   ///   @return the number of successful executions                          
+   template<CT::Map THIS, bool REVERSE> LANGULUS(INLINED)
+   Count BlockMap::ForEachKeyElement(auto&& call) const {
+      using F = Deref<decltype(call)>;
+      return ForEachElement<THIS, REVERSE>(
+         GetKeys<THIS>(), Forward<F>(call));
    }
 
-   template<bool REVERSE, class F> LANGULUS(INLINED)
-   Count BlockMap::ForEachKeyElement(F&& f) const {
-      return const_cast<BlockMap&>(*this).template
-         ForEachKeyElement<REVERSE, false>(Forward<F>(f));
-   }
-
-   /// Iterate all values inside the map, and perform f() on them             
-   /// You can break the loop, by returning false inside f()                  
-   ///   @param f - the function to call for each key block                   
-   ///   @return the number of successful f() executions                      
-   template<bool REVERSE, bool MUTABLE, class F> LANGULUS(INLINED)
-   Count BlockMap::ForEachValueElement(F&& f) {
-      return ForEachElement<REVERSE, MUTABLE>(mValues, Forward<F>(f));
-   }
-
-   template<bool REVERSE, class F> LANGULUS(INLINED)
-   Count BlockMap::ForEachValueElement(F&& f) const {
-      return const_cast<BlockMap&>(*this).template
-         ForEachValueElement<REVERSE, false>(Forward<F>(f));
+   /// Iterate all values inside the map, and perform call() on them          
+   /// You can break the loop, by returning false inside call()               
+   ///   @tparam REVERSE - whether to iterate in reverse                      
+   ///   @param call - the function to call for each key block                
+   ///   @return the number of successful call() executions                   
+   template<CT::Map THIS, bool REVERSE> LANGULUS(INLINED)
+   Count BlockMap::ForEachValueElement(auto&& call) const {
+      using F = Deref<decltype(call)>;
+      return ForEachElement<THIS, REVERSE>(
+         GetValues<THIS>(), Forward<F>(call));
    }
 
    /// Iterate keys inside the map, and perform a set of functions on them    
    /// depending on the contained type                                        
-   /// You can break the loop, by returning false inside f()                  
-   ///   @param f - the functions to call for each key block                  
-   ///   @return the number of successful f() executions                      
-   template<bool REVERSE, bool MUTABLE, class... F> LANGULUS(INLINED)
-   Count BlockMap::ForEachKey(F&&... f) {
+   /// You can break the loop, by returning false inside call()               
+   ///   @tparam REVERSE - whether to iterate in reverse                      
+   ///   @param call - the functions to call for each key block               
+   ///   @return the number of successful call() executions                   
+   template<CT::Map THIS, bool REVERSE, class...F> LANGULUS(INLINED)
+   Count BlockMap::ForEachKey(F&&...call) const {
       if (IsEmpty())
          return 0;
 
       Count result = 0;
-      (void) (... or (
-         0 != (result = ForEachInner<ReturnOf<F>, ArgumentOf<F>, REVERSE, MUTABLE>(
-            mKeys, Forward<F>(f))
-         )
+      (void) (... or (0 != (result = 
+         ForEachInner<THIS, ReturnOf<F>, ArgumentOf<F>, REVERSE>(
+            GetKeys<THIS>(), Forward<F>(call)))
       ));
       return result;
-   }
-
-   template<bool REVERSE, class... F>
-   LANGULUS(INLINED)
-   Count BlockMap::ForEachKey(F&&... f) const {
-      return const_cast<BlockMap&>(*this).template
-         ForEachKey<REVERSE, false>(Forward<F>(f)...);
    }
 
    /// Iterate values inside the map, and perform a set of functions on them  
    /// depending on the contained type                                        
    /// You can break the loop, by returning false inside f()                  
-   ///   @param f - the functions to call for each value block                
+   ///   @tparam REVERSE - whether to iterate in reverse                      
+   ///   @param call - the functions to call for each value block             
    ///   @return the number of successful f() executions                      
-   template<bool REVERSE, bool MUTABLE, class... F> LANGULUS(INLINED)
-   Count BlockMap::ForEachValue(F&&... f) {
+   template<CT::Map THIS, bool REVERSE, class...F> LANGULUS(INLINED)
+   Count BlockMap::ForEachValue(F&&...call) const {
       if (IsEmpty())
          return 0;
 
       Count result = 0;
-      (void) (... or (
-         0 != (result = ForEachInner<ReturnOf<F>, ArgumentOf<F>, REVERSE, MUTABLE>(
-            mValues, Forward<F>(f))
-         )
+      (void) (... or (0 != (result = 
+         ForEachInner<THIS, ReturnOf<F>, ArgumentOf<F>, REVERSE>(
+            GetValues<THIS>(), Forward<F>(call)))
       ));
       return result;
-   }
-
-   template<bool REVERSE, class... F>
-   LANGULUS(INLINED)
-   Count BlockMap::ForEachValue(F&&... f) const {
-      return const_cast<BlockMap&>(*this).template
-         ForEachValue<REVERSE, false>(Forward<F>(f)...);
    }
 
    /// Iterate each subblock of keys inside the map, and perform a set of     
    /// functions on them                                                      
-   ///   @param f - the functions to call for each key block                  
+   ///   @tparam REVERSE - whether to iterate in reverse                      
+   ///   @param call - the functions to call for each key block               
    ///   @return the number of successful f() executions                      
-   template<bool REVERSE, bool SKIP, bool MUTABLE, class... F>
-   LANGULUS(INLINED) Count BlockMap::ForEachKeyDeep(F&&... f) {
+   template<CT::Map THIS, bool REVERSE, bool SKIP, class...F> LANGULUS(INLINED)
+   Count BlockMap::ForEachKeyDeep(F&&...call) const {
       if (IsEmpty())
          return 0;
 
       Count result = 0;
-      (void) (... or (
-         0 != (result = ForEachDeepInner<ReturnOf<F>, ArgumentOf<F>, REVERSE, SKIP, MUTABLE>(
-            mKeys, Forward<F>(f))
-         )
+      (void) (... or (0 != (result = 
+         ForEachDeepInner<THIS, ReturnOf<F>, ArgumentOf<F>, REVERSE, SKIP>(
+            GetKeys<THIS>(), Forward<F>(call)))
       ));
       return result;
-   }
-
-   template<bool REVERSE, bool SKIP, class... F> LANGULUS(INLINED)
-   Count BlockMap::ForEachKeyDeep(F&&... f) const {
-      return const_cast<BlockMap&>(*this).template
-         ForEachKeyDeep<REVERSE, SKIP, false>(Forward<F>(f)...);
    }
 
    /// Iterate each subblock of values inside the map, and perform a set of   
    /// functions on them                                                      
-   ///   @param f - the functions to call for each key block                  
+   ///   @tparam REVERSE - whether to iterate in reverse                      
+   ///   @tparam SKIP - whether to execute calls for intermediate containers  
+   ///   @param call - the functions to call for each value block             
    ///   @return the number of successful f() executions                      
-   template<bool REVERSE, bool SKIP, bool MUTABLE, class... F>
-   LANGULUS(INLINED) Count BlockMap::ForEachValueDeep(F&&... f) {
+   template<CT::Map THIS, bool REVERSE, bool SKIP, class...F> LANGULUS(INLINED)
+   Count BlockMap::ForEachValueDeep(F&&...call) const {
       if (IsEmpty())
          return 0;
 
       Count result = 0;
-      (void) (... or (
-         0 != (result = ForEachDeepInner<ReturnOf<F>, ArgumentOf<F>, REVERSE, SKIP, MUTABLE>(
-            mValues, Forward<F>(f))
-         )
+      (void) (... or (0 != (result = 
+         ForEachDeepInner<THIS, ReturnOf<F>, ArgumentOf<F>, REVERSE, SKIP>(
+            GetValues<THIS>(), Forward<F>(call)))
       ));
       return result;
    }
 
-   template<bool REVERSE, bool SKIP, class... F> LANGULUS(INLINED)
-   Count BlockMap::ForEachValueDeep(F&&... f) const {
-      return const_cast<BlockMap&>(*this).template
-         ForEachValueDeep<REVERSE, SKIP, false>(Forward<F>(f)...);
-   }
-
    /// Get iterator to first element                                          
    ///   @return an iterator to the first element, or end if empty            
-   LANGULUS(INLINED)
-   typename BlockMap::Iterator BlockMap::begin() noexcept {
+   template<CT::Map THIS> LANGULUS(INLINED)
+   BlockMap::Iterator<THIS> BlockMap::begin() noexcept {
       if (IsEmpty())
          return end();
 
       // Seek first valid info, or hit sentinel at the end              
       auto info = GetInfo();
-      while (not *info) ++info;
+      while (not *info)
+         ++info;
 
       const auto offset = info - GetInfo();
-      return {
-         info, GetInfoEnd(),
-         GetKeyInner(offset),
-         GetValueInner(offset)
-      };
+      if constexpr (CT::Typed<THIS>) {
+         return {
+            info, GetInfoEnd(),
+            &GetRawKey<THIS>(offset),
+            &GetRawValue<THIS>(offset)
+         };
+      }
+      else {
+         return {
+            info, GetInfoEnd(),
+            GetRawKey<THIS>(offset),
+            GetRawValue<THIS>(offset)
+         };
+      }
    }
 
-   /// Get iterator to end                                                    
-   ///   @return an iterator to the end element                               
-   LANGULUS(INLINED)
-   typename BlockMap::Iterator BlockMap::end() noexcept {
-      return {GetInfoEnd(), GetInfoEnd(), {}, {}};
+   template<CT::Map THIS> LANGULUS(INLINED)
+   BlockMap::Iterator<const THIS> BlockMap::begin() const noexcept {
+      return const_cast<BlockMap*>(this)->begin<THIS>();
    }
+
 
    /// Get iterator to the last element                                       
    ///   @return an iterator to the last element, or end if empty             
-   LANGULUS(INLINED)
-   typename BlockMap::Iterator BlockMap::last() noexcept {
+   template<CT::Map THIS> LANGULUS(INLINED)
+   BlockMap::Iterator<THIS> BlockMap::last() noexcept {
       if (IsEmpty())
          return end();
 
       // Seek first valid info in reverse, until one past first is met  
       auto info = GetInfoEnd();
-      while (info >= GetInfo() and not *--info);
+      while (info >= GetInfo() and not *--info)
+         ;
 
       const auto offset = info - GetInfo();
       return {
          info, GetInfoEnd(),
-         GetKeyInner(offset),
-         GetValueInner(offset)
+         GetRawKey<THIS>(offset),
+         GetRawValue<THIS>(offset)
       };
    }
 
-   /// Get iterator to first element                                          
-   ///   @return a constant iterator to the first element, or end if empty    
-   LANGULUS(INLINED)
-   typename BlockMap::ConstIterator BlockMap::begin() const noexcept {
-      if (IsEmpty())
-         return end();
-
-      // Seek first valid info, or hit sentinel at the end              
-      auto info = GetInfo();
-      while (not *info) ++info;
-
-      const auto offset = info - GetInfo();
-      return {
-         info, GetInfoEnd(), 
-         GetKeyInner(offset),
-         GetValueInner(offset)
-      };
+   template<CT::Map THIS> LANGULUS(INLINED)
+   BlockMap::Iterator<const THIS> BlockMap::last() const noexcept {
+      return const_cast<BlockMap*>(this)->last<THIS>();
    }
 
-   /// Get iterator to end                                                    
-   ///   @return a constant iterator to the end element                       
-   LANGULUS(INLINED)
-   typename BlockMap::ConstIterator BlockMap::end() const noexcept {
-      return {GetInfoEnd(), GetInfoEnd(), {}, {}};
-   }
-
-   /// Get iterator to the last valid element                                 
-   ///   @return a constant iterator to the last element, or end if empty     
-   LANGULUS(INLINED)
-   typename BlockMap::ConstIterator BlockMap::last() const noexcept {
-      if (IsEmpty())
-         return end();
-
-      // Seek first valid info in reverse, until one past first is met  
-      auto info = GetInfoEnd();
-      while (info >= GetInfo() and not *--info);
-
-      const auto offset = info - GetInfo();
-      return {
-         info, GetInfoEnd(),
-         GetKeyInner(offset),
-         GetValueInner(offset)
-      };
-   }
 
    ///                                                                        
    ///   Map iterator                                                         
@@ -487,12 +426,12 @@ namespace Langulus::Anyness
    ///   @param sentinel - the end of info pointers                           
    ///   @param key - pointer to the key element                              
    ///   @param value - pointer to the value element                          
-   template<bool MUTABLE> LANGULUS(INLINED)
-   BlockMap::TIterator<MUTABLE>::TIterator(
+   /*template<class MAP> LANGULUS(INLINED)
+   BlockMap::Iterator<MAP>::Iterator(
       const InfoType* info, 
       const InfoType* sentinel, 
-      const Block& key, 
-      const Block& value
+      K&& key, 
+      V&& value
    ) noexcept
       : mInfo {info}
       , mSentinel {sentinel}
@@ -502,14 +441,15 @@ namespace Langulus::Anyness
    /// Prefix increment operator                                              
    ///   @attention assumes iterator points to a valid element                
    ///   @return the modified iterator                                        
-   template<bool MUTABLE> LANGULUS(INLINED)
-   typename BlockMap::TIterator<MUTABLE>& BlockMap::TIterator<MUTABLE>::operator ++ () noexcept {
+   template<class MAP> LANGULUS(INLINED)
+   BlockMap::Iterator<MAP>& BlockMap::Iterator<MAP>::operator ++ () noexcept {
       if (mInfo == mSentinel)
          return *this;
 
       // Seek next valid info, or hit sentinel at the end               
       const auto previous = mInfo;
-      while (not *++mInfo);
+      while (not *++mInfo)
+         ;
       const auto offset = mInfo - previous;
       mKey.mRaw += offset * mKey.GetStride();
       mValue.mRaw += offset * mValue.GetStride();
@@ -519,8 +459,8 @@ namespace Langulus::Anyness
    /// Suffix increment operator                                              
    ///   @attention assumes iterator points to a valid element                
    ///   @return the previous value of the iterator                           
-   template<bool MUTABLE> LANGULUS(INLINED)
-   typename BlockMap::TIterator<MUTABLE> BlockMap::TIterator<MUTABLE>::operator ++ (int) noexcept {
+   template<class MAP> LANGULUS(INLINED)
+   BlockMap::Iterator<MAP> BlockMap::Iterator<MAP>::operator ++ (int) noexcept {
       const auto backup = *this;
       operator ++ ();
       return backup;
@@ -529,22 +469,22 @@ namespace Langulus::Anyness
    /// Compare unordered map entries                                          
    ///   @param rhs - the other iterator                                      
    ///   @return true if entries match                                        
-   template<bool MUTABLE> LANGULUS(INLINED)
-   bool BlockMap::TIterator<MUTABLE>::operator == (const TIterator& rhs) const noexcept {
+   template<class MAP> LANGULUS(INLINED)
+   bool BlockMap::Iterator<MAP>::operator == (const Iterator& rhs) const noexcept {
       return mInfo == rhs.mInfo;
    }
 
    /// Iterator access operator                                               
    ///   @return a pair at the current iterator position                      
-   template<bool MUTABLE> LANGULUS(INLINED)
-   Pair BlockMap::TIterator<MUTABLE>::operator * () const noexcept {
+   template<class MAP> LANGULUS(INLINED)
+   BlockMap::Iterator<MAP>::Pair BlockMap::Iterator<MAP>::operator * () const noexcept {
       return {Disown(mKey), Disown(mValue)};
    }
 
    /// Explicit bool operator, to check if iterator is valid                  
-   template<bool MUTABLE> LANGULUS(INLINED)
-   constexpr BlockMap::TIterator<MUTABLE>::operator bool() const noexcept {
+   template<class MAP> LANGULUS(INLINED)
+   constexpr BlockMap::Iterator<MAP>::operator bool() const noexcept {
       return mInfo != mSentinel;
-   }
+   }*/
 
 } // namespace Langulus::Anyness

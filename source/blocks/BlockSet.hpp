@@ -20,6 +20,9 @@ namespace Langulus
       /// It defines the size for CT::Set concept                             
       ///                                                                     
       struct BlockSet {
+         LANGULUS(ABSTRACT) true;
+         LANGULUS(POD) true;
+
          using InfoType = ::std::uint8_t;
          using OrderType = Offset;
 
@@ -80,7 +83,10 @@ namespace Langulus::Anyness
    /// lightweight intermediate structure for iteration, etc.                 
    ///                                                                        
    struct BlockSet : A::BlockSet {
+      LANGULUS(ABSTRACT) false;
+
       static constexpr bool Ownership = false;
+      static constexpr bool Ordered = false;
 
       ///                                                                     
       ///   Construction & Assignment                                         
@@ -262,6 +268,7 @@ namespace Langulus::Anyness
 
       template<CT::Set>
       NOD() Offset FindInner(const CT::NotSemantic auto&) const;
+      template<CT::Set>
       NOD() Offset FindInnerUnknown(const Block&) const;
 
    public:
