@@ -43,7 +43,10 @@ namespace Langulus::Anyness
       using Value = T;
       using Base = Set<ORDERED>;
       using Self = TSet<T, ORDERED>;
+
+      LANGULUS(POD) false;
       LANGULUS(TYPED) T;
+      LANGULUS_BASES(Set<ORDERED>);
 
    protected:
       static_assert(CT::Inner::Comparable<T>,

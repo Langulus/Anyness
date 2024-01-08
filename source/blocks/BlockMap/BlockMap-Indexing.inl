@@ -13,142 +13,111 @@
 namespace Langulus::Anyness
 {
 
+   /// Convert an index to an offset                                          
+   /// Complex indices will be fully constrained                              
+   /// Unsigned/signed integers are directly forwarded without any overhead   
+   ///   @attention assumes index is in container reserve limit, if integer   
+   ///   @param index - the index to simplify                                 
+   ///   @return the simplified index, as a simple offset                     
+   template<CT::Map THIS, CT::Index INDEX> LANGULUS(INLINED)
+   Offset BlockMap::SimplifyIndex(const INDEX index) const
+   noexcept(not LANGULUS_SAFE() and CT::BuiltinInteger<INDEX>) {
+      if constexpr (CT::Same<INDEX, Index>) {
+         // This is the most safe path, throws on errors, but slow      
+         if constexpr (CT::Typed<THIS>) {
+            const auto result = index.Constrained(GetReserved());
+
+            if (result == IndexBiggest) {
+               TODO();
+            }
+            else if (result == IndexSmallest) {
+               TODO();
+            }
+
+            return result.GetOffset();
+         }
+         else return index.Constrained(GetReserved()).GetOffset();
+      }
+      else {
+         // Unsafe, works only on assumptions                           
+         // Using an integer index explicitly makes a statement, that   
+         // you know what you're doing                                  
+         LANGULUS_ASSUME(UserAssumes,
+            static_cast<Count>(index) < GetReserved(),
+            "Integer index out of range");
+
+         if constexpr (CT::Signed<INDEX>) {
+            LANGULUS_ASSUME(UserAssumes, index >= 0, 
+               "Integer index is below zero, "
+               "use Index for reverse indices instead"
+            );
+         }
+
+         return index;
+      }
+   }
+
    /// Get a key by a safe index                                              
    ///   @param index - the index to use                                      
    ///   @return a reference to the key                                       
-   LANGULUS(INLINED)
-   Block BlockMap::GetKey(CT::Index auto index) {
-      auto offset = mValues.SimplifyIndex<void, true>(index);
-      auto info = GetInfo();
-      const auto infoEnd = GetInfoEnd();
-      while (info != infoEnd) {
-         if (*info) {
-            if (offset == 0)
-               return GetKeyInner(info - GetInfo());
-            --offset;
-         }
-         ++info;
-      }
+   template<CT::Map THIS> LANGULUS(INLINED)
+   decltype(auto) BlockMap::GetKey(CT::Index auto index) {
+      if (IsEmpty())
+         LANGULUS_OOPS(OutOfRange, "Map is empty");
 
-      LANGULUS_THROW(Access, "This shouldn't be reached, ever");
+      const auto idx = SimplifyIndex<THIS>(index);
+      if (not mInfo[idx])
+         LANGULUS_OOPS(OutOfRange, "No pair at given index");
+      return GetRawKey<THIS>(idx);
    }
 
-   /// Get a key by a safe index (const)                                      
-   ///   @param index - the index to use                                      
-   ///   @return a reference to the key                                       
-   LANGULUS(INLINED)
-   Block BlockMap::GetKey(CT::Index auto index) const {
-      return const_cast<BlockMap*>(this)->GetKey(index);
+   template<CT::Map THIS> LANGULUS(INLINED)
+   decltype(auto) BlockMap::GetKey(CT::Index auto index) const {
+      return const_cast<BlockMap*>(this)->template GetKey<THIS>(index);
    }
 
    /// Get a value by a safe index                                            
    ///   @param index - the index to use                                      
    ///   @return a reference to the value                                     
-   LANGULUS(INLINED)
-   Block BlockMap::GetValue(CT::Index auto index) {
-      auto offset = mValues.SimplifyIndex<void, true>(index);
-      auto info = GetInfo();
-      const auto infoEnd = GetInfoEnd();
-      while (info != infoEnd) {
-         if (*info) {
-            if (offset == 0)
-               return GetValueInner(info - GetInfo());
-            --offset;
-         }
-         ++info;
-      }
+   template<CT::Map THIS> LANGULUS(INLINED)
+   decltype(auto) BlockMap::GetValue(CT::Index auto index) {
+      if (IsEmpty())
+         LANGULUS_OOPS(OutOfRange, "Map is empty");
 
-      LANGULUS_THROW(Access, "This shouldn't be reached, ever");
+      const auto idx = SimplifyIndex<THIS>(index);
+      if (not mInfo[idx])
+         LANGULUS_OOPS(OutOfRange, "No pair at given index");
+      return GetRawValue<THIS>(idx);
    }
 
-   /// Get a value by a safe index (const)                                    
-   ///   @param index - the index to use                                      
-   ///   @return a reference to the value                                     
-   LANGULUS(INLINED)
-   Block BlockMap::GetValue(CT::Index auto index) const {
-      return const_cast<BlockMap&>(*this).GetValue(index);
+   template<CT::Map THIS> LANGULUS(INLINED)
+   decltype(auto) BlockMap::GetValue(CT::Index auto index) const {
+      return const_cast<BlockMap&>(*this).template GetValue<THIS>(index);
    }
 
    /// Get a pair by a safe index                                             
    ///   @param index - the index to use                                      
    ///   @return the pair                                                     
-   LANGULUS(INLINED)
-   Pair BlockMap::GetPair(CT::Index auto index) {
-      auto offset = mValues.SimplifyIndex<void, true>(index);
-      auto info = GetInfo();
-      const auto infoEnd = GetInfoEnd();
-      while (info != infoEnd) {
-         if (*info) {
-            if (offset == 0)
-               return GetPairInner(info - GetInfo());
-            --offset;
-         }
-         ++info;
-      }
+   template<CT::Map THIS> LANGULUS(INLINED)
+   auto BlockMap::GetPair(CT::Index auto index) {
+      if (IsEmpty())
+         LANGULUS_OOPS(OutOfRange, "Map is empty");
 
-      LANGULUS_THROW(Access, "This shouldn't be reached, ever");
+      auto idx = SimplifyIndex<THIS>(index);
+      if (not mInfo[idx])
+         LANGULUS_OOPS(OutOfRange, "No pair at given index");
+
+      return typename THIS::PairRef {
+         GetRawKey  <THIS>(idx),
+         GetRawValue<THIS>(idx)
+      };
    }
    
-   /// Get a pair by a safe index (const)                                     
-   ///   @param index - the index to use                                      
-   ///   @return the pair                                                     
-   LANGULUS(INLINED)
-   Pair BlockMap::GetPair(CT::Index auto index) const {
-      return const_cast<BlockMap&>(*this).GetPair(index);
-   }
-
-   /// Get a type-erased key                                                  
-   ///   @attention as unsafe as it gets, for internal use only               
-   ///   @param i - the offset to use                                         
-   ///   @return the key, wrapped inside a block                              
-   LANGULUS(INLINED)
-   Block BlockMap::GetKeyInner(Offset i) IF_UNSAFE(noexcept) {
-      return mKeys.GetElement(i);
-   }
-
-   /// Get a type-erased key (const)                                          
-   ///   @attention as unsafe as it gets, for internal use only               
-   ///   @param i - the offset to use                                         
-   ///   @return the key, wrapped inside an immutable block                   
-   LANGULUS(INLINED)
-   Block BlockMap::GetKeyInner(Offset i) const IF_UNSAFE(noexcept) {
-      return mKeys.GetElement(i);
-   }
-
-   /// Get a type-erased value                                                
-   ///   @attention as unsafe as it gets, for internal use only               
-   ///   @param i - the offset to use                                         
-   ///   @return the value, wrapped inside a block                            
-   LANGULUS(INLINED)
-   Block BlockMap::GetValueInner(Offset i) IF_UNSAFE(noexcept) {
-      return mValues.GetElement(i);
-   }
-
-   /// Get a type-erased value (const)                                        
-   ///   @attention as unsafe as it gets, for internal use only               
-   ///   @param i - the offset to use                                         
-   ///   @return the value, wrapped inside an immutable block                 
-   LANGULUS(INLINED)
-   Block BlockMap::GetValueInner(Offset i) const IF_UNSAFE(noexcept) {
-      return mValues.GetElement(i);
-   }
-
-   /// Get a pair by an unsafe offset (const)                                 
-   ///   @attention as unsafe as it gets, for internal use only               
-   ///   @param i - the offset to use                                         
-   ///   @return the pair                                                     
-   LANGULUS(INLINED)
-   Pair BlockMap::GetPairInner(Offset i) const IF_UNSAFE(noexcept) {
-      return {GetKeyInner(i), GetValueInner(i)};
-   }
-
-   /// Get a pair by an unsafe offset                                         
-   ///   @attention as unsafe as it gets, for internal use only               
-   ///   @param i - the offset to use                                         
-   ///   @return the pair                                                     
-   LANGULUS(INLINED)
-   Pair BlockMap::GetPairInner(Offset i) IF_UNSAFE(noexcept) {
-      return {GetKeyInner(i), GetValueInner(i)};
+   template<CT::Map THIS> LANGULUS(INLINED)
+   auto BlockMap::GetPair(CT::Index auto index) const {
+      return typename THIS::PairConstRef {
+         const_cast<BlockMap*>(this)->template GetPair<THIS>(index)
+      };
    }
 
    /// Get the bucket index, based on the provided value's hash               
@@ -169,26 +138,29 @@ namespace Langulus::Anyness
       return value.GetHash().mHash & mask;
    }
 
-   /// Get a key reference                                                    
+   /// Get a key reference if THIS is typed, otherwise get a block            
    ///   @attention assumes index is in container's limits                    
    ///   @attention assumes K is similar to the contained key type            
    ///   @param i - the key index                                             
    ///   @return a reference to the key                                       
    template<CT::Map THIS> LANGULUS(INLINED)
-   auto& BlockMap::GetRawKey(Offset i) IF_UNSAFE(noexcept) {
-      using K = typename THIS::Key;
-
+   decltype(auto) BlockMap::GetRawKey(Offset i) IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, i < GetReserved(),
          "Index out of limits when accessing map key",
          ", index ", i, " is beyond the reserved ", GetReserved(), " elements");
-      LANGULUS_ASSUME(DevAssumes, mKeys.template IsSimilar<K>(),
-         "Wrong type when accessing map key",
-         ", using type `", NameOf<K>(), "` instead of `", mKeys.GetType(), '`');
-      return GetKeys<THIS>().GetRaw()[i];
+
+      if constexpr (CT::TypedMap<THIS>) {
+         using K = typename THIS::Key;
+         LANGULUS_ASSUME(DevAssumes, mKeys.template IsSimilar<K>(),
+            "Wrong type when accessing map key",
+            ", using type `", NameOf<K>(), "` instead of `", mKeys.GetType(), '`');
+         return GetKeys<THIS>().GetRaw()[i];
+      }
+      else return GetKeys<THIS>().GetElement(i);
    }
    
    template<CT::Map THIS> LANGULUS(INLINED)
-   auto& BlockMap::GetRawKey(Offset i) const IF_UNSAFE(noexcept) {
+   decltype(auto) BlockMap::GetRawKey(Offset i) const IF_UNSAFE(noexcept) {
       return const_cast<BlockMap*>(this)->template GetRawKey<THIS>(i);
    }
 
@@ -198,24 +170,27 @@ namespace Langulus::Anyness
    ///   @param i - the value index                                           
    ///   @return a reference to the value                                     
    template<CT::Map THIS> LANGULUS(INLINED)
-   auto& BlockMap::GetRawValue(Offset i) IF_UNSAFE(noexcept) {
-      using V = typename THIS::Value;
-
+   decltype(auto) BlockMap::GetRawValue(Offset i) IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, i < GetReserved(),
          "Index out of limits when accessing map value",
          ", index ", i, " is beyond the reserved ", GetReserved(), " elements");
-      LANGULUS_ASSUME(DevAssumes, mValues.template IsSimilar<V>(),
-         "Wrong type when accessing map value",
-         ", using type `", NameOf<V>(), "` instead of `", mValues.GetType(), '`');
-      return GetValues<THIS>().GetRaw()[i];
+
+      if constexpr (CT::TypedMap<THIS>) {
+         using V = typename THIS::Value;
+         LANGULUS_ASSUME(DevAssumes, mValues.template IsSimilar<V>(),
+            "Wrong type when accessing map value",
+            ", using type `", NameOf<V>(), "` instead of `", mValues.GetType(), '`');
+         return GetValues<THIS>().GetRaw()[i];
+      }
+      else return GetValues<THIS>().GetElement(i);
    }
 
    template<CT::Map THIS> LANGULUS(INLINED)
-   auto& BlockMap::GetRawValue(Offset i) const IF_UNSAFE(noexcept) {
+   decltype(auto) BlockMap::GetRawValue(Offset i) const IF_UNSAFE(noexcept) {
       return const_cast<BlockMap*>(this)->template GetRawValue<THIS>(i);
    }
 
-   /// Get a key handle                                                       
+   /// Get a key handle if THIS is typed, otherwise get a block               
    ///   @attention assumes index is in container's limits                    
    ///   @attention assumes K is similar to the contained key type            
    ///   @param i - the key index                                             
@@ -233,10 +208,10 @@ namespace Langulus::Anyness
             ", using type `", NameOf<K>(), "` instead of `", mKeys.GetType(), '`');
          return GetKeys<THIS>().GetHandle(i);
       }
-      else return GetKeyInner(i);
+      else return GetKeys<THIS>().GetElement(i);
    }
    
-   /// Get a value handle                                                     
+   /// Get a value handle if THIS is typed, otherwise get a block             
    ///   @attention assumes index is in container's limits                    
    ///   @attention assumes V is similar to the contained value type          
    ///   @param i - the value index                                           
@@ -254,7 +229,7 @@ namespace Langulus::Anyness
             ", using type `", NameOf<V>(), "` instead of `", mValues.GetType(), '`');
          return GetValues<THIS>().GetHandle(i);
       }
-      else return GetValueInner(i);
+      else return GetValues<THIS>().GetElement(i);
    }
 
 } // namespace Langulus::Anyness

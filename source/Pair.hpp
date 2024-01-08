@@ -24,6 +24,20 @@ namespace Langulus
 
    } // namespace Langulus::A
 
+   namespace CT
+   {
+
+      /// Check if T is a pair type                                           
+      ///	@attention not a test for binary compatibility!                   
+      template<class...T>
+      concept Pair = (DerivedFrom<T, A::Pair> and ...);
+
+      /// Check if a type is a statically typed pair                          
+      template<class...T>
+      concept TypedPair = Pair<T...> and Typed<T...>;
+
+   } // namespace Langulus::CT
+
    namespace Anyness
    {
 
@@ -36,40 +50,37 @@ namespace Langulus
          Any mKey;
          Any mValue;
 
-      public:
-         constexpr Pair();
+         ///                                                                  
+         ///   Construction & Assignment                                      
+         ///                                                                  
+         constexpr Pair() = default;
+         Pair(Pair const&) = default;
+         Pair(Pair&&) noexcept = default;
 
-         template<CT::NotSemantic K, CT::NotSemantic V>
-         Pair(const K&, const V&);
-         template<CT::NotSemantic K, CT::NotSemantic V>
-         Pair(const K&, V&&);
-         template<CT::NotSemantic K, CT::NotSemantic V>
-         Pair(K&&, const V&);
-         template<CT::NotSemantic K, CT::NotSemantic V>
+         template<class P> requires CT::Pair<Desem<P>>
+         Pair(P&&);
+
+         template<class K, class V>
+         requires CT::Inner::UnfoldInsertable<K, V>
          Pair(K&&, V&&);
 
-         template<CT::Semantic SK, CT::Semantic SV>
-         Pair(SK&&, SV&&);
+         Pair& operator = (Pair const&) = default;
+         Pair& operator = (Pair&&) noexcept = default;
+         template<class P> requires CT::Pair<Desem<P>>
+         Pair& operator = (P&&);
 
-         NOD() Hash GetHash() const;
+         ///                                                                  
+         ///   Capsulation                                                    
+         ///                                                                  
+         NOD() Hash  GetHash() const;
          NOD() DMeta GetKeyType() const noexcept;
          NOD() DMeta GetValueType() const noexcept;
+
+         ///                                                                  
+         ///   Comparison                                                     
+         ///                                                                  
+         bool operator == (CT::Pair auto const&) const;
       };
 
    } // namespace Langulus::Anyness
-
-   namespace CT
-   {
-
-      /// Check if T is a pair type                                           
-      ///	@attention not a test for binary compatibility!                   
-      template<class...T>
-      concept Pair = ((Dense<T> and DerivedFrom<T, A::Pair>) and ...);
-
-      /// Check if a type is a statically typed pair                          
-      template<class...T>
-      concept TypedPair = Pair<T...> and Typed<T...>;
-
-   } // namespace Langulus::CT
-
 } // namespace Langulus

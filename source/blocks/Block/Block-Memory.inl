@@ -17,7 +17,7 @@ namespace Langulus::Anyness
    ///   @param count - the number of elements to request                     
    ///   @return both the provided byte size and reserved count               
    template<CT::Block THIS> LANGULUS(INLINED)
-   AllocationRequest Block::RequestSize(const Count& count) const
+   AllocationRequest Block::RequestSize(const Count count) const
    IF_UNSAFE(noexcept) {
       if constexpr (CT::Typed<THIS>) {
          using T = TypeOf<THIS>;
@@ -27,10 +27,10 @@ namespace Langulus::Anyness
             result.mElementCount = result.mByteSize / sizeof(T);
             return result;
          }
-         else return GetType()->RequestSize(count);
+         else return GetType<THIS>()->RequestSize(count);
       }
       else {
-         LANGULUS_ASSUME(DevAssumes, IsTyped(),
+         LANGULUS_ASSUME(DevAssumes, IsTyped<THIS>(),
             "Requesting allocation size for an untyped container");
          return mType->RequestSize(count);
       }
@@ -41,7 +41,7 @@ namespace Langulus::Anyness
    /// excess elements will be destroyed                                      
    ///   @param count - number of elements to reserve                         
    template<CT::Block THIS> LANGULUS(INLINED)
-   void Block::Reserve(Count count) {
+   void Block::Reserve(const Count count) {
       if (count < mCount)
          AllocateLess<THIS>(count);
       else 
@@ -54,7 +54,7 @@ namespace Langulus::Anyness
    ///   @tparam SETSIZE - true to set count, despite not constructing        
    ///   @param elements - number of elements to allocate                     
    template<CT::Block THIS, bool CREATE, bool SETSIZE>
-   void Block::AllocateMore(Count elements) {
+   void Block::AllocateMore(const Count elements) {
       LANGULUS_ASSUME(DevAssumes, elements > mCount, "Bad element count");
 
       if constexpr (CT::Typed<THIS>) {
@@ -70,7 +70,7 @@ namespace Langulus::Anyness
                   if (mCount < elements) {
                      const auto count = elements - mCount;
                      CropInner(mCount, count)
-                        .template CallKnownDefaultConstructors<T>(count);
+                        .template CallDefaultConstructors<THIS>(count);
                   }
                }
 
@@ -103,7 +103,7 @@ namespace Langulus::Anyness
                   // entry, if managed memory is enabled                
                   if constexpr (CT::AbandonMakable<T> or CT::MoveMakable<T> or CT::CopyMakable<T>) {
                      mRaw = const_cast<Byte*>(mEntry->GetBlockStart());
-                     CallKnownSemanticConstructors<T>(
+                     CallSemanticConstructors<THIS>(
                         previousBlock.mCount, Abandon(previousBlock)
                      );
 
@@ -117,8 +117,8 @@ namespace Langulus::Anyness
                   // copy the memory for this block - we can't move it! 
                   // This will throw, if data is not copy-constructible 
                   if constexpr (CT::DisownMakable<T> or CT::CopyMakable<T>) {
-                     AllocateFresh(request);
-                     CallKnownSemanticConstructors<T>(
+                     AllocateFresh<THIS>(request);
+                     CallSemanticConstructors<THIS>(
                         previousBlock.mCount, Copy(previousBlock)
                      );
                   }
@@ -130,7 +130,7 @@ namespace Langulus::Anyness
                if constexpr (CT::Sparse<T>) {
                   // Move entry data to its new place                   
                   MoveMemory(
-                     GetEntries(), previousBlock.GetEntries(), mCount
+                     GetEntries<THIS>(), previousBlock.GetEntries<THIS>(), mCount
                   );
                }
             }
@@ -139,18 +139,18 @@ namespace Langulus::Anyness
                // Default-construct the rest                            
                const auto count = elements - mCount;
                CropInner(mCount, count)
-                  .template CallKnownDefaultConstructors<T>(count);
+                  .template CallDefaultConstructors<THIS>(count);
             }
          }
          else {
             // Allocate a fresh set of elements                         
             mType = MetaDataOf<T>();
-            AllocateFresh(request);
+            AllocateFresh<THIS>(request);
 
             if constexpr (CREATE) {
                // Default-construct everything                          
                CropInner(mCount, elements)
-                  .template CallKnownDefaultConstructors<T>(elements);
+                  .template CallDefaultConstructors<THIS>(elements);
             }
          }
       }
@@ -172,7 +172,7 @@ namespace Langulus::Anyness
                if (mCount < elements) {
                   const auto count = elements - mCount;
                   CropInner(mCount, count)
-                     .CallUnknownDefaultConstructors(count);
+                     .CallDefaultConstructors<THIS>(count);
                }
             }
          }
@@ -211,8 +211,8 @@ namespace Langulus::Anyness
                if constexpr (CT::Sparse<T>) {
                   // Move entry data to its new place                   
                   MoveMemory(
-                     GetEntries() - mReserved + request.mElementCount,
-                     GetEntries(), mCount
+                     GetEntries<THIS>() - mReserved + request.mElementCount,
+                     GetEntries<THIS>(), mCount
                   );
                }
 
@@ -227,8 +227,8 @@ namespace Langulus::Anyness
                if (mType->mIsSparse) {
                   // Move entry data to its new place                   
                   MoveMemory(
-                     GetEntries() - mReserved + request.mElementCount,
-                     GetEntries(), mCount
+                     GetEntries<THIS>() - mReserved + request.mElementCount,
+                     GetEntries<THIS>(), mCount
                   );
                }
 
@@ -253,13 +253,9 @@ namespace Langulus::Anyness
          return;
 
       // Copy all elements                                              
-      auto& me = reinterpret_cast<THIS&>(*this);
       Block clone {*this};
-      clone.AllocateFresh(me.template RequestSize<THIS>(mCount));
-      if constexpr (CT::Typed<THIS>)
-         clone.CallKnownSemanticConstructors<TypeOf<THIS>>(mCount, Copy(*this));
-      else
-         clone.CallUnknownSemanticConstructors(mCount, Copy(*this));
+      clone.AllocateFresh<THIS>(RequestSize<THIS>(mCount));
+      clone.CallSemanticConstructors<THIS>(mCount, Copy(*this));
 
       // Overwrite this block directly                                  
       CopyMemory(this, &clone);
@@ -271,9 +267,9 @@ namespace Langulus::Anyness
    ///   @param elements - number of elements to allocate                     
    template<CT::Block THIS, bool CREATE>
    void Block::AllocateInner(Count elements) {
-      LANGULUS_ASSERT(mType, Allocate,
+      LANGULUS_ASSERT(IsTyped<THIS>(), Allocate,
          "Invalid type");
-      LANGULUS_ASSERT(not mType->mIsAbstract or IsSparse(), Allocate,
+      LANGULUS_ASSERT(not GetType<THIS>()->mIsAbstract or IsSparse<THIS>(), Allocate,
          "Abstract dense type");
 
       // Retrieve the required byte size                                
@@ -304,14 +300,14 @@ namespace Langulus::Anyness
                // Sparse containers have additional memory allocated for
                // each pointer's entry, if managed memory is enabled    
                mRaw = const_cast<Byte*>(mEntry->GetBlockStart());
-               CallUnknownSemanticConstructors(previousBlock.mCount,
+               CallSemanticConstructors<THIS>(previousBlock.mCount,
                   Abandon(previousBlock));
             }
             else {
                // Memory is used from multiple locations, and we must      
                // copy the memory for this block - we can't move it!       
-               AllocateFresh(request);
-               CallUnknownSemanticConstructors(previousBlock.mCount,
+               AllocateFresh<THIS>(request);
+               CallSemanticConstructors<THIS>(previousBlock.mCount,
                   Copy(previousBlock));
                previousBlock.Free<Any>();
             }
@@ -321,18 +317,17 @@ namespace Langulus::Anyness
             if (mType->mIsSparse) {
                // Move entry data to its new place                   
                MoveMemory(
-                  GetEntries(), previousBlock.GetEntries(), mCount
+                  GetEntries<THIS>(), previousBlock.GetEntries<THIS>(), mCount
                );
             }
          }
       }
-      else AllocateFresh(request);
+      else AllocateFresh<THIS>(request);
 
       if constexpr (CREATE) {
          // Default-construct the rest                                  
          const auto count = elements - mCount;
-         CropInner(mCount, count)
-            .CallUnknownDefaultConstructors(count);
+         CropInner(mCount, count).CallDefaultConstructors<THIS>(count);
          mCount = elements;
       }
    }
@@ -340,13 +335,13 @@ namespace Langulus::Anyness
    /// Allocate a fresh allocation (inner function)                           
    ///   @attention changes entry, memory and reserve count                   
    ///   @param request - request to fulfill                                  
-   LANGULUS(INLINED)
+   template<CT::Block THIS> LANGULUS(INLINED)
    void Block::AllocateFresh(const AllocationRequest& request) {
       // Sparse containers have additional memory allocated             
       // for each pointer's entry                                       
-      mEntry = Allocator::Allocate(
-         mType, request.mByteSize * (mType->mIsSparse ? 2 : 1)
-      );
+      mEntry = Allocator::Allocate(GetType<THIS>(),
+         request.mByteSize * (IsSparse<THIS>() ? 2 : 1));
+
       LANGULUS_ASSERT(mEntry, Allocate, "Out of memory");
       mRaw = const_cast<Byte*>(mEntry->GetBlockStart());
       mReserved = request.mElementCount;
@@ -379,18 +374,8 @@ namespace Langulus::Anyness
 
       if (mEntry->GetUses() == 1) {
          // Destroy all elements                                        
-         if constexpr (CT::Typed<THIS>) {
-            using T = TypeOf<THIS>;
-            if constexpr (CT::Sparse<T> or CT::Destroyable<T>) {
-               if (mCount)
-                  CallKnownDestructors<T>();
-            }
-         }
-         else {
-            // Call type-erased destructors                             
-            if (mCount)
-               CallUnknownDestructors();
-         }
+         if (mCount)
+            CallDestructors<THIS>();
 
          // Free memory                                                 
          Allocator::Deallocate(const_cast<Allocation*>(mEntry));

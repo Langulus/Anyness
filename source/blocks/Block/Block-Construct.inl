@@ -235,18 +235,11 @@ namespace Langulus::Anyness
          if (0 == mCount)
             return;
          
-         if constexpr (CT::Typed<FROM> or CT::Typed<TO>) {
-            using B = Conditional<CT::Typed<FROM>, FROM, TO>;
-            auto asTo = reinterpret_cast<B*>(this);
-            asTo->AllocateFresh(asTo->template RequestSize<B>(mCount));
-            CallKnownSemanticConstructors<TypeOf<B>>(
-               mCount, from.template Forward<Block>());
-         }
-         else {
-            AllocateFresh(RequestSize<Any>(mCount));
-            CallUnknownSemanticConstructors(
-               mCount, from.template Forward<Block>());
-         }
+         // Pick a preferably typed block to optimize the construction  
+         using B = Conditional<CT::Typed<FROM>, FROM, TO>;
+         AllocateFresh<B>(RequestSize<B>(mCount));
+         CallSemanticConstructors<B>(
+            mCount, from.template Forward<Block>());
       }
    }
    
@@ -281,36 +274,18 @@ namespace Langulus::Anyness
       temporary.AllocateFresh(temporary.RequestSize<THIS>(mCount));
       temporary.mCount = mCount;
 
-      if constexpr (CT::Typed<THIS>) {
-         using T = TypeOf<THIS>;
-
-         // Abandon this to temporary                                   
-         temporary.CallKnownSemanticConstructors<T>(mCount, Abandon(*this));
-         // Destroy elements in this                                    
-         CallKnownDestructors<T>();
-         // Abandon rhs to this                                         
-         CallKnownSemanticConstructors<T>(rhs->mCount, rhs.Forward());
-         // Destroy elements in rhs                                     
-         rhs->template CallKnownDestructors<T>();
-         // Abandon temporary to rhs                                    
-         rhs->template CallKnownSemanticConstructors<T>(temporary.mCount, Abandon(temporary));
-         // Cleanup temporary                                           
-         temporary.CallKnownDestructors<T>();
-      }
-      else {
-         // Abandon this to temporary                                   
-         temporary.CallUnknownSemanticConstructors(mCount, Abandon(*this));
-         // Destroy elements in this                                    
-         CallUnknownDestructors();
-         // Abandon rhs to this                                         
-         CallUnknownSemanticConstructors(rhs->mCount, rhs.Forward());
-         // Destroy elements in rhs                                     
-         rhs->CallUnknownDestructors();
-         // Abandon temporary to rhs                                    
-         rhs->CallUnknownSemanticConstructors(temporary.mCount, Abandon(temporary));
-         // Cleanup temporary                                           
-         temporary.CallUnknownDestructors();
-      }
+      // Abandon this to temporary                                      
+      temporary.CallSemanticConstructors<THIS>(mCount, Abandon(*this));
+      // Destroy elements in this                                       
+      CallDestructors<THIS>();
+      // Abandon rhs to this                                            
+      CallSemanticConstructors<THIS>(rhs->mCount, rhs.Forward());
+      // Destroy elements in rhs                                        
+      rhs->template CallDestructors<THIS>();
+      // Abandon temporary to rhs                                       
+      rhs->template CallSemanticConstructors<THIS>(temporary.mCount, Abandon(temporary));
+      // Cleanup temporary                                              
+      temporary.CallDestructors<THIS>();
 
       Allocator::Deallocate(const_cast<Allocation*>(temporary.mEntry));
    }

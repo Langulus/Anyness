@@ -21,13 +21,13 @@ namespace Langulus::Anyness
    /// Compare to any other kind of deep container, or single custom element  
    ///   @param rhs - element to compare against                              
    ///   @return true if containers match                                     
-   LANGULUS(INLINED)
+   template<CT::Block THIS> LANGULUS(INLINED)
    bool Block::operator == (const CT::NotSemantic auto& rhs) const {
       using T = Deref<decltype(rhs)>;
       if constexpr (CT::Deep<T>)
-         return Compare(rhs) or CompareSingleValue<T>(rhs);
+         return Compare<THIS>(rhs) or CompareSingleValue<THIS, T>(rhs);
       else
-         return CompareSingleValue<T>(rhs);
+         return CompareSingleValue<THIS, T>(rhs);
    }
    
    /// Compare two block's contents for equality                              
@@ -35,13 +35,41 @@ namespace Langulus::Anyness
    ///                     comparing                                          
    ///   @param right - the memory block to compare against                   
    ///   @return true if the two memory blocks are identical                  
-   template<bool RESOLVE>
-   bool Block::Compare(const Block& right) const {
+   template<CT::Block THIS, bool RESOLVE>
+   bool Block::Compare(const CT::Block auto& right) const {
+      using RHS = Deref<decltype(right)>;
       VERBOSE_TAB("Comparing ",
          Logger::Push, Logger::White, mCount, " elements of ", GetToken(),
          Logger::Pop, " with ",
          Logger::Push, Logger::White, right.mCount, " elements of ", right.GetToken()
       );
+
+      if constexpr (CT::Typed<THIS> and CT::Typed<RHS>) {
+         if (mRaw == right.mRaw)
+            return mCount == right.mCount;
+         else if (mCount != right.mCount)
+            return false;
+
+         using T = TypeOf<THIS>;
+         static_assert(CT::Similar<T, TypeOf<RHS>>, "Different types");
+
+         if constexpr (CT::Sparse<T> or CT::POD<T>) {
+            // Batch compare POD/pointers                               
+            return 0 == ::std::memcmp(GetRaw(), right.GetRaw(), GetBytesize<THIS>());
+         }
+         else if constexpr (CT::Inner::Comparable<T>) {
+            // Use comparison operator between all elements             
+            auto t1 = GetRawAs<T>();
+            auto t2 = right.template GetRawAs<T>();
+            const auto t1end = t1 + mCount;
+            while (t1 < t1end and *t1 == *t2) {
+               ++t1;
+               ++t2;
+            }
+            return t1 == t1end;
+         }
+         else LANGULUS_ERROR("Elements not comparable");
+      }
 
       if (mCount != right.mCount) {
          // Cheap early return for differently sized blocks             
@@ -52,7 +80,7 @@ namespace Langulus::Anyness
       }
 
       if (mCount and mType != right.mType) {
-         if (IsUntyped() or right.IsUntyped()) {
+         if (IsUntyped<THIS>() or right.IsUntyped()) {
             // Cheap early return if differing undefined types, when    
             // packs are not empty                                      
             VERBOSE(Logger::Red,
@@ -61,7 +89,7 @@ namespace Langulus::Anyness
             return false;
          }
       }
-      else if (not mCount or IsUntyped()) {
+      else if (not mCount or IsUntyped<THIS>()) {
          // Both blocks are untyped or empty, just compare states       
          return CompareStates(right);
       }
@@ -83,13 +111,13 @@ namespace Langulus::Anyness
          }
          else if (mType->mIsPOD or mType->mIsSparse) {
             // Batch-compare memory if POD or sparse                    
-            return 0 == memcmp(mRaw, right.mRaw, GetBytesize());
+            return 0 == memcmp(mRaw, right.mRaw, GetBytesize<THIS>());
          }
          else if (mType->mComparer) {
             // Call compare operator for each element pair              
             auto lhs = GetRawAs<Byte>();
-            auto rhs = right.GetRawAs<Byte>();
-            const auto lhsEnd = GetRawEnd();
+            auto rhs = right.template GetRawAs<Byte>();
+            const auto lhsEnd = GetRawEndAs<THIS, Byte>();
             while (lhs != lhsEnd) {
                if (not mType->mComparer(lhs, rhs))
                   return false;
@@ -106,7 +134,7 @@ namespace Langulus::Anyness
       RTTI::Base baseForComparison {};
       if constexpr (RESOLVE) {
          // We will test type for each resolved element, individually   
-         if (not IsResolvable() and not right.IsResolvable()
+         if (not IsResolvable<THIS>() and not right.IsResolvable()
              and not CompareTypes(right, baseForComparison)) {
             // Types differ and are not resolvable                      
             VERBOSE(Logger::Red,
@@ -126,14 +154,14 @@ namespace Langulus::Anyness
          }
       }
 
-      if (  (IsSparse() and baseForComparison.mBinaryCompatible)
+      if (  (IsSparse<THIS>() and baseForComparison.mBinaryCompatible)
          or (baseForComparison.mType->mIsPOD and baseForComparison.mBinaryCompatible)
       ) {
          // Just compare the memory directly (optimization)             
          // Regardless if types are sparse or dense, as long as they    
          // are of the same density, of course                          
          VERBOSE("Batch-comparing POD memory / pointers");
-         const auto code = memcmp(mRaw, right.mRaw, GetBytesize());
+         const auto code = memcmp(mRaw, right.mRaw, GetBytesize<THIS>());
 
          if (code != 0) {
             VERBOSE(Logger::Red, "POD/pointers are not the same ", Logger::Yellow, "(fast)");
@@ -143,7 +171,7 @@ namespace Langulus::Anyness
          VERBOSE(Logger::Green, "POD/pointers memory is the same ", Logger::Yellow, "(fast)");
       }
       else if (baseForComparison.mType->mComparer) {
-         if (IsSparse()) {
+         if (IsSparse<THIS>()) {
             if constexpr (RESOLVE) {
                // Resolve all elements one by one and compare them by   
                // their common resolved base                            
@@ -231,112 +259,168 @@ namespace Langulus::Anyness
    /// Hash data inside memory block                                          
    ///   @attention order matters, so you might want to Neat data first       
    ///   @return the hash                                                     
-   inline Hash Block::GetHash() const {
-      if (not mType or not mCount)
-         return {};
+   template<CT::Block THIS>
+   Hash Block::GetHash() const {
+      if constexpr (CT::Typed<THIS>) {
+         using T = TypeOf<THIS>;
+         if (not mCount)
+            return {};
 
-      if (mCount == 1) {
-         // Exactly one element means exactly one hash                  
-         if (mType->mIsSparse)
-            return HashOf(*GetRawSparse());
-         else if (mType->Is<Hash>())
-            return Get<Hash>();
-         else if (mType->mHasher)
-            return mType->mHasher(mRaw);
-         else if (mType->mIsPOD) {
-            if (mType->mAlignment < Bitness/8)
-               return HashBytes<DefaultHashSeed, true>(mRaw, static_cast<int>(mType->mSize));
-            else
-               return HashBytes<DefaultHashSeed, false>(mRaw, static_cast<int>(mType->mSize));
+         if (mCount == 1) {
+            // Exactly one element means exactly one hash               
+            return HashOf(*GetRawAs<T>());
          }
-         else LANGULUS_OOPS(Access, "Unhashable type", ": ", GetToken());
-      }
 
-      // Hashing multiple elements                                      
-      if (mType->mIsSparse) {
-         return HashBytes<DefaultHashSeed, false>(mRaw, static_cast<int>(GetBytesize()));
-      }
-      else if (mType->mHasher) {
-         // Use the reflected hasher for each element, and then combine 
-         // hashes for a final one                                      
-         TAny<Hash> h;
-         h.Reserve(mCount);
-         ForEachElement([&](const Block& element) {
-            h << mType->mHasher(element.mRaw);
-         });
-         return h.GetHash();
-      }
-      else if (mType->mIsPOD) {
-         if (mType->mAlignment < Bitness / 8)
-            return HashBytes<DefaultHashSeed, true>(mRaw, static_cast<int>(GetBytesize()));
-         else
-            return HashBytes<DefaultHashSeed, false>(mRaw, static_cast<int>(GetBytesize()));
-      }
-      else LANGULUS_OOPS(Access, "Unhashable type", ": ", GetToken());
-      return {};
-   }
-   
-   /// Find first matching element position inside container                  
-   ///   @tparam REVERSE - true to perform search in reverse                  
-   ///   @param item - the item to search for                                 
-   ///   @param cookie - continue search from a given offset                  
-   ///   @return the index of the found item, or IndexNone if not found       
-   template<bool REVERSE>
-   Index Block::FindKnown(const CT::NotSemantic auto& item, Offset cookie) const {
-      using T = Deref<decltype(item)>;
-
-      // First check if element is contained inside this block's        
-      // memory, because if so, we can easily find it, without calling  
-      // a single compare function                                      
-      if constexpr (CT::Deep<T>) {
-         // Deep items have a bit looser type requirements              
-         if (IsDense() and IsDeep() and Owns(&item)) {
-            const Offset index = &item - GetRawAs<T>();
-            // Check is required, because Owns tests in reserved range  
-            return index < mCount ? index : IndexNone;
+         // Hashing multiple elements                                   
+         if constexpr (CT::Sparse<T>) {
+            return HashBytes<DefaultHashSeed, false>(
+               mRaw, static_cast<int>(GetBytesize<THIS>()));
+         }
+         else if constexpr (CT::POD<T> and not CT::Inner::HasGetHashMethod<T>) {
+            // Hash all PODs at once                                    
+            return HashBytes<DefaultHashSeed, alignof(T) < Bitness / 8> (
+               mRaw, static_cast<int>(GetBytesize<THIS>()));
+         }
+         else {
+            // Hash each element, and then combine hashes in a final one
+            TAny<Hash> h;
+            h.Reserve(mCount);
+            for (auto& element : reinterpret_cast<const THIS&>(*this))
+               h << HashOf(element);
+            return h.GetHash();
          }
       }
       else {
-         // Search for a conventional item                              
-         if (IsExact<T>() and Owns(&item)) {
-            const Offset index = &item - GetRawAs<T>();
-            // Check is required, because Owns tests in reserved range  
-            return index < mCount ? index : IndexNone;
+         if (not mType or not mCount)
+            return {};
+
+         if (mCount == 1) {
+            // Exactly one element means exactly one hash               
+            if (mType->mIsSparse)
+               return HashOf(*GetRawSparse<THIS>());
+            else if (mType->Is<Hash>())
+               return Get<Hash>();
+            else if (mType->mHasher)
+               return mType->mHasher(mRaw);
+            else if (mType->mIsPOD) {
+               if (mType->mAlignment < Bitness / 8)
+                  return HashBytes<DefaultHashSeed, true>(mRaw, static_cast<int>(mType->mSize));
+               else
+                  return HashBytes<DefaultHashSeed, false>(mRaw, static_cast<int>(mType->mSize));
+            }
+            else LANGULUS_OOPS(Access, "Unhashable type", ": ", GetToken());
+         }
+
+         // Hashing multiple elements                                   
+         if (mType->mIsSparse) {
+            return HashBytes<DefaultHashSeed, false>(mRaw, static_cast<int>(GetBytesize<THIS>()));
+         }
+         else if (mType->mHasher) {
+            // Use the reflected hasher for each element, and then      
+            // combine hashes for a final one                           
+            TAny<Hash> h;
+            h.Reserve(mCount);
+            ForEachElement<THIS>([&](const Block& element) {
+               h << mType->mHasher(element.mRaw);
+            });
+            return h.GetHash();
+         }
+         else if (mType->mIsPOD) {
+            if (mType->mAlignment < Bitness / 8)
+               return HashBytes<DefaultHashSeed, true>(mRaw, static_cast<int>(GetBytesize<THIS>()));
+            else
+               return HashBytes<DefaultHashSeed, false>(mRaw, static_cast<int>(GetBytesize<THIS>()));
+         }
+         else LANGULUS_OOPS(Access, "Unhashable type", ": ", GetToken());
+         return {};
+      }
+   }
+
+   /// Find a single element's index inside container                         
+   ///   @tparam REVERSE - true to perform search in reverse                  
+   ///   @param item - the item to search for                                 
+   ///   @param cookie - resume search from a given index                     
+   ///   @return the index of the found item, or IndexNone if none found      
+   template<CT::Block THIS, bool REVERSE>
+   Index Block::Find(const CT::NotSemantic auto& item, Offset cookie) const noexcept {
+      using ALT_T = Deref<decltype(item)>;
+
+      if constexpr (CT::Typed<THIS>) {
+         using T = TypeOf<THIS>;
+         static_assert(CT::Inner::Comparable<T, ALT_T>,
+            "Can't find non-comparable element");
+
+         auto start = REVERSE
+            ? GetRawEndAs<T>() - 1 - cookie
+            : GetRawAs<T>() + cookie;
+         const auto end = REVERSE
+            ? start - mCount
+            : start + mCount;
+
+         while (start != end) {
+            if (*start == item)
+               return start - GetRawAs<T>();
+
+            if constexpr (REVERSE)
+               --start;
+            else
+               ++start;
          }
       }
-
-      // Item is not in this block's memory, so we start comparing by   
-      // values                                                         
-      Offset i = REVERSE ? mCount - 1 - cookie : cookie;
-      while (i < mCount) {
-         if (GetElement(i) == item) {
-            // Match found                                              
-            return i;
+      else {
+         // First check if element is contained inside this block's     
+         // memory, because if so, we can easily find it, without       
+         // calling a single compare function                           
+         if constexpr (CT::Deep<ALT_T>) {
+            // Deep items have a bit looser type requirements           
+            if (IsDense<THIS>() and IsDeep<THIS>() and Owns<THIS>(&item)) {
+               const Offset index = &item - GetRawAs<ALT_T>();
+               // Check required, because Owns tests in reserved range  
+               return index < mCount ? index : IndexNone;
+            }
+         }
+         else {
+            // Search for a conventional item                           
+            if (IsExact<ALT_T>() and Owns<THIS>(&item)) {
+               const Offset index = &item - GetRawAs<ALT_T>();
+               // Check required, because Owns tests in reserved range  
+               return index < mCount ? index : IndexNone;
+            }
          }
 
-         if constexpr (REVERSE)
-            --i;
-         else
-            ++i;
+         // Item is not in this block's memory, so we start comparing by
+         // values                                                      
+         Offset i = REVERSE ? mCount - 1 - cookie : cookie;
+         while (i < mCount) {
+            if (GetElement(i) == item) {
+               // Match found                                           
+               return i;
+            }
+
+            if constexpr (REVERSE)
+               --i;
+            else
+               ++i;
+         }
       }
 
       // If this is reached, then no match was found                    
       return IndexNone;
    }
    
-   /// Find first matching element position inside container                  
+   /// Find a matching sequence of one or more matching elements              
    ///   @tparam REVERSE - true to perform search in reverse                  
    ///   @param item - block with a single item to search for                 
    ///   @param cookie - continue search from a given offset                  
    ///   @return the index of the found item, or IndexNone if not found       
-   template<bool REVERSE>
-   Index Block::FindUnknown(const Block& item, Offset cookie) const {
+   template<CT::Block THIS, bool REVERSE>
+   Index Block::FindBlock(const CT::Block auto& item, Offset cookie) const noexcept {
       // First check if element is contained inside this block's        
       // memory, because if so, we can easily find it, without calling  
       // a single compare function                                      
       if (item.IsDense() and item.IsDeep()) {
          // Deep items have a bit looser type requirements              
-         if (IsDense() and IsDeep() and Owns(item.mRaw)) {
+         if (IsDense<THIS>() and IsDeep<THIS>() and Owns<THIS>(item.mRaw)) {
             const Offset index = (item.mRaw - mRaw) / sizeof(Block);
             // Check is required, because Owns tests in reserved range  
             return index < mCount ? index : IndexNone;
@@ -344,7 +428,7 @@ namespace Langulus::Anyness
       }
       else {
          // Search for a conventional item                              
-         if (IsExact(item.GetType()) and Owns(item.mRaw)) {
+         if (IsExact(item.GetType()) and Owns<THIS>(item.mRaw)) {
             const Offset index = (item.mRaw - mRaw) / mType->mSize;
             // Check is required, because Owns tests in reserved range  
             return index < mCount ? index : IndexNone;
@@ -370,34 +454,13 @@ namespace Langulus::Anyness
       return IndexNone;
    }
 
-   /// Find first matching element position inside container, deeply          
-   ///   @tparam REVERSE - true to perform search in reverse                  
-   ///   @param item - the item to search for                                 
-   ///   @param cookie - continue search from a given offset                  
-   ///   @return the index of the found item, or IndexNone if not found       
-   template<bool REVERSE>
-   Index Block::FindDeep(const CT::NotSemantic auto& item, Offset cookie) const {
-      Index found;
-      ForEachDeep<REVERSE>([&](const Block& group) {
-         if (cookie) {
-            --cookie;
-            return Flow::Continue;
-         }
-
-         found = group.template FindKnown<REVERSE>(item);
-         return not found;
-      });
-
-      return found;
-   }
-
    /// Compare with one single value, if exactly one element is contained     
    ///   @param rhs - the value to compare against                            
    ///   @return true if elements are the same                                
-   LANGULUS(INLINED)
+   template<CT::Block THIS> LANGULUS(INLINED)
    bool Block::CompareSingleValue(const CT::NotSemantic auto& rhs) const {
       using T = Deref<decltype(rhs)>;
-      if (mCount != 1 or IsUntyped())
+      if (mCount != 1 or IsUntyped<THIS>())
          return false;
 
       if constexpr (CT::Deep<T>) {
@@ -406,14 +469,14 @@ namespace Langulus::Anyness
             return false;
          return GetRawAs<Block>()->Compare(rhs);
       }
-      else if constexpr (CT::Array<T> and CT::ExactAsOneOf<Decvq<Deext<T>>, char, wchar_t>) {
+      else if constexpr (CT::StringLiteral<T>) {
          if (mType->template IsSimilar<Text>()) {
             // Implicitly make a text container on string literal       
             return *GetRawAs<Text>() == Text {Disown(rhs)};
          }
          else if (mType->template IsSimilar<char*, wchar_t*>()) {
             // Cast away the extent, compare against pointer            
-            return *GetRawSparse() == static_cast<const void*>(rhs);
+            return *GetRawSparse<THIS>() == static_cast<const void*>(rhs);
          }
          else return false;
       }
@@ -443,10 +506,10 @@ namespace Langulus::Anyness
    ///   @param common - [out] the common base                                
    ///   @return true if a common base has been found                         
    inline bool Block::CompareTypes(const Block& right, RTTI::Base& common) const {
-      LANGULUS_ASSUME(DevAssumes, IsTyped(),
-         "LHS block is not typed", " comparing with RHS: ", right.GetType());
-      LANGULUS_ASSUME(DevAssumes, right.IsTyped(),
-         "RHS block is not typed", " comparing with LHS: ", GetType());
+      LANGULUS_ASSUME(DevAssumes, IsTyped<Block>(),
+         "LHS block is not typed", " comparing with RHS: ", right.GetType<Block>());
+      LANGULUS_ASSUME(DevAssumes, right.IsTyped<Block>(),
+         "RHS block is not typed", " comparing with LHS: ", GetType<Block>());
 
       if (not mType->Is(right.mType)) {
          // Types differ, dig deeper to find out why                    

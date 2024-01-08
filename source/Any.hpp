@@ -45,16 +45,6 @@ namespace Langulus::Anyness
    public:
       static constexpr bool Ownership = true;
 
-      template<CT::Data T>
-      friend class TAny;
-      friend class Block;
-
-      template<bool MUTABLE>
-      struct TIterator;
-
-      using Iterator = TIterator<true>;
-      using ConstIterator = TIterator<false>;
-
       ///                                                                     
       ///   Construction                                                      
       ///                                                                     
@@ -69,8 +59,8 @@ namespace Langulus::Anyness
       ~Any();
 
       NOD() static Any FromMeta(DMeta, DataState = {}) noexcept;
-      NOD() static Any FromBlock(const Block&, DataState = {}) noexcept;
-      NOD() static Any FromState(const Block&, DataState = {}) noexcept;
+      NOD() static Any FromBlock(const CT::Block auto&, DataState = {}) noexcept;
+      NOD() static Any FromState(const CT::Block auto&, DataState = {}) noexcept;
       template<CT::Data T>
       NOD() static Any From(DataState = {}) noexcept;
 
@@ -90,14 +80,36 @@ namespace Langulus::Anyness
       using Block::operator ==;
 
       template<bool REVERSE = false>
-      Index Find(const CT::Data auto&, const Offset & = 0) const;
+      Index Find(const CT::Data auto&, Offset = 0) const;
 
    public:
       using Block::Swap;
       void Swap(Any&) noexcept;
 
-      NOD() Any Crop(const Offset&, const Count&) const;
-      NOD() Any Crop(const Offset&, const Count&);
+      NOD() Any Crop(Offset, Count) const;
+      NOD() Any Crop(Offset, Count);
+
+      ///                                                                     
+      ///   Iteration                                                         
+      ///                                                                     
+      using Iterator = Block::Iterator<Any>;
+      using ConstIterator = Block::Iterator<const Any>;
+
+      template<bool REVERSE = false>
+      Count ForEachElement(auto&&) const;
+      
+      template<bool REVERSE = false>
+      Count ForEach(auto&&...) const;
+   
+      template<bool REVERSE = false, bool SKIP = true>
+      Count ForEachDeep(auto&&...) const;
+      
+      Count ForEachElementRev(auto&&...) const;
+      
+      Count ForEachRev(auto&&...) const;
+
+      template<bool SKIP = true>
+      Count ForEachDeepRev(auto&&...) const;
 
       ///                                                                     
       ///   Insertion                                                         
@@ -109,57 +121,10 @@ namespace Langulus::Anyness
       Any& operator >>= (CT::Inner::UnfoldInsertable auto&&);
 
       ///                                                                     
-      ///   Removal                                                           
-      ///                                                                     
-      Iterator RemoveIt(const Iterator&, Count = 1);
-
-      void Clear();
-      void Reset();
-
-      ///                                                                     
       ///   Concatenation                                                     
       ///                                                                     
       NOD() Any  operator +  (CT::Inner::UnfoldInsertable auto&&) const;
             Any& operator += (CT::Inner::UnfoldInsertable auto&&);
-
-      ///                                                                     
-      ///   Iteration                                                         
-      ///                                                                     
-      NOD() Iterator begin() noexcept;
-      NOD() Iterator end() noexcept;
-      NOD() Iterator last() noexcept;
-      NOD() ConstIterator begin() const noexcept;
-      NOD() ConstIterator end() const noexcept;
-      NOD() ConstIterator last() const noexcept;
-   };
-
-
-   ///                                                                        
-   ///   Block iterator                                                       
-   ///                                                                        
-   template<bool MUTABLE>
-   struct Any::TIterator {
-   protected:
-      friend class Any;
-
-      Block mValue;
-
-      TIterator(const Block&) noexcept;
-
-   public:
-      TIterator() noexcept = default;
-      TIterator(const TIterator&) noexcept = default;
-      TIterator(TIterator&&) noexcept = default;
-
-      NOD() bool operator == (const TIterator&) const noexcept;
-
-      NOD() const Block& operator * () const noexcept;
-
-      // Prefix operator                                                
-      TIterator& operator ++ () noexcept;
-
-      // Suffix operator                                                
-      NOD() TIterator operator ++ (int) noexcept;
    };
 
 } // namespace Langulus::Anyness

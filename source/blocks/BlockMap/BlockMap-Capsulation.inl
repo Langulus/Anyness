@@ -8,87 +8,88 @@
 ///                                                                           
 #pragma once
 #include "../BlockMap.hpp"
+#include "BlockMap-Indexing.inl"
 
 
 namespace Langulus::Anyness
 {
    
-   /// Templated tables are always typed                                      
-   ///   @return false                                                        
-   LANGULUS(INLINED)
+   /// Check if map has its key type set                                      
+   ///   @return true if type is available                                    
+   template<CT::Map THIS> LANGULUS(INLINED)
    constexpr bool BlockMap::IsKeyUntyped() const noexcept {
-      return mKeys.IsUntyped();
+      return GetKeys<THIS>().IsUntyped();
    }
    
-   /// Templated tables are always typed                                      
-   ///   @return false                                                        
-   LANGULUS(INLINED)
+   /// Check if map has its value type set                                    
+   ///   @return true if type is available                                    
+   template<CT::Map THIS> LANGULUS(INLINED)
    constexpr bool BlockMap::IsValueUntyped() const noexcept {
-      return mValues.IsUntyped();
+      return GetValues<THIS>().IsUntyped();
    }
    
-   /// Templated tables are always type-constrained                           
-   ///   @return true                                                         
-   LANGULUS(INLINED)
+   /// Check if map has its key type-constrained                              
+   ///   @return true if type is constrained                                  
+   template<CT::Map THIS> LANGULUS(INLINED)
    constexpr bool BlockMap::IsKeyTypeConstrained() const noexcept {
-      return mKeys.IsTypeConstrained();
+      return GetKeys<THIS>().IsTypeConstrained();
    }
    
-   /// Templated tables are always type-constrained                           
-   ///   @return true                                                         
-   LANGULUS(INLINED)
+   /// Check if map has its value type-constrained                            
+   ///   @return true if type is constrained                                  
+   template<CT::Map THIS> LANGULUS(INLINED)
    constexpr bool BlockMap::IsValueTypeConstrained() const noexcept {
-      return mValues.IsTypeConstrained();
+      return GetValues<THIS>().IsTypeConstrained();
    }
    
    /// Check if key type is deep                                              
-   LANGULUS(INLINED)
+   template<CT::Map THIS> LANGULUS(INLINED)
    constexpr bool BlockMap::IsKeyDeep() const noexcept {
-      return mKeys.IsDeep();
+      return GetKeys<THIS>().IsDeep();
    }
    
    /// Check if value type is deep                                            
-   LANGULUS(INLINED)
+   template<CT::Map THIS> LANGULUS(INLINED)
    constexpr bool BlockMap::IsValueDeep() const noexcept {
-      return mValues.IsDeep();
+      return GetValues<THIS>().IsDeep();
    }
 
    /// Check if the key type is a pointer                                     
-   LANGULUS(INLINED)
+   template<CT::Map THIS> LANGULUS(INLINED)
    constexpr bool BlockMap::IsKeySparse() const noexcept {
-      return mKeys.IsSparse();
+      return GetKeys<THIS>().IsSparse();
    }
    
    /// Check if the value type is a pointer                                   
-   LANGULUS(INLINED)
+   template<CT::Map THIS> LANGULUS(INLINED)
    constexpr bool BlockMap::IsValueSparse() const noexcept {
-      return mValues.IsSparse();
+      return GetValues<THIS>().IsSparse();
    }
 
    /// Check if the key type is not a pointer                                 
-   LANGULUS(INLINED)
+   template<CT::Map THIS> LANGULUS(INLINED)
    constexpr bool BlockMap::IsKeyDense() const noexcept {
-      return not IsKeySparse();
+      return GetKeys<THIS>().IsDense();
    }
 
    /// Check if the value type is not a pointer                               
-   LANGULUS(INLINED)
+   template<CT::Map THIS> LANGULUS(INLINED)
    constexpr bool BlockMap::IsValueDense() const noexcept {
-      return not IsValueSparse();
+      return GetValues<THIS>().IsDense();
    }
 
    /// Get the size of a single key, in bytes                                 
    ///   @return the number of bytes a single key contains                    
-   LANGULUS(INLINED)
+   template<CT::Map THIS> LANGULUS(INLINED)
    constexpr Size BlockMap::GetKeyStride() const noexcept {
-      return mKeys.GetStride();
+      return GetKeys<THIS>().GetStride();
    }
    
    /// Get the size of a single value, in bytes                               
    ///   @return the number of bytes a single value contains                  
-   LANGULUS(INLINED)
+   template<CT::Map THIS> LANGULUS(INLINED)
    constexpr Size BlockMap::GetValueStride() const noexcept {
-      return mValues.GetStride();
+      return GetValues<THIS>().GetStride();
    }
 
    #if LANGULUS(TESTING)
@@ -107,16 +108,18 @@ namespace Langulus::Anyness
       }
    #endif
 
-   /// Get the key meta data                                                  
-   LANGULUS(INLINED)
+   /// Get the key type                                                       
+   ///   @return the key type definition                                      
+   template<CT::Map THIS> LANGULUS(INLINED)
    DMeta BlockMap::GetKeyType() const noexcept {
-      return mKeys.mType;
+      return GetKeys<THIS>().GetType();
    }
 
-   /// Get the value meta data                                                
-   LANGULUS(INLINED)
+   /// Get the value type                                                     
+   ///   @return the value type definition                                    
+   template<CT::Map THIS> LANGULUS(INLINED)
    DMeta BlockMap::GetValueType() const noexcept {
-      return mValues.mType;
+      return GetValues<THIS>().GetType();
    }
 
    /// Get the info array (const)                                             
@@ -189,36 +192,36 @@ namespace Langulus::Anyness
 
    /// Get the number of deep key containers                                  
    ///   @return the number of deep key containers                            
-   LANGULUS(INLINED)
+   template<CT::Map THIS> LANGULUS(INLINED)
    Count BlockMap::GetKeyCountDeep() const noexcept {
-      return GetCountDeep(mKeys);
+      return GetCountDeep(GetKeys<THIS>());
    }
 
    /// Get the number of deep key containers                                  
    ///   @return the number of deep key containers                            
-   LANGULUS(INLINED)
+   template<CT::Map THIS> LANGULUS(INLINED)
    Count BlockMap::GetKeyCountElementsDeep() const noexcept {
-      return GetCountElementsDeep(mKeys);
+      return GetCountElementsDeep(GetKeys<THIS>());
    }
 
    /// Get the number of deep key containers                                  
    ///   @return the number of deep key containers                            
-   LANGULUS(INLINED)
+   template<CT::Map THIS> LANGULUS(INLINED)
    Count BlockMap::GetValueCountDeep() const noexcept {
-      return GetCountDeep(mValues);
+      return GetCountDeep(GetValues<THIS>());
    }
 
    /// Get the number of deep key containers                                  
    ///   @return the number of deep key containers                            
-   LANGULUS(INLINED)
+   template<CT::Map THIS> LANGULUS(INLINED)
    Count BlockMap::GetValueCountElementsDeep() const noexcept {
-      return GetCountElementsDeep(mValues);
+      return GetCountElementsDeep(GetValues<THIS>());
    }
 
    /// Inner function, for counting nested containers in key or value blocks  
    ///   @param what - the block to scan                                      
    ///   @return the number of found blocks                                   
-   inline Count BlockMap::GetCountDeep(const Block& what) const noexcept {
+   Count BlockMap::GetCountDeep(const CT::Block auto& what) const noexcept {
       if (IsEmpty() or not what.IsDeep())
          return 1;
 
@@ -237,8 +240,8 @@ namespace Langulus::Anyness
    /// Inner function, for counting nested elements in key or value blocks    
    ///   @param what - the block to scan                                      
    ///   @return the number of found blocks                                   
-   inline Count BlockMap::GetCountElementsDeep(const Block& what) const noexcept {
-      if (IsEmpty() or not what.mType)
+   Count BlockMap::GetCountElementsDeep(const CT::Block auto& what) const noexcept {
+      if (IsEmpty() or what.IsUntyped())
          return 0;
 
       if (not what.IsDeep())
@@ -287,16 +290,16 @@ namespace Langulus::Anyness
    
    /// Check if the map contains at least one missing entry (nested)          
    ///   @return true if the map has missing entries                          
-   LANGULUS(INLINED)
+   template<CT::Map THIS> LANGULUS(INLINED)
    bool BlockMap::IsMissingDeep() const {
       if (IsMissing())
          return true;
 
       bool missing = false;
-      ForEachKeyDeep([&](const Block& key) {
+      ForEachKeyDeep<THIS>([&](const Block& key) {
          return not (missing = key.IsMissing());
       });
-      ForEachValueDeep([&](const Block& val) {
+      ForEachValueDeep<THIS>([&](const Block& val) {
          return not (missing = val.IsMissing());
       });
       return missing;
@@ -327,7 +330,8 @@ namespace Langulus::Anyness
    }
 
 #if LANGULUS(DEBUG)
-   inline void BlockMap::Dump() const {
+   template<CT::Map THIS>
+   void BlockMap::Dump() const {
       Logger::Info("---------------- BlockMap::Dump start ----------------");
       auto info = GetInfo();
       const auto infoEnd = GetInfoEnd();
@@ -335,8 +339,8 @@ namespace Langulus::Anyness
          const auto index = info - GetInfo();
          if (*info) {
             Logger::Info('[', index, "] -", (*info - 1), " -> ",
-               GetKeyInner(index).GetHash().mHash, " | ",
-               GetValueInner(index).GetHash().mHash
+               HashOf(GetRawKey<THIS>(index)), " | ",
+               HashOf(GetRawValue<THIS>(index))
             );
          }
          else Logger::Info('[', index, "] empty");

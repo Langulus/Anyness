@@ -507,7 +507,7 @@ namespace Langulus::Anyness
          const auto meta = MetaDataOf<Decay<T>>();
          const auto found = mAnythingElse.FindIt(meta);
          if (found)
-            found->mValue << Messy {S::Nest(item)};
+            *found.mValue << Messy {S::Nest(item)};
          else
             mAnythingElse.Insert(meta, TAny<Messy> {Messy {S::Nest(item)}});
       }
@@ -711,7 +711,7 @@ namespace Langulus::Anyness
          const auto meta = messy->GetTrait();
          auto found = mTraits.FindIt(meta);
          if (found)
-            found->mValue << Abandon(wrapper);
+            *found.mValue << Abandon(wrapper);
          else
             mTraits.Insert(meta, TAny<Any> {Abandon(wrapper)});
       }
@@ -720,7 +720,7 @@ namespace Langulus::Anyness
          auto trait = DesemCast(messy);
          auto found = mTraits.FindIt(trait);
          if (found)
-            found->mValue << Any {};
+            *found.mValue << Any {};
          else
             mTraits.Insert(trait, TAny<Any> { Any {} });
       }
@@ -741,7 +741,7 @@ namespace Langulus::Anyness
             ? messy->GetType()->mOrigin : nullptr;
          auto found = mAnythingElse.FindIt(meta);
          if (found)
-            found->mValue << messy.Forward();
+            *found.mValue << messy.Forward();
          else
             mAnythingElse.Insert(meta, TAny<Messy> {messy.Forward()});
       }
@@ -751,7 +751,7 @@ namespace Langulus::Anyness
          auto dmeta = meta ? meta->mOrigin : nullptr;
          auto found = mAnythingElse.FindIt(dmeta);
          if (found)
-            found->mValue << Any {};
+            *found.mValue << Any {};
          else
             mAnythingElse.Insert(dmeta, TAny<Messy> {Any {}});
       }
@@ -771,7 +771,7 @@ namespace Langulus::Anyness
             ? messy->GetType()->mOrigin : nullptr;
          const auto found = mConstructs.FindIt(meta);
          if (found) {
-            found->mValue << Inner::DeConstruct {
+            *found.mValue << Inner::DeConstruct {
                messy->GetHash(),
                messy->GetCharge(),
                S::Nest(messy->GetDescriptor())
@@ -794,14 +794,9 @@ namespace Langulus::Anyness
    ///   @return selected data or nullptr if none was found                   
    ///   @attention if not nullptr, returned Any might contain a Neat         
    inline const Any* Neat::Get(TMeta meta, Offset index) const {
-      auto found = mTraits.FindIt(meta);
-      if (found) {
-         auto& group = found->mValue;
-         if (group.GetCount() > index)
-            return &group[index];
-      }
-
-      // Not found                                                      
+      const auto found = mTraits.FindIt(meta);
+      if (found and found.mValue->GetCount() > index)
+         return &found.mValue->Get(index);
       return nullptr;
    }
 
@@ -831,9 +826,9 @@ namespace Langulus::Anyness
          return 0;
 
       Count result = 0;
-      (void) (... or (0 != (result = ForEachInner<MUTABLE>(
-         Forward<F>(call)
-      ))));
+      (void) (... or (0 != (result = 
+         ForEachInner<MUTABLE>(Forward<F>(call))
+      )));
       return result;
    }
 
@@ -1208,22 +1203,22 @@ namespace Langulus::Anyness
 
       if constexpr (EMPTY_TOO) {
          // Remove everything                                           
-         const auto count = found->mValue.GetCount();
+         const auto count = found.mValue->GetCount();
          mAnythingElse.RemoveIt(found);
          return count;
       }
 
       Count count = 0;
-      for (auto data : KeepIterator(found->mValue)) {
+      for (auto data : KeepIterator(*found.mValue)) {
          if (not *data)
             continue;
 
          // Remove only matching data entries, that aren't empty        
-         data = found->mValue.RemoveIt(data);
+         data = found.mValue->RemoveIt(data);
          ++count;
       }
 
-      if (not found->mValue)
+      if (not *found.mValue)
          mAnythingElse.RemoveIt(found);
       return count;
    }
@@ -1239,15 +1234,15 @@ namespace Langulus::Anyness
          return 0;
 
       Count count = 0;
-      for (auto data : KeepIterator(found->mValue)) {
+      for (auto data : KeepIterator(*found.mValue)) {
          if (not *data)
             continue;
 
-         data = found->mValue.RemoveIt(data);
+         data = found.mValue->RemoveIt(data);
          ++count;
       }
 
-      if (not found->mValue)
+      if (not *found.mValue)
          mConstructs.RemoveIt(found);
       return count;
    }
@@ -1267,22 +1262,22 @@ namespace Langulus::Anyness
 
       if constexpr (EMPTY_TOO) {
          // Remove everything                                           
-         const auto count = found->mValue.GetCount();
+         const auto count = found.mValue->GetCount();
          mTraits.RemoveIt(found);
          return count;
       }
 
       Count count = 0;
-      for (auto data : KeepIterator(found->mValue)) {
+      for (auto data : KeepIterator(*found.mValue)) {
          if (not *data)
             continue;
 
          // Remove only matching trait entries, that aren't empty       
-         data = found->mValue.RemoveIt(data);
+         data = found.mValue->RemoveIt(data);
          ++count;
       }
 
-      if (not found->mValue)
+      if (not *found.mValue)
          mTraits.RemoveIt(found);
       return count;
    }

@@ -20,7 +20,7 @@ namespace Langulus::Anyness
    ///   @return 1 if the element was found and removed, 0 otherwise          
    template<CT::Block THIS, bool REVERSE> LANGULUS(INLINED)
    Count Block::Remove(const CT::NotSemantic auto& item) {
-      const auto found = FindKnown<REVERSE>(item);
+      const auto found = Find<THIS, REVERSE>(item);
       return found ? RemoveIndex<THIS>(found.GetOffsetUnsafe(), 1) : 0;
    }
    
@@ -32,7 +32,7 @@ namespace Langulus::Anyness
    Count Block::RemoveIndex(CT::Index auto index, const Count count) {
       using INDEX = Deref<decltype(index)>;
 
-      if constexpr (CT::Same<INDEX, Index>) {
+      if constexpr (CT::Similar<INDEX, Index>) {
          // By special indices                                          
          if (index == IndexAll) {
             const auto oldCount = mCount;
@@ -80,19 +80,21 @@ namespace Langulus::Anyness
                "Attempting to remove from static container");
 
             if constexpr (CT::Sparse<T> or CT::POD<T>) {
-               MoveMemory(GetRawAs<T>() + idx, GetRawAs<T>() + ender, mCount - ender);
+               MoveMemory(
+                  GetRawAs<T>() + idx,
+                  GetRawAs<T>() + ender,
+                  mCount - ender
+               );
             }
             else {
                // Call the destructors on the correct region            
-               CropInner(idx, count)
-                  .template CallKnownDestructors<T>();
+               CropInner(idx, count).CallDestructors<THIS>();
 
                if (ender < mCount) {
                   // Fill gap	if any by invoking move constructions     
                   // Moving to the left, so no overlap possible         
                   const auto tail = mCount - ender;
-                  CropInner(idx, 0)
-                     .template CallKnownSemanticConstructors<T>(
+                  CropInner(idx, 0).CallSemanticConstructors<THIS>(
                         tail, Abandon(CropInner(ender, tail))
                      );
                }
@@ -118,15 +120,14 @@ namespace Langulus::Anyness
             }
 
             // First call the destructors on the correct region         
-            CropInner(idx, removed).CallUnknownDestructors();
+            CropInner(idx, removed).CallDestructors<THIS>();
 
             if (ender < mCount) {
                // Fill gap by invoking abandon-constructors             
                // We're moving to the left, so no reverse is required   
                LANGULUS_ASSERT(GetUses() == 1, Move, "Moving elements in use");
                const auto tail = mCount - ender;
-               CropInner(idx, 0)
-                  .CallUnknownSemanticConstructors(
+               CropInner(idx, 0).CallSemanticConstructors<THIS>(
                      tail, Abandon(CropInner(ender, tail))
                   );
             }
@@ -142,9 +143,9 @@ namespace Langulus::Anyness
    ///   @param index - index to remove                                       
    ///   @return 1 if block at that index was removed, 0 otherwise            
    template<CT::Block THIS>
-   inline Count Block::RemoveIndexDeep(CT::Index auto index) {
+   Count Block::RemoveIndexDeep(CT::Index auto index) {
       if constexpr (not CT::Same<decltype(index), Index>) {
-         if (not IsDeep())
+         if (not IsDeep<THIS>())
             return 0;
 
          --index;
@@ -154,8 +155,8 @@ namespace Langulus::Anyness
                return RemoveIndex<THIS>(i);
 
             auto ith = As<Block*>(i);
-            const auto count = ith->GetCountDeep();
-            if (index <= count and ith->RemoveIndexDeep<THIS>(index))
+            const auto count = ith->GetCountDeep<Block>();
+            if (index <= count and ith->RemoveIndexDeep<Block>(index)) //TODO could be further optimized using TypeOf<THIS> instead of Block when possible
                return 1;
 
             index -= count;
@@ -169,15 +170,29 @@ namespace Langulus::Anyness
    /// Remove elements at the back                                            
    ///   @param count - the new count                                         
    template<CT::Block THIS>
-   inline void Block::Trim(const Count count) {
+   void Block::Trim(const Count count) {
       if (count >= mCount)
          return;
 
+      if (IsConstant() or IsStatic()) {
+         if (mType->mIsPOD) {
+            // If data is POD and elements are on the back, we can      
+            // get around constantness and staticness, by simply        
+            // truncating the count without any reprecussions           
+            mCount = count;
+         }
+         else {
+            LANGULUS_ASSERT(not IsConstant(), Access,
+               "Removing from constant container");
+            LANGULUS_ASSERT(not IsStatic(), Access,
+               "Removing from static container");
+         }
+
+         return;
+      }
+
       // Call destructors and change count                              
-      if constexpr (CT::Typed<THIS>)
-         CropInner(count, mCount - count).CallKnownDestructors<TypeOf<THIS>>();
-      else
-         CropInner(count, mCount - count).CallUnknownDestructors();
+      CropInner(count, mCount - count).CallDestructors<THIS>();
       mCount = count;
    }
 
@@ -185,13 +200,13 @@ namespace Langulus::Anyness
    /// when possible                                                          
    /// Discards ORness if container has only one element                      
    template<CT::Block THIS>
-   inline void Block::Optimize() {
+   void Block::Optimize() {
       if (IsOr() and GetCount() == 1)
          MakeAnd();
 
-      while (GetCount() == 1 and IsDeep()) {
+      while (GetCount() == 1 and IsDeep<THIS>()) {
          auto& subPack = As<Block>();
-         if (not CanFitState(subPack)) {
+         if (not CanFitState<THIS>(subPack)) {
             subPack.Optimize<Block>();
             if (subPack.IsEmpty())
                Reset<THIS>();
@@ -204,7 +219,7 @@ namespace Langulus::Anyness
          *this = temporary;
       }
 
-      if (GetCount() > 1 and IsDeep()) {
+      if (GetCount() > 1 and IsDeep<THIS>()) {
          for (Count i = 0; i < mCount; ++i) {
             auto& subBlock = As<Block>(i);
             subBlock.Optimize<Block>();
@@ -230,10 +245,7 @@ namespace Langulus::Anyness
       if (mEntry->GetUses() == 1) {
          // Entry is used only in this block, so it's safe to           
          // destroy all elements. We can reuse the entry                
-         if constexpr (CT::Typed<THIS>)
-            CallKnownDestructors<TypeOf<THIS>>();
-         else
-            CallUnknownDestructors();
+         CallDestructors<THIS>();
          mCount = 0;
       }
       else {
@@ -256,88 +268,74 @@ namespace Langulus::Anyness
    
    /// Reset the block's state                                                
    /// Type constraints shall remain, if any                                  
-   LANGULUS(INLINED)
+   template<CT::Block THIS> LANGULUS(INLINED)
    constexpr void Block::ResetState() noexcept {
       mState &= DataState::Typed;
-      ResetType();
-   }
-   
-   /// Call destructors of all initialized items                              
-   ///   @attention never modifies any block state                            
-   ///   @attention assumes there's at least one valid element                
-   inline void Block::CallUnknownDestructors() const {
-      LANGULUS_ASSUME(DevAssumes, mCount > 0,
-         "Container is empty");
-      LANGULUS_ASSUME(DevAssumes, IsTyped(),
-         "Container has no type");
-
-      const auto mthis = const_cast<Block*>(this);
-      if (mType->mIsSparse) {
-         // Destroy all indirection layers, if their references reach   
-         // 1, and destroy the dense element, if it has destructor      
-         auto handle = mthis->template GetHandle<Byte*>(0);
-         const auto handleEnd = handle.mValue + mCount;
-         while (handle != handleEnd) {
-            handle.DestroyUnknown(mType);
-            ++handle;
-         }
-      }
-      else if (mType->mDestructor) {
-         // Destroy every dense element                                 
-         auto data = mthis->template GetRawAs<Byte>();
-         const auto dataEnd = data + mType->mSize * mCount;
-         while (data != dataEnd) {
-            mType->mDestructor(data);
-            data += mType->mSize;
-         }
-      }
-
-      // Always nullify upon destruction only if we're paranoid         
-      IF_LANGULUS_PARANOID(ZeroMemory(mRaw, GetBytesize()));
+      if constexpr (not CT::Typed<THIS>)
+         ResetType<THIS>();
    }
 
    /// Call destructors of all initialized items                              
    ///   @attention never modifies any block state                            
-   ///   @attention assumes block is of type T, or is at least virtual base   
+   ///   @attention assumes block is not empty                                
+   ///   @attention assumes block is not static                               
    ///   @tparam T - the type to destroy                                      
-   template<CT::Data T>
-   void Block::CallKnownDestructors() const {
-      LANGULUS_ASSUME(DevAssumes, mCount > 0,
-         "Container is empty");
-      LANGULUS_ASSUME(DevAssumes, 
-         IsExact<T>() or mType->template HasDerivation<T>(),
-         "T isn't related to contained type");
+   template<CT::Block THIS>
+   void Block::CallDestructors() const {
+      LANGULUS_ASSUME(DevAssumes, not IsEmpty(),
+         "Attempting to destroy elements in an empty container");
+      LANGULUS_ASSUME(DevAssumes, not IsStatic(),
+         "Destroying elements in a static container is not allowed");
 
       const auto mthis = const_cast<Block*>(this);
-      if constexpr (CT::Sparse<T>) {
-         // Destroy all indirection layers, if their references reach   
-         // 1, and destroy the dense element, if it has destructor      
-         auto handle = GetHandle<T>(0);
-         const auto handleEnd = handle.mValue + mCount;
-         while (handle != handleEnd) {
-            handle.Destroy();
-            ++handle;
+      if constexpr (CT::Typed<THIS>) {
+         using T = TypeOf<THIS>;
+
+         if constexpr (CT::Sparse<T>) {
+            // Destroy all indirection layers, if their references reach
+            // 1, and destroy the dense element, if it has destructor   
+            auto handle = GetHandle<T>(0);
+            const auto handleEnd = handle.mValue + mCount;
+            while (handle != handleEnd) {
+               handle.Destroy();
+               ++handle;
+            }
+         }
+         else if constexpr (CT::Destroyable<T>) {
+            // Destroy every dense element                              
+            using DT = Decay<T>;
+            auto data = mthis->template GetRawAs<T>();
+            const auto dataEnd = data + mCount;
+            while (data != dataEnd) {
+               data->~DT();
+               ++data;
+            }
          }
       }
-      else if constexpr (CT::Destroyable<T>) {
-         // Destroy every dense element                                 
-         using DT = Decay<T>;
-         auto data = mthis->template GetRawAs<T>();
-         const auto dataEnd = data + mCount;
-         while (data != dataEnd) {
-            data->~DT();
-            ++data;
+      else {
+         if (mType->mIsSparse) {
+            // Destroy all indirection layers, if their references reach
+            // 1, and destroy the dense element, if it has destructor   
+            auto handle = mthis->template GetHandle<Byte*>(0);
+            const auto handleEnd = handle.mValue + mCount;
+            while (handle != handleEnd) {
+               handle.DestroyUnknown(mType);
+               ++handle;
+            }
+         }
+         else if (mType->mDestructor) {
+            // Destroy every dense element                              
+            auto data = mthis->template GetRawAs<Byte>();
+            const auto dataEnd = data + mType->mSize * mCount;
+            while (data != dataEnd) {
+               mType->mDestructor(data);
+               data += mType->mSize;
+            }
          }
       }
 
       // Always nullify upon destruction only if we're paranoid         
       IF_LANGULUS_PARANOID(ZeroMemory(mRaw, GetBytesize()));
-   }
-
-   /// Clear the block, only zeroing its size                                 
-   LANGULUS(INLINED)
-   constexpr void Block::ClearInner() noexcept {
-      mCount = 0;
    }
 
    /// Reset the memory inside the block                                      

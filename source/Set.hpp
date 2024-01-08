@@ -18,6 +18,9 @@ namespace Langulus::Anyness
    ///                                                                        
    template<bool ORDERED = false>
    struct Set : BlockSet {
+      LANGULUS(POD) false;
+      LANGULUS_BASES(BlockSet);
+
       static constexpr bool Ownership = true;
       static constexpr bool Ordered = ORDERED;
 

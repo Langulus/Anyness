@@ -9,7 +9,6 @@
 #pragma once
 #include "Text.hpp"
 #include "TAny.inl"
-#include "TAny-Iteration.inl"
 #include <charconv>
 #include <limits>
 #include <cstring>
@@ -66,7 +65,7 @@ namespace Langulus::Anyness
    template<template<class> class S, CT::DenseCharacter T> LANGULUS(INLINED)
    Text::Text(S<T>&& other) requires CT::Semantic<S<T>> {
       mType = MetaDataOf<TypeOf<Base>>();
-      AllocateFresh(RequestSize<Text>(1));
+      AllocateFresh<Text>(RequestSize<Text>(1));
       mRaw[0] = reinterpret_cast<const Byte&>(*other);      //TODO utf8
    }
 
@@ -411,9 +410,9 @@ namespace Langulus::Anyness
          Text result;
          const auto request = RequestSize<Text>(mCount + 1);
          result.mType = mType;
-         result.AllocateFresh(request);
+         result.AllocateFresh<Text>(request);
          result.mCount = mCount;
-         result.mReserved = request.mElementCount;
+         //result.mReserved = request.mElementCount;
          CopyMemory(result.mRaw, mRaw, mCount);
          result.GetRaw()[mCount] = '\0';
          return Abandon(result);

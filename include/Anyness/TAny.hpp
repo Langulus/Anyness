@@ -8,4 +8,3 @@
 ///                                                                           
 #pragma once
 #include "../../source/TAny.inl"
-#include "../../source/TAny-Iteration.inl"

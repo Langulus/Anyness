@@ -14,50 +14,30 @@
 namespace Langulus::Anyness
 {
 
-   /// Default pair constructor                                               
-   LANGULUS(INLINED)
-   constexpr Pair::Pair() {}
+   /// Construct pair from any other kind of pair                             
+   ///   @param other - the pair to construct with                            
+   template<class P> requires CT::Pair<Desem<P>> LANGULUS(INLINED)
+   Pair::Pair(P&& other)
+      : mKey   {SemanticOf<P> {DesemCast(other).mKey}}
+      , mValue {SemanticOf<P> {DesemCast(other).mValue}} {}
 
-   /// Pair constructor by shallow-copy                                       
-   ///   @tparam K - type of key (deducible)                                  
-   ///   @tparam V - type of value (deducible)                                
-   ///   @param key - the key to copy                                         
-   ///   @param value - the value to copy                                     
-   template<CT::NotSemantic K, CT::NotSemantic V>
-   LANGULUS(INLINED)
-   Pair::Pair(const K& key, const V& val)
-      : Pair {Langulus::Copy(key), Langulus::Copy(val)} {}
-
-   template<CT::NotSemantic K, CT::NotSemantic V>
-   LANGULUS(INLINED)
-   Pair::Pair(const K& key, V&& val)
-      : Pair {Langulus::Copy(key), Langulus::Move(val)} {}
-
-   template<CT::NotSemantic K, CT::NotSemantic V>
-   LANGULUS(INLINED)
-   Pair::Pair(K&& key, const V& val)
-      : Pair {Langulus::Move(key), Langulus::Copy(val)} {}
-
-   /// Pair constructor by move                                               
-   ///   @tparam K - type of key (deducible)                                  
-   ///   @tparam V - type of value (deducible)                                
-   ///   @param key - the key to move                                         
-   ///   @param value - the value to move                                     
-   template<CT::NotSemantic K, CT::NotSemantic V>
-   LANGULUS(INLINED)
-   Pair::Pair(K&& key, V&& val)
-      : Pair {Langulus::Move(key), Langulus::Move(val)} {}
-
-   /// Pair semantic constructor                                              
-   ///   @tparam SK - type and semantic of key (deducible)                    
-   ///   @tparam SV - type and semantic of value (deducible)                  
+   /// Construct pair manually                                                
    ///   @param key - the key                                                 
    ///   @param value - the value                                             
-   template<CT::Semantic SK, CT::Semantic SV>
-   LANGULUS(INLINED)
-   Pair::Pair(SK&& key, SV&& val)
-      : mKey {key.Forward()}
-      , mValue {val.Forward()} {}
+   template<class K, class V>
+   requires CT::Inner::UnfoldInsertable<K, V> LANGULUS(INLINED)
+   Pair::Pair(K&& key, V&& value)
+      : mKey   {Forward<K>(key)}
+      , mValue {Forward<V>(value)} {}
+
+   /// Assign any kind of pair                                                
+   ///   @param rhs - the pair to assign                                      
+   template<class P> requires CT::Pair<Desem<P>> LANGULUS(INLINED)
+   Pair& Pair::operator = (P&& rhs) {
+      mKey   = SemanticOf<P> {DesemCast(rhs).mKey};
+      mValue = SemanticOf<P> {DesemCast(rhs).mValue};
+      return *this;
+   }
 
    /// Get the pair's hash                                                    
    ///   @attention hash is not cached, so this function is slow              

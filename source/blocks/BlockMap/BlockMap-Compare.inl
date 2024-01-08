@@ -23,27 +23,23 @@ namespace Langulus::Anyness
          return false;
 
       // If reached, then both maps contain similar types of data       
+      // Prefer the map that is statically typed, if there is one       
       using RHS = Conditional<CT::Typed<THIS>, THIS, Deref<decltype(rhs)>>;
       auto info = GetInfo();
       const auto infoEnd = GetInfoEnd();
       while (info != infoEnd) {
          if (*info) {
             // Compare each valid pair...                               
-            const auto index = info - GetInfo();
-            if constexpr (CT::Typed<RHS>) {
-               // ...with known types, if any of the maps are typed     
-               const auto r = rhs.template FindInner<RHS>(GetRawKey<RHS>(index));
-               if (r == InvalidOffset
-               or GetRawValue<RHS>(index) != rhs.GetRawValue<RHS>(r))
-                  return false;
-            }
-            else {
-               // ...via rtti, since all maps are type-erased           
-               const auto r = rhs.FindInnerUnknown(GetKeyInner(index));
-               if (r == InvalidOffset
-               or GetValueInner(index) != rhs.GetValueInner(r))
-                  return false;
-            }
+            const auto lidx = info - GetInfo();
+            Offset ridx;
+            if constexpr (CT::Typed<RHS>)
+               ridx = rhs.template FindInner<RHS>(GetRawKey<RHS>(lidx));
+            else
+               ridx = rhs.FindInnerUnknown(GetRawKey<RHS>(lidx));
+
+            if (ridx == InvalidOffset
+            or GetRawValue<RHS>(lidx) != rhs.template GetRawValue<RHS>(ridx))
+               return false;
          }
 
          ++info;
@@ -53,7 +49,7 @@ namespace Langulus::Anyness
       return true;
    }
 
-   /// Compare this map against a pair, type-erased or not                    
+   /// Compare this map against a single pair, type-erased or not             
    ///   @param rhs - pair to compare against                                 
    ///   @return true this map contains only this exact pair                  
    template<CT::Map THIS>
@@ -63,21 +59,18 @@ namespace Langulus::Anyness
 
       // If reached, then pair contains similar types of data           
       using P = Deref<decltype(rhs)>;
-      using RHS = Conditional<CT::Typed<THIS>, THIS, TMap<typename P::Key,
-                                                          typename P::Value,
-                                                          THIS::Ordered>>;
-      if constexpr (CT::Typed<RHS>) {
-         // ...with known types, if any of the maps are typed           
-         const auto r = FindInner<RHS>(rhs.mKey);
-         if (r == InvalidOffset or GetRawValue<RHS>(0) != rhs.mValue)
-            return false;
-      }
-      else {
-         // ...via rtti, since all maps are type-erased                 
-         const auto r = FindInnerUnknown(rhs.mKey);
-         if (r == InvalidOffset or GetValueInner(0) != rhs.mValue)
-            return false;
-      }
+      using RHS = Conditional<CT::Typed<THIS>
+         , THIS
+         , TMap<typename P::Key, typename P::Value, THIS::Ordered>>;
+
+      Offset idx;
+      if constexpr (CT::Typed<RHS>)
+         idx = FindInner<RHS>(rhs.mKey);
+      else
+         idx = FindInnerUnknown(rhs.mKey);
+
+      if (idx == InvalidOffset or GetRawValue<RHS>(0) != rhs.mValue)
+         return false;
 
       // If reached, then map contains that exact pair                  
       return true;
@@ -86,10 +79,14 @@ namespace Langulus::Anyness
    /// Get hash of the map contents                                           
    ///   @attention the hash is not cached, so this is a slow operation       
    ///   @return the hash                                                     
-   LANGULUS(INLINED)
+   template<CT::Map THIS> LANGULUS(INLINED)
    Hash BlockMap::GetHash() const {
+      if (IsEmpty())
+         return {};
+
       TAny<Hash> hashes;
-      for (auto pair : *this)
+      hashes.Reserve(GetCount());
+      for (auto pair : reinterpret_cast<const THIS&>(*this))
          hashes << pair.GetHash();
       return hashes.GetHash();
    }
@@ -111,38 +108,31 @@ namespace Langulus::Anyness
       if (IsEmpty())
          return false;
 
-      if constexpr (CT::Typed<THIS>) {
-         // Search in a statically-typed map                            
-         static_assert(::std::equality_comparable_with<V, typename THIS::Value>,
-            "Provided value is not comparable to map's value type");
-         auto test = &GetRawValue<THIS>(0);
-         auto info = GetInfo();
-         const auto infoEnd = GetInfoEnd();
-
-         while (info != infoEnd) {
-            if (*info and *test == value)
-               return true;
-
-            ++test; ++info;
-         }
-      }
-      else {
-         // Search in a type-erased map                                 
+      if constexpr (not CT::Typed<THIS>) {
          if (not ValueIsSimilar<V>())
             return false;
-
-         auto elem = &mValues.template Get<V>(0);
-         auto info = GetInfo();
-         const auto infoEnd = GetInfoEnd();
-
-         while (info != infoEnd) {
-            if (*info and *elem == value)
-               return true;
-
-            ++elem; ++info;
-         }
       }
 
+      auto elem = [&] {
+         if constexpr (CT::Typed<THIS>) {
+            static_assert(
+               ::std::equality_comparable_with<typename THIS::Value, V>,
+               "Provided value is not comparable to map's value type"
+            );
+            return &GetRawValue<THIS>(0);
+         }
+         else return &mValues.template Get<V>(0);
+      }();
+
+      auto info = GetInfo();
+      const auto infoEnd = GetInfoEnd();
+
+      while (info != infoEnd) {
+         if (*info and *elem == value)
+            return true;
+
+         ++elem; ++info;
+      }
       return false;
    }
 
@@ -156,24 +146,27 @@ namespace Langulus::Anyness
 
       using P = Deref<decltype(pair)>;
       auto& me = reinterpret_cast<THIS&>(*this);
+      Offset found;
 
-      if constexpr (CT::TypedPair<P>) {
+      if constexpr (CT::Typed<P>) {
+         // Search for a typed pair                                     
          using V = typename P::Value;
-
          if (not me.template ValueIsSimilar<V>()
-         and not (CT::Typed<THIS> and ::std::equality_comparable_with<typename THIS::Value, V>))
+         and not (CT::Typed<THIS>
+             and ::std::equality_comparable_with<typename THIS::Value, V>))
             return false;
 
-         const auto found = FindInner<THIS>(pair.mKey);
-         return found != InvalidOffset and me.GetValueInner(found) == pair.mValue;
+         found = FindInner<THIS>(pair.mKey);
       }
       else {
+         // Search for a type-erased pair                               
          if (not me.ValueIsSimilar(pair.GetValueType()))
             return false;
 
-         const auto found = FindInnerUnknown<THIS>(pair.mKey);
-         return found != InvalidOffset and me.GetValueInner(found) == pair.mValue;
+         found = FindInnerUnknown<THIS>(pair.mKey);
       }
+
+      return found != InvalidOffset and me.GetValueInner(found) == pair.mValue;
    }
    
    /// Search for a key inside the table, and return it if found              
@@ -189,23 +182,29 @@ namespace Langulus::Anyness
    ///   @param key - the key to search for                                   
    ///   @return the iterator                                                 
    template<CT::Map THIS> LANGULUS(INLINED)
-   BlockMap::Iterator BlockMap::FindIt(const CT::NotSemantic auto& key) {
+   BlockMap::Iterator<THIS> BlockMap::FindIt(const CT::NotSemantic auto& key) {
       const auto offset = FindInner<THIS>(key);
       if (offset == InvalidOffset)
          return end();
 
-      return {
-         GetInfo() + offset, GetInfoEnd(),
-         GetKeyInner(offset),
-         GetValueInner(offset)
-      };
+      if constexpr (CT::Typed<THIS>) {
+         return {
+            GetInfo() + offset, GetInfoEnd(),
+            &GetRawKey<THIS>(offset),
+            &GetRawValue<THIS>(offset)
+         };
+      }
+      else {
+         return {
+            GetInfo() + offset, GetInfoEnd(),
+            GetRawKey<THIS>(offset),
+            GetRawValue<THIS>(offset)
+         };
+      }
    }
    
-   /// Search for a key inside the table, and return an iterator to it        
-   ///   @param key - the key to search for                                   
-   ///   @return the iterator                                                 
    template<CT::Map THIS> LANGULUS(INLINED)
-   BlockMap::ConstIterator BlockMap::FindIt(const CT::NotSemantic auto& key) const {
+   BlockMap::Iterator<const THIS> BlockMap::FindIt(const CT::NotSemantic auto& key) const {
       return const_cast<BlockMap*>(this)->template FindIt<THIS>(key);
    }
 
@@ -214,35 +213,28 @@ namespace Langulus::Anyness
    ///   @param key - the key to search for                                   
    ///   @return the value, wrapped in a type-erased block                    
    template<CT::Map THIS> LANGULUS(INLINED)
-   Block BlockMap::At(const CT::NotSemantic auto& key) {
+   decltype(auto) BlockMap::At(const CT::NotSemantic auto& key) {
       const auto found = FindInner<THIS>(key);
       LANGULUS_ASSERT(found != InvalidOffset, OutOfRange, "Key not found");
-      return GetValueInner(found);
+      return GetRawValue<THIS>(found);
    }
    
-   /// Returns a reference to the value found for key (const)                 
-   /// Throws Except::OutOfRange if element cannot be found                   
-   ///   @param key - the key to search for                                   
-   ///   @return the value, wrapped in a type-erased block                    
    template<CT::Map THIS> LANGULUS(INLINED)
-   Block BlockMap::At(const CT::NotSemantic auto& key) const {
+   decltype(auto) BlockMap::At(const CT::NotSemantic auto& key) const {
       return const_cast<BlockMap*>(this)->template At<THIS>(key);
    }
 
    /// Access value by key                                                    
    ///   @param key - the key to find                                         
    ///   @return the value, wrapped in a type-erased block                    
-   LANGULUS(INLINED)
-   Block BlockMap::operator[] (const CT::NotSemantic auto& key) {
-      return At(key);
+   template<CT::Map THIS> LANGULUS(INLINED)
+   decltype(auto) BlockMap::operator[] (const CT::NotSemantic auto& key) {
+      return At<THIS>(key);
    }
 
-   /// Access value by key                                                    
-   ///   @param key - the key to find                                         
-   ///   @return the value, wrapped in a type-erased block                    
-   LANGULUS(INLINED)
-   Block BlockMap::operator[] (const CT::NotSemantic auto& key) const {
-      return At(key);
+   template<CT::Map THIS> LANGULUS(INLINED)
+   decltype(auto) BlockMap::operator[] (const CT::NotSemantic auto& key) const {
+      return At<THIS>(key);
    }
 
    /// Find the index of a pair by key                                        
@@ -251,6 +243,7 @@ namespace Langulus::Anyness
    ///   @return the index, or InvalidOffset if not found                     
    template<CT::Map THIS>
    Offset BlockMap::FindInner(const CT::NotSemantic auto& match) const {
+      static_assert(CT::Typed<THIS>, "THIS can't be type-erased");
       if (IsEmpty())
          return InvalidOffset;
 
@@ -330,7 +323,9 @@ namespace Langulus::Anyness
    /// Find the index of a pair by a type-erased key                          
    ///   @param match - the key to search for                                 
    ///   @return the index, or InvalidOffset if not found                     
-   inline Offset BlockMap::FindInnerUnknown(const Block& match) const {
+   template<CT::Map THIS>
+   Offset BlockMap::FindInnerUnknown(const Block& match) const {
+      static_assert(not CT::Typed<THIS>, "THIS must be type-erased");
       if (IsEmpty() or not KeyIsSimilar(match.GetType()))
          return InvalidOffset;
 
@@ -341,7 +336,7 @@ namespace Langulus::Anyness
          return InvalidOffset;
 
       // Test first candidate                                           
-      auto key = GetKeyInner(start);
+      auto key = GetRawKey<THIS>(start);
       if (key == match)
          return start;
 
@@ -367,7 +362,7 @@ namespace Langulus::Anyness
       if (not *info)
          return InvalidOffset;
 
-      key = GetKeyInner(0);
+      key = GetRawKey<THIS>(0);
       if (key == match)
          return 0;
 

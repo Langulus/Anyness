@@ -49,9 +49,9 @@ namespace Langulus::Anyness
    ///   @attention doesn't check deep or sparse data regions                 
    ///   @param ptr - the pointer to check                                    
    ///   @return true if inside the immediate reserved memory block range     
-   LANGULUS(INLINED)
+   template<CT::Block THIS> LANGULUS(INLINED)
    bool Block::Owns(const void* ptr) const noexcept {
-      return ptr >= mRaw and ptr < mRaw + GetReservedSize();
+      return ptr >= mRaw and ptr < mRaw + GetReservedSize<THIS>();
    }
 
    /// Check if we have jurisdiction over the contained memory                
@@ -70,9 +70,12 @@ namespace Langulus::Anyness
    
    /// Get the contained type                                                 
    ///   @return the meta data                                                
-   LANGULUS(INLINED)
+   template<CT::Block THIS> LANGULUS(INLINED)
    constexpr DMeta Block::GetType() const noexcept {
-      return mType;
+      if constexpr (CT::Typed<THIS>)
+         return (mType = MetaDataOf<TypeOf<THIS>>());
+      else
+         return mType;
    }
 
    /// Get the number of initialized elements                                 
@@ -93,21 +96,26 @@ namespace Langulus::Anyness
    ///   @attention this doesn't include bytes reserved for entries in sparse 
    ///              containers, when managed memory is enabled                
    ///   @return the number of reserved bytes                                 
-   LANGULUS(INLINED)
+   template<CT::Block THIS> LANGULUS(INLINED)
    constexpr Size Block::GetReservedSize() const noexcept {
-      return mType ? mReserved * mType->mSize : 0;
+      if constexpr (CT::Typed<THIS>)
+         return mReserved * sizeof(TypeOf<THIS>);
+      else
+         return mType ? mReserved * mType->mSize : 0;
    }
    
    /// Get the number of sub-blocks (this one included)                       
    ///   @return the number of contained blocks, including this one           
-   inline Count Block::GetCountDeep() const noexcept {
-      if (IsEmpty() or not IsDeep())
+   template<CT::Block THIS>
+   Count Block::GetCountDeep() const noexcept {
+      if (IsEmpty() or not IsDeep<THIS>())
          return 1;
 
       Count counter = 1;
-      const_cast<Block*>(this)->IterateInner<void, const Block&>(
+      const_cast<Block*>(this)->IterateInner<THIS, void, const Block&>(
          mCount, [&counter](const Block& block) noexcept {
-            counter += block.GetCountDeep();
+            //TODO could be optimized further, if THIS is typed
+            counter += block.GetCountDeep<Block>();
          }
       );
       return counter;
@@ -115,17 +123,19 @@ namespace Langulus::Anyness
 
    /// Get the sum of initialized non-deep elements in all sub-blocks         
    ///   @return the number of contained non-deep elements                    
-   inline Count Block::GetCountElementsDeep() const noexcept {
-      if (IsEmpty() or not mType)
+   template<CT::Block THIS>
+   Count Block::GetCountElementsDeep() const noexcept {
+      if (IsEmpty() or not IsTyped<THIS>())
          return 0;
 
-      if (not IsDeep())
+      if (not IsDeep<THIS>())
          return mCount;
 
       Count counter = 0;
-      const_cast<Block*>(this)->IterateInner<void, const Block&>(
+      const_cast<Block*>(this)->IterateInner<THIS, void, const Block&>(
          mCount, [&counter](const Block& block) noexcept {
-            counter += block.GetCountElementsDeep();
+            //TODO could be optimized further, if THIS is typed
+            counter += block.GetCountElementsDeep<Block>();
          }
       );
       return counter;
@@ -168,23 +178,32 @@ namespace Langulus::Anyness
 
    /// Check if block has a data type                                         
    ///   @return true if data contained in this pack is specified             
-   LANGULUS(INLINED)
+   template<CT::Block THIS> LANGULUS(INLINED)
    constexpr bool Block::IsTyped() const noexcept {
-      return mType != nullptr;
+      if constexpr (CT::Typed<THIS>)
+         return true;
+      else
+         return static_cast<bool>(mType);
    }
 
    /// Check if block has a data type                                         
    ///   @return true if data contained in this pack is unspecified           
-   LANGULUS(INLINED)
+   template<CT::Block THIS> LANGULUS(INLINED)
    constexpr bool Block::IsUntyped() const noexcept {
-      return not IsTyped();
+      if constexpr (CT::Typed<THIS>)
+         return false;
+      else
+         return not mType;
    }
 
    /// Check if block has a data type, and is type-constrained                
    ///   @return true if type-constrained                                     
-   LANGULUS(INLINED)
+   template<CT::Block THIS> LANGULUS(INLINED)
    constexpr bool Block::IsTypeConstrained() const noexcept {
-      return mType and mState.IsTyped();
+      if constexpr (CT::Typed<THIS>)
+         return true;
+      else
+         return mType and mState.IsTyped();
    }
 
    /// Check if block is encrypted                                            
@@ -252,50 +271,70 @@ namespace Langulus::Anyness
    
    /// Check if block contains dense data                                     
    ///   @returns true if this container refers to dense memory               
-   LANGULUS(INLINED)
+   template<CT::Block THIS> LANGULUS(INLINED)
    constexpr bool Block::IsDense() const noexcept {
-      return not IsSparse();
+      if constexpr (CT::Typed<THIS>)
+         return CT::Dense<TypeOf<THIS>>;
+      else
+         return mType ? not mType->mIsSparse : false;
    }
 
    /// Check if block contains pointers                                       
    ///   @return true if the block contains pointers                          
-   LANGULUS(INLINED)
+   template<CT::Block THIS> LANGULUS(INLINED)
    constexpr bool Block::IsSparse() const noexcept {
-      return mType ? mType->mIsSparse : false;
+      if constexpr (CT::Typed<THIS>)
+         return CT::Sparse<TypeOf<THIS>>;
+      else
+         return mType ? mType->mIsSparse : false;
    }
    
    /// Check if block contains POD items - if so, it's safe to directly copy  
    /// raw memory from container. Note, that this doesn't only consider the   
    /// standard c++ type traits, like trivially_constructible.                
    /// Want a non-trivial type to be handled as POD in these containers?      
-   /// - You can explicitly reflect any type with `LANGULUS(POD) true` member 
+   /// - You can explicitly reflect any type with `LANGULUS(POD) true`        
    ///   @return true if contained data is plain old data                     
-   LANGULUS(INLINED)
+   template<CT::Block THIS> LANGULUS(INLINED)
    constexpr bool Block::IsPOD() const noexcept {
-      return mType and mType->mIsPOD;
+      if constexpr (CT::Typed<THIS>)
+         return CT::POD<TypeOf<THIS>>;
+      else
+         return mType and mType->mIsPOD;
    }
 
    /// Check if block contains resolvable items, that is, items that have a   
    /// reflected GetBlock() function, that can be used to represent           
    /// themselves as their most concretely typed block                        
    ///   @return true if contained data can be resolved on element basis      
-   LANGULUS(INLINED)
+   template<CT::Block THIS> LANGULUS(INLINED)
    constexpr bool Block::IsResolvable() const noexcept {
-      return mType and mType->mIsSparse and mType->mResolver;
+      if constexpr (CT::Typed<THIS>)
+         return CT::Resolvable<TypeOf<THIS>>;
+      else
+         return mType and mType->mIsSparse and mType->mResolver;
    }
 
    /// Check if the memory block contains memory blocks considered deep       
    ///   @return true if the memory block contains deep memory blocks         
-   LANGULUS(INLINED)
+   template<CT::Block THIS> LANGULUS(INLINED)
    constexpr bool Block::IsDeep() const noexcept {
-      return mType and mType->mIsDeep and mType->template CastsTo<Block, true>();
+      if constexpr (CT::Typed<THIS>)
+         return CT::Deep<Decay<TypeOf<THIS>>>;
+      else {
+         return mType and mType->mIsDeep
+            and mType->template CastsTo<Block, true>();
+      }
    }
 
    /// Check if the memory block contains memory blocks                       
    ///   @return true if the memory block contains memory blocks              
-   LANGULUS(INLINED)
+   template<CT::Block THIS> LANGULUS(INLINED)
    constexpr bool Block::IsBlock() const noexcept {
-      return mType and mType->template CastsTo<Block, true>();
+      if constexpr (CT::Typed<THIS>)
+         return CT::Block<Decay<TypeOf<THIS>>>;
+      else
+         return mType and mType->template CastsTo<Block, true>();
    }
    
    /// Check phase compatibility                                              
@@ -309,11 +348,11 @@ namespace Langulus::Anyness
    /// Check state compatibility                                              
    ///   @param other - the block to check                                    
    ///   @return true if state is compatible                                  
-   LANGULUS(INLINED)
+   template<CT::Block THIS> LANGULUS(INLINED)
    constexpr bool Block::CanFitState(const Block& other) const noexcept {
       return IsInvalid() or (
-         IsMissing() == other.IsMissing()
-         and (not IsTypeConstrained() or other.IsExact(mType))
+             IsMissing() == other.IsMissing()
+         and (not IsTypeConstrained<THIS>() or other.IsExact(mType))
          and CanFitOrAnd(other)
          and CanFitPhase(other)
       );
@@ -329,9 +368,9 @@ namespace Langulus::Anyness
 
    /// Get the size of the contained data, in bytes                           
    ///   @return the byte size                                                
-   LANGULUS(INLINED)
+   template<CT::Block THIS> LANGULUS(INLINED)
    constexpr Size Block::GetBytesize() const noexcept {
-      return mCount * GetStride();
+      return mCount * GetStride<THIS>();
    }
 
    /// Get the token of the contained type                                    
@@ -344,9 +383,12 @@ namespace Langulus::Anyness
    /// Get the size of a single element (in bytes)                            
    ///   @attention this returns zero if block is untyped                     
    ///   @return the size of a single element in bytes                        
-   LANGULUS(INLINED)
+   template<CT::Block THIS> LANGULUS(INLINED)
    constexpr Size Block::GetStride() const noexcept {
-      return mType ? mType->mSize : 0;
+      if constexpr (CT::Typed<THIS>)
+         return sizeof(TypeOf<THIS>);
+      else
+         return mType ? mType->mSize : 0;
    }
    
    /// Get the data state of the container                                    
@@ -366,13 +408,13 @@ namespace Langulus::Anyness
    
    /// Deep (slower) check if there's anything missing inside nested blocks   
    ///   @return true if any deep or flat memory block contains missing data  
-   LANGULUS(INLINED)
+   template<CT::Block THIS> LANGULUS(INLINED)
    constexpr bool Block::IsMissingDeep() const {
       if (IsMissing())
          return true;
 
-      bool result {};
-      ForEachDeep([&result](const Block& group) noexcept {
+      bool result = false;
+      ForEachDeep<THIS>([&result](const Block& group) noexcept {
          result = group.IsMissing();
          return not result;
       });
@@ -382,47 +424,51 @@ namespace Langulus::Anyness
    /// Check if a memory block can be concatenated to this one                
    ///   @param other - the block to concatenate                              
    ///   @return true if able to concatenate to this one                      
-   LANGULUS(INLINED)
-   constexpr bool Block::IsConcatable(const Block& other) const noexcept {
-      return not IsStatic()
-         and not IsConstant() 
-         and CanFitState(other)
-         and IsExact(other.mType);
+   template<CT::Block THIS> LANGULUS(INLINED)
+   constexpr bool Block::IsConcatable(const CT::Block auto& other) const noexcept {
+      if constexpr (CT::Similar<THIS, Deref<decltype(other)>>) {
+         return not IsStatic() and not IsConstant()
+            and CanFitState<THIS>(other);
+      }
+      else {
+         return not IsStatic() and not IsConstant()
+            and CanFitState<THIS>(other)
+            and IsSimilar(other.GetType());
+      }
    }
 
    /// Check if a type can be inserted to this block                          
    ///   @param other - check if a given type is insertable to this block     
    ///   @return true if able to insert an instance of the type to this block 
-   LANGULUS(INLINED)
+   template<CT::Block THIS> LANGULUS(INLINED)
    constexpr bool Block::IsInsertable(DMeta other) const noexcept {
       return other
          and not IsStatic()
          and not IsConstant()
-         and IsDeep() == other->mIsDeep
-         and CastsToMeta(other);
+         and ((IsDeep<THIS>() and other->mIsDeep) or CastsToMeta(other));
    }
    
    /// Check if a static type can be inserted                                 
    ///   @tparam T - the type to check                                        
    ///   @return true if able to insert an instance of the type to this block 
-   template<CT::Data T> LANGULUS(INLINED)
+   template<CT::Block THIS, CT::Data T> LANGULUS(INLINED)
    constexpr bool Block::IsInsertable() const noexcept {
-      return IsInsertable(MetaDataOf<T>());
+      if constexpr (CT::Typed<THIS> and (CT::Similar<TypeOf<THIS>, T>
+                                     or  CT::Deep<TypeOf<THIS>, T>))
+         return not IsStatic()
+            and not IsConstant();
+      else
+         return IsInsertable<THIS>(MetaDataOf<T>());
    }
 
    /// Get the raw data inside the container                                  
    ///   @attention as unsafe as it gets, but as fast as it gets              
    ///   @return a pointer to the first allocated element                     
-   LANGULUS(INLINED)
-   constexpr void* Block::GetRaw() noexcept {
+   LANGULUS(INLINED) constexpr void* Block::GetRaw() noexcept {
       return mRaw;
    }
 
-   /// Get the raw data inside the container (const)                          
-   ///   @attention as unsafe as it gets, but as fast as it gets              
-   ///   @return a pointer to the first allocated element                     
-   LANGULUS(INLINED)
-   constexpr const void* Block::GetRaw() const noexcept {
+   LANGULUS(INLINED) constexpr const void* Block::GetRaw() const noexcept {
       return mRaw;
    }
 
@@ -430,45 +476,41 @@ namespace Langulus::Anyness
    ///   @attention as unsafe as it gets, but as fast as it gets              
    ///   @attention the resulting pointer never points to a valid element     
    ///   @return a pointer to the last+1 element (never initialized)          
-   LANGULUS(INLINED)
+   template<CT::Block THIS> LANGULUS(INLINED)
    constexpr const void* Block::GetRawEnd() const noexcept {
-      return mRaw + GetBytesize();
+      return mRaw + GetBytesize<THIS>();
    }
 
    /// Get a pointer array - useful only for sparse containers                
    ///   @return the raw data as an array of pointers                         
-   LANGULUS(INLINED) IF_UNSAFE(constexpr)
+   template<CT::Block THIS> LANGULUS(INLINED) IF_UNSAFE(constexpr)
    void** Block::GetRawSparse() IF_UNSAFE(noexcept) {
-      LANGULUS_ASSUME(DevAssumes, IsSparse(),
+      static_assert(not CT::Typed<THIS> or CT::Sparse<TypeOf<THIS>>,
+         "Interpreting as sparse data, but contains dense data");
+      LANGULUS_ASSUME(DevAssumes, IsSparse<THIS>(),
          "Representing dense data as sparse");
       return reinterpret_cast<void**>(mRawSparse);
    }
 
-   /// Get a constant pointer array - useful only for sparse containers       
-   ///   @return the raw data as an array of constant pointers                
-   LANGULUS(INLINED) IF_UNSAFE(constexpr)
+   template<CT::Block THIS> LANGULUS(INLINED) IF_UNSAFE(constexpr)
    const void* const* Block::GetRawSparse() const IF_UNSAFE(noexcept) {
-      LANGULUS_ASSUME(DevAssumes, IsSparse(),
-         "Representing dense data as sparse");
-      return reinterpret_cast<void**>(mRawSparse);
+      return const_cast<Block*>(this)->template GetRawSparse<THIS>();
    }
    
    /// Get a pointer array - useful only for sparse containers                
    ///   @return the raw data as an array of pointers                         
-   template<CT::Data T> LANGULUS(INLINED)
+   template<CT::Block THIS, CT::Data T> LANGULUS(INLINED)
    T** Block::GetRawSparseAs() IF_UNSAFE(noexcept) {
-      LANGULUS_ASSUME(DevAssumes, IsSparse(),
+      static_assert(not CT::Typed<THIS> or CT::Sparse<TypeOf<THIS>>,
+         "Interpreting as sparse data, but contains dense data");
+      LANGULUS_ASSUME(DevAssumes, IsSparse<THIS>(),
          "Representing dense data as sparse");
       return reinterpret_cast<T**>(mRawSparse);
    }
 
-   /// Get a constant pointer array - useful only for sparse containers       
-   ///   @return the raw data as an array of constant pointers                
-   template<CT::Data T> LANGULUS(INLINED)
+   template<CT::Block THIS, CT::Data T> LANGULUS(INLINED)
    const T* const* Block::GetRawSparseAs() const IF_UNSAFE(noexcept) {
-      LANGULUS_ASSUME(DevAssumes, IsSparse(),
-         "Representing dense data as sparse");
-      return reinterpret_cast<T**>(mRawSparse);
+      return const_cast<Block*>(this)->template GetRawSparseAs<THIS, T>();
    }
    
    /// Get the raw data inside the container, reinterpreted as some type      
@@ -480,10 +522,6 @@ namespace Langulus::Anyness
       return reinterpret_cast<T*>(mRaw);
    }
 
-   /// Get the raw data inside the container, reinterpreted (const)           
-   ///   @attention as unsafe as it gets, but as fast as it gets              
-   ///   @tparam T - the type we're interpreting as                           
-   ///   @return a pointer to the first element of type T                     
    template<CT::Data T> LANGULUS(INLINED)
    const T* Block::GetRawAs() const noexcept {
       return reinterpret_cast<const T*>(mRaw);
@@ -494,9 +532,9 @@ namespace Langulus::Anyness
    ///   @attention as unsafe as it gets, but as fast as it gets              
    ///   @tparam T - the type we're interpreting as                           
    ///   @return a pointer to the last+1 element of type T                    
-   template<CT::Data T> LANGULUS(INLINED)
+   template<CT::Block THIS, CT::Data T> LANGULUS(INLINED)
    const T* Block::GetRawEndAs() const noexcept {
-      return reinterpret_cast<const T*>(GetRawEnd());
+      return reinterpret_cast<const T*>(GetRawEnd<THIS>());
    }
    
    /// Make memory block static (aka size-constrained)                        
@@ -579,20 +617,19 @@ namespace Langulus::Anyness
    /// Get entry array when block is sparse (const)                           
    ///   @attention entries exist only for sparse containers                  
    ///   @return the array of entries                                         
-   LANGULUS(INLINED)
+   template<CT::Block THIS> LANGULUS(INLINED)
    const Allocation** Block::GetEntries() IF_UNSAFE(noexcept) {
-      LANGULUS_ASSUME(DevAssumes, IsSparse(),
+      static_assert(not CT::Typed<THIS> or CT::Sparse<TypeOf<THIS>>,
+         "Getting sparse data entries, but contains dense data");
+      LANGULUS_ASSUME(DevAssumes, IsSparse<THIS>(),
          "Entries do not exist for dense container");
       return const_cast<const Allocation**>(
          reinterpret_cast<Allocation**>(mRawSparse + mReserved));
    }
 
-   /// Get entry array when block is sparse (const)                           
-   ///   @attention entries exist only for sparse containers                  
-   ///   @return the array of entries                                         
-   LANGULUS(INLINED)
+   template<CT::Block THIS> LANGULUS(INLINED)
    const Allocation* const* Block::GetEntries() const IF_UNSAFE(noexcept) {
-      return const_cast<Block*>(this)->GetEntries();
+      return const_cast<Block*>(this)->template GetEntries<THIS>();
    }
 
 } // namespace Langulus::Anyness

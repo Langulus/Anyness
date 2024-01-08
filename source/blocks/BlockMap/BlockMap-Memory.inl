@@ -114,7 +114,7 @@ namespace Langulus::Anyness
             ZeroMemory(mInfo + old.GetReserved(), count - old.GetReserved());
 
             // Data was reused, but entries always move if sparse keys  
-            if (mKeys.IsSparse()) {
+            if (IsKeySparse<THIS>()) {
                MoveMemory(
                   mKeys.mRawSparse + count,
                   mKeys.mRawSparse + old.GetReserved(),
@@ -125,7 +125,7 @@ namespace Langulus::Anyness
             if (mValues.mEntry == old.mValues.mEntry) {
                // Both keys and values remain in the same place         
                // Data was reused, but entries always move if sparse val
-               if (mValues.IsSparse()) {
+               if (IsValueSparse<THIS>()) {
                   MoveMemory(
                      mValues.mRawSparse + count,
                      mValues.mRawSparse + old.GetReserved(),
@@ -137,14 +137,14 @@ namespace Langulus::Anyness
             }
             else {
                // Only values moved, reinsert them, rehash the rest     
-               RehashKeys<THIS>(old.GetReserved(), old.mValues);
+               RehashKeys<THIS>(old);
                Allocator::Deallocate(const_cast<Allocation*>(old.mValues.mEntry));
             }
             return;
          }
          else if (mValues.mEntry == old.mValues.mEntry) {
             // Only keys moved, reinsert them, rehash the rest          
-            RehashValues<THIS>(old.GetReserved(), old.mKeys);
+            RehashValues<THIS>(old);
             Allocator::Deallocate(const_cast<Allocation*>(old.mKeys.mEntry));
             return;
          }

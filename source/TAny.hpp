@@ -17,18 +17,18 @@ namespace Langulus::CT
    /// container can be constructed                                           
    template<class T, class...A>
    concept DeepMakable = Inner::UnfoldMakableFrom<T, A...>
-        or (sizeof...(A) == 1 and Block<Desem<FirstOf<A...>>>
-           and (SemanticOf<FirstOf<A...>>::Shallow
-             or Inner::SemanticMakableAlt<typename SemanticOf<FirstOf<A...>>::template As<T>>
-        ));
+        or (sizeof...(A) == 1
+           and Block<Desem<FirstOf<A...>>>
+           and Inner::SemanticMakableAlt<
+               typename SemanticOf<FirstOf<A...>>::template As<T>>
+        );
 
    /// Concept for recognizing argument, with which a statically typed        
    /// container can be assigned                                              
    template<class T, class A>
-   concept DeepAssignable = Inner::UnfoldMakableFrom<T, A> or (Block<Desem<A>>
-       and (SemanticOf<A>::Shallow
-         or Inner::SemanticAssignableAlt<typename SemanticOf<A>::template As<T>>)
-       );
+   concept DeepAssignable = Inner::UnfoldMakableFrom<T, A>
+        or (Block<Desem<A>> and Inner::SemanticAssignableAlt<
+           typename SemanticOf<A>::template As<T>>);
 
 } // namespace Langulus::CT
 
@@ -56,26 +56,10 @@ namespace Langulus::Anyness
       LANGULUS(TYPED) T;
       LANGULUS_BASES(Any);
 
-   public:
       static_assert(CT::Inner::Insertable<T>,
          "Contained type is not insertable");
       static_assert(CT::Inner::Allocatable<T>,
          "Contained type is not allocatable");
-
-      static constexpr bool Ownership = true;
-
-      friend class Any;
-      friend class Block;
-
-      template<bool MUTABLE>
-      struct TIterator;
-      using Iterator = TIterator<true>;
-      using ConstIterator = TIterator<false>;
-
-      template<bool MUTABLE>
-      struct TIteratorEnd;
-      using IteratorEnd = TIteratorEnd<true>;
-      using ConstIteratorEnd = TIteratorEnd<false>;
 
       ///                                                                     
       ///   Construction                                                      
@@ -90,6 +74,11 @@ namespace Langulus::Anyness
 
       ~TAny();
 
+      NOD() static TAny From(auto&&, Count = 1);
+
+      template<CT::Data... LIST_T>
+      NOD() static TAny Wrap(LIST_T&&...);
+
       ///                                                                     
       ///   Assignment                                                        
       ///                                                                     
@@ -100,35 +89,14 @@ namespace Langulus::Anyness
       TAny& operator = (T1&&);
 
    public:
-      NOD() static TAny From(auto&&, Count = 1);
-
-      template<CT::Data... LIST_T>
-      NOD() static TAny Wrap(LIST_T&&...);
-   
-      void Null(Count);
-
-      NOD() DMeta GetType() const noexcept;
-      NOD() const T* GetRaw() const noexcept;
-      NOD()       T* GetRaw()       noexcept;
-      NOD() const T* GetRawEnd() const noexcept;
-      NOD() decltype(auto) GetHandle(Offset)       IF_UNSAFE(noexcept);
-      NOD() decltype(auto) GetHandle(Offset) const IF_UNSAFE(noexcept);
-
-
-   private: IF_LANGULUS_TESTING(public:)
-      using Any::GetRawSparse;
-
-   public:
-      NOD() const T& Last() const;
-      NOD()       T& Last();
-
-      template<CT::Data = T>
-      NOD() decltype(auto) Get(Offset) const noexcept;
-      template<CT::Data = T>
-      NOD() decltype(auto) Get(Offset) noexcept;
-
-      NOD() const T& operator [] (CT::Index auto) const;
-      NOD()       T& operator [] (CT::Index auto);
+      ///                                                                     
+      ///   Capsulation                                                       
+      ///                                                                     
+      NOD() DMeta    GetType() const noexcept;
+      NOD() T const* GetRaw() const noexcept;
+      NOD() T*       GetRaw()       noexcept;
+      NOD() T const* GetRawEnd() const noexcept;
+      constexpr void ResetState() noexcept;
 
       NOD() constexpr bool IsTyped() const noexcept;
       NOD() constexpr bool IsUntyped() const noexcept;
@@ -141,7 +109,21 @@ namespace Langulus::Anyness
 
       NOD() constexpr Size GetStride() const noexcept;
       NOD() constexpr Size GetBytesize() const noexcept;
+      NOD() constexpr Count GetCountDeep() const noexcept;
+      NOD() constexpr Count GetCountElementsDeep() const noexcept;
 
+      NOD() constexpr bool IsMissingDeep() const;
+      NOD() constexpr bool IsConcatable(const CT::Block auto&) const noexcept;
+      NOD() constexpr bool IsInsertable(DMeta) const noexcept;
+      NOD() constexpr bool IsInsertable() const noexcept;
+
+   private: IF_LANGULUS_TESTING(public:)
+      using Any::GetRawSparse;
+
+   public:
+      ///                                                                     
+      ///   RTTI                                                              
+      ///                                                                     
       NOD() bool CastsToMeta(DMeta) const;
       NOD() bool CastsToMeta(DMeta, Count) const;
 
@@ -162,12 +144,61 @@ namespace Langulus::Anyness
       NOD() constexpr bool IsExact() const noexcept;
       NOD() bool IsExact(DMeta) const noexcept;
 
+      ///                                                                     
+      ///   Indexing                                                          
+      ///                                                                     
+      NOD() T const& Last() const;
+      NOD() T&       Last();
+
+      template<CT::Data = T>
+      NOD() decltype(auto) Get(Offset) const noexcept;
+      template<CT::Data = T>
+      NOD() decltype(auto) Get(Offset) noexcept;
+
+      NOD() const T& operator [] (CT::Index auto) const;
+      NOD()       T& operator [] (CT::Index auto);
+
+      NOD() decltype(auto) GetHandle(Offset)       IF_UNSAFE(noexcept);
+      NOD() decltype(auto) GetHandle(Offset) const IF_UNSAFE(noexcept);
+
+      NOD() Block*       GetBlockDeep(Offset) noexcept;
+      NOD() Block const* GetBlockDeep(Offset) const noexcept;
+
+
+      ///                                                                     
+      ///   Iteration                                                         
+      ///                                                                     
+      using Iterator = Block::Iterator<TAny>;
+      using ConstIterator = Block::Iterator<const TAny>;
+
+      NOD() Iterator begin() noexcept;
+      NOD() Iterator last() noexcept;
+      NOD() ConstIterator begin() const noexcept;
+      NOD() ConstIterator last() const noexcept;
+
+      template<bool REVERSE = false>
+      Count ForEachElement(auto&&) const;
+
+      template<bool REVERSE = false>
+      Count ForEach(auto&&...) const;
+
+      template<bool REVERSE = false, bool SKIP = true>
+      Count ForEachDeep(auto&&...) const;
+
+      Count ForEachElementRev(auto&&...) const;
+
+      Count ForEachRev(auto&&...) const;
+
+      template<bool SKIP = true>
+      Count ForEachDeepRev(auto&&...) const;
+
    public:
       ///                                                                     
       ///   Memory management                                                 
       ///                                                                     
       void Reserve(Count);
 
+   public:
       ///                                                                     
       ///   Insertion                                                         
       ///                                                                     
@@ -205,6 +236,8 @@ namespace Langulus::Anyness
       requires CT::Inner::UnfoldMakableFrom<T, T1>
       TAny& operator >>= (T1&&);
 
+      void Null(Count);
+
    private:
       // Disable these inherited functions                              
       using Any::SmartPush;
@@ -226,22 +259,23 @@ namespace Langulus::Anyness
       void Reset();
 
       ///                                                                     
-      ///   Search                                                            
+      ///   Comparison                                                        
       ///                                                                     
+      template<bool REVERSE = false, CT::NotSemantic T1>
+      requires CT::Inner::Comparable<T, T1>
+      NOD() Index Find(const T1&, Offset = 0) const noexcept;
+
       template<bool REVERSE = false>
-      NOD() Index Find(const CT::Data auto&, Offset = 0) const noexcept;
+      NOD() Index FindBlock(const CT::Block auto&, Offset = 0) const noexcept;
 
-      template<CT::Data ALT_T = T>
-      requires (CT::Inner::Comparable<T, ALT_T>)
-      bool operator == (const TAny<ALT_T>&) const noexcept;
+      bool operator == (const CT::Block auto&) const noexcept
+      requires CT::Inner::Comparable<T>;
 
-      bool operator == (const Any&) const noexcept
-      requires (CT::Inner::Comparable<T>);
-
-      NOD() bool Compare(const TAny&) const noexcept;
-      NOD() bool CompareLoose(const TAny&) const noexcept;
-      NOD() Count Matches(const TAny&) const noexcept;
-      NOD() Count MatchesLoose(const TAny&) const noexcept;
+      template<bool RESOLVE = true>
+      NOD() bool Compare(const CT::Block auto&) const noexcept;
+      NOD() bool CompareLoose(const CT::Block auto&) const noexcept;
+      NOD() Count Matches(const CT::Block auto&) const noexcept;
+      NOD() Count MatchesLoose(const CT::Block auto&) const noexcept;
       NOD() Hash GetHash() const requires CT::Hashable<T>;
 
       template<bool ASCEND = false>
@@ -267,16 +301,6 @@ namespace Langulus::Anyness
       TAny& operator += (T1&&);
 
       ///                                                                     
-      ///   Iteration                                                         
-      ///                                                                     
-      NOD() Iterator begin() noexcept;
-      NOD() IteratorEnd end() noexcept;
-      NOD() Iterator last() noexcept;
-      NOD() ConstIterator begin() const noexcept;
-      NOD() ConstIteratorEnd end() const noexcept;
-      NOD() ConstIterator last() const noexcept;
-
-      ///                                                                     
       ///   Flow                                                              
       ///                                                                     
       // Intentionally undefined, because it requires Langulus::Flow    
@@ -284,86 +308,15 @@ namespace Langulus::Anyness
       // Intentionally undefined, because it requires Langulus::Flow    
       void Run(Flow::Verb&);
 
-   protected:
-      void AllocateFresh(const AllocationRequest&);
-
-      constexpr void ResetState() noexcept;
-      constexpr void ResetType() noexcept;
-
-      template<bool OVERWRITE_STATE, bool OVERWRITE_ENTRY>
-      void CopyProperties(const Block&) noexcept;
-
    private:
+      /// Services graveyard - disallowed interface for typed containers      
       using Any::FromMeta;
       using Any::FromBlock;
       using Any::FromState;
       using Any::From;
       using Any::WrapAs;
-   };
-
-
-   ///                                                                        
-   ///   TAny iterator                                                        
-   ///                                                                        
-   template<CT::Data T>
-   template<bool MUTABLE>
-   struct TAny<T>::TIterator : A::Iterator {
-      LANGULUS(UNINSERTABLE) true;
-      LANGULUS(TYPED) T;
-
-   protected:
-      friend class TAny<T>;
-      template<bool>
-      friend struct TAny<T>::TIteratorEnd;
-
-      const T* mElement;
-
-      constexpr TIterator(const T*) noexcept;
-
-   public:
-      template<bool RHS_MUTABLE>
-      NOD() constexpr bool operator == (const TIteratorEnd<RHS_MUTABLE>&) const noexcept;
-      NOD() constexpr bool operator == (const TIterator&) const noexcept;
-
-      operator       T& () const noexcept requires (MUTABLE);
-      operator const T& () const noexcept requires (not MUTABLE);
-
-      NOD()       T& operator *  () const noexcept requires (MUTABLE);
-      NOD() const T& operator *  () const noexcept requires (not MUTABLE);
-
-      NOD()       T& operator -> () const noexcept requires (MUTABLE);
-      NOD() const T& operator -> () const noexcept requires (not MUTABLE);
-
-      // Prefix operator                                                
-      constexpr TIterator& operator ++ () noexcept;
-
-      // Suffix operator                                                
-      NOD() constexpr TIterator operator ++ (int) noexcept;
-   };
-   
-
-   ///                                                                        
-   ///   TAny iterator end marker                                             
-   ///                                                                        
-   template<CT::Data T>
-   template<bool MUTABLE>
-   struct TAny<T>::TIteratorEnd : A::Iterator {
-      LANGULUS(UNINSERTABLE) true;
-      LANGULUS(TYPED) T;
-
-   protected:
-      friend class TAny<T>;
-      template<bool>
-      friend struct TAny<T>::TIterator;
-
-      const T* mEndMarker;
-
-      constexpr TIteratorEnd(const T*) noexcept;
-
-   public:
-      template<bool RHS_MUTABLE>
-      NOD() constexpr bool operator == (const TIterator<RHS_MUTABLE>&) const noexcept;
-      NOD() constexpr bool operator == (const TIteratorEnd&) const noexcept;
+      using Any::SetType;
+      using Any::MakeTypeConstrained;
    };
 
 } // namespace Langulus::Anyness
