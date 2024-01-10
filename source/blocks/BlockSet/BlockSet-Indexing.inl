@@ -16,63 +16,45 @@ namespace Langulus::Anyness
    /// Get a valid key by any index, safely                                   
    ///   @param index - the index to use                                      
    ///   @return the element, wrapped in a Block                              
-   LANGULUS(INLINED)
-   Block BlockSet::Get(CT::Index auto index) {
-      auto offset = mKeys.SimplifyIndex<void, true>(index);
-      auto info = GetInfo();
-      const auto infoEnd = GetInfoEnd();
-      while (info != infoEnd) {
-         if (*info) {
-            if (offset == 0)
-               return GetInner(info - GetInfo());
-            --offset;
-         }
-         ++info;
-      }
+   template<CT::Set THIS> LANGULUS(INLINED)
+   decltype(auto) BlockSet::Get(const CT::Index auto index) {
+      if (IsEmpty())
+         LANGULUS_OOPS(OutOfRange, "Set is empty");
 
-      LANGULUS_THROW(Access, "This shouldn't be reached, ever");
+      const auto idx = SimplifyIndex<THIS>(index);
+      if (not mInfo[idx])
+         LANGULUS_OOPS(OutOfRange, "No element at given index");
+      return GetRaw<THIS>(idx);
    }
 
-   /// Get a valid key by any index, safely (const)                           
-   ///   @param index - the index to use                                      
-   ///   @return the element, wrapped in a Block                              
-   LANGULUS(INLINED)
-   Block BlockSet::Get(CT::Index auto index) const {
-      return const_cast<BlockSet*>(this)->Get(index);
-   }
-   
-   /// Get a valid key by any index, safely                                   
-   ///   @param index - the index to use                                      
-   ///   @return the element, wrapped in a Block                              
-   LANGULUS(INLINED)
-   Block BlockSet::operator[] (CT::Index auto index) {
-      return Get(index);
-   }
-
-   /// Get a valid key by any index, safely (const)                           
-   ///   @param index - the index to use                                      
-   ///   @return the element, wrapped in a Block                              
-   LANGULUS(INLINED)
-   Block BlockSet::operator[] (CT::Index auto index) const {
-      return Get(index);
+   template<CT::Set THIS> LANGULUS(INLINED)
+   decltype(auto) BlockSet::Get(const CT::Index auto index) const {
+      return const_cast<BlockSet*>(this)->template Get<THIS>(index);
    }
 
    /// Get a raw key by an unsafe offset                                      
    ///   @attention assumes index is in container's limits                    
    ///   @param i - the offset to use                                         
    ///   @return the element, wrapped in a Block                              
-   LANGULUS(INLINED)
-   Block BlockSet::GetInner(Offset i) IF_UNSAFE(noexcept) {
-      return mKeys.GetElement(i);
+   template<CT::Set THIS> LANGULUS(INLINED)
+   decltype(auto) BlockSet::GetRaw(const Offset i) IF_UNSAFE(noexcept) {
+      LANGULUS_ASSUME(DevAssumes, i < GetReserved(),
+         "Index out of limits when accessing set",
+         ", index ", i, " is beyond the reserved ", GetReserved(), " elements");
+
+      if constexpr (CT::TypedSet<THIS>) {
+         using K = TypeOf<THIS>;
+         LANGULUS_ASSUME(DevAssumes, mKeys.template IsSimilar<K>(),
+            "Wrong type when accessing set",
+            ", using type `", NameOf<K>(), "` instead of `", mKeys.GetType(), '`');
+         return GetValues<THIS>().GetRaw()[i];
+      }
+      else return GetValues<THIS>().GetElement(i);
    }
 
-   /// Get a raw key by an unsafe offset (const)                              
-   ///   @attention assumes index is in container's limits                    
-   ///   @param i - the offset to use                                         
-   ///   @return the element, wrapped in a Block                              
-   LANGULUS(INLINED)
-   Block BlockSet::GetInner(Offset i) const IF_UNSAFE(noexcept) {
-      return mKeys.GetElement(i);
+   template<CT::Set THIS> LANGULUS(INLINED)
+   decltype(auto) BlockSet::GetRaw(const Offset i) const IF_UNSAFE(noexcept) {
+      return const_cast<BlockSet*>(this)->template GetRaw<THIS>(i);
    }
 
    /// Get the bucket index, based on the provided value's hash               
@@ -80,7 +62,7 @@ namespace Langulus::Anyness
    ///   @param value - the value to hash                                     
    ///   @return the bucket index                                             
    LANGULUS(INLINED)
-   Offset BlockSet::GetBucket(Offset mask, const CT::NotSemantic auto& value) noexcept {
+   Offset BlockSet::GetBucket(const Offset mask, const CT::NotSemantic auto& value) noexcept {
       return HashOf(value).mHash & mask;
    }
    
@@ -89,49 +71,28 @@ namespace Langulus::Anyness
    ///   @param value - the value to hash, wrapped in a block                 
    ///   @return the bucket index                                             
    LANGULUS(INLINED)
-   Offset BlockSet::GetBucketUnknown(Offset mask, const Block& value) noexcept {
+   Offset BlockSet::GetBucketUnknown(const Offset mask, const Block& value) noexcept {
       return value.GetHash().mHash & mask;
-   }
-
-   /// Get a reference to a contained element                                 
-   ///   @attention assumes index is in container's limits                    
-   ///   @attention assumes T is similar to the contained type                
-   ///   @tparam T - the type to reinterpret contained elements as            
-   ///   @param i - the key index                                             
-   ///   @return a constant reference to the element                          
-   template<CT::Data T> LANGULUS(INLINED)
-   constexpr T& BlockSet::GetRaw(Offset i) IF_UNSAFE(noexcept) {
-      LANGULUS_ASSUME(DevAssumes, i < GetReserved(),
-         "Index out of limits when accessing set value",
-         ", index ", i, " is beyond the reserved ", GetReserved(), " elements");
-      LANGULUS_ASSUME(DevAssumes, mKeys.template IsSimilar<T>(),
-         "Wrong type when accessing set value",
-         ", using type `", NameOf<T>(),
-         "` instead of `", mKeys.GetType(), '`');
-      return mKeys.template GetRawAs<T>()[i];
-   }
-
-   template<CT::Data T> LANGULUS(INLINED)
-   constexpr const T& BlockSet::GetRaw(Offset i) const IF_UNSAFE(noexcept) {
-      return const_cast<BlockSet*>(this)->template GetRaw<T>(i);
    }
 
    /// Get an element handle                                                  
    ///   @attention assumes index is in container's limits                    
-   ///   @attention assumes T is similar to the contained type                
-   ///   @tparam T - the type to reinterpret contained elements as            
    ///   @param i - the key index                                             
    ///   @return the handle                                                   
-   template<CT::Data T> LANGULUS(INLINED)
-   constexpr Handle<T> BlockSet::GetHandle(Offset i) const IF_UNSAFE(noexcept) {
+   template<CT::Set THIS> LANGULUS(INLINED)
+   auto BlockSet::GetHandle(const Offset i) const IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, i < GetReserved(),
-         "Index out of limits when accessing set value",
+         "Index out of limits when accessing map key",
          ", index ", i, " is beyond the reserved ", GetReserved(), " elements");
-      LANGULUS_ASSUME(DevAssumes, mKeys.template IsSimilar<T>(),
-         "Wrong type when accessing set value",
-         ", using type `", NameOf<T>(),
-         "` instead of `", mKeys.GetType(), '`');
-      return mKeys.template GetHandle<T>(i);
+
+      if constexpr (CT::TypedSet<THIS>) {
+         using K = TypeOf<THIS>;
+         LANGULUS_ASSUME(DevAssumes, mKeys.template IsSimilar<K>(),
+            "Wrong type when accessing map key",
+            ", using type `", NameOf<K>(), "` instead of `", mKeys.GetType(), '`');
+         return GetValues<THIS>().GetHandle(i);
+      }
+      else return GetValues<THIS>().GetElement(i);
    }
 
 } // namespace Langulus::Anyness

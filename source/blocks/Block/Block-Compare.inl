@@ -23,11 +23,10 @@ namespace Langulus::Anyness
    ///   @return true if containers match                                     
    template<CT::Block THIS> LANGULUS(INLINED)
    bool Block::operator == (const CT::NotSemantic auto& rhs) const {
-      using T = Deref<decltype(rhs)>;
-      if constexpr (CT::Deep<T>)
-         return Compare<THIS>(rhs) or CompareSingleValue<THIS, T>(rhs);
+      if constexpr (CT::Deep<decltype(rhs)>)
+         return Compare<true, THIS>(rhs) or CompareSingleValue<THIS>(rhs);
       else
-         return CompareSingleValue<THIS, T>(rhs);
+         return CompareSingleValue<THIS>(rhs);
    }
    
    /// Compare two block's contents for equality                              
@@ -35,7 +34,7 @@ namespace Langulus::Anyness
    ///                     comparing                                          
    ///   @param right - the memory block to compare against                   
    ///   @return true if the two memory blocks are identical                  
-   template<CT::Block THIS, bool RESOLVE>
+   template<bool RESOLVE, CT::Block THIS>
    bool Block::Compare(const CT::Block auto& right) const {
       using RHS = Deref<decltype(right)>;
       VERBOSE_TAB("Comparing ",
@@ -117,7 +116,7 @@ namespace Langulus::Anyness
             // Call compare operator for each element pair              
             auto lhs = GetRawAs<Byte>();
             auto rhs = right.template GetRawAs<Byte>();
-            const auto lhsEnd = GetRawEndAs<THIS, Byte>();
+            const auto lhsEnd = GetRawEndAs<Byte, THIS>();
             while (lhs != lhsEnd) {
                if (not mType->mComparer(lhs, rhs))
                   return false;
@@ -320,7 +319,7 @@ namespace Langulus::Anyness
             // combine hashes for a final one                           
             TAny<Hash> h;
             h.Reserve(mCount);
-            ForEachElement<THIS>([&](const Block& element) {
+            ForEachElement<false, THIS>([&](const Block& element) {
                h << mType->mHasher(element.mRaw);
             });
             return h.GetHash();
@@ -341,7 +340,7 @@ namespace Langulus::Anyness
    ///   @param item - the item to search for                                 
    ///   @param cookie - resume search from a given index                     
    ///   @return the index of the found item, or IndexNone if none found      
-   template<CT::Block THIS, bool REVERSE>
+   template<bool REVERSE, CT::Block THIS>
    Index Block::Find(const CT::NotSemantic auto& item, Offset cookie) const noexcept {
       using ALT_T = Deref<decltype(item)>;
 
@@ -413,7 +412,7 @@ namespace Langulus::Anyness
    ///   @param item - block with a single item to search for                 
    ///   @param cookie - continue search from a given offset                  
    ///   @return the index of the found item, or IndexNone if not found       
-   template<CT::Block THIS, bool REVERSE>
+   template<bool REVERSE, CT::Block THIS>
    Index Block::FindBlock(const CT::Block auto& item, Offset cookie) const noexcept {
       // First check if element is contained inside this block's        
       // memory, because if so, we can easily find it, without calling  
@@ -600,7 +599,9 @@ namespace Langulus::Anyness
    ///   @param state - the data state filter                                 
    ///   @return the number of gathered elements                              
    template<bool REVERSE>
-   Count Block::GatherPolarInner(DMeta type, const CT::Block auto& input, CT::Block auto& output, DataState state) {
+   Count Block::GatherPolarInner(
+      DMeta type, const CT::Block auto& input, CT::Block auto& output, DataState state
+   ) {
       if (input.GetState() % state) {
          if (input.IsNow() and input.IsDeep()) {
             // Phases don't match, but we can dig deeper if deep        

@@ -253,7 +253,7 @@ namespace Langulus::Anyness
    ///   @param count - the number of elements to interpret as                
    ///   @return true if able to interpret current type to 'type'             
    TEMPLATE() LANGULUS(INLINED)
-   bool TAny<T>::CastsToMeta(DMeta type, Count count) const {
+   bool TAny<T>::CastsToMeta(DMeta type, const Count count) const {
       return GetType()->CastsTo(type, count);
    }
    
@@ -274,7 +274,7 @@ namespace Langulus::Anyness
    ///   @param count - the number of elements of T                           
    ///   @return true if contained data is reinterpretable as T               
    TEMPLATE() template<CT::Data ALT_T> LANGULUS(INLINED)
-   bool TAny<T>::CastsTo(Count count) const {
+   bool TAny<T>::CastsTo(const Count count) const {
       return CastsToMeta(MetaDataOf<Decay<ALT_T>>(), count);
    }
 
@@ -374,12 +374,12 @@ namespace Langulus::Anyness
    ///   @param index - the element index                                     
    ///   @return the handle/pointer                                           
    TEMPLATE() LANGULUS(INLINED)
-   decltype(auto) TAny<T>::GetHandle(Offset index) IF_UNSAFE(noexcept) {
+   decltype(auto) TAny<T>::GetHandle(const Offset index) IF_UNSAFE(noexcept) {
       return Block::GetHandle<T>(index);
    }
 
    TEMPLATE() LANGULUS(INLINED)
-   decltype(auto) TAny<T>::GetHandle(Offset index) const IF_UNSAFE(noexcept) {
+   decltype(auto) TAny<T>::GetHandle(const Offset index) const IF_UNSAFE(noexcept) {
       return Block::GetHandle<T>(index);
    }
 
@@ -392,19 +392,32 @@ namespace Langulus::Anyness
    ///      ... and so on ...                                                 
    ///   @return a pointer to the block or nullptr if index is invalid        
    TEMPLATE() LANGULUS(INLINED)
-   Block* TAny<T>::GetBlockDeep(Offset index) noexcept {
+   Block* TAny<T>::GetBlockDeep(const Offset index) noexcept {
       return Block::GetBlockDeep<TAny>(index);
    }
 
    TEMPLATE() LANGULUS(INLINED)
-   Block const* TAny<T>::GetBlockDeep(Offset index) const noexcept {
+   Block const* TAny<T>::GetBlockDeep(const Offset index) const noexcept {
       return Block::GetBlockDeep<TAny>(index);
+   }
+
+   /// Get a deep element block                                               
+   ///   @param index - the index to get                                      
+   ///   @return the element block                                            
+   TEMPLATE() LANGULUS(INLINED)
+   Block TAny<T>::GetElementDeep(const Offset index) noexcept {
+      return Block::GetElementDeep<TAny>(index);
+   }
+
+   TEMPLATE() LANGULUS(INLINED)
+   Block TAny<T>::GetElementDeep(const Offset index) const noexcept {
+      return Block::GetElementDeep<TAny>(index);
    }
 
    /// Get an element in the way you want (const, unsafe)                     
    /// This is a statically optimized variant of Block::Get                   
    TEMPLATE() template<CT::Data ALT_T> LANGULUS(INLINED)
-   decltype(auto) TAny<T>::Get(Offset index) const noexcept {
+   decltype(auto) TAny<T>::Get(const Offset index) const noexcept {
       const auto& element = GetRaw()[index];
       if constexpr (CT::Dense<T> and CT::Dense<ALT_T>)
          // Dense -> Dense (returning a reference)                      
@@ -421,7 +434,7 @@ namespace Langulus::Anyness
    }
 
    TEMPLATE() template<CT::Data ALT_T> LANGULUS(INLINED)
-   decltype(auto) TAny<T>::Get(Offset index) noexcept {
+   decltype(auto) TAny<T>::Get(const Offset index) noexcept {
       auto& element = GetRaw()[index];
       if constexpr (CT::Dense<T> and CT::Dense<ALT_T>)
          // Dense -> Dense (returning a reference)                      
@@ -441,13 +454,13 @@ namespace Langulus::Anyness
    ///   @param idx - the index to get                                        
    ///   @return a reference to the element                                   
    TEMPLATE() LANGULUS(INLINED)
-   const T& TAny<T>::operator [] (CT::Index auto index) const {
+   const T& TAny<T>::operator [] (const CT::Index auto index) const {
       const auto offset = SimplifyIndex<T>(index);
       return GetRaw()[offset];
    }
 
    TEMPLATE() LANGULUS(INLINED)
-   T& TAny<T>::operator [] (CT::Index auto index) {
+   T& TAny<T>::operator [] (const CT::Index auto index) {
       const auto offset = SimplifyIndex<T>(index);
       return GetRaw()[offset];
    }
@@ -546,6 +559,51 @@ namespace Langulus::Anyness
    TEMPLATE() LANGULUS(INLINED)
    constexpr Size TAny<T>::GetBytesize() const noexcept {
       return Block::GetBytesize<TAny>();
+   }
+
+   /// Get the number of sub-blocks (this one included)                       
+   ///   @return the number of contained blocks, including this one           
+   TEMPLATE() LANGULUS(INLINED)
+   constexpr Count TAny<T>::GetCountDeep() const noexcept {
+      return Block::GetCountDeep<TAny>();
+   }
+
+   /// Get the sum of initialized non-deep elements in all sub-blocks         
+   ///   @return the number of contained non-deep elements                    
+   TEMPLATE() LANGULUS(INLINED)
+   constexpr Count TAny<T>::GetCountElementsDeep() const noexcept {
+      return Block::GetCountElementsDeep<TAny>();
+   }
+
+   /// Deep (slower) check if there's anything missing inside nested blocks   
+   ///   @return true if any deep or flat memory block contains missing data  
+   TEMPLATE() LANGULUS(INLINED)
+   constexpr bool TAny<T>::IsMissingDeep() const {
+      return Block::IsMissingDeep<TAny>();
+   }
+
+   /// Check if a memory block can be concatenated to this one                
+   ///   @param other - the block to concatenate                              
+   ///   @return true if able to concatenate to this one                      
+   TEMPLATE() LANGULUS(INLINED)
+   constexpr bool TAny<T>::IsConcatable(const CT::Block auto& b) const noexcept {
+      return Block::IsConcatable<TAny>(b);
+   }
+
+   /// Check if a type can be inserted to this block                          
+   ///   @param other - check if a given type is insertable to this block     
+   ///   @return true if able to insert an instance of the type to this block 
+   TEMPLATE() LANGULUS(INLINED)
+   constexpr bool TAny<T>::IsInsertable(DMeta type) const noexcept {
+      return Block::IsInsertable<TAny>(type);
+   }
+
+   /// Check if a static type can be inserted                                 
+   ///   @tparam T - the type to check                                        
+   ///   @return true if able to insert an instance of the type to this block 
+   TEMPLATE() LANGULUS(INLINED)
+   constexpr bool TAny<T>::IsInsertable() const noexcept {
+      return Block::IsInsertable<TAny>();
    }
 
    /// Unfold-insert item(s) at an index, semantically or not                 
@@ -673,7 +731,7 @@ namespace Langulus::Anyness
    TEMPLATE() template<bool REVERSE, CT::NotSemantic T1>
    requires CT::Inner::Comparable<T, T1>
    Index TAny<T>::Find(const T1& item, Offset cookie) const noexcept {
-      return Block::Find<TAny, REVERSE>(item, cookie);
+      return Block::Find<REVERSE, TAny>(item, cookie);
    }
 
    /// Find a sequence of one or more elements inside container               
@@ -683,7 +741,7 @@ namespace Langulus::Anyness
    ///   @return the index of the found item, or IndexNone if none found      
    TEMPLATE() template<bool REVERSE>
    Index TAny<T>::FindBlock(const CT::Block auto& item, Offset cookie) const noexcept {
-      return Block::FindBlock<TAny, REVERSE>(item, cookie);
+      return Block::FindBlock<REVERSE, TAny>(item, cookie);
    }
 
    /// Remove matching items by value                                         
@@ -789,7 +847,7 @@ namespace Langulus::Anyness
    ///   @return the number of executions                                     
    TEMPLATE() template<bool REVERSE> LANGULUS(INLINED)
    Count TAny<T>::ForEachElement(auto&& call) const {
-      return Block::ForEachElement<TAny, REVERSE>(
+      return Block::ForEachElement<REVERSE, TAny>(
          Forward<Deref<decltype(call)>>(call));
    }
 
@@ -803,7 +861,7 @@ namespace Langulus::Anyness
    ///   @return the number of executions                                     
    TEMPLATE() template<bool REVERSE> LANGULUS(INLINED)
    Count TAny<T>::ForEach(auto&&...call) const {
-      return Block::ForEach<TAny, REVERSE>(
+      return Block::ForEach<REVERSE, TAny>(
          Forward<Deref<decltype(call)>>(call)...);
    }
 
@@ -820,7 +878,7 @@ namespace Langulus::Anyness
    ///   @return the number of executions                                     
    TEMPLATE() template<bool REVERSE, bool SKIP> LANGULUS(INLINED)
    Count TAny<T>::ForEachDeep(auto&&...call) const {
-      return Block::ForEachDeep<TAny, REVERSE, SKIP>(
+      return Block::ForEachDeep<REVERSE, SKIP, TAny>(
          Forward<Deref<decltype(call)>>(call)...);
    }
 
@@ -841,7 +899,7 @@ namespace Langulus::Anyness
    /// Same as ForEachDeep, but in reverse                                    
    TEMPLATE() template<bool SKIP> LANGULUS(INLINED)
    Count TAny<T>::ForEachDeepRev(auto&&...call) const {
-      return Block::ForEachDeepRev<TAny, SKIP>(
+      return Block::ForEachDeepRev<SKIP, TAny>(
          Forward<Deref<decltype(call)>>(call)...);
    }
 
@@ -869,7 +927,7 @@ namespace Langulus::Anyness
    ///   @return true if both containers match completely                     
    TEMPLATE() template<bool RESOLVE>
    bool TAny<T>::Compare(const CT::Block auto& other) const noexcept {
-      return Block::Compare<TAny, RESOLVE>(other);
+      return Block::Compare<RESOLVE, TAny>(other);
    }
 
    /// Compare with any other kind of block                                   

@@ -17,7 +17,7 @@ namespace Langulus::Anyness
    ///   @tparam REVERSE - whether to iterate in reverse                      
    ///   @param call - function to execute for each element block             
    ///   @return the number of executions                                     
-   template<CT::Block THIS, bool REVERSE>
+   template<bool REVERSE, CT::Block THIS>
    Count Block::ForEachElement(auto&& call) const {
       using F = Deref<decltype(call)>;
       using A = ArgumentOf<F>;
@@ -53,7 +53,7 @@ namespace Langulus::Anyness
    ///   @tparam REVERSE - whether to iterate in reverse                      
    ///   @param calls - all potential functions to iterate with               
    ///   @return the number of executions                                     
-   template<CT::Block THIS, bool REVERSE, class...F> LANGULUS(INLINED)
+   template<bool REVERSE, CT::Block THIS, class...F> LANGULUS(INLINED)
    Count Block::ForEach(F&&...calls) const {
       if (IsEmpty())
          return 0;
@@ -77,7 +77,7 @@ namespace Langulus::Anyness
    ///                  too; otherwise will execute only for non-blocks       
    ///   @param calls - all potential functions to iterate with               
    ///   @return the number of executions                                     
-   template<CT::Block THIS, bool REVERSE, bool SKIP, class...F>
+   template<bool REVERSE, bool SKIP, CT::Block THIS, class...F>
    LANGULUS(INLINED) Count Block::ForEachDeep(F&&...calls) const {
       Count result = 0;
       ((result += ForEachDeepInner<THIS, ReturnOf<F>, ArgumentOf<F>, REVERSE, SKIP>(
@@ -89,19 +89,19 @@ namespace Langulus::Anyness
    /// Same as ForEachElement, but in reverse                                 
    template<CT::Block THIS, class...F> LANGULUS(INLINED)
    Count Block::ForEachElementRev(F&&...f) const {
-      return ForEachElement<THIS, true>(Forward<F>(f)...);
+      return ForEachElement<true, THIS>(Forward<F>(f)...);
    }
 
    /// Same as ForEach, but in reverse                                        
    template<CT::Block THIS, class...F> LANGULUS(INLINED)
    Count Block::ForEachRev(F&&...f) const {
-      return ForEach<THIS, true>(Forward<F>(f)...);
+      return ForEach<true, THIS>(Forward<F>(f)...);
    }
 
    /// Same as ForEachDeep, but in reverse                                    
-   template<CT::Block THIS, bool SKIP, class...F> LANGULUS(INLINED)
+   template<bool SKIP, CT::Block THIS, class...F> LANGULUS(INLINED)
    Count Block::ForEachDeepRev(F&&...f) const {
-      return ForEachDeep<THIS, true, SKIP>(Forward<F>(f)...);
+      return ForEachDeep<true, SKIP, THIS>(Forward<F>(f)...);
    }
 
    /// Iterate and execute call for each flat element, counting each          
@@ -122,6 +122,7 @@ namespace Langulus::Anyness
       if ((CT::Deep<Decay<A>> and IsDeep<THIS>())
       or (not CT::Deep<Decay<A>> and CastsTo<A>())) {
          Count index = 0;
+
          if (mType->mIsSparse) {
             // Iterate using pointers of A                              
             using DA = Conditional<CT::Mutable<THIS>, Decay<A>*, const Decay<A>*>;
@@ -243,8 +244,8 @@ namespace Langulus::Anyness
       LANGULUS_ASSUME(DevAssumes, not IsEmpty(),
          "Block is empty", " (of type `", mType, "`)");
       LANGULUS_ASSUME(DevAssumes, IsSparse<THIS>() == CT::Sparse<A>,
-         "Sparseness mismatch", 
-         " (`", mType, "` compared against `", MetaDataOf<A>(), "`)"
+         "Sparseness mismatch", " (`", mType, 
+         "` compared against `", MetaDataOf<A>(), "`)"
       );
 
       if constexpr (CT::Dense<A>) {
@@ -342,9 +343,9 @@ namespace Langulus::Anyness
          return end();
 
       if constexpr (CT::Typed<THIS>)
-         return {GetRawAs<TypeOf<THIS>>(), GetRawEndAs<THIS, Byte>()};
+         return {GetRawAs<TypeOf<THIS>>(), GetRawEndAs<Byte, THIS>()};
       else
-         return {GetElement(), GetRawEndAs<THIS, Byte>()};
+         return {GetElement(), GetRawEndAs<Byte, THIS>()};
    }
 
    template<CT::Block THIS> LANGULUS(INLINED)
@@ -363,7 +364,7 @@ namespace Langulus::Anyness
          const auto ptr = GetRawAs<TypeOf<THIS>>();
          return {ptr + (mCount - 1), reinterpret_cast<const Byte*>(ptr + mCount)};
       }
-      else return {GetElement(), GetRawEndAs<THIS, Byte>()};
+      else return {GetElement(), GetRawEndAs<Byte, THIS>()};
    }
 
    template<CT::Block THIS> LANGULUS(INLINED)
@@ -381,6 +382,12 @@ namespace Langulus::Anyness
    constexpr Block::Iterator<T>::Iterator(TypeInner start, Byte const* end) noexcept
       : mValue {start}
       , mEnd {end} {}
+
+   /// Construct an end iterator                                              
+   template<class T> LANGULUS(INLINED)
+   constexpr Block::Iterator<T>::Iterator(const A::IteratorEnd&) noexcept
+      : mValue {nullptr}
+      , mEnd {nullptr} {}
 
    /// Compare two iterators                                                  
    ///   @param rhs - the other iterator                                      
@@ -407,17 +414,17 @@ namespace Langulus::Anyness
    /// Iterator access operator                                               
    ///   @return a reference to the element at the current iterator position  
    template<class T> LANGULUS(INLINED)
-   constexpr Deptr<typename Block::Iterator<T>::TypeInner>& Block::Iterator<T>::operator * () const noexcept {
+   constexpr decltype(auto) Block::Iterator<T>::operator * () const noexcept {
       if constexpr (CT::Typed<T>)
          return *mValue;
       else
-         return mValue;
+         return (mValue);
    }
 
    /// Iterator access operator                                               
    ///   @return a reference to the element at the current iterator position  
    template<class T> LANGULUS(INLINED)
-   constexpr typename Block::Iterator<T>::TypeInner& Block::Iterator<T>::operator -> () const noexcept {
+   constexpr decltype(auto) Block::Iterator<T>::operator -> () const noexcept {
       if constexpr (CT::Typed<T>)
          return mValue;
       else

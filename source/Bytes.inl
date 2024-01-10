@@ -108,7 +108,7 @@ namespace Langulus::Anyness
                reinterpret_cast<const Byte*>(DesemCast(item)),
                sizeof(T)
             );
-            InsertContiguousInner<Bytes, void, true, Byte>(index, Copy(data));
+            InsertBlockInner<Bytes, void, true, Byte>(index, Copy(data));
             return sizeof(T);
          }
          else {
@@ -125,7 +125,7 @@ namespace Langulus::Anyness
             reinterpret_cast<const Byte*>(&DesemCast(item)),
             sizeof(T)
          );
-         InsertContiguousInner<Bytes, void, true, Byte>(index, Copy(data));
+         InsertBlockInner<Bytes, void, true, Byte>(index, Copy(data));
          return sizeof(T);
       }
       else LANGULUS_ERROR("Unable to insert as bytes");
@@ -199,28 +199,6 @@ namespace Langulus::Anyness
       return Compare(other);
    }
 
-   /// Clone the byte container                                               
-   ///   @return the cloned byte container                                    
-   LANGULUS(INLINED)
-   Bytes Bytes::Clone() const {
-      Bytes result {Disown(*this)};
-      if (mCount) {
-         const auto request = RequestSize<Bytes>(mCount);
-         result.mEntry = Allocator::Allocate(nullptr, request.mByteSize);
-         LANGULUS_ASSERT(result.mEntry, Allocate, "Out of memory");
-         result.mRaw = const_cast<Byte*>(result.mEntry->GetBlockStart());
-         result.mReserved = request.mElementCount;
-         CopyMemory(result.mRaw, mRaw, mCount);
-      }
-      else {
-         result.mEntry = nullptr;
-         result.mRaw = nullptr;
-         result.mReserved = 0;
-      }
-      
-      return Abandon(result);
-   }
-
    /// Pick a constant part of the byte array                                 
    ///   @param start - the starting byte offset                              
    ///   @param count - the number of bytes after 'start' to remain           
@@ -280,7 +258,6 @@ namespace Langulus::Anyness
    }
 
    /// Read an atom-sized unsigned integer, based on the provided header      
-   ///   @param source - the serialized byte source                           
    ///   @param result - [out] the resulting deserialized number              
    ///   @param read - offset to apply to serialized byte array               
    ///   @param header - environment header                                   

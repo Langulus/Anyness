@@ -9,7 +9,7 @@
 #pragma once
 #include "TPair.hpp"
 
-#define TEMPLATE() template<CT::Data K, CT::Data V>
+#define TEMPLATE() template<CT::NotSemantic K, CT::NotSemantic V>
 #define PAIR() TPair<K, V>
 
 

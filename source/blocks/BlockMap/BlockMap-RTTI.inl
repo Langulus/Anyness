@@ -19,13 +19,13 @@ namespace Langulus::Anyness
    template<CT::Map THIS, CT::NotSemantic K, CT::NotSemantic V>
    LANGULUS(INLINED) void BlockMap::Mutate() {
       if constexpr (CT::Typed<THIS>) {
-         static_assert(CT::Similar<K, typename THIS::Key>,
-            "Can't mutate to incompatible key");
-         static_assert(CT::Similar<V, typename THIS::Value>,
-            "Can't mutate to incompatible value");
+         static_assert(CT::Inner::MakableFrom<typename THIS::Key, K>,
+            "Key is not constructible from the provided key block");
+         static_assert(CT::Inner::MakableFrom<typename THIS::Value, V>,
+            "Value is not constructible from the provided value block");
 
          // Set the type for type-erased map compatiblity               
-         mKeys.mType = MetaDataOf<typename THIS::Key>();
+         mKeys.mType   = MetaDataOf<typename THIS::Key>();
          mValues.mType = MetaDataOf<typename THIS::Value>();
       }
       else Mutate<THIS>(MetaDataOf<K>(), MetaDataOf<V>());

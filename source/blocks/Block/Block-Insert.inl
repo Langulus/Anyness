@@ -59,7 +59,7 @@ namespace Langulus::Anyness
    ///   @param data - data and semantic to use                               
    template<CT::Block THIS, class FORCE, bool MOVE_ASIDE, class T1, template<class> class S>
    requires CT::Semantic<S<Block>>
-   void Block::InsertContiguousInner(CT::Index auto index, S<Block>&& data) {
+   void Block::InsertBlockInner(CT::Index auto index, S<Block>&& data) {
       // Infer inserted type first from THIS, then from T1              
       // If both are void, then we have a type-erased insertion         
       using T = Conditional<CT::Typed<THIS>, TypeOf<THIS>, Decvq<T1>>;
@@ -76,7 +76,7 @@ namespace Langulus::Anyness
          // If reached, then type mutated to a deep type                
          if (depened) {
             FORCE temp;
-            temp.template InsertContiguousInner<FORCE, void, true, T1>(
+            temp.template InsertBlockInner<FORCE, void, true, T1>(
                IndexBack, Forward<S<Block>>(data));
             Insert<THIS, void, true>(index, Abandon(temp));
             return;
@@ -106,7 +106,7 @@ namespace Langulus::Anyness
       Offset idx;
 
       if constexpr (MOVE_ASIDE) {
-         AllocateMore<THIS, false>(mCount + count);
+         AllocateMore<THIS>(mCount + count);
          idx = SimplifyIndex<T>(index);
 
          if (idx < mCount) {
@@ -156,7 +156,7 @@ namespace Langulus::Anyness
          Offset idx;
 
          if constexpr (MOVE_ASIDE) {
-            AllocateMore<THIS, false>(mCount + 1);
+            AllocateMore<THIS>(mCount + 1);
             idx = SimplifyIndex<T>(index);
 
             if (idx < mCount) {
@@ -202,7 +202,7 @@ namespace Langulus::Anyness
 
          // If reached, we have compatible type, so allocate            
          if constexpr (MOVE_ASIDE) {
-            AllocateMore<THIS, false>(mCount + 1);
+            AllocateMore<THIS>(mCount + 1);
             idx = SimplifyIndex<T>(index);
 
             if (idx < mCount) {
@@ -358,11 +358,11 @@ namespace Langulus::Anyness
 
       // Insert all elements                                            
       if constexpr (CT::Typed<ST>) {
-         InsertContiguousInner<THIS, FORCE, MOVE_ASIDE, TypeOf<ST>>(
+         InsertBlockInner<THIS, FORCE, MOVE_ASIDE, TypeOf<ST>>(
             index, S::Nest(rhs).template Forward<Block>());
       }
       else {
-         InsertContiguousInner<THIS, FORCE, MOVE_ASIDE>(
+         InsertBlockInner<THIS, FORCE, MOVE_ASIDE>(
             index, S::Nest(rhs).template Forward<Block>());
       }
 
@@ -385,10 +385,11 @@ namespace Langulus::Anyness
    ///   @param t1 - the first item to insert                                 
    ///   @param tail... - the rest of items to insert (optional)              
    ///   @return the number of inserted elements                              
-   template<CT::Block THIS, class FORCE, bool MOVE_ASIDE, class T1, class...TAIL> LANGULUS(INLINED)
+   template<CT::Block THIS, class FORCE, bool MOVE_ASIDE, class T1, class...TAIL>
+   LANGULUS(INLINED)
    Count Block::Merge(CT::Index auto index, T1&& t1, TAIL&&...tail) {
       Count inserted = 0;
-      inserted   += UnfoldMerge<THIS, FORCE, MOVE_ASIDE>(
+        inserted += UnfoldMerge<THIS, FORCE, MOVE_ASIDE>(
          index, Forward<T1>(t1));
       ((inserted += UnfoldMerge<THIS, FORCE, MOVE_ASIDE>(
          index, Forward<TAIL>(tail))), ...);
@@ -474,7 +475,7 @@ namespace Langulus::Anyness
          ++mCount;
       }
       else {
-         const auto offset = SimplifyIndex<void, false>(idx);
+         const auto offset = SimplifyIndex<void>(idx);
 
          if constexpr (MOVE_ASIDE) {
             AllocateMore<THIS>(mCount + 1);
@@ -540,7 +541,7 @@ namespace Langulus::Anyness
 
       // Allocate a new T and move this inside it                       
       Block wrapper;
-      wrapper.template SetType<THIS, T, false>();
+      wrapper.template SetType<T, false, THIS>();
       wrapper.template AllocateMore<TAny<T>, true>(1);
       wrapper.template Get<Block>() = *this;
       *this = wrapper;
@@ -575,7 +576,7 @@ namespace Langulus::Anyness
          if (not DesemCast(value).IsValid())
             return 0;
 
-         const bool stateCompliant = CanFitState(DesemCast(value));
+         const bool stateCompliant = CanFitState<THIS>(DesemCast(value));
          if (IsEmpty() and not DesemCast(value).IsStatic() and stateCompliant) {
             Free<THIS>();
             BlockTransfer<THIS>(S::Nest(value));
@@ -624,7 +625,7 @@ namespace Langulus::Anyness
          if (me.IsUntyped()) {
             // Block insert never mutates, so make sure type            
             // is valid before insertion                                
-            SetType<false>(value->GetType());
+            SetType<false, THIS>(value->GetType());
          }
          else if constexpr (not CT::Void<FORCE>) {
             if (not me.IsDeep() and value->IsDeep())
@@ -661,7 +662,7 @@ namespace Langulus::Anyness
          SetState(mState + state);
          return Insert<THIS, void>(index, value.Forward());
       }
-      else if (IsEmpty() and IsTyped<THIS> and not IsTypeConstrained<THIS>()) {
+      else if (IsEmpty() and IsTyped<THIS>() and not IsTypeConstrained<THIS>()) {
          // If incompatibly typed but empty and not constrained, we     
          // can still reset the container and reuse it                  
          Reset<THIS>();

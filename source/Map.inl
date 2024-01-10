@@ -51,11 +51,11 @@ namespace Langulus::Anyness
          using T = TypeOf<S>;
 
          if constexpr (CT::Map<T>)
-            BlockTransfer<Map>(S::Nest(t1));
+            BlockMap::BlockTransfer<Map>(S::Nest(t1));
          else
-            InsertPair<Map>(Forward<T1>(t1));
+            BlockMap::InsertPair<Map>(Forward<T1>(t1));
       }
-      else InsertPair<Map>(Forward<T1>(t1), Forward<TAIL>(tail)...);
+      else BlockMap::InsertPair<Map>(Forward<T1>(t1), Forward<TAIL>(tail)...);
    }
 
    /// Map destructor                                                         
@@ -94,13 +94,13 @@ namespace Langulus::Anyness
           == static_cast<const BlockMap*>(&DesemCast(rhs)))
             return *this;
 
-         Free<Map>();
+         BlockMap::Free<Map>();
          new (this) Map {S::Nest(rhs)};
       }
       else {
          // Unfold-insert                                               
-         Clear<Map>();
-         UnfoldInsert<Map>(S::Nest(rhs));
+         BlockMap::Clear<Map>();
+         BlockMap::UnfoldInsert<Map>(S::Nest(rhs));
       }
 
       return *this;
@@ -111,7 +111,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container for chaining                   
    TEMPLATE() LANGULUS(INLINED)
    TABLE()& TABLE()::operator << (CT::Inner::UnfoldInsertable auto&& other) {
-      UnfoldInsert<Map>(Forward<decltype(other)>(other));
+      BlockMap::UnfoldInsert<Map>(Forward<decltype(other)>(other));
       return *this;
    }
    
@@ -120,8 +120,61 @@ namespace Langulus::Anyness
    ///   @return a reference to this container for chaining                   
    TEMPLATE() LANGULUS(INLINED)
    TABLE()& TABLE()::operator >> (CT::Inner::UnfoldInsertable auto&& other) {
-      UnfoldInsert<Map>(Forward<decltype(other)>(other));
+      BlockMap::UnfoldInsert<Map>(Forward<decltype(other)>(other));
       return *this;
+   }
+   
+   /// Erase a pair via key                                                   
+   ///   @param key - the key to search for                                   
+   ///   @return 1 if key was found and pair was removed                      
+   TEMPLATE() LANGULUS(INLINED)
+   Count TABLE()::RemoveKey(const CT::NotSemantic auto& key) {
+      return BlockMap::RemoveKey<Map>(key);
+   }
+
+   /// Erase all pairs with a given value                                     
+   ///   @param value - the match to search for                               
+   ///   @return the number of removed pairs                                  
+   TEMPLATE() LANGULUS(INLINED)
+   Count TABLE()::RemoveValue(const CT::NotSemantic auto& value) {
+      return BlockMap::RemoveValue<Map>(value);
+   }
+     
+   /// Erase all pairs matching a pair                                        
+   ///   @param value - the match to search for                               
+   ///   @return the number of removed pairs                                  
+   TEMPLATE() LANGULUS(INLINED)
+   Count TABLE()::RemovePair(const CT::Pair auto& pair) {
+      return BlockMap::RemovePair<Map>(pair);
+   }
+     
+   /// Safely erases element at a specific iterator                           
+   ///   @attention assumes iterator is produced by this map instance         
+   ///   @attention assumes that iterator points to a valid entry             
+   ///   @param index - the index to remove                                   
+   ///   @return the iterator of the previous element, unless index is the    
+   ///           first, or at the end already                                 
+   TEMPLATE() LANGULUS(INLINED)
+   typename TABLE()::Iterator TABLE()::RemoveIt(const Iterator& index) {
+      return BlockMap::RemoveIt<Map>(index);
+   }
+
+   /// Destroy all contained pairs, but don't deallocate                      
+   TEMPLATE() LANGULUS(INLINED)
+   void TABLE()::Clear() {
+      return BlockMap::Clear<Map>();
+   }
+
+   /// Destroy all contained pairs and deallocate                             
+   TEMPLATE() LANGULUS(INLINED)
+   void TABLE()::Reset() {
+      return BlockMap::Reset<Map>();
+   }
+
+   /// Reduce reserved size, depending on number of contained elements        
+   TEMPLATE() LANGULUS(INLINED)
+   void TABLE()::Compact() {
+      return BlockMap::Compact<Map>();
    }
 
 } // namespace Langulus::Anyness

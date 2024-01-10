@@ -74,17 +74,10 @@ namespace Langulus::Anyness
       Any& operator = (Any&&) noexcept;
       Any& operator = (CT::Inner::UnfoldInsertable auto&&);
 
-      ///                                                                     
-      ///   Comparison                                                        
-      ///                                                                     
-      using Block::operator ==;
-
-      template<bool REVERSE = false>
-      Index Find(const CT::Data auto&, Offset = 0) const;
-
    public:
       using Block::Swap;
-      void Swap(Any&) noexcept;
+
+      void SwapBlock(CT::Block auto&) noexcept;
 
       NOD() Any Crop(Offset, Count) const;
       NOD() Any Crop(Offset, Count);
@@ -95,21 +88,10 @@ namespace Langulus::Anyness
       using Iterator = Block::Iterator<Any>;
       using ConstIterator = Block::Iterator<const Any>;
 
-      template<bool REVERSE = false>
-      Count ForEachElement(auto&&) const;
-      
-      template<bool REVERSE = false>
-      Count ForEach(auto&&...) const;
-   
-      template<bool REVERSE = false, bool SKIP = true>
-      Count ForEachDeep(auto&&...) const;
-      
-      Count ForEachElementRev(auto&&...) const;
-      
-      Count ForEachRev(auto&&...) const;
-
-      template<bool SKIP = true>
-      Count ForEachDeepRev(auto&&...) const;
+      ///                                                                     
+      ///   Comparison                                                        
+      ///                                                                     
+      using Block::operator==;
 
       ///                                                                     
       ///   Insertion                                                         

@@ -16,23 +16,21 @@ namespace Langulus::Anyness
 {
    
    /// Constrain an index to the limits of the current block                  
-   ///   @tparam COUNT_CONSTRAINED - whether to use mCount or mReserved       
    ///   @param idx - the index to constrain                                  
    ///   @return the constrained index or a special one of constrain fails    
-   template<bool COUNT_CONSTRAINED> LANGULUS(INLINED)
+   LANGULUS(INLINED)
    constexpr Index Block::Constrain(Index idx) const noexcept {
-      return idx.Constrained(COUNT_CONSTRAINED ? mCount : mReserved);
+      return idx.Constrained(mCount);
    }
    
    /// Constrain an index to the limits of the current block                  
    ///   @attention assumes T is the type of the container                    
    ///   @tparam T - the type to use for comparisons                          
-   ///   @tparam COUNT_CONSTRAINED - whether to use mCount or mReserved       
    ///   @param idx - the index to constrain                                  
    ///   @return the constrained index or a special one of constrain fails    
-   template<CT::Data T, bool COUNT_CONSTRAINED> LANGULUS(INLINED)
+   template<CT::Data T> LANGULUS(INLINED)
    Index Block::ConstrainMore(Index idx) const IF_UNSAFE(noexcept) {
-      const auto result = Constrain<COUNT_CONSTRAINED>(idx);
+      const auto result = Constrain(idx);
 
       if (result == IndexBiggest) {
          if constexpr (CT::Sortable<T, T>)
@@ -113,7 +111,7 @@ namespace Langulus::Anyness
 
       Byte* pointer;
       if (mType->mIsSparse)
-         pointer = GetRawSparseAs<Block, Byte>()[idx] + baseOffset;
+         pointer = GetRawSparseAs<Byte, Block>()[idx] + baseOffset;
       else
          pointer = At(mType->mSize * idx) + baseOffset;
 
@@ -386,9 +384,6 @@ namespace Langulus::Anyness
       return {};
    }
 
-   /// Get a deep element block (const)                                       
-   ///   @param index - the index to get                                      
-   ///   @return the element block                                            
    template<CT::Block THIS> LANGULUS(INLINED)
    Block Block::GetElementDeep(Count index) const noexcept {
       auto result = const_cast<Block*>(this)->GetElementDeep<THIS>(index);
@@ -683,29 +678,23 @@ namespace Langulus::Anyness
    /// Complex indices will be fully constrained                              
    /// Unsigned/signed integers are directly forwarded without any overhead   
    ///   @attention assumes T is correct for type-erased containers           
-   ///   @attention assumes index is in container count limit, if integer,    
-   ///      and COUNT_CONSTRAINED is true                                     
-   ///   @attention assumes index is in container reserve limit, if integer,  
-   ///      and COUNT_CONSTRAINED is false                                    
    ///   @tparam T - the type we're indexing, used for additional special     
    ///      index handling, like Min and Max, that require type info          
    ///      use void to skip these indices at no cost                         
-   ///   @tparam COUNT_CONSTRAINED - will check count limits if true or       
-   ///      reserve limit if false, when DevAssumes is enabled                
    ///   @param index - the index to simplify                                 
    ///   @return the simplified index, as a simple offset                     
-   template<class T, bool COUNT_CONSTRAINED, CT::Index INDEX> LANGULUS(INLINED)
+   template<class T, CT::Index INDEX> LANGULUS(INLINED)
    Offset Block::SimplifyIndex(INDEX index) const
    noexcept(not LANGULUS_SAFE() and CT::BuiltinInteger<INDEX>) {
       if constexpr (CT::Same<INDEX, Index>) {
          // This is the most safe path, throws on errors                
          if constexpr (CT::Void<T>)
-            return Constrain<COUNT_CONSTRAINED>(index).GetOffset();
+            return Constrain(index).GetOffset();
          else {
             if constexpr (not CT::Void<T>)
                LANGULUS_ASSUME(DevAssumes, (CastsTo<T, true>()), "Type mismatch");
 
-            return ConstrainMore<T, COUNT_CONSTRAINED>(index).GetOffset();
+            return ConstrainMore<T>(index).GetOffset();
          }
       }
       else {
@@ -713,7 +702,7 @@ namespace Langulus::Anyness
          // Using an integer index explicitly makes a statement, that   
          // you know what you're doing                                  
          LANGULUS_ASSUME(UserAssumes, 
-            index < static_cast<INDEX>(COUNT_CONSTRAINED ? mCount : mReserved),
+            index < static_cast<INDEX>(mCount),
             "Integer index out of range"
          );
 

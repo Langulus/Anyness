@@ -24,7 +24,7 @@ namespace Langulus::Anyness
       const auto sentinel = GetReserved();
       auto offset = static_cast<Offset>(index.mInfo - mInfo);
       if (offset >= sentinel)
-         return end<THIS>();
+         return end();
 
       RemoveInner<THIS>(offset--); //TODO what if map shrinks, offset might become invalid? Doesn't shrink for now
       
@@ -120,7 +120,7 @@ namespace Langulus::Anyness
 
    /// Erase all pairs with a given value                                     
    ///   @attention this is significantly slower than removing a key          
-   ///   @param match - the value to search for                               
+   ///   @param value - the value to search for                               
    ///   @return the number of removed pairs                                  
    template<CT::Map THIS>
    Count BlockMap::RemoveValueInner(const CT::NotSemantic auto& value) {
@@ -130,20 +130,30 @@ namespace Langulus::Anyness
       auto val = GetValueHandle<THIS>(0);
 
       while (psl != pslEnd) {
-         if (*psl and val.Get() == value) {
+         if (*psl and val == value) {
             // Remove every pair with matching value                    
-            if constexpr (CT::Typed<THIS>)
-               GetKeyHandle<THIS>(psl - GetInfo()).Destroy();
-            else
-               GetKeyHandle<THIS>(psl - GetInfo()).CallUnknownDestructors();
+            auto key = GetKeyHandle<THIS>(psl - GetInfo());
 
-            val.Destroy();
+            if constexpr (CT::Typed<THIS>) {
+               key.Destroy();
+               val.Destroy();
+            }
+            else {
+               key.CallDestructors<Any>();
+               val.CallDestructors<Any>();
+            }
+
             *psl = 0;
             ++removed;
             --mValues.mCount;
          }
 
-         ++psl; ++val;
+         if constexpr (CT::Typed<THIS>)
+            ++val;
+         else
+            val.Next();
+
+         ++psl;
       }
 
       // Fill gaps if any                                               
@@ -155,7 +165,7 @@ namespace Langulus::Anyness
    ///   @attention assumes that index points to a valid entry                
    ///   @param index - the index to remove                                   
    template<CT::Map THIS>
-   void BlockMap::RemoveInner(Offset index) IF_UNSAFE(noexcept) {
+   void BlockMap::RemoveInner(const Offset index) IF_UNSAFE(noexcept) {
       auto psl = GetInfo() + index;
       LANGULUS_ASSUME(DevAssumes, *psl, "Removing an invalid pair");
 
