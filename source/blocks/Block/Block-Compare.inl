@@ -414,43 +414,114 @@ namespace Langulus::Anyness
    ///   @return the index of the found item, or IndexNone if not found       
    template<bool REVERSE, CT::Block THIS>
    Index Block::FindBlock(const CT::Block auto& item, Offset cookie) const noexcept {
-      // First check if element is contained inside this block's        
-      // memory, because if so, we can easily find it, without calling  
-      // a single compare function                                      
-      if (item.IsDense() and item.IsDeep()) {
-         // Deep items have a bit looser type requirements              
-         if (IsDense<THIS>() and IsDeep<THIS>() and Owns<THIS>(item.mRaw)) {
-            const Offset index = (item.mRaw - mRaw) / sizeof(Block);
-            // Check is required, because Owns tests in reserved range  
-            return index < mCount ? index : IndexNone;
+      if (cookie >= mCount or item.mCount > mCount - cookie)
+         return IndexNone;
+
+      using B = Deref<decltype(item)>;
+      if constexpr (CT::Typed<THIS> or CT::Typed<B>) {
+         using TL = Conditional<CT::Typed<THIS>, TypeOf<THIS>, TypeOf<B>>;
+         using TR = Conditional<CT::Typed<B>,    TypeOf<B>,    TypeOf<THIS>>;
+
+         if constexpr (CT::Typed<THIS, B>) {
+            // Leverage the fact, that both participants are typed         
+            // We're allowed to peek whether types are comparable directly 
+            if constexpr (not CT::Inner::Comparable<TL, TR>)
+               return IndexNone;
          }
+         else {
+            // One of the participants is typed, make sure types match     
+            // at runtime                                                  
+            if (not IsSimilar(item.GetType()))
+               return IndexNone;
+         }
+
+         // If reached, types are comparable                               
+         auto lhs = REVERSE ? GetRawEndAs<TL>() - cookie - item.GetCount()
+                            : GetRawAs<TL>() + cookie;
+         auto rhs = item.template GetRawAs<TR>();
+         const auto lhsEnd = REVERSE ? GetRawAs<TL>() - 1
+                                     : GetRawEndAs<TL>() - item.GetCount() + 1;
+         const auto rhsEnd = item.template GetRawEndAs<TR>();
+         UNUSED() const auto bytesize = item.GetBytesize();
+         while (lhs != lhsEnd) {
+            if (*lhs == *rhs) {
+               cookie = REVERSE ? GetRawEndAs<TL>() - lhs - 1
+                                : lhs - GetRaw();
+               ++lhs;
+               ++rhs;
+
+               if constexpr (CT::Inner::BinaryCompatible<TL, TR>
+                        and  CT::Inner::POD<TL, TR>) {
+                  // We can use batch-compare                              
+                  if (0 == memcmp(rhs, lhs, bytesize))
+                     return cookie;
+               }
+               else {
+                  // Types are not batch-comparable                        
+                  while (rhs != rhsEnd and *lhs == *rhs) {
+                     ++lhs;
+                     ++rhs;
+                  }
+
+                  if (rhs == rhsEnd)
+                     return cookie;
+               }
+
+               lhs = REVERSE ? GetRawEndAs<TL>() - cookie - 1
+                             : GetRaw() + cookie;
+               rhs = item.template GetRawAs<TR>();
+            }
+
+            if constexpr (REVERSE)
+               --lhs;
+            else 
+               ++lhs;
+         }
+
+         return IndexNone;
       }
       else {
-         // Search for a conventional item                              
-         if (IsExact(item.GetType()) and Owns<THIS>(item.mRaw)) {
-            const Offset index = (item.mRaw - mRaw) / mType->mSize;
-            // Check is required, because Owns tests in reserved range  
-            return index < mCount ? index : IndexNone;
+         // One of the participators is type-årased                     
+         // First check if element is contained inside this block's     
+         // memory, because if so, we can easily find it, without       
+         // calling a single compare function                           
+
+         //TODO these heurisrics are bad! the pattern may appear in memory,
+         // but there may be other occurences before that memory point! at best, we should
+         // simply narrow the search scope, and after scanning it, fallback to the
+         // one found pointer-wise
+
+         /*if (item.IsDense() and item.IsDeep()) {
+            // Deep items have a bit looser type requirements           
+            if (IsDense<THIS>() and IsDeep<THIS>() and Owns<THIS>(item.mRaw)) {
+               const Offset index = (item.mRaw - mRaw) / sizeof(Block);
+               return index + item.GetCount() <= mCount ? index : IndexNone;
+            }
          }
-      }
+         else {
+            // Search for a conventional item                           
+            if (IsExact(item.GetType()) and Owns<THIS>(item.mRaw)) {
+               const Offset index = (item.mRaw - mRaw) / mType->mSize;
+               return index + item.GetCount() <= mCount ? index : IndexNone;
+            }
+         }*/
 
-      // Item is not in this block's memory, so we start comparing by   
-      // values                                                         
-      Offset i = REVERSE ? mCount - 1 - cookie : cookie;
-      while (i < mCount) {
-         if (GetElement(i) == item.GetElement(i)) {
-            // Match found                                              
-            return i;
+         // Slow and tedious RTTI-based compare                         
+         Offset i = REVERSE ? mCount - 1 - cookie : cookie;
+         const auto iend = REVERSE ? Offset {-1} : mCount - item.GetCount() + 1;
+         while (i != iend) {
+            if (CropInner(i, item.GetCount()) == item)
+               return i;
+
+            if constexpr (REVERSE)
+               --i;
+            else
+               ++i;
          }
 
-         if constexpr (REVERSE)
-            --i;
-         else
-            ++i;
+         // If this is reached, then no match was found                 
+         return IndexNone;
       }
-
-      // If this is reached, then no match was found                    
-      return IndexNone;
    }
 
    /// Compare with one single value, if exactly one element is contained     

@@ -103,19 +103,19 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Capsulation                                                       
       ///                                                                     
-      template<CT::Set>
+      template<CT::Set = UnorderedSet>
       NOD() DMeta GetType() const noexcept;
-      template<CT::Set>
+      template<CT::Set = UnorderedSet>
       NOD() constexpr bool IsUntyped() const noexcept;
-      template<CT::Set>
+      template<CT::Set = UnorderedSet>
       NOD() constexpr bool IsTypeConstrained() const noexcept;
-      template<CT::Set>
+      template<CT::Set = UnorderedSet>
       NOD() constexpr bool IsDeep() const noexcept;
-      template<CT::Set>
+      template<CT::Set = UnorderedSet>
       NOD() constexpr bool IsSparse() const noexcept;
-      template<CT::Set>
+      template<CT::Set = UnorderedSet>
       NOD() constexpr bool IsDense() const noexcept;
-      template<CT::Set>
+      template<CT::Set = UnorderedSet>
       NOD() constexpr Size GetStride() const noexcept;
       NOD() constexpr Count GetCount() const noexcept;
       NOD() Count GetCountDeep() const noexcept;
@@ -124,7 +124,7 @@ namespace Langulus::Anyness
       NOD() constexpr bool IsEmpty() const noexcept;
       NOD() constexpr bool IsAllocated() const noexcept;
       NOD() bool IsMissing() const noexcept;
-      template<CT::Set>
+      template<CT::Set = UnorderedSet>
       NOD() bool IsMissingDeep() const;
       template<CT::Set>
       NOD() bool IsOrdered() const noexcept;

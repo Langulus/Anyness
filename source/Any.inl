@@ -238,7 +238,7 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    Any Any::operator + (CT::Inner::UnfoldInsertable auto&& rhs) const {
       using S = SemanticOf<decltype(rhs)>;
-      return ConcatBlock<Any>(S::Nest(rhs));
+      return Block::ConcatBlock<Any>(S::Nest(rhs));
    }
 
    /// Destructive concatenate with any deep type, semantically or not        
@@ -247,7 +247,7 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    Any& Any::operator += (CT::Inner::UnfoldInsertable auto&& rhs) {
       using S = SemanticOf<decltype(rhs)>;
-      InsertBlock<Any, void>(IndexBack, S::Nest(rhs));
+      Block::InsertBlock<Any, void>(IndexBack, S::Nest(rhs));
       return *this;
    }
    

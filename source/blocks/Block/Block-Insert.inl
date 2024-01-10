@@ -36,14 +36,26 @@ namespace Langulus::Anyness
       }
       else TODO();
    }
-   
+
+   /// Extend the container by default construction, and return the new part  
+   ///   @attention if extending memory without jurisdiction, the container   
+   ///      will take authority and diverge                                   
+   ///   @param count - the number of elements to extend by                   
+   ///   @return a container that represents only the extended part           
+   template<CT::Block THIS> LANGULUS(INLINED)
+   THIS Block::Extend(const Count count) {
+      const auto previousCount = mCount;
+      AllocateMore<THIS, true>(mCount + count);
+      return CropInner(previousCount, count);
+   }
+
    /// Create N new elements, using default construction                      
    /// Elements will be added to the back of the container                    
    ///   @param count - number of elements to construct                       
    ///   @return the number of new elements                                   
    template<CT::Block THIS> LANGULUS(INLINED)
    Count Block::New(const Count count) {
-      AllocateMore<THIS, false>(mCount + count);
+      AllocateMore<THIS>(mCount + count);
       CropInner(mCount, 0).CallDefaultConstructors<THIS>(count);
       mCount += count;
       return count;
@@ -249,7 +261,7 @@ namespace Langulus::Anyness
          }
          else {
             // Insert the array                                         
-            InsertContiguousInner<THIS, FORCE, MOVE_ASIDE, Deext<T>>(
+            InsertBlockInner<THIS, FORCE, MOVE_ASIDE, Deext<T>>(
                index, S::Nest(Block::From(item)));
             return ExtentOf<T>;
          }
@@ -296,7 +308,7 @@ namespace Langulus::Anyness
 
             const auto data = Block::From(item);
             if (not IsSimilar<DT>() or not FindBlock<THIS>(data)) {
-               InsertContiguousInner<THIS, FORCE, MOVE_ASIDE, DT>(
+               InsertBlockInner<THIS, FORCE, MOVE_ASIDE, DT>(
                   index, S::Nest(data));
                return ExtentOf<T>;
             }
@@ -693,7 +705,6 @@ namespace Langulus::Anyness
    }
    
    /// Concatenate this, and another block into a new block, semantically     
-   ///   @tparam THIS - the type of the resulting container                   
    ///   @param rhs - block and semantic to concatenate with (right side)     
    ///   @return the concatenated container                                   
    template<CT::Block THIS, template<class> class S, CT::Block T>
@@ -705,13 +716,15 @@ namespace Langulus::Anyness
       else if (rhs->IsEmpty())
          return lhs;
 
+      //TODO just insert rhs back here, if this container has exactly 1 use?
+      // the old view will remain valid, and will eventually diverge if it has to, right?
+      // on a second thought, this should also probably be implemented on a lower level
+      // inside inner insertion, when inserting at the back
       THIS result;
       result.template AllocateFresh<THIS>(
          result.template RequestSize<THIS>(mCount + rhs->GetCount()));
-      result.template InsertBlock<THIS, void, false>(
-         0, Copy(lhs));
-      result.template InsertBlock<THIS, void, false>(
-         mCount, rhs.Forward());
+      result.template InsertBlock<THIS, void, false>(0, Copy(lhs));
+      result.template InsertBlock<THIS, void, false>(mCount, rhs.Forward());
       return Abandon(result);
    }
 

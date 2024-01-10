@@ -93,7 +93,7 @@ namespace Langulus
       using TUnorderedSet = TSet<T, false>;
 
       class Bytes;
-      class Text;
+      struct Text;
       struct Path;
 
       template<CT::Data>

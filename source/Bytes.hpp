@@ -45,10 +45,10 @@ namespace Langulus::Anyness
       Bytes& operator = (S<Bytes>&&) requires CT::Semantic<S<Bytes>>;
       
    public:
-      NOD() Bytes Crop(const Offset&, const Count&) const;
-      NOD() Bytes Crop(const Offset&, const Count&);
+      NOD() Bytes Crop(Offset, Count) const;
+      NOD() Bytes Crop(Offset, Count);
 
-      Bytes Extend(const Count&);
+      Bytes Extend(Count);
       Hash GetHash() const;
 
       bool operator == (const Bytes&) const noexcept;

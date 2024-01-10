@@ -204,7 +204,7 @@ namespace Langulus::Anyness
    ///   @param count - the number of bytes after 'start' to remain           
    ///   @return a new container that references the original memory          
    LANGULUS(INLINED)
-   Bytes Bytes::Crop(const Offset& start, const Count& count) const {
+   Bytes Bytes::Crop(Offset start, Count count) const {
       return Block::Crop<Bytes>(start, count);
    }
 
@@ -213,17 +213,17 @@ namespace Langulus::Anyness
    ///   @param count - the number of bytes after 'start' to remain           
    ///   @return a new container that references the original memory          
    LANGULUS(INLINED)
-   Bytes Bytes::Crop(const Offset& start, const Count& count) {
+   Bytes Bytes::Crop(Offset start, Count count) {
       return Block::Crop<Bytes>(start, count);
    }
 
    /// Extend the byte sequence, change count, and return the new range       
-   /// Static byte containers can't be extended                               
+   ///   @attention if you extend static container, it will diverge           
    ///   @param count - the number of bytes to append                         
-   ///   @return the extended part - you will not be allowed to resize it     
+   ///   @return the extended part                                            
    LANGULUS(INLINED)
-   Bytes Bytes::Extend(const Count& count) {
-      return TAny::Extend<Bytes>(count);
+   Bytes Bytes::Extend(Count count) {
+      return Block::Extend<Bytes>(count);
    }
 
    /// Default header constructor                                             
