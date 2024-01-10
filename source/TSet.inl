@@ -390,10 +390,7 @@ namespace Langulus::Anyness
          &GetRaw(found)
       };
    }
-      
-   /// Search for a key inside the table, and return an iterator to it        
-   ///   @param key - the key to search for                                   
-   ///   @return the iterator                                                 
+
    TEMPLATE() template<CT::NotSemantic T1>
    requires ::std::equality_comparable_with<T, T1> LANGULUS(INLINED)
    typename TABLE()::ConstIterator TABLE()::FindIt(T1 const& key) const {
@@ -407,8 +404,6 @@ namespace Langulus::Anyness
       return BlockSet::GetValues<T>();
    }
 
-   /// Get the templated values container                                     
-   ///   @attention for internal use only, elements might not be initialized  
    TEMPLATE() LANGULUS(INLINED)
    TAny<T>& TABLE()::GetValues() noexcept {
       return BlockSet::GetValues<T>();
@@ -419,43 +414,12 @@ namespace Langulus::Anyness
    ///   @return the mutable key reference                                    
    TEMPLATE()
    T& TABLE()::Get(CT::Index auto i) {
-      auto offset = mKeys.SimplifyIndex<T>(i);
-      auto info = GetInfo();
-      const auto infoEnd = GetInfoEnd();
-      while (info != infoEnd) {
-         if (*info) {
-            if (offset == 0)
-               return GetRaw(info - GetInfo());
-            --offset;
-         }
-         ++info;
-      }
-
-      LANGULUS_THROW(Access, "This shouldn't be reached, ever");
+      return BlockSet::Get<TSet>(i);
    }
    
-   /// Get element at any index, safely (const)                               
-   ///   @param i - the index                                                 
-   ///   @return the immutable key reference                                  
    TEMPLATE() LANGULUS(INLINED)
    const T& TABLE()::Get(CT::Index auto i) const {
-      return const_cast<TABLE()*>(this)->Get(i);
-   }
-
-   /// Get element at an index, safely                                        
-   ///   @param i - the index                                                 
-   ///   @return the mutable key reference                                    
-   TEMPLATE() LANGULUS(INLINED)
-   T& TABLE()::operator[] (CT::Index auto i) {
-      return Get(i);
-   }
-
-   /// Get element at an index, safely (const)                                
-   ///   @param i - the index                                                 
-   ///   @return the mutable key reference                                    
-   TEMPLATE() LANGULUS(INLINED)
-   const T& TABLE()::operator[] (CT::Index auto i) const {
-      return Get(i);
+      return BlockSet::Get<TSet>(i);
    }
 
 

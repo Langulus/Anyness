@@ -198,7 +198,7 @@ namespace Langulus::Anyness
       friend struct TSet;
 
       friend class Bytes;
-      friend class Text;
+      friend struct Text;
       friend struct Path;
 
       template<CT::Data>
@@ -621,6 +621,9 @@ namespace Langulus::Anyness
       template<bool REVERSE = false, CT::Block = Any>
       NOD() Index FindBlock(const CT::Block auto&, Offset = 0) const noexcept;
 
+      template<bool ASCEND = false, CT::Block = Any>
+      void Sort();
+
    protected:
       template<CT::Block>
       NOD() bool CompareSingleValue(const CT::NotSemantic auto&) const;
@@ -694,6 +697,9 @@ namespace Langulus::Anyness
       template<CT::Block = Any, class...A>
       Count New(Count, A&&...);
 
+      template<CT::Block>
+      Count New(Count);
+
       template<bool CONCAT = true, class FORCE = Any, CT::Block THIS = Any>
       Count SmartPush(CT::Index auto, auto&&, DataState = {});
 
@@ -704,8 +710,8 @@ namespace Langulus::Anyness
       template<CT::Block>
       void Null(Count);
 
-      template<CT::Block>
-      Count New(Count);
+      template<CT::Block THIS>
+      NOD() THIS Extend(Count);
 
    protected:
       template<CT::Block, template<class> class S>

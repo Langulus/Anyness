@@ -122,29 +122,6 @@ namespace Langulus::Anyness
 
    public:
       ///                                                                     
-      ///   RTTI                                                              
-      ///                                                                     
-      NOD() bool CastsToMeta(DMeta) const;
-      NOD() bool CastsToMeta(DMeta, Count) const;
-
-      template<CT::Data>
-      NOD() bool CastsTo() const;
-      template<CT::Data>
-      NOD() bool CastsTo(Count) const;
-
-      template<CT::Data, CT::Data...>
-      NOD() constexpr bool Is() const noexcept;
-      NOD() bool Is(DMeta) const noexcept;
-
-      template<CT::Data, CT::Data...>
-      NOD() constexpr bool IsSimilar() const noexcept;
-      NOD() bool IsSimilar(DMeta) const noexcept;
-
-      template<CT::Data, CT::Data...>
-      NOD() constexpr bool IsExact() const noexcept;
-      NOD() bool IsExact(DMeta) const noexcept;
-
-      ///                                                                     
       ///   Indexing                                                          
       ///                                                                     
       NOD() T const& Last() const;
@@ -166,6 +143,9 @@ namespace Langulus::Anyness
 
       NOD() Block GetElementDeep(Offset) noexcept;
       NOD() Block GetElementDeep(Offset) const noexcept;
+
+      NOD() TAny Crop(Offset, Count) const;
+      NOD() TAny Crop(Offset, Count);
 
       ///                                                                     
       ///   Iteration                                                         
@@ -194,13 +174,75 @@ namespace Langulus::Anyness
       template<bool SKIP = true>
       Count ForEachDeepRev(auto&&...) const;
 
-   public:
+      ///                                                                     
+      ///   RTTI                                                              
+      ///                                                                     
+      NOD() bool CastsToMeta(DMeta) const;
+      NOD() bool CastsToMeta(DMeta, Count) const;
+
+      template<CT::Data>
+      NOD() bool CastsTo() const;
+      template<CT::Data>
+      NOD() bool CastsTo(Count) const;
+
+      template<CT::Data, CT::Data...>
+      NOD() constexpr bool Is() const noexcept;
+      NOD() bool Is(DMeta) const noexcept;
+
+      template<CT::Data, CT::Data...>
+      NOD() constexpr bool IsSimilar() const noexcept;
+      NOD() bool IsSimilar(DMeta) const noexcept;
+
+      template<CT::Data, CT::Data...>
+      NOD() constexpr bool IsExact() const noexcept;
+      NOD() bool IsExact(DMeta) const noexcept;
+
+      ///                                                                     
+      ///   Comparison                                                        
+      ///                                                                     
+      template<CT::NotSemantic T1>
+      requires (CT::Block<T1> or CT::Inner::Comparable<T, T1>)
+      bool operator == (const T1&) const;
+
+      template<bool RESOLVE = true>
+      NOD() bool Compare(const CT::Block auto&) const;
+      NOD() Hash GetHash() const requires CT::Hashable<T>;
+
+      template<bool REVERSE = false, CT::NotSemantic T1>
+      requires CT::Inner::Comparable<T, T1>
+      NOD() Index Find(const T1&, Offset = 0) const noexcept;
+
+      template<CT::NotSemantic T1>
+      requires CT::Inner::Comparable<T, T1>
+      NOD() Iterator FindIt(const T1&);
+
+      template<CT::NotSemantic T1>
+      requires CT::Inner::Comparable<T, T1>
+      NOD() ConstIterator FindIt(const T1&) const;
+
+      template<bool REVERSE = false>
+      NOD() Index FindBlock(const CT::Block auto&, Offset = 0) const noexcept;
+
+      NOD() bool CompareLoose(const CT::Block auto&) const noexcept;
+      NOD() Count Matches(const CT::Block auto&) const noexcept;
+      NOD() Count MatchesLoose(const CT::Block auto&) const noexcept;
+
+      template<bool ASCEND = false>
+      requires CT::Inner::Sortable<T>
+      void Sort();
+
+      void Swap(CT::Index auto, CT::Index auto);
+
+      template<bool REVERSE = false>
+      Count GatherFrom(const Block&);
+      template<bool REVERSE = false>
+      Count GatherFrom(const Block&, DataState);
+
       ///                                                                     
       ///   Memory management                                                 
       ///                                                                     
       void Reserve(Count);
 
-   public:
       ///                                                                     
       ///   Insertion                                                         
       ///                                                                     
@@ -208,15 +250,35 @@ namespace Langulus::Anyness
       requires CT::Inner::UnfoldMakableFrom<T, T1, TAIL...>
       Count Insert(CT::Index auto, T1&&, TAIL&&...);
 
+      template<class FORCE = Any, bool MOVE_ASIDE = true, class T1>
+      requires CT::Block<Desem<T1>>
+      Count InsertBlock(CT::Index auto, T1&&);
+
       template<bool MOVE_ASIDE = true, class...A>
       requires ::std::constructible_from<T, A...>
       Conditional<CT::Sparse<T>, T, T&> Emplace(CT::Index auto, A&&...);
 
-      Count New(Count = 1);
+      template<bool MOVE_ASIDE = true, class T1, class...TAIL>
+      requires CT::Inner::UnfoldMakableFrom<T, T1, TAIL...>
+      Count Merge(CT::Index auto, T1&&, TAIL&&...);
 
+      template<class FORCE = Any, bool MOVE_ASIDE = true, class T1>
+      requires CT::Block<Desem<T1>>
+      Count MergeBlock(CT::Index auto, T1&&);
+   
       template<class...A>
       requires CT::Inner::MakableFrom<T, A...>
       Count New(Count, A&&...);
+
+      Count New(Count = 1);
+
+      template<CT::Deep T1, bool TRANSFER_OR = true>
+      requires CT::CanBeDeepened<T1, TAny>
+      T1& Deepen();
+
+      void Null(Count);
+
+      NOD() TAny<T> Extend(Count);
 
       template<class T1>
       requires CT::Inner::UnfoldMakableFrom<T, T1>
@@ -226,10 +288,6 @@ namespace Langulus::Anyness
       requires CT::Inner::UnfoldMakableFrom<T, T1>
       TAny& operator >> (T1&&);
 
-      template<bool MOVE_ASIDE = true, class T1, class...TAIL>
-      requires CT::Inner::UnfoldMakableFrom<T, T1, TAIL...>
-      Count Merge(CT::Index auto, T1&&, TAIL&&...);
-
       template<class T1>
       requires CT::Inner::UnfoldMakableFrom<T, T1>
       TAny& operator <<= (T1&&);
@@ -238,12 +296,6 @@ namespace Langulus::Anyness
       requires CT::Inner::UnfoldMakableFrom<T, T1>
       TAny& operator >>= (T1&&);
 
-      void Null(Count);
-
-   private:
-      // Disable these inherited functions                              
-      using Any::SmartPush;
-
    public:
       ///                                                                     
       ///   Removal                                                           
@@ -251,47 +303,13 @@ namespace Langulus::Anyness
       template<bool REVERSE = false>
       Count Remove(const CT::Data auto&);
       Count RemoveIndex(CT::Index auto, Count = 1);
+      Count RemoveIndexDeep(CT::Index auto);
       Iterator RemoveIt(const Iterator&, Count = 1);
 
       void Trim(Count);
-      NOD() TAny Crop(Offset, Count) const;
-      NOD() TAny Crop(Offset, Count);
-
+      void Optimize();
       void Clear();
       void Reset();
-
-      ///                                                                     
-      ///   Comparison                                                        
-      ///                                                                     
-      template<bool REVERSE = false, CT::NotSemantic T1>
-      requires CT::Inner::Comparable<T, T1>
-      NOD() Index Find(const T1&, Offset = 0) const noexcept;
-
-      template<bool REVERSE = false>
-      NOD() Index FindBlock(const CT::Block auto&, Offset = 0) const noexcept;
-
-      bool operator == (const CT::Block auto&) const noexcept
-      requires CT::Inner::Comparable<T>;
-
-      template<bool RESOLVE = true>
-      NOD() bool Compare(const CT::Block auto&) const noexcept;
-      NOD() bool CompareLoose(const CT::Block auto&) const noexcept;
-      NOD() Count Matches(const CT::Block auto&) const noexcept;
-      NOD() Count MatchesLoose(const CT::Block auto&) const noexcept;
-      NOD() Hash GetHash() const requires CT::Hashable<T>;
-
-      template<bool ASCEND = false>
-      void Sort();
-
-      template<CT::Block WRAPPER = TAny>
-      NOD() WRAPPER Extend(Count);
-
-      void Swap(CT::Index auto, CT::Index auto);
-
-      template<bool REVERSE = false>
-      Count GatherFrom(const Block&);
-      template<bool REVERSE = false>
-      Count GatherFrom(const Block&, DataState);
 
       ///                                                                     
       ///   Concatenation                                                     
@@ -319,6 +337,7 @@ namespace Langulus::Anyness
       using Any::WrapAs;
       using Any::SetType;
       using Any::MakeTypeConstrained;
+      using Any::SmartPush;
    };
 
 } // namespace Langulus::Anyness

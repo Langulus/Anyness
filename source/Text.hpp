@@ -34,8 +34,7 @@ namespace Langulus::Anyness
    ///                                                                        
    ///   Count-terminated UTF8 text container                                 
    ///                                                                        
-   class Text : public TAny<Letter> {
-   public:
+   struct Text : TAny<Letter> {
       using Base = TAny<Letter>;
       static constexpr bool CTTI_TextTrait = true;
 
@@ -44,111 +43,163 @@ namespace Langulus::Anyness
       LANGULUS_BASES(A::Text, TAny<Letter>);
       LANGULUS(FILES) "txt";
 
-      using CompatibleStdString = ::std::basic_string<Letter>;
-      using CompatibleStdStringView = ::std::basic_string_view<Letter>;
-
-   private:
-      explicit Text(const Base&);
-      explicit Text(Base&&) noexcept;
-      template<template<class> class S>
-      explicit Text(S<Base>&&) requires CT::Semantic<S<Base>>;
-
-   public:
+      ///                                                                     
+      ///   Construction                                                      
+      ///                                                                     
       constexpr Text() noexcept = default;
       constexpr Text(::std::nullptr_t) noexcept;
       Text(const Text&);
       Text(Text&&) noexcept;
 
-      template<template<class> class S, CT::Inner::Text T>
-      Text(S<T>&&) requires CT::Semantic<S<T>>;
+      template<class T> requires CT::Block<Desem<T>>
+      Text(T&&);
 
-      template<template<class> class S, CT::DenseCharacter T>
-      Text(S<T>&&) requires CT::Semantic<S<T>>;
+      template<class T> requires CT::DenseCharacter<Desem<T>>
+      Text(T&&);
 
-      template<template<class> class S, CT::StringPointer T>
-      Text(S<T>&&) requires CT::Semantic<S<T>>;
+      template<class T> requires CT::StringPointer<Desem<T>>
+      Text(T&&);
 
-      template<template<class> class S, CT::StringLiteral T>
-      Text(S<T>&&) requires CT::Semantic<S<T>>;
+      template<class T> requires CT::StringLiteral<Desem<T>>
+      Text(T&&);
 
-      template<template<class> class S, CT::StandardContiguousContainer T>
-      Text(S<T>&&) requires (CT::Semantic<S<T>> and CT::DenseCharacter<TypeOf<T>>);
+      template<class T> requires (CT::StandardContiguousContainer<Desem<T>>
+                             and  CT::DenseCharacter<TypeOf<Desem<T>>>)
+      Text(T&&);
 
-      Text(const CompatibleStdString&);
-      Text(const CompatibleStdStringView&);
       Text(const Exception&);
       Text(const CT::Meta auto&);
-      Text(const Letter&);
       Text(const CT::DenseBuiltinNumber auto&);
 
-      // Bounded array constructor                                      
-      template<Count C>
-      Text(const Letter(&)[C]);
+      template<class T> requires CT::StringPointer<Desem<T>>
+      Text(T&&, Count);
 
-      // Count-terminated constructors                                  
-      Text(const Letter*, const Count&);
-      Text(Letter*, const Count&);
-      Text(CT::Semantic auto&&, const Count&);
-
-      // Zero-terminated constructors                                   
-      Text(const Letter*);
-      Text(Letter*);
-
+      ///                                                                     
+      ///   Assignment                                                        
+      ///                                                                     
       Text& operator = (const Text&);
       Text& operator = (Text&&) noexcept;
-      Text& operator = (const Letter&) noexcept;
-      Text& operator = (CT::Semantic auto&&);
 
-   public:
+      template<class T> requires CT::Block<Desem<T>>
+      Text& operator = (const T&);
+
+      template<class T> requires CT::DenseCharacter<Desem<T>>
+      Text& operator = (const T&);
+
+      template<class T> requires CT::StringPointer<Desem<T>>
+      Text& operator = (const T&);
+
+      template<class T> requires CT::StringLiteral<Desem<T>>
+      Text& operator = (const T&);
+
+      template<class T> requires (CT::StandardContiguousContainer<Desem<T>>
+                             and  CT::DenseCharacter<TypeOf<Desem<T>>>)
+      Text& operator = (const T&);
+
+      ///                                                                     
+      ///   Capsulation                                                       
+      ///                                                                     
       NOD() Hash GetHash() const;
-      NOD() Text Terminate() const;
-      NOD() Text Lowercase() const;
-      NOD() Text Uppercase() const;
-      NOD() Text Crop(Offset, Count) const;
-      NOD() Text Crop(Offset, Count);
-      NOD() Text Strip(Letter) const;
-
-      Text Extend(Count);
+      NOD() Count GetLineCount() const noexcept;
 
       NOD() operator Token () const noexcept;
+
+      ///                                                                     
+      ///   Indexing                                                          
+      ///                                                                     
+      NOD() Text Crop(Offset, Count) const;
+      NOD() Text Crop(Offset, Count);
+
+      ///                                                                     
+      ///   Comparison                                                        
+      ///                                                                     
+      bool operator == (const CT::Block auto&) const noexcept;
+      bool operator == (const CT::DenseCharacter auto&) const noexcept;
+      bool operator == (const CT::StringPointer auto&) const noexcept;
+      bool operator == (const CT::StringLiteral auto&) const noexcept;
+      template<class T> requires (CT::StandardContiguousContainer<T>
+                             and  CT::DenseCharacter<TypeOf<T>>)
+      bool operator == (const T&) const noexcept;
+      bool operator == (::std::nullptr_t) const noexcept;
+
+      ///                                                                     
+      ///   Insertion                                                         
+      ///                                                                     
+      Text Extend(Count);
+      NOD() Text Terminate() const;
+
+      ///                                                                     
+      ///   Removal                                                           
+      ///                                                                     
+      NOD() Text Strip(Letter) const;
+
+      ///                                                                     
+      ///   Concatenation                                                     
+      ///                                                                     
+      template<class T> requires CT::Block<Desem<T>>
+      NOD() Text operator + (const T&) const;
+      template<class T> requires CT::DenseCharacter<Desem<T>>
+      NOD() Text operator + (const T&) const;
+      template<class T> requires CT::StringPointer<Desem<T>>
+      NOD() Text operator + (const T&) const;
+      template<class T> requires CT::StringLiteral<Desem<T>>
+      NOD() Text operator + (const T&) const;
+      template<class T> requires (CT::StandardContiguousContainer<T>
+                             and  CT::DenseCharacter<TypeOf<T>>)
+      NOD() Text operator + (const T&) const;
+
+      template<class T> requires CT::Block<Desem<T>>
+      Text& operator += (const T&);
+      template<class T> requires CT::DenseCharacter<Desem<T>>
+      Text& operator += (const T&);
+      template<class T> requires CT::StringPointer<Desem<T>>
+      Text& operator += (const T&);
+      template<class T> requires CT::StringLiteral<Desem<T>>
+      Text& operator += (const T&);
+      template<class T> requires (CT::StandardContiguousContainer<T>
+                             and  CT::DenseCharacter<TypeOf<T>>)
+      Text& operator += (const T&);
+
+      ///                                                                     
+      ///   Services                                                          
+      ///                                                                     
+      NOD() Text Lowercase() const;
+      NOD() Text Uppercase() const;
 
       #if LANGULUS_FEATURE(UNICODE)
          NOD() TAny<char16_t> Widen16() const;
          NOD() TAny<char32_t> Widen32() const;
       #endif
 
-      NOD() Count GetLineCount() const noexcept;
-
-      bool operator == (const Text&) const noexcept;
-      bool operator == (const CompatibleStdString&) const noexcept;
-      bool operator == (const CompatibleStdStringView&) const noexcept;
-      bool operator == (const Letter*) const noexcept;
-      bool operator == (const Letter&) const noexcept;
-      bool operator == (::std::nullptr_t) const noexcept;
-
-      NOD() bool FindOffset(const Text&, Offset&) const;
-      NOD() bool FindOffsetReverse(const Text&, Offset&) const;
-      NOD() bool Find(const Text&) const;
-
-      template<class... ARGS>
+      template<class...ARGS>
       NOD() static Text Template(const Token&, ARGS&&...);
-      template<class... ARGS>
+      template<class...ARGS>
       NOD() static Text TemplateRt(const Token&, ARGS&&...);
-      template<class... ARGS>
+      template<class...ARGS>
       NOD() static constexpr auto TemplateCheck(const Token&, ARGS&&...);
-
-      ///                                                                     
-      ///   Concatenation                                                     
-      ///                                                                     
-      NOD() Text operator + (const Text&) const;
-      friend Text operator + (const char*, const Text&);
-
-      Text& operator += (const Text&);
 
    protected:
       template<::std::size_t...N>
       static constexpr auto CheckPattern(const Token&, ::std::index_sequence<N...>);
    };
+
+
+   ///                                                                        
+   /// Free standing catenators                                               
+   ///                                                                        
+
+   template<class T> requires CT::DenseCharacter<Desem<T>>
+   Text operator + (const T&, const Text&);
+
+   template<class T> requires CT::StringPointer<Desem<T>>
+   Text operator + (const T&, const Text&);
+
+   template<class T> requires CT::StringLiteral<Desem<T>>
+   Text operator + (const T&, const Text&);
+
+   template<class T> requires (CT::StandardContiguousContainer<T>
+                          and  CT::DenseCharacter<TypeOf<T>>)
+   Text operator + (const T&, const Text&);
 
 
    /// Text container specialized for logging                                 

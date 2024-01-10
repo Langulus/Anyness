@@ -785,12 +785,9 @@ namespace Langulus::Anyness
    }
 
    /// Sort the pack                                                          
-   TEMPLATE() template<bool ASCEND> LANGULUS(INLINED)
-   void TAny<T>::Sort() {
-      if constexpr (CT::Sortable<T>)
-         Any::Sort<T, ASCEND>();
-      else
-         LANGULUS_ERROR("Can't sort container - T is not sortable");
+   TEMPLATE() template<bool ASCEND> requires CT::Inner::Sortable<T>
+   LANGULUS(INLINED) void TAny<T>::Sort() {
+      Block::Sort<ASCEND, TAny>();
    }
 
    /// Remove elements on the back                                            
@@ -910,45 +907,29 @@ namespace Langulus::Anyness
       Block::Reserve<TAny>(count);
    }
    
-   /// Extend the container and return the new part                           
-   ///   @tparam WRAPPER - the container to use for the extended part         
+   /// Extend the container via default construction, and return the new part 
    ///   @param count - the number of elements to extend by                   
-   ///   @return a container that represents the extended part                
-   TEMPLATE() template<CT::Block WRAPPER> LANGULUS(INLINED)
-   WRAPPER TAny<T>::Extend(const Count count) {
-      const auto previousCount = mCount;
-      AllocateMore<TAny, true>(mCount + count);
-      const auto wrapped = Crop(previousCount, count);
-      return reinterpret_cast<const WRAPPER&>(wrapped);
+   ///   @return a container that represents only the extended part           
+   TEMPLATE() LANGULUS(INLINED)
+   TAny<T> TAny<T>::Extend(const Count count) {
+      return Block::Extend<TAny>(count);
    }
    
    /// Compare with another container, order matters                          
    ///   @param other - container to compare with                             
    ///   @return true if both containers match completely                     
    TEMPLATE() template<bool RESOLVE>
-   bool TAny<T>::Compare(const CT::Block auto& other) const noexcept {
+   bool TAny<T>::Compare(const CT::Block auto& other) const {
       return Block::Compare<RESOLVE, TAny>(other);
    }
 
    /// Compare with any other kind of block                                   
    ///   @param other - the block to compare with                             
    ///   @return true if both containers are identical                        
-   TEMPLATE() LANGULUS(INLINED)
-   bool TAny<T>::operator == (const CT::Block auto& other) const noexcept
-   requires CT::Inner::Comparable<T> {
-      using RHS = Deref<decltype(other)>;
-
-      if constexpr (CT::Typed<RHS>) {
-         if constexpr (CT::Similar<T, TypeOf<RHS>>)
-            return Compare(other);
-         else
-            return false;
-      }
-      else {
-         if (IsSimilar(other.GetType()))
-            return Compare(reinterpret_cast<const TAny<T>&>(other));
-         return Any::Compare(other);
-      }
+   TEMPLATE() template<CT::NotSemantic T1>
+   requires (CT::Block<T1> or CT::Inner::Comparable<T, T1>) LANGULUS(INLINED)
+   bool TAny<T>::operator == (const T1& other) const {
+      return Block::operator == <TAny> (other);
    }
 
    /// Compare loosely with another TAny, ignoring case                       
@@ -1056,7 +1037,7 @@ namespace Langulus::Anyness
    requires CT::DeepMakable<T, T1> LANGULUS(INLINED)
    TAny<T> TAny<T>::operator + (T1&& rhs) const {
       using S = SemanticOf<decltype(rhs)>;
-      return ConcatBlock<TAny>(S::Nest(rhs));
+      return Block::ConcatBlock<TAny>(S::Nest(rhs));
    }
 
    /// Concatenate destructively, semantically or not                         
@@ -1066,7 +1047,7 @@ namespace Langulus::Anyness
    requires CT::DeepMakable<T, T1> LANGULUS(INLINED)
    TAny<T>& TAny<T>::operator += (T1&& rhs) {
       using S = SemanticOf<decltype(rhs)>;
-      InsertBlock<TAny, void, true>(IndexBack, S::Nest(rhs));
+      Block::InsertBlock<TAny, void, true>(IndexBack, S::Nest(rhs));
       return *this;
    }
 

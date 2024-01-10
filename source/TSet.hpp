@@ -103,9 +103,6 @@ namespace Langulus::Anyness
       ///                                                                     
       NOD()       T& Get(CT::Index auto);
       NOD() const T& Get(CT::Index auto) const;
-
-      NOD()       T& operator[] (CT::Index auto);
-      NOD() const T& operator[] (CT::Index auto) const;
       
    protected:
       NOD() const TAny<T>& GetValues() const noexcept;
@@ -197,9 +194,16 @@ namespace Langulus::Anyness
       requires CT::Inner::UnfoldMakableFrom<T, T1, TAIL...>
       Count Insert(T1&&, TAIL&&...);
 
+      template<class T> requires CT::Set<Desem<T>>
+      Count InsertBlock(T&&);
+
       template<class T1>
       requires CT::Inner::UnfoldMakableFrom<T, T1>
       TSet& operator << (T1&&);
+
+      template<class T1>
+      requires CT::Inner::UnfoldMakableFrom<T, T1>
+      TSet& operator >> (T1&&);
 
       ///                                                                     
       ///   Removal                                                           

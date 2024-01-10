@@ -20,27 +20,6 @@ namespace Langulus::Anyness
    /// Default construction with nullptr_t                                    
    LANGULUS(INLINED)
    constexpr Text::Text(::std::nullptr_t) noexcept {}
-   
-   /// Text container copy-construction from base                             
-   ///   @param other - container to reference                                
-   LANGULUS(INLINED)
-   Text::Text(const Base& other)
-      : Text {Copy(other)} { }
-
-   /// Text container move-construction from base                             
-   ///   @param other - container to move                                     
-   LANGULUS(INLINED)
-   Text::Text(Base&& other) noexcept
-      : Text {Move(other)} { }
-
-   /// Text container semantic-construction from base                         
-   ///   @param other - container to move                                     
-   template<template<class> class S> LANGULUS(INLINED)
-   Text::Text(S<Base>&& other) requires CT::Semantic<S<Base>>
-      : Base {other.Forward()} {
-      // TAny's have no null-termination considerations, add them here  
-      mCount = strnlen(GetRaw(), mCount);
-   }
 
    /// Shallow-copy constructor                                               
    ///   @param other - container to reference                                
@@ -56,85 +35,93 @@ namespace Langulus::Anyness
 
    /// Semantic text constructor                                              
    ///   @param other - the text container to use semantically                
-   template<template<class> class S, CT::Inner::Text T> LANGULUS(INLINED)
-   Text::Text(S<T>&& other) requires CT::Semantic<S<T>>
-      : Base {other.template Forward<Base>()} { }
+   template<class T> requires CT::Block<Desem<T>> LANGULUS(INLINED)
+   Text::Text(T&& other)
+      : Base {Forward<T>(other)} {
+      if constexpr (not CT::Text<Desem<T>>) {
+         // Only Text container is guaranteed to be properly terminated 
+         mCount = strnlen(GetRaw(), mCount);
+      }
+   }
 
    /// Construct from single character                                        
    ///   @param other - the character to copy                                 
-   template<template<class> class S, CT::DenseCharacter T> LANGULUS(INLINED)
-   Text::Text(S<T>&& other) requires CT::Semantic<S<T>> {
-      mType = MetaDataOf<TypeOf<Base>>();
+   template<class T> requires CT::DenseCharacter<Desem<T>> LANGULUS(INLINED)
+   Text::Text(T&& other) {
       AllocateFresh<Text>(RequestSize<Text>(1));
-      mRaw[0] = reinterpret_cast<const Byte&>(*other);      //TODO utf8
+      (*this)[0] = DesemCast(other);
    }
 
-   /// Construct from a c-style string                                        
+   /// Construct from a char*                                                 
+   ///   @attention assumes that the character sequence is null-terminated    
    ///   @param other - the string and semantic                               
-   template<template<class> class S, CT::StringPointer T> LANGULUS(INLINED)
-   Text::Text(S<T>&& other) requires CT::Semantic<S<T>> {
-      mType = MetaDataOf<TypeOf<Base>>();
-      const Count count = *other ? ::std::strlen(*other) : 0;
+   template<class T> requires CT::StringPointer<Desem<T>> LANGULUS(INLINED)
+   Text::Text(T&& other) {
+      using S = SemanticOf<T>;
+      const Count count = DesemCast(other)
+         ? ::std::strlen(DesemCast(other)) : 0;
+
       if (not count)
          return;
 
-      SetMemory(DataState::Constrained, mType, count, *other, nullptr);
-      if constexpr (not S<T>::Move and S<T>::Keep)
+      SetMemory(DataState::Constrained, mType, count, DesemCast(other), nullptr);
+      if constexpr (S::Move or S::Keep)
          TakeAuthority<Text>();
    }
 
    /// Construct from a bounded character array                               
+   ///   @attention assumes that the character sequence is null-terminated    
+   ///      - this is usually guaranteed for string literals, but its left    
+   ///        to an assumption, as the user can reinterpret_cast as array     
    ///   @param other - the string and semantic                               
-   template<template<class> class S, CT::StringLiteral T> LANGULUS(INLINED)
-   Text::Text(S<T>&& other) requires CT::Semantic<S<T>> {
-      mType = MetaDataOf<TypeOf<Base>>();
-      const Count count = *other ? strnlen(*other, ExtentOf<T>) : 0;
+   template<class T> requires CT::StringLiteral<Desem<T>> LANGULUS(INLINED)
+   Text::Text(T&& other) {
+      using S = SemanticOf<T>;
+      const Count count = DesemCast(other)
+         ? strnlen(DesemCast(other), ExtentOf<Desem<T>>) : 0;
+
       if (not count)
          return;
 
-      SetMemory(DataState::Constrained, mType, count, *other, nullptr);
-      if constexpr (not S<T>::Move and S<T>::Keep)
+      SetMemory(DataState::Constrained, mType, count, DesemCast(other), nullptr);
+      if constexpr (S::Move or S::Keep)
          TakeAuthority<Text>();
    }
 
-   /// Construct from a bounded character array                               
+   /// Construct from any standard contiguous range statically typed with     
+   /// characters. This includes std::string, string_view, span, vector,      
+   /// array, etc. Containers that aren't strings will be strnlen'ed          
    ///   @param other - the string and semantic                               
-   template<template<class> class S, CT::StandardContiguousContainer T> LANGULUS(INLINED)
-   Text::Text(S<T>&& other) requires (CT::Semantic<S<T>> and CT::DenseCharacter<TypeOf<T>>) {
-      mType = MetaDataOf<TypeOf<Base>>();
-      if (other->empty())
+   template<class T> requires (CT::StandardContiguousContainer<Desem<T>>
+                          and  CT::DenseCharacter<TypeOf<Desem<T>>>)
+   LANGULUS(INLINED) Text::Text(T&& other) {
+      using S = SemanticOf<T>;
+      if (DesemCast(other).empty())
          return;
 
-      SetMemory(DataState::Constrained, mType, other->size(), other->data(), nullptr);
-      if constexpr (not S<T>::Move and S<T>::Keep)
+      Count count;
+      if constexpr (not ::std::is_convertible_v<Desem<T>, std::string_view>)
+         count = strnlen(DesemCast(other).data(), DesemCast(other).size())
+      else
+         count = DesemCast(other).size();
+
+      SetMemory(DataState::Constrained, mType, DesemCast(other).data(), DesemCast(other).size(), nullptr);
+      if constexpr (S::Move or S::Keep)
          TakeAuthority<Text>();
    }
-
-   /// Construct from compatible std::string                                  
-   /// Data will be cloned if we don't have authority over the memory         
-   ///   @param text - the text to wrap                                       
-   LANGULUS(INLINED)
-   Text::Text(const CompatibleStdString& text)
-      : Text {Copy(text.data()), text.size()} {}
-
-   /// Construct from compatible std::string_view                             
-   /// Data will be cloned if we don't have authority over the memory         
-   ///   @param text - the text to wrap                                       
-   LANGULUS(INLINED)
-   Text::Text(const CompatibleStdStringView& text)
-      : Text {Copy(text.data()), text.size()} {}
 
    /// Stringify a Langulus::Exception                                        
    ///   @param from - the exception to stringify                             
    LANGULUS(INLINED)
    Text::Text(const Exception& from) {
-      (*this) += from.GetName();
       #if LANGULUS(DEBUG)
-         (*this) += '(';
-         (*this) += from.GetMessage();
-         (*this) += " at ";
-         (*this) += from.GetLocation();
-         (*this) += ')';
+         (*this) = Template("{}({} at {})",
+            from.GetName(),
+            from.GetMessage(),
+            from.GetLocation()
+         );
+      #else
+         (*this) = Disown(from.GetName());
       #endif
    }
    
@@ -143,12 +130,6 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    Text::Text(const CT::Meta auto& meta)
       : Text {meta.GetToken()} {}
-   
-   /// Construct from a single character                                      
-   ///   @param anyCharacter - the character                                  
-   LANGULUS(INLINED)
-   Text::Text(const Letter& anyCharacter)
-      : Text {Copy(&anyCharacter), 1} { }
 
    /// Convert a number type to text                                          
    ///   @param number - the number to stringify                              
@@ -184,59 +165,13 @@ namespace Langulus::Anyness
       }
       else LANGULUS_ERROR("Unsupported number type");
    }
-   
-   /// Construct from bounded array                                           
-   ///   @tparam C - size of the array                                        
-   ///   @param text - the bounded array                                      
-   template<Count C>
-   LANGULUS(INLINED)
-   Text::Text(const Letter(&text)[C])
-      : Text {Copy(text), strnlen(text, C)} { }
-
-   /// Construct manually from count-terminated array                         
-   ///   @param text - text memory to reference                               
-   ///   @param count - number of characters inside text, not including any   
-   ///                  termination character, if any                         
-   LANGULUS(INLINED)
-   Text::Text(const Letter* text, const Count& count)
-      : Text {Copy(text), count} { }
-
-   LANGULUS(INLINED)
-   Text::Text(Letter* text, const Count& count)
-      : Text {Copy(text), count} { }
 
    /// Semantic construction from count-terminated array                      
    ///   @param text - text memory to wrap                                    
    ///   @param count - number of characters inside text                      
-   LANGULUS(INLINED)
-   Text::Text(CT::Semantic auto&& text, const Count& count)
-      : Base {Base::From(text.Forward(), count)} { }
-
-   /// Construct from null-terminated array                                   
-   ///   @param nullterminatedText - text memory to reference                 
-   LANGULUS(INLINED)
-   Text::Text(const Letter* nullterminatedText)
-      : Text {Copy(nullterminatedText)} {}
-
-   LANGULUS(INLINED)
-   Text::Text(Letter* nullterminatedText)
-      : Text {Copy(nullterminatedText)} {}
-
-   /// Count the number of newline characters                                 
-   ///   @return the number of newline characters + 1, or zero if empty       
-   LANGULUS(INLINED)
-   Count Text::GetLineCount() const noexcept {
-      if (IsEmpty())
-         return 0;
-
-      Count lines {1};
-      for (Count i = 0; i < mCount; ++i) {
-         if ((*this)[i] == '\n')
-            ++lines;
-      }
-
-      return lines;
-   }
+   template<class T> requires CT::StringPointer<Desem<T>> LANGULUS(INLINED)
+   Text::Text(T&& text, const Count count)
+      : Base {Base::From(Forward<T>(text), count)} { }
 
    /// Shallow copy assignment                                                
    ///   @param rhs - the text to copy                                        
@@ -254,65 +189,85 @@ namespace Langulus::Anyness
       return operator = (Move(rhs));
    }
    
+   /// Assign a block of any kind                                             
+   template<class T> requires CT::Block<Desem<T>> LANGULUS(INLINED)
+   Text& Text::operator = (const T& rhs) {
+      Base::operator = (Forward<T>(rhs));
+
+      // Base constructor should handle initialization from anything    
+      // TAny<Letter> based, but it will not make any null-             
+      // termination corrections, so we have to do them here.           
+      if constexpr (not CT::Text<Desem<T>>)
+         mCount = strnlen(GetRaw(), mCount);
+      return *this;
+   }
+
    /// Assign a single character                                              
    ///   @param rhs - the character                                           
    ///   @return a reference to this container                                
-   LANGULUS(INLINED)
-   Text& Text::operator = (const Letter& rhs) noexcept {
-      return operator = (Copy(rhs));
+   template<class T> requires CT::DenseCharacter<Desem<T>> LANGULUS(INLINED)
+   Text& Text::operator = (const T& rhs) {
+      Base::operator = (Forward<T>(rhs));
+      return *this;
+   }
+
+   /// Assign a null-terminated string pointer                                
+   ///   @param rhs - the pointer                                             
+   ///   @return a reference to this container                                
+   template<class T> requires CT::StringPointer<Desem<T>> LANGULUS(INLINED)
+   Text& Text::operator = (const T& rhs) {
+      Base::operator = (Forward<T>(rhs));
+
+      // Base constructor should handle initialization from anything    
+      // TAny<Letter> based, but it will not make any null-             
+      // termination corrections, so we have to do them here.           
+      if constexpr (not CT::Text<Desem<T>>)
+         mCount = strlen(GetRaw());
+
+      using S = SemanticOf<T>;
+      if constexpr (S::Move or S::Keep)
+         TakeAuthority<Text>();
+      return *this;
    }
    
-   /// Semantic assignment                                                    
-   ///   @param rhs - the right hand side                                     
+   /// Assign a bounded array string                                          
+   ///   @param rhs - the pointer                                             
    ///   @return a reference to this container                                
-   LANGULUS(INLINED)
-   Text& Text::operator = (CT::Semantic auto&& rhs) {
-      using S = Decay<decltype(rhs)>;
-      using T = TypeOf<S>;
+   template<class T> requires CT::StringLiteral<Desem<T>> LANGULUS(INLINED)
+   Text& Text::operator = (const T& rhs) {
+      Base::operator = (Forward<T>(rhs));
 
-      if constexpr (CT::DerivedFrom<T, Base>) {
-         Base::operator = (S::Nest(rhs).template Forward<Base>());
+      // Base constructor should handle initialization from anything    
+      // TAny<Letter> based, but it will not make any null-             
+      // termination corrections, so we have to do them here.           
+      if constexpr (not CT::Text<Desem<T>>)
+         mCount = strnlen(GetRaw(), ExtentOf<Desem<T>>);
 
-         // Base constructor should handle initialization from anything 
-         // TAny<Letter> based, but it will not make any null-          
-         // termination corrections, so we have to do them here.        
-         if constexpr (not CT::Text<T>)
-            mCount = strnlen(GetRaw(), mCount);
-      }
-      else if constexpr (CT::Similar<T, Letter>) {
-         Base::operator = (rhs.Forward());
-      }
-      else if constexpr (CT::StringPointer<T>) {
-         // Initialize from unbounded array                             
-         const Count count = *rhs ? ::std::strlen(*rhs) : 0;
-         if (not count)
-            Clear();
-         else {
-            Reset();
-            new (this) Text {rhs.Forward(), count};
-         }
-      }
-      else if constexpr (CT::StringLiteral<T>) {
-         // Initialize from bounded array                               
-         const Count count = *rhs ? strnlen(*rhs, ExtentOf<T>) : 0;
-         if (not count)
-            Clear();
-         else {
-            Reset();
-            new (this) Text {rhs.Forward(), count};
-         }
-      }
-      else if constexpr (CT::Similar<T, CompatibleStdString>
-                      or CT::Similar<T, CompatibleStdStringView>) {
-         // Initialize from std::string/std::string_view                
-         if (rhs->empty())
-            Clear();
-         else {
-            Reset();
-            new (this) Text {rhs.Forward()};
-         }
-      }
-      else LANGULUS_ERROR("Bad semantic assignment");
+      using S = SemanticOf<T>;
+      if constexpr (S::Move or S::Keep)
+         TakeAuthority<Text>();
+      return *this;
+   }
+
+   /// Assign any standard contiguous range statically typed with             
+   /// characters. This includes std::string, string_view, span, vector,      
+   /// array, etc. Containers that aren't strings will be strnlen'ed          
+   ///   @param rhs - the string and semantic                                 
+   ///   @return a reference to this container                                
+   template<class T> requires (CT::StandardContiguousContainer<Desem<T>>
+                          and  CT::DenseCharacter<TypeOf<Desem<T>>>)
+   LANGULUS(INLINED) Text& Text::operator = (const T& rhs) {
+      Base::operator = (Forward<T>(rhs));
+
+      Count count;
+      if constexpr (not ::std::is_convertible_v<Desem<T>, std::string_view>)
+         count = strnlen(DesemCast(rhs).data(), DesemCast(rhs).size())
+      else
+         count = DesemCast(rhs).size();
+
+      using S = SemanticOf<T>;
+      if constexpr (S::Move or S::Keep)
+         TakeAuthority<Text>();
       return *this;
    }
 
@@ -357,6 +312,22 @@ namespace Langulus::Anyness
          return to;
       }
    #endif
+      
+   /// Count the number of newline characters                                 
+   ///   @return the number of newline characters + 1, or zero if empty       
+   LANGULUS(INLINED)
+   Count Text::GetLineCount() const noexcept {
+      if (IsEmpty())
+         return 0;
+
+      Count lines = 1;
+      for (Count i = 0; i < mCount; ++i) {
+         if ((*this)[i] == '\n')
+            ++lines;
+      }
+
+      return lines;
+   }
 
    /// Terminate text so that it ends with a zero character at the end        
    /// This works even if the text container was empty                        
@@ -439,95 +410,6 @@ namespace Langulus::Anyness
       return result;
    }
 
-   /// Find a substring and set 'offset' to the start of the first match      
-   /// The search begins at 'offset'                                          
-   ///   @param pattern - the pattern to search for                           
-   ///   @param offset - [in/out] offset to set if found                      
-   ///   @attention offset might change, even if nothing was found            
-   ///   @return true if pattern was found                                    
-   LANGULUS(INLINED)
-   bool Text::FindOffset(const Text& pattern, Offset& offset) const {
-      if (pattern.IsEmpty() or offset >= mCount or pattern.mCount > mCount - offset)
-         return false;
-
-      auto lhs = GetRaw() + offset;
-      auto rhs = pattern.GetRaw();
-      const auto lhsEnd = GetRawEnd() - pattern.GetCount() + 1;
-      const auto rhsEnd = pattern.GetRawEnd();
-      while (lhs != lhsEnd) {
-         if (*lhs == *rhs) {
-            offset = lhs - GetRaw();
-            ++lhs;
-            ++rhs;
-
-            while (rhs != rhsEnd and *lhs == *rhs) {
-               ++lhs;
-               ++rhs;
-            }
-
-            if (rhs == rhsEnd) {
-               // Match found                                           
-               return true;
-            }
-
-            lhs = GetRaw() + offset;
-            rhs = pattern.GetRaw();
-         }
-
-         ++lhs;
-      }
-
-      return false;
-   }
-
-   /// Find a substring in reverse, and set offset to its location            
-   ///   @param pattern - the pattern to search for                           
-   ///   @param offset - [out] offset to set if found                         
-   ///   @return true if pattern was found                                    
-   LANGULUS(INLINED)
-   bool Text::FindOffsetReverse(const Text& pattern, Offset& offset) const {
-      if (pattern.IsEmpty() or offset >= mCount or pattern.mCount > mCount - offset)
-         return false;
-
-      auto lhs = GetRawEnd() - offset - pattern.GetCount();
-      auto rhs = pattern.GetRaw();
-      const auto lhsEnd = GetRaw() - 1;
-      const auto rhsEnd = pattern.GetRawEnd();
-      while (lhs != lhsEnd) {
-         if (*lhs == *rhs) {
-            offset = GetRawEnd() - lhs - 1;
-            ++lhs;
-            ++rhs;
-
-            while (rhs != rhsEnd and *lhs == *rhs) {
-               ++lhs;
-               ++rhs;
-            }
-
-            if (rhs == rhsEnd) {
-               // Match found                                           
-               return true;
-            }
-
-            lhs = GetRawEnd() - offset - 1;
-            rhs = pattern.GetRaw();
-         }
-
-         --lhs;
-      }
-
-      return false;
-   }
-
-   /// Find a pattern                                                         
-   ///   @param pattern - the pattern to search for                           
-   ///   @return true on first match                                          
-   LANGULUS(INLINED)
-   bool Text::Find(const Text& pattern) const {
-      UNUSED() Offset unused {};
-      return FindOffset(pattern, unused);
-   }
-
    /// Pick a part of the text (const)                                        
    ///   @param start - offset of the starting character                      
    ///   @param count - the number of characters after 'start'                
@@ -550,7 +432,7 @@ namespace Langulus::Anyness
    ///   @param symbol - the character to remove                              
    ///   @return a new container with the text stripped                       
    LANGULUS(INLINED)
-   Text Text::Strip(Letter symbol) const {
+   Text Text::Strip(const Letter symbol) const {
       Text result;
       Count start {}, end {};
       for (Count i = 0; i <= mCount; ++i) {
@@ -570,10 +452,10 @@ namespace Langulus::Anyness
    }
 
    /// Extend the text container and return a referenced part of it           
-   ///   @return an array that represents the extended part                   
+   ///   @return a container that represents the extended part                
    LANGULUS(INLINED)
-   Text Text::Extend(Count count) {
-      return Base::Extend<Text>(count);
+   Text Text::Extend(const Count count) {
+      return Block::Extend<Text>(count);
    }
 
    /// Hash the text                                                          
@@ -583,71 +465,201 @@ namespace Langulus::Anyness
       return HashBytes(GetRaw(), static_cast<int>(GetCount()));
    }
 
-   /// Interpret text container as a literal                                  
+   /// Interpret text container as a string_view                              
    ///   @attention the string is null-terminated only after Terminate()      
    LANGULUS(INLINED)
    Text::operator Token() const noexcept {
       return {GetRaw(), mCount};
    }
 
-   /// Compare with a std::string                                             
-   ///   @param rhs - the text to compare against                             
-   ///   @return true if both strings are the same                            
+   /// Compare with another block                                             
+   ///   @param rhs - the block to compare with                               
+   ///   @return true if blocks are the same                                  
    LANGULUS(INLINED)
-   bool Text::operator == (const CompatibleStdString& rhs) const noexcept {
-      return operator == (Text {Disown(rhs.data()), rhs.size()});
+   bool Text::operator == (const CT::Block auto& rhs) const noexcept {
+      using B = Deref<decltype(rhs)>;
+      if constexpr (CT::Typed<B>) {
+         if constexpr (CT::Similar<Letter, TypeOf<B>>) {
+            // Comparing with another Text or TAny<Letter> - we can     
+            // compare directly                                         
+            return Base::operator == (rhs);
+         }
+         else if constexpr (CT::DenseCharacter<TypeOf<B>>) {
+            // We're comparing with a different type of characters -    
+            // do UTF conversions here                                  
+            TODO();
+         }
+         else return false;
+      }
+      else {
+         // Type-erased compare                                         
+         return Base::operator == (rhs);
+      }
    }
 
-   /// Compare with a std::string_view                                        
-   ///   @param rhs - the text to compare against                             
-   ///   @return true if both strings are the same                            
+   /// Compare with a single character                                        
+   ///   @param rhs - the character to compare with                           
+   ///   @return true if this container contains this exact character         
    LANGULUS(INLINED)
-   bool Text::operator == (const CompatibleStdStringView& rhs) const noexcept {
-      return operator == (Text {Disown(rhs.data()), rhs.size()});
-   }
-
-   /// Compare two text containers                                            
-   ///   @param rhs - the text to compare against                             
-   ///   @return true if both strings are the same                            
-   LANGULUS(INLINED)
-   bool Text::operator == (const Text& rhs) const noexcept {
-      return Base::operator == (static_cast<const Base&>(rhs));
+   bool Text::operator == (const CT::DenseCharacter auto& rhs) const noexcept {
+      return operator == (Text {Disown(&rhs), 1});
    }
 
    /// Compare with a null-terminated string                                  
-   ///   @param rhs - the text to compare against                             
-   ///   @return true if both strings are the same                            
+   ///   @param rhs - the string to compare with                              
+   ///   @return true if this container contains this exact string            
    LANGULUS(INLINED)
-   bool Text::operator == (const Letter* rhs) const noexcept {
+   bool Text::operator == (const CT::StringPointer auto& rhs) const noexcept {
       return operator == (Text {Disown(rhs)});
+   }
+
+   /// Compare with a bounded string literal                                  
+   ///   @param rhs - the string to compare with                              
+   ///   @return true if this container contains this exact string            
+   LANGULUS(INLINED)
+   bool Text::operator == (const CT::StringLiteral auto& rhs) const noexcept {
+      return operator == (Text {Disown(rhs)});
+   }
+
+   /// Compare with standard contiguous range statically typed with           
+   /// characters. This includes std::string, string_view, span, vector,      
+   /// array, etc. Containers that aren't strings will be strnlen'ed          
+   ///   @param rhs - the string to compare with                              
+   ///   @return true if this container contains this exact string            
+   template<class T> requires (CT::StandardContiguousContainer<T>
+                          and  CT::DenseCharacter<TypeOf<T>>)
+   LANGULUS(INLINED) bool Text::operator == (const T& rhs) const noexcept {
+      return operator == (Text {Disown(rhs)});
+   }
+
+   /// Comparing against nullptr_t checks if container is empty               
+   ///   @return true if container is empty                                   
+   LANGULUS(INLINED)
+   bool Text::operator == (::std::nullptr_t) const noexcept {
+      return IsEmpty();
    }
 
    /// Concatenate two text containers                                        
    ///   @param rhs - right hand side                                         
    ///   @return the concatenated text container                              
-   LANGULUS(INLINED)
-   Text Text::operator + (const Text& rhs) const {
-      return ConcatBlock<Text>(Copy(rhs));
-   }
-   
-   /// Concatenate two text containers, left one being a null-terminated raw  
-   ///   @param lhs - left hand side                                          
-   ///   @param rhs - right hand side                                         
-   ///   @return the concatenated text container                              
-   LANGULUS(INLINED)
-   Text operator + (const char* lhs, const Text& rhs) {
-      return Text {Disown(lhs)} + rhs;
+   template<class T> requires CT::Block<Desem<T>> LANGULUS(INLINED)
+   Text Text::operator + (const T& rhs) const {
+      using S = SemanticOf<T>;
+      using B = TypeOf<S>;
+      if constexpr (CT::Typed<B>) {
+         if constexpr (CT::Similar<Letter, TypeOf<B>>) {
+            // We can concat directly                                   
+            return Block::ConcatBlock<Text>(S::Nest(rhs));
+         }
+         else if constexpr (CT::DenseCharacter<TypeOf<B>>) {
+            // We're concatenating with different type of characters -  
+            // do UTF conversions here                                  
+            TODO();
+         }
+         else LANGULUS_ERROR("Can't concatenate with this container");
+      }
+      else {
+         // Type-erased concat                                          
+         return Block::ConcatBlock<Text>(S::Nest(rhs));
+      }
    }
 
-   /// Concatenate (destructively) text container                             
+   /// Concatenate with stuff to the right                                    
+   ///   @param rhs - right hand side                                         
+   ///   @return the concatenated text container                              
+   template<class T> requires CT::DenseCharacter<Desem<T>>
+   LANGULUS(INLINED) Text Text::operator + (const T& rhs) const {
+      return operator + (Text {Disown(&rhs), 1});
+   }
+
+   template<class T> requires CT::StringPointer<Desem<T>>
+   LANGULUS(INLINED) Text Text::operator + (const T& rhs) const {
+      return operator + (Text {Disown(rhs)});
+   }
+
+   template<class T> requires CT::StringLiteral<Desem<T>>
+   LANGULUS(INLINED) Text Text::operator + (const T& rhs) const {
+      return operator + (Text {Disown(rhs)});
+   }
+
+   template<class T> requires (CT::StandardContiguousContainer<T>
+                          and  CT::DenseCharacter<TypeOf<T>>)
+   LANGULUS(INLINED) Text Text::operator + (const T& rhs) const {
+      return operator + (Text {Disown(rhs)});
+   }
+
+   /// Concatenate with stuff to the left                                     
+   ///   @param rhs - right hand side                                         
+   ///   @return the concatenated text container                              
+   template<class T> requires CT::DenseCharacter<Desem<T>>
+   LANGULUS(INLINED) Text operator + (const T& lhs, const Text& rhs) {
+      return Text {Disown(&rhs), 1} + rhs;
+   }
+
+   template<class T> requires CT::StringPointer<Desem<T>>
+   LANGULUS(INLINED) Text operator + (const T& lhs, const Text& rhs) {
+      return Text {Disown(rhs)} + rhs;
+   }
+
+   template<class T> requires CT::StringLiteral<Desem<T>>
+   LANGULUS(INLINED) Text operator + (const T& lhs, const Text& rhs) {
+      return Text {Disown(rhs)} + rhs;
+   }
+
+   template<class T> requires (CT::StandardContiguousContainer<T>
+                          and  CT::DenseCharacter<TypeOf<T>>)
+   LANGULUS(INLINED) Text operator + (const T& lhs, const Text& rhs) {
+      return Text {Disown(rhs)} + rhs;
+   }
+
+   /// Concatenate (destructively) text containers                            
    ///   @param rhs - right hand side                                         
    ///   @return a reference to this container                                
-   LANGULUS(INLINED)
-   Text& Text::operator += (const Text& rhs) {
-      InsertBlock<Text, void, true>(IndexBack, Copy(rhs));
+   template<class T> requires CT::Block<Desem<T>>
+   Text& Text::operator += (const T& rhs) {
+      using S = SemanticOf<T>;
+      using B = TypeOf<S>;
+      if constexpr (CT::Typed<B>) {
+         if constexpr (CT::Similar<Letter, TypeOf<B>>) {
+            // We can concat directly                                   
+            Block::InsertBlock<Text, void>(S::Nest(rhs));
+         }
+         else if constexpr (CT::DenseCharacter<TypeOf<B>>) {
+            // We're concatenating with different type of characters -  
+            // do UTF conversions here                                  
+            TODO();
+         }
+         else LANGULUS_ERROR("Can't concatenate with this container");
+      }
+      else {
+         // Type-erased concat                                          
+         Block::InsertBlock<Text, void>(S::Nest(rhs));
+      }
       return *this;
    }
 
+   template<class T> requires CT::DenseCharacter<Desem<T>>
+   Text& Text::operator += (const T& rhs) {
+      return operator += (Text {Disown(&rhs), 1});
+   }
+
+   template<class T> requires CT::StringPointer<Desem<T>>
+   Text& Text::operator += (const T& rhs) {
+      return operator += (Text {Disown(rhs)});
+   }
+
+   template<class T> requires CT::StringLiteral<Desem<T>>
+   Text& Text::operator += (const T& rhs) {
+      return operator += (Text {Disown(rhs)});
+   }
+
+   template<class T> requires (CT::StandardContiguousContainer<T>
+                          and  CT::DenseCharacter<TypeOf<T>>)
+   Text& Text::operator += (const T& rhs) {
+      return operator += (Text {Disown(rhs)});
+   }
+
+   
    /// Fill template arguments using libfmt                                   
    ///   @tparam ...ARGS - arguments for the template                         
    ///   @param format - the template string                                  
@@ -732,7 +744,7 @@ namespace Langulus
    /// Make a text literal                                                    
    LANGULUS(INLINED)
    Anyness::Text operator "" _text(const char* text, ::std::size_t size) {
-      return Anyness::Text {text, size};
+      return Anyness::Text {Disown(text), size};
    }
 
 } // namespace Langulus
