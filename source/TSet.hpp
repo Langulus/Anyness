@@ -96,6 +96,7 @@ namespace Langulus::Anyness
       using Base::IsAllocated;
       using Base::GetUses;
       using Base::GetCount;
+      using Base::IsEmpty;
 
       ///                                                                     
       ///   Indexing                                                          
@@ -118,25 +119,29 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Iteration                                                         
       ///                                                                     
-      template<bool MUTABLE>
-      struct TIterator;
-
-      using Iterator = TIterator<true>;
-      using ConstIterator = TIterator<false>;
+      using Iterator = BlockSet::Iterator<TSet>;
+      using ConstIterator = BlockSet::Iterator<const TSet>;
 
       NOD() Iterator begin() noexcept;
-      NOD() Iterator end() noexcept;
       NOD() Iterator last() noexcept;
       NOD() ConstIterator begin() const noexcept;
-      NOD() ConstIterator end() const noexcept;
       NOD() ConstIterator last() const noexcept;
-      NOD() const T& Last() const;
-      NOD() T& Last();
+      using Base::end;
 
-      template<class F>
-      Count ForEachElement(F&&) const;
-      template<class F>
-      Count ForEachElement(F&&);
+      template<bool REVERSE = false>
+      Count ForEach(auto&&) const;
+      template<bool REVERSE = false>
+      Count ForEach(auto&&);
+
+      template<bool REVERSE = false>
+      Count ForEachElement(auto&&) const;
+      template<bool REVERSE = false>
+      Count ForEachElement(auto&&);
+
+      template<bool REVERSE = false, bool SKIP = true>
+      Count ForEachDeep(auto&&...) const;
+      template<bool REVERSE = false, bool SKIP = true>
+      Count ForEachDeep(auto&&...);
 
       ///                                                                     
       ///   RTTI                                                              
@@ -205,39 +210,6 @@ namespace Langulus::Anyness
       void Clear();
       void Reset();
       void Compact();
-   };
-
-
-   ///                                                                        
-   ///   Set iterator                                                         
-   ///                                                                        
-   template<CT::Data T, bool ORDERED> template<bool MUTABLE>
-   struct TSet<T, ORDERED>::TIterator {
-   protected:
-      friend TOrderedSet<T>;
-      friend TUnorderedSet<T>;
-
-      using typename TSet<T, ORDERED>::InfoType;
-      const InfoType* mInfo {};
-      const InfoType* mSentinel {};
-      const T* mValue {};
-
-      TIterator(const InfoType*, const InfoType*, const T*) noexcept;
-
-   public:
-      NOD() bool operator == (const TIterator&) const noexcept;
-
-      NOD()       T& operator * () const noexcept requires (MUTABLE);
-      NOD() const T& operator * () const noexcept requires (not MUTABLE);
-
-      NOD()       T& operator -> () const noexcept requires (MUTABLE);
-      NOD() const T& operator -> () const noexcept requires (not MUTABLE);
-
-      // Prefix operator                                                
-      TIterator& operator ++ () noexcept;
-
-      // Suffix operator                                                
-      NOD() TIterator operator ++ (int) noexcept;
    };
 
 } // namespace Langulus::Anyness

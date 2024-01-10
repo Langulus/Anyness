@@ -35,7 +35,7 @@ namespace Langulus::Anyness
             if constexpr (CT::Typed<RHS>)
                ridx = rhs.template FindInner<RHS>(GetRawKey<RHS>(lidx));
             else
-               ridx = rhs.FindInnerUnknown(GetRawKey<RHS>(lidx));
+               ridx = rhs.template FindBlockInner<RHS>(GetRawKey<RHS>(lidx));
 
             if (ridx == InvalidOffset
             or GetRawValue<RHS>(lidx) != rhs.template GetRawValue<RHS>(ridx))
@@ -67,7 +67,7 @@ namespace Langulus::Anyness
       if constexpr (CT::Typed<RHS>)
          idx = FindInner<RHS>(rhs.mKey);
       else
-         idx = FindInnerUnknown(rhs.mKey);
+         idx = FindBlockInner(rhs.mKey);
 
       if (idx == InvalidOffset or GetRawValue<RHS>(0) != rhs.mValue)
          return false;
@@ -243,7 +243,6 @@ namespace Langulus::Anyness
    ///   @return the index, or InvalidOffset if not found                     
    template<CT::Map THIS>
    Offset BlockMap::FindInner(const CT::NotSemantic auto& match) const {
-      static_assert(CT::Typed<THIS>, "THIS can't be type-erased");
       if (IsEmpty())
          return InvalidOffset;
 
@@ -272,12 +271,10 @@ namespace Langulus::Anyness
             return InvalidOffset;
 
          // Test first candidate                                        
-         auto key = &GetRawKey<THIS>(start);
-         if (*key == match)
+         if (GetRawKey<THIS>(start) == match)
             return start;
 
          // Test all candidates on the right up until the end           
-         ++key;
          ++info;
 
          auto infoEnd = GetInfoEnd();
@@ -285,10 +282,11 @@ namespace Langulus::Anyness
             if (not *info)
                return InvalidOffset;
 
-            if (*key == match)
-               return info - GetInfo();
+            const auto i = info - GetInfo();
+            if (GetRawKey<THIS>(i) == match)
+               return i;
 
-            ++key; ++info;
+            ++info;
          }
 
          // Reached only if info has reached the end                    
@@ -297,11 +295,9 @@ namespace Langulus::Anyness
          if (not *info)
             return InvalidOffset;
 
-         key = &GetRawKey<THIS>(0);
-         if (*key == match)
+         if (GetRawKey<THIS>(0) == match)
             return 0;
 
-         ++key;
          ++info;
 
          infoEnd = GetInfo() + start;
@@ -309,10 +305,11 @@ namespace Langulus::Anyness
             if (not *info)
                return InvalidOffset;
 
-            if (*key == match)
-               return info - GetInfo();
+            const auto i = info - GetInfo();
+            if (GetRawKey<THIS>(i) == match)
+               return i;
 
-            ++key; ++info;
+            ++info;
          }
 
          // No such key was found                                       
@@ -324,8 +321,7 @@ namespace Langulus::Anyness
    ///   @param match - the key to search for                                 
    ///   @return the index, or InvalidOffset if not found                     
    template<CT::Map THIS>
-   Offset BlockMap::FindInnerUnknown(const Block& match) const {
-      static_assert(not CT::Typed<THIS>, "THIS must be type-erased");
+   Offset BlockMap::FindBlockInner(const Block& match) const {
       if (IsEmpty() or not KeyIsSimilar(match.GetType()))
          return InvalidOffset;
 

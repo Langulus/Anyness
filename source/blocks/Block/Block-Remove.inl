@@ -18,9 +18,9 @@ namespace Langulus::Anyness
    ///   @tparam REVERSE - whether to search from the back                    
    ///   @param item - the item type to search for and remove                 
    ///   @return 1 if the element was found and removed, 0 otherwise          
-   template<CT::Block THIS, bool REVERSE> LANGULUS(INLINED)
+   template<bool REVERSE, CT::Block THIS> LANGULUS(INLINED)
    Count Block::Remove(const CT::NotSemantic auto& item) {
-      const auto found = Find<THIS, REVERSE>(item);
+      const auto found = Find<REVERSE, THIS>(item);
       return found ? RemoveIndex<THIS>(found.GetOffsetUnsafe(), 1) : 0;
    }
    

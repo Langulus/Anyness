@@ -386,7 +386,7 @@ namespace Langulus::Anyness
    ///   @param values - [out] where to save the value, if found              
    ///   @return true if value changed                                        
    template<CT::Trait...T> LANGULUS(INLINED)
-   bool Neat::ExtractTrait(CT::Data auto&... values) const {
+   bool Neat::ExtractTrait(CT::Data auto&...values) const {
       return (ExtractTraitInner<T>(values...) or ...);
    }
    
@@ -395,7 +395,7 @@ namespace Langulus::Anyness
    ///   @param values - [out] where to save the value, if found              
    ///   @return true if value changed                                        
    template<CT::Trait T> LANGULUS(INLINED)
-   bool Neat::ExtractTraitInner(CT::Data auto&... values) const {
+   bool Neat::ExtractTraitInner(CT::Data auto&...values) const {
       auto found = GetTraits<T>();
       if (found) {
          return ExtractTraitInner(

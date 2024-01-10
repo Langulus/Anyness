@@ -13,7 +13,99 @@
 
 namespace Langulus::Anyness
 {
-   
+ 
+   /// Insert a pair, or an array of pairs                                    
+   ///   @param item - the argument to unfold and insert, can be semantic     
+   ///   @return the number of inserted elements after unfolding              
+   template<CT::Map THIS>
+   Count BlockMap::UnfoldInsert(auto&& item) {
+      using E = Conditional<CT::Typed<THIS>, typename THIS::Pair, Anyness::Pair>;
+      using S = SemanticOf<decltype(item)>;
+      using T = TypeOf<S>;
+      Count inserted = 0;
+
+      if constexpr (CT::Array<T>) {
+         if constexpr (not CT::TypeErased<E>) {
+            if constexpr (CT::Inner::MakableFrom<E, Deext<T>>) {
+               // Construct from an array of elements, each of which    
+               // can be used to initialize a pair, nesting any         
+               // semantic while doing it                               
+               Reserve<THIS>(GetCount() + ExtentOf<T>);
+               const auto mask = GetReserved() - 1;
+               for (auto& pair : DesemCast(item))
+                  inserted += InsertPairInner<THIS, true>(mask, S::Nest(pair));
+            }
+            else if constexpr (CT::Inner::MakableFrom<E, Unfold<Deext<T>>>) {
+               // Construct from an array of things, which can't be used
+               // to directly construct elements, so nest this insert   
+               for (auto& pair : DesemCast(item))
+                  inserted += UnfoldInsert<THIS>(S::Nest(pair));
+            }
+            else LANGULUS_ERROR("Array elements aren't insertable as pairs");
+         }
+         else {
+            // Insert the array                                         
+            Reserve<THIS>(GetCount() + ExtentOf<T>);
+            const auto mask = GetReserved() - 1;
+            for (auto& pair : DesemCast(item))
+               inserted += InsertPairInner<THIS, true>(mask, S::Nest(pair));
+         }
+      }
+      else if constexpr (not CT::TypeErased<E>) {
+         if constexpr (CT::Inner::MakableFrom<E, T>) {
+            // Some of the arguments might still be used directly to    
+            // make a pair, forward these to standard insertion here    
+            Reserve<THIS>(GetCount() + 1);
+            const auto mask = GetReserved() - 1;
+            inserted += InsertPairInner<THIS, true>(mask, S::Nest(item));
+         }
+         else if constexpr (CT::Map<T>) {
+            // Construct from any kind of map                           
+            if constexpr (CT::Typed<T>) {
+               // The contained type is known at compile-time           
+               using T2 = TypeOf<T>;
+
+               if constexpr (CT::Inner::MakableFrom<E, T2>) {
+                  // Elements are mappable                              
+                  Reserve<THIS>(GetCount() + DesemCast(item).GetCount());
+                  const auto mask = GetReserved() - 1;
+                  for (auto& pair : DesemCast(item))
+                     inserted += InsertPairInner<THIS, true>(mask, S::Nest(pair));
+               }
+               else if constexpr (CT::Inner::MakableFrom<E, Unfold<T2>>) {
+                  // Map pairs need to be unfolded one by one           
+                  for (auto& pair : DesemCast(item))
+                     inserted += UnfoldInsert<THIS>(S::Nest(pair));
+               }
+               else LANGULUS_ERROR("Maps aren't mappable to each other");
+            }
+            else {
+               // The rhs map is type-erased                            
+               LANGULUS_ASSERT(IsKeySimilar(DesemCast(item).GetKeyType()), Meta,
+                  "Key type mismatch");
+               LANGULUS_ASSERT(IsValueSimilar(DesemCast(item).GetValueType()), Meta,
+                  "Value type mismatch");
+
+               Reserve<THIS>(GetCount() + DesemCast(item).GetCount());
+               const auto mask = GetReserved() - 1;
+               for (auto& pair : DesemCast(item))
+                  inserted += InsertPairInner<THIS, true>(mask, S::Nest(pair));
+            }
+         }
+         else LANGULUS_ERROR("Can't insert argument");
+      }
+      else {
+         // This map is type-erased                                     
+         // Some of the arguments might still be used directly to       
+         // make pairs, forward these to standard insertion here        
+         Reserve<THIS>(GetCount() + 1);
+         const auto mask = GetReserved() - 1;
+         inserted += InsertPairInner<THIS, true>(mask, S::Nest(item));
+      }
+
+      return inserted;
+   }
+
    /// Manually insert pair, semantically or not                              
    ///   @param key - the key to insert                                       
    ///   @param val - the value to insert                                     
@@ -23,7 +115,7 @@ namespace Langulus::Anyness
       using SK = SemanticOf<decltype(key)>;
       using SV = SemanticOf<decltype(val)>;
 
-      Mutate<TypeOf<SK>, TypeOf<SV>>();
+      Mutate<THIS, TypeOf<SK>, TypeOf<SV>>();
       Reserve<THIS>(GetCount() + 1);
       InsertInner<THIS, true>(
          GetBucket(GetReserved() - 1, DesemCast(key)), 
@@ -41,14 +133,48 @@ namespace Langulus::Anyness
    Count BlockMap::InsertBlock(T1&& key, T2&& val) {
       using SK = SemanticOf<decltype(key)>;
       using SV = SemanticOf<decltype(val)>;
+      using KB = TypeOf<SK>;
+      using VB = TypeOf<SV>;
 
-      Mutate(DesemCast(key).mType, DesemCast(val).mType);
-      Reserve<THIS>(GetCount() + 1);
-      InsertInnerUnknown<THIS, true>(
-         GetBucketUnknown(GetReserved() - 1, DesemCast(key)),
-         SK::Nest(key), SV::Nest(val)
+      // Type checks and mutations                                      
+      if constexpr (CT::Typed<KB, VB>)
+         Mutate<THIS, TypeOf<KB>, TypeOf<VB>>();
+      else {
+         Mutate<THIS>(
+            DesemCast(key).GetType(),
+            DesemCast(val).GetType()
+         );
+      }
+
+      const auto count = ::std::min(
+         DesemCast(key).GetCount(),
+         DesemCast(val).GetCount()
       );
-      return 1;
+
+      Reserve<THIS>(GetCount() + count);
+
+      for (Offset i = 0; i < count; ++i) {
+         if constexpr (not CT::Typed<KB> or not CT::Typed<VB>) {
+            // Type-erased insertion                                    
+            auto keyBlock = DesemCast(key).GetElement(i);
+            InsertBlockInner<THIS, true>(
+               GetBucketUnknown(GetReserved() - 1, keyBlock),
+               SK::Nest(keyBlock),
+               SV::Nest(DesemCast(val).GetElement(i))
+            );
+         }
+         else {
+            // Static type insertion                                    
+            auto& keyRef = DesemCast(key)[i];
+            InsertInner<THIS, true>(
+               GetBucket(GetReserved() - 1, keyRef),
+               SK::Nest(keyRef),
+               SV::Nest(DesemCast(val)[i])
+            );
+         }
+      }
+
+      return count;
    }
 
    /// Unfold-insert pairs, semantically or not                               
@@ -176,7 +302,7 @@ namespace Langulus::Anyness
                   *oldInfo = 0;
                   --mValues.mCount;
 
-                  InsertInnerUnknown<THIS, false>(
+                  InsertBlockInner<THIS, false>(
                      newBucket, Abandon(keyswap), Abandon(valswap)
                   );
 
@@ -417,6 +543,7 @@ namespace Langulus::Anyness
    }
    
    /// Inner insertion function                                               
+   ///   @attention assumes inserted types are similar to THIS's              
    ///   @tparam CHECK_FOR_MATCH - false if you guarantee key doesn't exist   
    ///   @param start - the starting index                                    
    ///   @param key - key & semantic to insert                                
@@ -426,18 +553,19 @@ namespace Langulus::Anyness
    Offset BlockMap::InsertInner(
       const Offset start, CT::Semantic auto&& key, CT::Semantic auto&& val
    ) {
-      static_assert(CT::Typed<THIS>, "THIS must be typed");
-      using SK = Deref<decltype(key)>;
-      using SV = Deref<decltype(val)>;
-      using K = Conditional<CT::Handle<TypeOf<SK>>, TypeOf<TypeOf<SK>>, TypeOf<SK>>;
-      using V = Conditional<CT::Handle<TypeOf<SV>>, TypeOf<TypeOf<SV>>, TypeOf<SV>>;
+      using K = Conditional<CT::Typed<THIS>
+         , typename THIS::Key
+         , TypeOf<decltype(key)>>;
+      using V = Conditional<CT::Typed<THIS>
+         , typename THIS::Value
+         , TypeOf<decltype(val)>>;
       HandleLocal<K> keyswapper {key.Forward()};
       HandleLocal<V> valswapper {val.Forward()};
 
       // Get the starting index based on the key hash                   
       auto psl = GetInfo() + start;
       const auto pslEnd = GetInfoEnd();
-      InfoType attempts {1};
+      InfoType attempts = 1;
       Offset insertedAt = mValues.mReserved;
       while (*psl) {
          const auto index = psl - GetInfo();
@@ -491,13 +619,11 @@ namespace Langulus::Anyness
    ///   @return the offset at which pair was inserted                        
    template<CT::Map THIS, bool CHECK_FOR_MATCH, template<class> class S1, template<class> class S2, CT::Block T>
    requires CT::Semantic<S1<T>, S2<T>>
-   Offset BlockMap::InsertInnerUnknown(const Offset start, S1<T>&& key, S2<T>&& val) {
-      static_assert(not CT::Typed<THIS>, "THIS must not be typed");
-
+   Offset BlockMap::InsertBlockInner(const Offset start, S1<T>&& key, S2<T>&& val) {
       // Get the starting index based on the key hash                   
       auto psl = GetInfo() + start;
       const auto pslEnd = GetInfoEnd();
-      InfoType attempts {1};
+      InfoType attempts = 1;
       Offset insertedAt = mValues.mReserved;
       while (*psl) {
          const auto index = psl - GetInfo();
@@ -506,10 +632,10 @@ namespace Langulus::Anyness
             if (candidate == *key) {
                // Neat, the key already exists - just set value and go  
                GetRawValue<THIS>(index)
-                  .CallUnknownSemanticAssignment(1, val.Forward());
+                  .CallSemanticAssignment(1, val.Forward());
 
                if constexpr (S2<T>::Move) {
-                  val->CallUnknownDestructors();
+                  val->CallDestructors();
                   val->mCount = 0;
                }
 
@@ -542,20 +668,20 @@ namespace Langulus::Anyness
       // We're moving only a single element, so no chance of overlap    
       const auto index = psl - GetInfo();
       GetRawKey<THIS>(index)
-         .CallUnknownSemanticConstructors(1, key.Forward());
+         .CallSemanticConstructors(1, key.Forward());
       GetRawValue<THIS>(index)
-         .CallUnknownSemanticConstructors(1, val.Forward());
+         .CallSemanticConstructors(1, val.Forward());
 
       if (insertedAt == mValues.mReserved)
          insertedAt = index;
 
       if constexpr (S1<T>::Move) {
-         key->CallUnknownDestructors();
+         key->CallDestructors();
          key->mCount = 0;
       }
 
       if constexpr (S2<T>::Move) {
-         val->CallUnknownDestructors();
+         val->CallDestructors();
          val->mCount = 0;
       }
 
@@ -568,10 +694,12 @@ namespace Langulus::Anyness
    ///   @tparam CHECK_FOR_MATCH - false if you guarantee key doesn't exist   
    ///   @param hashmask - precalculated hashmask                             
    ///   @param pair - the semantic and pair type to insert                   
+   ///   @return the number of newly inserted pairs                           
    template<CT::Map THIS, bool CHECK_FOR_MATCH, template<class> class S, CT::Pair T>
    requires CT::Semantic<S<T>>
-   void BlockMap::InsertPairInner(const Count hashmask, S<T>&& pair) {
-      if constexpr (CT::TypedPair<T>) {
+   Count BlockMap::InsertPairInner(const Count hashmask, S<T>&& pair) {
+      const auto initialCount = GetCount();
+      if constexpr (CT::Typed<T>) {
          // Insert a statically typed pair                              
          InsertInner<THIS, CHECK_FOR_MATCH>(
             GetBucket(hashmask, pair->mKey),
@@ -581,12 +709,13 @@ namespace Langulus::Anyness
       }
       else {
          // Insert a type-erased pair                                   
-         InsertInnerUnknown<THIS, CHECK_FOR_MATCH>(
+         InsertBlockInner<THIS, CHECK_FOR_MATCH>(
             GetBucketUnknown(hashmask, pair->mKey),
             S<T>::Nest(pair->mKey),
             S<T>::Nest(pair->mValue)
          );
       }
+      return GetCount() - initialCount;
    }
 
 } // namespace Langulus::Anyness

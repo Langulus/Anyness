@@ -12,7 +12,6 @@
 
 #define TEMPLATE() template<CT::Data T, bool ORDERED>
 #define TABLE() TSet<T, ORDERED>
-#define ITERATOR() TABLE()::template TIterator<MUTABLE>
 
 
 namespace Langulus::Anyness
@@ -281,7 +280,7 @@ namespace Langulus::Anyness
    requires CT::Inner::UnfoldMakableFrom<T, T1, TAIL...> LANGULUS(INLINED)
    Count TABLE()::Insert(T1&& t1, TAIL&&...tail){
       Count inserted = 0;
-      inserted   += UnfoldInsert<TSet>(Forward<T1>(t1));
+        inserted += UnfoldInsert<TSet>(Forward<T1>(t1));
       ((inserted += UnfoldInsert<TSet>(Forward<TAIL>(tail))), ...);
       return inserted;
    }
@@ -420,7 +419,7 @@ namespace Langulus::Anyness
    ///   @return the mutable key reference                                    
    TEMPLATE()
    T& TABLE()::Get(CT::Index auto i) {
-      auto offset = mKeys.SimplifyIndex<T, true>(i);
+      auto offset = mKeys.SimplifyIndex<T>(i);
       auto info = GetInfo();
       const auto infoEnd = GetInfoEnd();
       while (info != infoEnd) {
@@ -477,13 +476,6 @@ namespace Langulus::Anyness
       return {info, GetInfoEnd(), &GetRaw(info - GetInfo())};
    }
 
-   /// Get iterator to end                                                    
-   ///   @return an iterator to the end element                               
-   TEMPLATE() LANGULUS(INLINED)
-   typename TABLE()::Iterator TABLE()::end() noexcept {
-      return {GetInfoEnd(), GetInfoEnd(), nullptr};
-   }
-
    /// Get iterator to the last element                                       
    ///   @return an iterator to the last element, or end if empty             
    TEMPLATE() LANGULUS(INLINED)
@@ -510,13 +502,6 @@ namespace Langulus::Anyness
       return {info, GetInfoEnd(), &GetRaw(info - GetInfo())};
    }
 
-   /// Get iterator to end                                                    
-   ///   @return a constant iterator to the end element                       
-   TEMPLATE() LANGULUS(INLINED)
-   typename TABLE()::ConstIterator TABLE()::end() const noexcept {
-      return {GetInfoEnd(), GetInfoEnd(), nullptr};
-   }
-
    /// Get iterator to the last valid element                                 
    ///   @return a constant iterator to the last element, or end if empty     
    TEMPLATE() LANGULUS(INLINED)
@@ -529,34 +514,12 @@ namespace Langulus::Anyness
       while (info >= GetInfo() and not *--info);
       return {info, GetInfoEnd(), &GetRaw(info - GetInfo())};
    }
-   
-   /// Access last element                                                    
-   ///   @attention assumes container has at least one item                   
-   ///   @return a mutable reference to the last element                      
-   TEMPLATE() LANGULUS(INLINED)
-   T& TABLE()::Last() {
-      LANGULUS_ASSERT(not IsEmpty(), Access, "Can't get last index");
-      auto info = GetInfoEnd();
-      while (info >= GetInfo() and not *--info);
-      return GetRaw(static_cast<Offset>(info - GetInfo()));
-   }
-
-   /// Access last element                                                    
-   ///   @attention assumes container has at least one item                   
-   ///   @return a constant reference to the last element                     
-   TEMPLATE() LANGULUS(INLINED)
-   const T& TABLE()::Last() const {
-      LANGULUS_ASSERT(not IsEmpty(), Access, "Can't get last index");
-      auto info = GetInfoEnd();
-      while (info >= GetInfo() and not *--info);
-      return GetRaw(static_cast<Offset>(info - GetInfo()));
-   }
 
    /// Iterate all keys inside the map, and perform f() on them               
    /// You can break the loop, by returning false inside f()                  
    ///   @param f - the function to call for each key block                   
    ///   @return the number of successful f() executions                      
-   TEMPLATE() template<class F>
+   /*TEMPLATE() template<class F>
    Count TABLE()::ForEachElement(F&& f) const {
       using A = ArgumentOf<F>;
       using R = ReturnOf<F>;
@@ -598,91 +561,9 @@ namespace Langulus::Anyness
                f(element);
          });
       }
-   }
-
-
-   ///                                                                        
-   ///   Unordered map iterator                                               
-   ///                                                                        
-
-   /// Construct an iterator                                                  
-   ///   @param info - the info pointer                                       
-   ///   @param sentinel - the end of info pointers                           
-   ///   @param value - pointer to the value element                          
-   TEMPLATE() template<bool MUTABLE> LANGULUS(INLINED)
-   TABLE()::TIterator<MUTABLE>::TIterator(
-      const InfoType* info, 
-      const InfoType* sentinel, 
-      const T* value
-   ) noexcept
-      : mInfo {info}
-      , mSentinel {sentinel}
-      , mValue {value} {}
-
-   /// Prefix increment operator                                              
-   ///   @attention assumes iterator points to a valid element                
-   ///   @return the modified iterator                                        
-   TEMPLATE() template<bool MUTABLE> LANGULUS(INLINED)
-   typename ITERATOR()& TABLE()::TIterator<MUTABLE>::operator ++ () noexcept {
-      if (mInfo == mSentinel)
-         return *this;
-
-      // Seek next valid info, or hit sentinel at the end               
-      const auto previous = mInfo;
-      while (not *++mInfo);
-      const auto offset = mInfo - previous;
-      mValue += offset;
-      return *this;
-   }
-
-   /// Suffix increment operator                                              
-   ///   @attention assumes iterator points to a valid element                
-   ///   @return the previous value of the iterator                           
-   TEMPLATE() template<bool MUTABLE> LANGULUS(INLINED)
-   typename ITERATOR() TABLE()::TIterator<MUTABLE>::operator ++ (int) noexcept {
-      const auto backup = *this;
-      operator ++ ();
-      return backup;
-   }
-
-   /// Compare unordered map entries                                          
-   ///   @param rhs - the other iterator                                      
-   ///   @return true if entries match                                        
-   TEMPLATE() template<bool MUTABLE> LANGULUS(INLINED)
-   bool TABLE()::TIterator<MUTABLE>::operator == (const TIterator& rhs) const noexcept {
-      return mInfo == rhs.mInfo;
-   }
-
-   /// Iterator access operator                                               
-   ///   @return a pair at the current iterator position                      
-   TEMPLATE() template<bool MUTABLE> LANGULUS(INLINED)
-   T& TABLE()::TIterator<MUTABLE>::operator * () const noexcept requires (MUTABLE) {
-      return {*const_cast<T*>(mValue)};
-   }
-
-   /// Iterator access operator                                               
-   ///   @return a pair at the current iterator position                      
-   TEMPLATE() template<bool MUTABLE> LANGULUS(INLINED)
-   const T& TABLE()::TIterator<MUTABLE>::operator * () const noexcept requires (!MUTABLE) {
-      return {*mValue};
-   }
-
-   /// Iterator access operator                                               
-   ///   @return a pair at the current iterator position                      
-   TEMPLATE() template<bool MUTABLE> LANGULUS(INLINED)
-   T& TABLE()::TIterator<MUTABLE>::operator -> () const noexcept requires (MUTABLE) {
-      return **this;
-   }
-
-   /// Iterator access operator                                               
-   ///   @return a pair at the current iterator position                      
-   TEMPLATE() template<bool MUTABLE> LANGULUS(INLINED)
-   const T& TABLE()::TIterator<MUTABLE>::operator -> () const noexcept requires (!MUTABLE) {
-      return **this;
-   }
+   }*/
 
 } // namespace Langulus::Anyness
 
-#undef ITERATOR
 #undef TEMPLATE
 #undef TABLE

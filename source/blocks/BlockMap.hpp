@@ -263,25 +263,25 @@ namespace Langulus::Anyness
 
       constexpr A::IteratorEnd end() const noexcept { return {}; }
 
-      template<CT::Map, bool REVERSE = false>
+      template<bool REVERSE = false, CT::Map>
       Count ForEach(auto&&) const;
 
-      template<CT::Map, bool REVERSE = false>
+      template<bool REVERSE = false, CT::Map>
       Count ForEachKeyElement(auto&&) const;
 
-      template<CT::Map, bool REVERSE = false>
+      template<bool REVERSE = false, CT::Map>
       Count ForEachValueElement(auto&&) const;
 
-      template<CT::Map, bool REVERSE = false>
+      template<bool REVERSE = false, CT::Map>
       Count ForEachKey(auto&&...) const;
 
-      template<CT::Map, bool REVERSE = false>
+      template<bool REVERSE = false, CT::Map>
       Count ForEachValue(auto&&...) const;
    
-      template<CT::Map, bool REVERSE = false, bool SKIP = true>
+      template<bool REVERSE = false, bool SKIP = true, CT::Map>
       Count ForEachKeyDeep(auto&&...) const;
 
-      template<CT::Map, bool REVERSE = false, bool SKIP = true>
+      template<bool REVERSE = false, bool SKIP = true, CT::Map>
       Count ForEachValueDeep(auto&&...) const;
 
    protected:
@@ -337,43 +337,43 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Comparison                                                        
       ///                                                                     
-      template<CT::Map>
+      template<CT::Map = UnorderedMap>
       bool operator == (CT::Map  auto const&) const;
-      template<CT::Map>
+      template<CT::Map = UnorderedMap>
       bool operator == (CT::Pair auto const&) const;
 
       template<CT::Map = UnorderedMap>
       NOD() Hash GetHash() const;
 
-      template<CT::Map>
+      template<CT::Map = UnorderedMap>
       NOD() bool ContainsKey(const CT::NotSemantic auto&) const;
-      template<CT::Map>
+      template<CT::Map = UnorderedMap>
       NOD() bool ContainsValue(const CT::NotSemantic auto&) const;
-      template<CT::Map>
+      template<CT::Map = UnorderedMap>
       NOD() bool ContainsPair(const CT::Pair auto&) const;
 
-      template<CT::Map>
+      template<CT::Map = UnorderedMap>
       NOD() Index Find(const CT::NotSemantic auto&) const;
-      template<CT::Map THIS>
+      template<CT::Map THIS = UnorderedMap>
       NOD() Iterator<THIS> FindIt(const CT::NotSemantic auto&);
-      template<CT::Map THIS>
+      template<CT::Map THIS = UnorderedMap>
       NOD() Iterator<const THIS> FindIt(const CT::NotSemantic auto&) const;
 
-      template<CT::Map>
+      template<CT::Map = UnorderedMap>
       NOD() decltype(auto) At(const CT::NotSemantic auto&);
-      template<CT::Map>
+      template<CT::Map = UnorderedMap>
       NOD() decltype(auto) At(const CT::NotSemantic auto&) const;
 
-      template<CT::Map>
+      template<CT::Map = UnorderedMap>
       NOD() decltype(auto) operator[] (const CT::NotSemantic auto&);
-      template<CT::Map>
+      template<CT::Map = UnorderedMap>
       NOD() decltype(auto) operator[] (const CT::NotSemantic auto&) const;
 
    protected:
       template<CT::Map>
       NOD() Offset FindInner(const CT::NotSemantic auto&) const;
       template<CT::Map>
-      NOD() Offset FindInnerUnknown(const Block&) const;
+      NOD() Offset FindBlockInner(const Block&) const;
 
    public:
       ///                                                                     
@@ -430,11 +430,14 @@ namespace Langulus::Anyness
 
       template<CT::Map, bool CHECK_FOR_MATCH, template<class> class S1, template<class> class S2, CT::Block T>
       requires CT::Semantic<S1<T>, S2<T>>
-      Offset InsertInnerUnknown(Offset, S1<T>&&, S2<T>&&);
+      Offset InsertBlockInner(Offset, S1<T>&&, S2<T>&&);
 
       template<CT::Map, bool CHECK_FOR_MATCH, template<class> class S, CT::Pair T>
       requires CT::Semantic<S<T>>
-      void InsertPairInner(Count, S<T>&&);
+      Count InsertPairInner(Count, S<T>&&);
+
+      template<CT::Map>
+      Count UnfoldInsert(auto&&);
 
    public:
       ///                                                                     
@@ -498,11 +501,11 @@ namespace Langulus::Anyness
       const VA mValue;
 
    protected:
-      friend class BlockMap;
+      friend struct BlockMap;
       const InfoType* mInfo;
-      const InfoType* mSentinel;
+      const InfoType* const mSentinel;
 
-      constexpr Iterator(const InfoType*, const InfoType*, KA&&, VA&&) noexcept;
+      constexpr Iterator(const InfoType*, const InfoType*, const KA&, const VA&) noexcept;
 
    public:
       Iterator() noexcept = delete;
@@ -513,8 +516,7 @@ namespace Langulus::Anyness
       NOD() constexpr bool operator == (const Iterator&) const noexcept;
       NOD() constexpr bool operator == (const A::IteratorEnd&) const noexcept;
 
-      NOD() constexpr TPair<Deptr<KA>&, Deptr<VA>&> operator * () const noexcept;
-      //NOD() constexpr TPair<Deptr<KA>&, Deptr<VA>&> operator -> () const noexcept;
+      NOD() constexpr auto operator * () const;
 
       // Prefix operator                                                
       constexpr Iterator& operator ++ () noexcept;

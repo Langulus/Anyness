@@ -164,6 +164,8 @@ namespace Langulus::Anyness
       NOD() Block*       GetBlockDeep(Offset) noexcept;
       NOD() Block const* GetBlockDeep(Offset) const noexcept;
 
+      NOD() Block GetElementDeep(Offset) noexcept;
+      NOD() Block GetElementDeep(Offset) const noexcept;
 
       ///                                                                     
       ///   Iteration                                                         

@@ -31,11 +31,10 @@ namespace Langulus::Anyness
       using EntryType = Conditional<Embedded and CT::Sparse<T>,
          const Allocation**, const Allocation*>;
 
-      friend class Block;
+      friend struct Block;
       /// @cond show_protected                                                
       // The value                                                      
       ValueType mValue;
-
       // The entry                                                      
       EntryType mEntry;
       /// @endcond show_protected                                             

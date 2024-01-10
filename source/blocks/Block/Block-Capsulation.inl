@@ -451,7 +451,7 @@ namespace Langulus::Anyness
    /// Check if a static type can be inserted                                 
    ///   @tparam T - the type to check                                        
    ///   @return true if able to insert an instance of the type to this block 
-   template<CT::Block THIS, CT::Data T> LANGULUS(INLINED)
+   template<CT::Data T, CT::Block THIS> LANGULUS(INLINED)
    constexpr bool Block::IsInsertable() const noexcept {
       if constexpr (CT::Typed<THIS> and (CT::Similar<TypeOf<THIS>, T>
                                      or  CT::Deep<TypeOf<THIS>, T>))
@@ -499,7 +499,7 @@ namespace Langulus::Anyness
    
    /// Get a pointer array - useful only for sparse containers                
    ///   @return the raw data as an array of pointers                         
-   template<CT::Block THIS, CT::Data T> LANGULUS(INLINED)
+   template<CT::Data T, CT::Block THIS> LANGULUS(INLINED)
    T** Block::GetRawSparseAs() IF_UNSAFE(noexcept) {
       static_assert(not CT::Typed<THIS> or CT::Sparse<TypeOf<THIS>>,
          "Interpreting as sparse data, but contains dense data");
@@ -508,9 +508,9 @@ namespace Langulus::Anyness
       return reinterpret_cast<T**>(mRawSparse);
    }
 
-   template<CT::Block THIS, CT::Data T> LANGULUS(INLINED)
+   template<CT::Data T, CT::Block THIS> LANGULUS(INLINED)
    const T* const* Block::GetRawSparseAs() const IF_UNSAFE(noexcept) {
-      return const_cast<Block*>(this)->template GetRawSparseAs<THIS, T>();
+      return const_cast<Block*>(this)->template GetRawSparseAs<T, THIS>();
    }
    
    /// Get the raw data inside the container, reinterpreted as some type      
@@ -532,7 +532,7 @@ namespace Langulus::Anyness
    ///   @attention as unsafe as it gets, but as fast as it gets              
    ///   @tparam T - the type we're interpreting as                           
    ///   @return a pointer to the last+1 element of type T                    
-   template<CT::Block THIS, CT::Data T> LANGULUS(INLINED)
+   template<CT::Data T, CT::Block THIS> LANGULUS(INLINED)
    const T* Block::GetRawEndAs() const noexcept {
       return reinterpret_cast<const T*>(GetRawEnd<THIS>());
    }

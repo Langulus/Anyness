@@ -165,66 +165,6 @@ namespace Langulus::Anyness
 
       return *this;
    }
-   
-   /// Iterate each element block and execute F for it                        
-   ///   @tparam REVERSE - whether to iterate in reverse                      
-   ///   @param call - function to execute for each element block             
-   ///   @return the number of executions                                     
-   template<bool REVERSE> LANGULUS(INLINED)
-   Count Any::ForEachElement(auto&& call) const {
-      return Block::ForEachElement<Any, REVERSE>(
-         Forward<Deref<decltype(call)>>(call));
-   }
-
-   /// Execute functions for each element inside container                    
-   /// Each function has a distinct argument type, that is tested against the 
-   /// contained type. If argument is compatible with the type, the block is  
-   /// iterated, and F is executed for all elements. The rest of the provided 
-   /// functions are ignored, after the first function with viable argument.  
-   ///   @tparam REVERSE - whether to iterate in reverse                      
-   ///   @param calls - all potential functions to iterate with               
-   ///   @return the number of executions                                     
-   template<bool REVERSE> LANGULUS(INLINED)
-   Count Any::ForEach(auto&&...call) const {
-      return Block::ForEach<Any, REVERSE>(
-         Forward<Deref<decltype(call)>>(call)...);
-   }
-
-   /// Execute functions in each sub-block, inclusively                       
-   /// Unlike the flat variants above, this one reaches into sub-blocks.      
-   /// Each function has a distinct argument type, that is tested against the 
-   /// contained type. If argument is compatible with the type, the block is  
-   /// iterated, and F is executed for all elements. None of the provided     
-   /// functions are ignored.                                                 
-   ///   @tparam REVERSE - whether to iterate in reverse                      
-   ///   @tparam SKIP - set to false, to execute F for intermediate blocks,   
-   ///                  too; otherwise will execute only for non-blocks       
-   ///   @param calls - all potential functions to iterate with               
-   ///   @return the number of executions                                     
-   template<bool REVERSE, bool SKIP> LANGULUS(INLINED)
-   Count Any::ForEachDeep(auto&&...call) const {
-      return Block::ForEachDeep<Any, REVERSE, SKIP>(
-         Forward<Deref<decltype(call)>>(call)...);
-   }
-
-   /// Same as ForEachElement, but in reverse                                 
-   LANGULUS(INLINED) Count Any::ForEachElementRev(auto&&...call) const {
-      return Block::ForEachElementRev<Any>(
-         Forward<Deref<decltype(call)>>(call)...);
-   }
-
-   /// Same as ForEach, but in reverse                                        
-   LANGULUS(INLINED) Count Any::ForEachRev(auto&&...call) const {
-      return Block::ForEachRev<Any>(
-         Forward<Deref<decltype(call)>>(call)...);
-   }
-
-   /// Same as ForEachDeep, but in reverse                                    
-   template<bool SKIP> LANGULUS(INLINED)
-   Count Any::ForEachDeepRev(auto&&...call) const {
-      return Block::ForEachDeepRev<Any, SKIP>(
-         Forward<Deref<decltype(call)>>(call)...);
-   }
 
    /// Move-insert an element at the back                                     
    ///   @param other - the data to insert                                    
@@ -265,8 +205,8 @@ namespace Langulus::Anyness
    /// Swap two container's contents                                          
    ///   @param other - [in/out] the container to swap contents with          
    LANGULUS(INLINED)
-   void Any::Swap(Any& other) noexcept {
-      other = ::std::exchange(*this, ::std::move(other));
+   void Any::SwapBlock(CT::Block auto& other) noexcept {
+      other = ::std::exchange(*this, ::std::move(other)); //TODO sketchy, does std::exchange do what we want?
    }
 
    /// Pick a constant region and reference it from another container         
@@ -309,15 +249,6 @@ namespace Langulus::Anyness
       using S = SemanticOf<decltype(rhs)>;
       InsertBlock<Any, void>(IndexBack, S::Nest(rhs));
       return *this;
-   }
-   
-   /// Find element(s) index inside container                                 
-   ///   @tparam REVERSE - true to perform search in reverse                  
-   ///   @param item - the item to search for                                 
-   ///   @return the index of the found item, or IndexNone if none found      
-   template<bool REVERSE> LANGULUS(INLINED)
-   Index Any::Find(const CT::Data auto& item, const Offset cookie) const {
-      return Block::Find<Any, REVERSE>(item, cookie);
    }
    
    /// Construct an item of this container's type at the specified position   

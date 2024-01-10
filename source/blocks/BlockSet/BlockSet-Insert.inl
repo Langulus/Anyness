@@ -13,7 +13,7 @@
 
 namespace Langulus::Anyness
 {
-      
+
    /// Insert an element, or an array of elements                             
    ///   @param item - the argument to unfold and insert, can be semantic     
    ///   @return the number of inserted elements after unfolding              
@@ -246,7 +246,7 @@ namespace Langulus::Anyness
 
             if (oldBucket < oldCount or oldBucket - oldCount != newBucket) {
                // Move it only if it won't end up in same bucket        
-               if constexpr (CT::TypedSet<THIS>) {
+               if constexpr (CT::Typed<THIS>) {
                   using K = TypeOf<THIS>;
 
                   HandleLocal<K> keyswap {Abandon(oldKey)};
@@ -262,15 +262,15 @@ namespace Langulus::Anyness
                else {
                   Block keyswap {mKeys.GetState(), GetType()};
                   keyswap.AllocateFresh(keyswap.RequestSize<Any>(1));
-                  keyswap.CallUnknownSemanticConstructors(1, Abandon(oldKey));
+                  keyswap.CallSemanticConstructors(1, Abandon(oldKey));
                   keyswap.mCount = 1;
 
                   // Destroy the pair and info at old index             
-                  oldKey.CallUnknownDestructors();
+                  oldKey.CallDestructors();
                   *oldInfo = 0;
                   --mKeys.mCount;
 
-                  InsertInnerUnknown<THIS, false>(newBucket, Abandon(keyswap));
+                  InsertBlockInner<THIS, false>(newBucket, Abandon(keyswap));
                   keyswap.Free();
                }
             }
@@ -292,7 +292,6 @@ namespace Langulus::Anyness
    /// Shift elements left, where possible                                    
    template<CT::Set THIS>
    void BlockSet::ShiftPairs() {
-      using K = Conditional<CT::Typed<THIS>, TypeOf<THIS>, void>;
       auto oldInfo = mInfo;
       const auto newInfoEnd = GetInfoEnd();
       while (oldInfo != newInfoEnd) {
@@ -315,16 +314,16 @@ namespace Langulus::Anyness
 
             if (not mInfo[to] and attempt < *oldInfo) {
                // Empty spot found, so move element there               
-               if constexpr (CT::Void<K>) {
-                  auto key = GetInner(oldIndex);
-                  GetInner(to)
-                     .CallUnknownSemanticConstructors(1, Abandon(key));
-                  key.CallUnknownDestructors();
+               auto key   = GetHandle<THIS>(oldIndex);
+               auto tokey = GetHandle<THIS>(to);
+
+               if constexpr (CT::Typed<THIS>) {
+                  tokey.New(Abandon(key));
+                  key.Destroy();
                }
                else {
-                  auto key = GetHandle<Decvq<K>>(oldIndex);
-                  GetHandle<Decvq<K>>(to).New(Abandon(key));
-                  key.Destroy();
+                  tokey.CallSemanticConstructors(1, Abandon(key));
+                  key.CallDestructors();
                }
 
                mInfo[to] = attempt;
@@ -343,7 +342,7 @@ namespace Langulus::Anyness
    ///   @return the offset at which pair was inserted                        
    template<CT::Set THIS, bool CHECK_FOR_MATCH, template<class> class S, CT::Data T>
    requires CT::Semantic<S<T>>
-   Offset BlockSet::InsertInner(Offset start, S<T>&& key) {
+   Offset BlockSet::InsertInner(const Offset start, S<T>&& key) {
       using K = Conditional<CT::Handle<T>, TypeOf<T>, T>;
       HandleLocal<K> keyswapper {key.Forward()};
 
@@ -356,7 +355,7 @@ namespace Langulus::Anyness
          const auto index = psl - GetInfo();
 
          if constexpr (CHECK_FOR_MATCH) {
-            const auto& candidate = GetRaw<K>(index);
+            const auto& candidate = GetRaw<THIS>(index);
             if (keyswapper.Compare(candidate)) {
                // Neat, the value already exists - just return          
                return index;
@@ -365,7 +364,7 @@ namespace Langulus::Anyness
 
          if (attempts > *psl) {
             // The value we're inserting is closer to bucket, so swap   
-            GetHandle<K>(index).Swap(keyswapper);
+            GetHandle<THIS>(index).Swap(keyswapper);
             ::std::swap(attempts, *psl);
             if (insertedAt == mKeys.mReserved)
                insertedAt = index;
@@ -384,7 +383,7 @@ namespace Langulus::Anyness
       // Might not seem like it, but we gave a guarantee, that this is  
       // eventually reached, unless key exists and returns early        
       const auto index = psl - GetInfo();
-      GetHandle<K>(index).New(Abandon(keyswapper));
+      GetHandle<THIS>(index).New(Abandon(keyswapper));
       if (insertedAt == mKeys.mReserved)
          insertedAt = index;
 
@@ -400,7 +399,7 @@ namespace Langulus::Anyness
    ///   @return the offset at which pair was inserted                        
    template<CT::Set THIS, bool CHECK_FOR_MATCH, template<class> class S>
    requires CT::Semantic<S<Block>>
-   Offset BlockSet::InsertInnerUnknown(Offset start, S<Block>&& key) {
+   Offset BlockSet::InsertBlockInner(const Offset start, S<Block>&& key) {
       // Get the starting index based on the key hash                   
       auto psl = GetInfo() + start;
       const auto pslEnd = GetInfoEnd();
@@ -409,7 +408,7 @@ namespace Langulus::Anyness
       while (*psl) {
          const auto index = psl - GetInfo();
          if constexpr (CHECK_FOR_MATCH) {
-            const auto candidate = GetInner(index);
+            const auto candidate = GetHandle<THIS>(index);
             if (candidate == *key) {
                // Neat, the key already exists - just return            
                return index;
@@ -418,7 +417,11 @@ namespace Langulus::Anyness
 
          if (attempts > *psl) {
             // The pair we're inserting is closer to bucket, so swap    
-            GetInner(index).SwapInner<Any>(key.Forward());
+            if constexpr (CT::Typed<THIS>)
+               GetHandle<THIS>(index).Swap(key.Forward());
+            else
+               GetHandle<THIS>(index).SwapInner<Any>(key.Forward());
+
             ::std::swap(attempts, *psl);
             if (insertedAt == mKeys.mReserved)
                insertedAt = index;
@@ -438,14 +441,16 @@ namespace Langulus::Anyness
       // eventually reached, unless element exists and returns early    
       // We're moving only a single element, so no chance of overlap    
       const auto index = psl - GetInfo();
-      GetInner(index)
-         .CallUnknownSemanticConstructors(1, key.Forward());
+      if constexpr (CT::Typed<THIS>)
+         GetHandle<THIS>(index).New(key.Forward());
+      else
+         GetHandle<THIS>(index).CallSemanticConstructors(key.Forward());
 
       if (insertedAt == mKeys.mReserved)
          insertedAt = index;
 
       if constexpr (S<Block>::Move) {
-         key->CallUnknownDestructors();
+         key->CallDestructors();
          key->mCount = 0;
       }
 

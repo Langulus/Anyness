@@ -97,36 +97,57 @@ namespace Langulus::Anyness
       NOD() ConstIterator last() const noexcept;
 
       template<bool REVERSE = false>
-      Count ForEachElement(auto&&);
+      Count ForEach(auto&&) const;
       template<bool REVERSE = false>
-      Count ForEachElement(auto&&) const;
-      
-      template<bool REVERSE = false>
-      Count ForEach(auto&&...);
-      template<bool REVERSE = false>
-      Count ForEach(auto&&...) const;
-   
-      template<bool REVERSE = false, bool SKIP = true>
-      Count ForEachDeep(auto&&...);
-      template<bool REVERSE = false, bool SKIP = true>
-      Count ForEachDeep(auto&&...) const;
-      
-      Count ForEachElementRev(auto&&...);
-      Count ForEachElementRev(auto&&...) const;
+      Count ForEach(auto&&);
 
-      Count ForEachRev(auto&&...);
-      Count ForEachRev(auto&&...) const;
+      template<bool REVERSE = false>
+      Count ForEachKeyElement(auto&&) const;
+      template<bool REVERSE = false>
+      Count ForEachKeyElement(auto&&);
 
-      template<bool SKIP = true>
-      Count ForEachDeepRev(auto&&...);
-      template<bool SKIP = true>
-      Count ForEachDeepRev(auto&&...) const;
+      template<bool REVERSE = false>
+      Count ForEachValueElement(auto&&) const;
+      template<bool REVERSE = false>
+      Count ForEachValueElement(auto&&);
+
+      template<bool REVERSE = false>
+      Count ForEachKey(auto&&...) const;
+      template<bool REVERSE = false>
+      Count ForEachKey(auto&&...);
+
+      template<bool REVERSE = false>
+      Count ForEachValue(auto&&...) const;
+      template<bool REVERSE = false>
+      Count ForEachValue(auto&&...);
+
+      template<bool REVERSE = false, bool SKIP = true>
+      Count ForEachKeyDeep(auto&&...) const;
+      template<bool REVERSE = false, bool SKIP = true>
+      Count ForEachKeyDeep(auto&&...);
+
+      template<bool REVERSE = false, bool SKIP = true>
+      Count ForEachValueDeep(auto&&...) const;
+      template<bool REVERSE = false, bool SKIP = true>
+      Count ForEachValueDeep(auto&&...);
 
       ///                                                                     
       ///   Insertion                                                         
       ///                                                                     
       Map& operator << (CT::Inner::UnfoldInsertable auto&&);
       Map& operator >> (CT::Inner::UnfoldInsertable auto&&);
+
+      ///                                                                     
+      ///   Removal                                                           
+      ///                                                                     
+      Count RemoveKey(const CT::NotSemantic auto&);
+      Count RemoveValue(const CT::NotSemantic auto&);
+      Count RemovePair(const CT::Pair auto&);
+      Iterator RemoveIt(const Iterator&);
+
+      void Clear();
+      void Reset();
+      void Compact();
    };
 
 } // namespace Langulus::Anyness

@@ -175,8 +175,7 @@ namespace Langulus::Anyness
    /// only provides the functionality to do so. You can use Block as a       
    /// lightweight intermediate structure for iteration, etc.                 
    ///                                                                        
-   class Block : public A::Block {
-   public:
+   struct Block : A::Block {
       LANGULUS(ABSTRACT) false;
 
       static constexpr bool Ownership = false;
@@ -216,7 +215,6 @@ namespace Langulus::Anyness
       template<class, bool>
       friend struct ::Langulus::Flow::ArithmeticVerb;
 
-   public:
       ///                                                                     
       ///   Construction & Assignment                                         
       ///                                                                     
@@ -246,7 +244,7 @@ namespace Langulus::Anyness
 
       NOD() constexpr explicit operator bool() const noexcept;
 
-      template<CT::Block>
+      template<CT::Block = Any>
       NOD() bool Owns(const void*) const noexcept;
       NOD() constexpr bool HasAuthority() const noexcept;
       NOD() constexpr Count GetUses() const noexcept;
@@ -254,7 +252,7 @@ namespace Langulus::Anyness
       NOD() constexpr DMeta GetType() const noexcept;
       NOD() constexpr Count GetCount() const noexcept;
       NOD() constexpr Count GetReserved() const noexcept;
-      template<CT::Block>
+      template<CT::Block = Any>
       NOD() constexpr Size GetReservedSize() const noexcept;
       template<CT::Block = Any>
       NOD() Count GetCountDeep() const noexcept;
@@ -280,36 +278,36 @@ namespace Langulus::Anyness
       NOD() constexpr bool IsEmpty() const noexcept;
       NOD() constexpr bool IsValid() const noexcept;
       NOD() constexpr bool IsInvalid() const noexcept;
-      template<CT::Block>
+      template<CT::Block = Any>
       NOD() constexpr bool IsDense() const noexcept;
-      template<CT::Block>
+      template<CT::Block = Any>
       NOD() constexpr bool IsSparse() const noexcept;
-      template<CT::Block>
+      template<CT::Block = Any>
       NOD() constexpr bool IsPOD() const noexcept;
       template<CT::Block = Any>
       NOD() constexpr bool IsResolvable() const noexcept;
       template<CT::Block = Any>
       NOD() constexpr bool IsDeep() const noexcept;
-      template<CT::Block>
+      template<CT::Block = Any>
       NOD() constexpr bool IsBlock() const noexcept;
       NOD() constexpr bool CanFitPhase(const Block&) const noexcept;
-      template<CT::Block>
+      template<CT::Block = Any>
       NOD() constexpr bool CanFitState(const Block&) const noexcept;
       NOD() constexpr bool CanFitOrAnd(const Block&) const noexcept;
-      template<CT::Block>
+      template<CT::Block = Any>
       NOD() constexpr Count GetBytesize() const noexcept;
       NOD() constexpr Token GetToken() const noexcept;
-      template<CT::Block>
+      template<CT::Block = Any>
       NOD() constexpr Size GetStride() const noexcept;
       NOD() constexpr DataState GetState() const noexcept;
       NOD() constexpr DataState GetUnconstrainedState() const noexcept;
-      template<CT::Block>
+      template<CT::Block = Any>
       NOD() constexpr bool IsMissingDeep() const;
-      template<CT::Block>
+      template<CT::Block = Any>
       NOD() constexpr bool IsConcatable(const CT::Block auto&) const noexcept;
-      template<CT::Block>
+      template<CT::Block = Any>
       NOD() constexpr bool IsInsertable(DMeta) const noexcept;
-      template<CT::Block, CT::Data>
+      template<CT::Data, CT::Block = Any>
       NOD() constexpr bool IsInsertable() const noexcept;
 
       constexpr void MakeStatic(bool enable = true) noexcept;
@@ -339,12 +337,12 @@ namespace Langulus::Anyness
       NOD() T*       GetRawAs() noexcept;
       template<CT::Data T>
       NOD() T const* GetRawAs() const noexcept;
-      template<CT::Block, CT::Data T>
+      template<CT::Data T, CT::Block>
       NOD() T const* GetRawEndAs() const noexcept;
 
-      template<CT::Block, CT::Data T>
+      template<CT::Data T, CT::Block>
       NOD() T**             GetRawSparseAs()       IF_UNSAFE(noexcept);
-      template<CT::Block, CT::Data T>
+      template<CT::Data T, CT::Block>
       NOD() T const* const* GetRawSparseAs() const IF_UNSAFE(noexcept);
 
       template<CT::Block>
@@ -356,9 +354,8 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Indexing                                                          
       ///                                                                     
-      template<bool COUNT_CONSTRAINED = true>
       NOD() constexpr Index Constrain(Index) const noexcept;
-      template<CT::Data, bool COUNT_CONSTRAINED = true>
+      template<CT::Data>
       NOD() Index ConstrainMore(Index) const IF_UNSAFE(noexcept);
 
       NOD() IF_UNSAFE(constexpr)
@@ -379,13 +376,13 @@ namespace Langulus::Anyness
       template<CT::Data>
       NOD() decltype(auto) As(CT::Index auto) const;
 
-      template<CT::Data T> NOD() LANGULUS(INLINED)
-      decltype(auto) As() {
+      template<CT::Data T>
+      NOD() LANGULUS(INLINED) decltype(auto) As() {
          return As<T>(0);
       }
 
-      template<CT::Data T> NOD() LANGULUS(INLINED)
-      decltype(auto) As() const {
+      template<CT::Data T>
+      NOD() LANGULUS(INLINED) decltype(auto) As() const {
          return As<T>(0);
       }
 
@@ -423,9 +420,9 @@ namespace Langulus::Anyness
       template<CT::Block = Any>
       NOD() Block const* GetBlockDeep(Offset) const noexcept;
    
-      template<CT::Block>
+      template<CT::Block = Any>
       NOD() Block GetElementDeep(Offset) noexcept;
-      template<CT::Block>
+      template<CT::Block = Any>
       NOD() Block GetElementDeep(Offset) const noexcept;
 
       template<CT::Block>
@@ -462,7 +459,7 @@ namespace Langulus::Anyness
       NOD() Block Next() const IF_UNSAFE(noexcept);
       NOD() Block Prev() const IF_UNSAFE(noexcept);
 
-      template<class, bool COUNT_CONSTRAINED = true, CT::Index INDEX>
+      template<class, CT::Index INDEX>
       Offset SimplifyIndex(INDEX) const
       noexcept(not LANGULUS_SAFE() and CT::BuiltinInteger<INDEX>);
 
@@ -485,22 +482,22 @@ namespace Langulus::Anyness
 
       constexpr A::IteratorEnd end() const noexcept { return {}; }
 
-      template<CT::Block, bool REVERSE = false>
+      template<bool REVERSE = false, CT::Block = Any>
       Count ForEachElement(auto&&) const;
       
-      template<CT::Block, bool REVERSE = false>
+      template<bool REVERSE = false, CT::Block = Any>
       Count ForEach(auto&&...) const;
    
-      template<CT::Block, bool REVERSE = false, bool SKIP = true>
+      template<bool REVERSE = false, bool SKIP = true, CT::Block = Any>
       Count ForEachDeep(auto&&...) const;
       
-      template<CT::Block>
+      template<CT::Block = Any>
       Count ForEachElementRev(auto&&...) const;
       
-      template<CT::Block>
+      template<CT::Block = Any>
       Count ForEachRev(auto&&...) const;
 
-      template<CT::Block, bool SKIP = true>
+      template<bool SKIP = true, CT::Block = Any>
       Count ForEachDeepRev(auto&&...) const;
 
    protected:
@@ -578,9 +575,9 @@ namespace Langulus::Anyness
       template<CT::Block>
       NOD() Block GetMember(::std::nullptr_t, CT::Index auto) const;
    
-      template<CT::Block, bool CONSTRAIN = false>
+      template<bool CONSTRAIN = false, CT::Block>
       void SetType(DMeta);
-      template<CT::Block, CT::Data, bool CONSTRAIN = false>
+      template<CT::Data, bool CONSTRAIN = false, CT::Block>
       void SetType();
 
    protected:
@@ -596,6 +593,7 @@ namespace Langulus::Anyness
       Offset SimplifyMemberIndex(const INDEX&) const
       noexcept(not LANGULUS_SAFE() and CT::BuiltinInteger<INDEX>);
 
+   IF_LANGULUS_TESTING(public:)
       NOD() Block GetBaseMemory(DMeta, const RTTI::Base&);
       NOD() Block GetBaseMemory(DMeta, const RTTI::Base&) const;
       NOD() Block GetBaseMemory(const RTTI::Base&);
@@ -608,19 +606,19 @@ namespace Langulus::Anyness
       template<CT::Block = Any>
       bool operator == (const CT::NotSemantic auto&) const;
 
-      template<CT::Block = Any, bool RESOLVE = true>
+      template<bool RESOLVE = true, CT::Block = Any>
       NOD() bool Compare(const CT::Block auto&) const;
       template<CT::Block = Any>
       NOD() Hash GetHash() const;
 
-      template<CT::Block = Any, bool REVERSE = false>
+      template<bool REVERSE = false, CT::Block = Any>
       NOD() Index Find(const CT::NotSemantic auto&, Offset = 0) const noexcept;
       template<CT::Block THIS = Any>
       NOD() Iterator<THIS> FindIt(const CT::NotSemantic auto&);
       template<CT::Block THIS = Any>
       NOD() Iterator<const THIS> FindIt(const CT::NotSemantic auto&) const;
 
-      template<CT::Block = Any, bool REVERSE = false>
+      template<bool REVERSE = false, CT::Block = Any>
       NOD() Index FindBlock(const CT::Block auto&, Offset = 0) const noexcept;
 
    protected:
@@ -714,12 +712,12 @@ namespace Langulus::Anyness
       requires CT::Semantic<S<Block>>
       void SwapInner(S<Block>&&);
 
-      template<CT::Block, class FORCE, bool MOVE_ASIDE, class T = void, template<class> class S>
-      requires CT::Semantic<S<Block>>
-      void InsertContiguousInner(CT::Index auto, S<Block>&&);
-
       template<CT::Block, class FORCE, bool MOVE_ASIDE>
       void InsertInner(CT::Index auto, auto&&);
+
+      template<CT::Block, class FORCE, bool MOVE_ASIDE, class T = void, template<class> class S>
+      requires CT::Semantic<S<Block>>
+      void InsertBlockInner(CT::Index auto, S<Block>&&);
 
       template<CT::Block, class... A>
       void EmplaceInner(const Block&, Count, A&&...);
@@ -758,15 +756,15 @@ namespace Langulus::Anyness
       requires CT::Semantic<S<Block>>
       void ShallowBatchPointerConstruction(Count, S<Block>&&) const;
 
+   public:
       template<CT::Block, template<class> class S>
       requires CT::Semantic<S<Block>>
       void CallSemanticAssigners(Count, S<Block>&&) const;
 
-   public:
       ///                                                                     
       ///   Removal                                                           
       ///                                                                     
-      template<CT::Block = Any, bool REVERSE = false>
+      template<bool REVERSE = false, CT::Block = Any>
       Count Remove(const CT::NotSemantic auto&);
       template<CT::Block = Any>
       Count RemoveIndex(CT::Index auto, Count = 1);
@@ -949,8 +947,8 @@ namespace Langulus::Anyness
       NOD() constexpr bool operator == (const Iterator&) const noexcept;
       NOD() constexpr bool operator == (const A::IteratorEnd&) const noexcept;
 
-      NOD() constexpr Deptr<TypeInner>& operator * () const noexcept;
-      NOD() constexpr TypeInner& operator -> () const noexcept;
+      NOD() constexpr decltype(auto) operator *  () const noexcept;
+      NOD() constexpr decltype(auto) operator -> () const noexcept;
 
       // Prefix operator                                                
       constexpr Iterator& operator ++ () noexcept;

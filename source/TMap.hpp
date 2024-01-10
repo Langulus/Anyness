@@ -85,7 +85,6 @@ namespace Langulus::Anyness
       requires CT::DeepMapAssignable<K, V, T1>
       TMap& operator = (T1&&);
 
-   public:
       ///                                                                     
       ///   Capsulation                                                       
       ///                                                                     
@@ -287,8 +286,13 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Removal                                                           
       ///                                                                     
-      Count RemoveKey(const K&);
-      Count RemoveValue(const V&);
+      template<CT::NotSemantic K1> requires CT::Inner::Comparable<K, K1>
+      Count RemoveKey(const K1&);
+      template<CT::NotSemantic V1> requires CT::Inner::Comparable<V, V1>
+      Count RemoveValue(const V1&);
+      template<CT::Pair P> requires CT::Inner::Comparable<TPair<K, V>, P>
+      Count RemovePair(const P&);
+
       Iterator RemoveIt(const Iterator&);
 
       void Clear();

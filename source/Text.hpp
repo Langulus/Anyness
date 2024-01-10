@@ -124,6 +124,7 @@ namespace Langulus::Anyness
       bool operator == (const CompatibleStdStringView&) const noexcept;
       bool operator == (const Letter*) const noexcept;
       bool operator == (const Letter&) const noexcept;
+      bool operator == (::std::nullptr_t) const noexcept;
 
       NOD() bool FindOffset(const Text&, Offset&) const;
       NOD() bool FindOffsetReverse(const Text&, Offset&) const;

@@ -14,7 +14,6 @@
 
 #define TEMPLATE() template<CT::Data K, CT::Data V, bool ORDERED>
 #define TABLE() TMap<K, V, ORDERED>
-#define ITERATOR() TABLE()::template TIterator<MUTABLE>
 
 
 namespace Langulus::Anyness
@@ -49,7 +48,7 @@ namespace Langulus::Anyness
    ///   @param tail - tail of elements (optional)                            
    TEMPLATE() template<class T1, class...TAIL>
    requires CT::DeepMapMakable<K, V, T1, TAIL...> LANGULUS(INLINED)
-   TABLE()::TMap(T1&& t1, TAIL&&... tail) {
+   TABLE()::TMap(T1&& t1, TAIL&&...tail) {
       if constexpr (sizeof...(TAIL) == 0) {
          using S = SemanticOf<T1>;
          using ST = TypeOf<S>;
@@ -60,7 +59,7 @@ namespace Langulus::Anyness
                using STT = TypeOf<ST>;
                if constexpr (CT::Similar<Pair, STT>) {
                   // Type is binary compatible, just transfer           
-                  BlockTransfer<TMap>(S::Nest(t1));
+                  BlockMap::BlockTransfer<TMap>(S::Nest(t1));
                }
                else InsertPair(Forward<T1>(t1));
             }
@@ -71,7 +70,7 @@ namespace Langulus::Anyness
                   // If types are exactly the same, it is safe to       
                   // absorb the map, essentially converting a type-     
                   // erased Map back to its TMap equivalent             
-                  BlockTransfer<TMap>(S::Nest(t1));
+                  BlockMap::BlockTransfer<TMap>(S::Nest(t1));
                }
                else InsertPair(Forward<T1>(t1));
             }
@@ -124,7 +123,7 @@ namespace Langulus::Anyness
       else {
          // Unfold-insert                                               
          BlockMap::ClearInner<TMap>();
-         UnfoldInsert<TMap>(S::Nest(rhs));
+         BlockMap::UnfoldInsert<TMap>(S::Nest(rhs));
       }
 
       return *this;
@@ -352,16 +351,7 @@ namespace Langulus::Anyness
    TEMPLATE() template<class K1, class V1>
    requires (CT::Inner::MakableFrom<K, K1> and CT::Inner::MakableFrom<V, V1>)
    LANGULUS(INLINED) Count TABLE()::Insert(K1&& key, V1&& val) {
-      using SK = SemanticOf<decltype(key)>;
-      using SV = SemanticOf<decltype(val)>;
-
-      Mutate<TypeOf<SK>, TypeOf<SV>>();
-      Reserve(GetCount() + 1);
-      InsertInner<TMap, true>(
-         GetBucket(GetReserved() - 1, DesemCast(key)),
-         SK::Nest(key), SV::Nest(val)
-      );
-      return 1;
+      return BlockMap::Insert<TMap>(Forward<K1>(key), Forward<V1>(val));
    }
    
    /// Insert pair(s) by manually providing key and value blocks              
@@ -369,53 +359,9 @@ namespace Langulus::Anyness
    ///   @param key - the key block to insert                                 
    ///   @param val - the value block to insert                               
    ///   @return the number of inserted pairs                                 
-   TEMPLATE() LANGULUS(INLINED)
-   Count TABLE()::InsertBlock(auto&& key, auto&& val) {
-      using SK = SemanticOf<decltype(key)>;
-      using SV = SemanticOf<decltype(val)>;
-      using KB = TypeOf<SK>;
-      using VB = TypeOf<SV>;
-      static_assert(CT::Block<KB>, "Key type must be a block type");
-      static_assert(CT::Block<VB>, "Value type must be a block type");
-
-      if constexpr (not CT::Typed<KB> or not CT::Typed<VB>) {
-         // Run-time type check required                                
-         Mutate(DesemCast(key).GetType(),
-                DesemCast(val).GetType());
-      }
-      else {
-         // Compile-time type check                                     
-         static_assert(CT::Inner::MakableFrom<K, TypeOf<KB>>,
-            "Key is not constructible from the provided key block");
-         static_assert(CT::Inner::MakableFrom<V, TypeOf<VB>>,
-            "Value is not constructible from the provided value block");
-      }
-
-      const auto count = ::std::min(DesemCast(key).GetCount(),
-                                    DesemCast(val).GetCount());
-      Reserve(GetCount() + count);
-
-      for (Offset i = 0; i < count; ++i) {
-         if constexpr (not CT::Typed<KB> or not CT::Typed<VB>) {
-            // Type-erased insertion                                    
-            auto keyBlock = DesemCast(key).GetElement(i);
-            InsertInnerUnknown<TMap, true>(
-               GetBucketUnknown(GetReserved() - 1, keyBlock),
-               SK::Nest(keyBlock),
-               SV::Nest(DesemCast(val).GetElement(i))
-            );
-         }
-         else {
-            // Static type insertion                                    
-            auto& keyRef = DesemCast(key)[i];
-            InsertInner<TMap, true>(
-               GetBucket(GetReserved() - 1, keyRef),
-               SK::Nest(keyRef),
-               SV::Nest(DesemCast(val)[i])
-            );
-         }
-      }
-      return count;
+   TEMPLATE() template<class K1, class V1> LANGULUS(INLINED)
+   Count TABLE()::InsertBlock(K1&& key, V1&& val) {
+      return BlockMap::InsertBlock<TMap>(Forward<K1>(key), Forward<V1>(val));
    }
 
    /// Unfold-insert pairs, semantically or not                               
@@ -425,8 +371,8 @@ namespace Langulus::Anyness
    requires CT::Inner::UnfoldMakableFrom<TPair<K, V>, T1, TAIL...>
    LANGULUS(INLINED) Count TABLE()::InsertPair(T1&& t1, TAIL&&...tail) {
       Count inserted = 0;
-        inserted += UnfoldInsert(Forward<T1>(t1));
-      ((inserted += UnfoldInsert(Forward<TAIL>(tail))), ...);
+        inserted += BlockMap::UnfoldInsert<TMap>(Forward<T1>(t1));
+      ((inserted += BlockMap::UnfoldInsert<TMap>(Forward<TAIL>(tail))), ...);
       return inserted;
    }
 
@@ -517,17 +463,28 @@ namespace Langulus::Anyness
    /// Erase a pair via key                                                   
    ///   @param key - the key to search for                                   
    ///   @return 1 if key was found and pair was removed                      
-   TEMPLATE() LANGULUS(INLINED)
-   Count TABLE()::RemoveKey(const K& key) {
+   TEMPLATE() template<CT::NotSemantic K1>
+   requires CT::Inner::Comparable<K, K1> LANGULUS(INLINED)
+   Count TABLE()::RemoveKey(const K1& key) {
       return BlockMap::RemoveKey<TMap>(key);
    }
 
    /// Erase all pairs with a given value                                     
    ///   @param value - the match to search for                               
    ///   @return the number of removed pairs                                  
-   TEMPLATE() LANGULUS(INLINED)
-   Count TABLE()::RemoveValue(const V& value) {
+   TEMPLATE() template<CT::NotSemantic V1>
+   requires CT::Inner::Comparable<V, V1> LANGULUS(INLINED)
+   Count TABLE()::RemoveValue(const V1& value) {
       return BlockMap::RemoveValue<TMap>(value);
+   }
+     
+   /// Erase all pairs matching a pair                                        
+   ///   @param value - the match to search for                               
+   ///   @return the number of removed pairs                                  
+   TEMPLATE() template<CT::Pair P>
+   requires CT::Inner::Comparable<TPair<K, V>, P> LANGULUS(INLINED)
+   Count TABLE()::RemovePair(const P& pair) {
+      return BlockMap::RemovePair<TMap>(pair);
    }
      
    /// Safely erases element at a specific iterator                           
@@ -536,25 +493,25 @@ namespace Langulus::Anyness
    ///   @param index - the index to remove                                   
    ///   @return the iterator of the previous element, unless index is the    
    ///           first, or at the end already                                 
-   TEMPLATE()
+   TEMPLATE() LANGULUS(INLINED)
    typename TABLE()::Iterator TABLE()::RemoveIt(const Iterator& index) {
       return BlockMap::RemoveIt<TMap>(index);
    }
 
    /// Destroy all contained pairs, but don't deallocate                      
-   TEMPLATE()
+   TEMPLATE() LANGULUS(INLINED)
    void TABLE()::Clear() {
       return BlockMap::Clear<TMap>();
    }
 
    /// Destroy all contained pairs and deallocate                             
-   TEMPLATE()
+   TEMPLATE() LANGULUS(INLINED)
    void TABLE()::Reset() {
       return BlockMap::Reset<TMap>();
    }
 
    /// Reduce reserved size, depending on number of contained elements        
-   TEMPLATE()
+   TEMPLATE() LANGULUS(INLINED)
    void TABLE()::Compact() {
       return BlockMap::Compact<TMap>();
    }
@@ -643,9 +600,7 @@ namespace Langulus::Anyness
    TEMPLATE() template<CT::NotSemantic K1>
    requires ::std::equality_comparable_with<K, K1> LANGULUS(INLINED)
    decltype(auto) TABLE()::At(K1 const& key) {
-      const auto found = FindInner<TMap>(key);
-      LANGULUS_ASSERT(found != InvalidOffset, OutOfRange, "Key not found");
-      return GetRawValue(found);
+      return BlockMap::At<TMap>(key);
    }
    
    /// Returns a reference to the value found for key (const)                 
@@ -655,7 +610,7 @@ namespace Langulus::Anyness
    TEMPLATE() template<CT::NotSemantic K1>
    requires ::std::equality_comparable_with<K, K1> LANGULUS(INLINED)
    decltype(auto) TABLE()::At(K1 const& key) const {
-      return const_cast<TABLE()*>(this)->At(key);
+      return BlockMap::At<TMap>(key);
    }
 
    /// Access value by key                                                    
@@ -664,7 +619,7 @@ namespace Langulus::Anyness
    TEMPLATE() template<CT::NotSemantic K1>
    requires ::std::equality_comparable_with<K, K1> LANGULUS(INLINED)
    decltype(auto) TABLE()::operator[] (K1 const& key) {
-      return At(key);
+      return BlockMap::operator [] <TMap>(key);
    }
 
    /// Access value by key                                                    
@@ -673,7 +628,7 @@ namespace Langulus::Anyness
    TEMPLATE() template<CT::NotSemantic K1>
    requires ::std::equality_comparable_with<K, K1> LANGULUS(INLINED)
    decltype(auto) TABLE()::operator[] (K1 const& key) const {
-      return At(key);
+      return BlockMap::operator [] <TMap>(key);
    }
 
    /// Get a key at an index                                                  
@@ -881,140 +836,7 @@ namespace Langulus::Anyness
       return BlockMap::ForEachValueDeep<TMap, REVERSE, SKIP>(Forward<F>(calls)...);
    }
 
-
-   ///                                                                        
-   ///   Unordered map iterator                                               
-   ///                                                                        
-
-   /// Construct from a mutable iterator                                      
-   ///   @param other - the mutable iterator                                  
-   /*TEMPLATE()
-   template<bool MUTABLE>
-   LANGULUS(INLINED)
-   TABLE()::TIterator<MUTABLE>::TIterator(const TIterator<true>& other) noexcept
-      : mInfo {other.mInfo}
-      , mSentinel {other.mSentinel}
-      , mKey {other.mKey}
-      , mValue {other.mValue} {}
-
-   /// Construct an iterator                                                  
-   ///   @param info - the info pointer                                       
-   ///   @param sentinel - the end of info pointers                           
-   ///   @param key - pointer to the key element                              
-   ///   @param value - pointer to the value element                          
-   TEMPLATE()
-   template<bool MUTABLE>
-   LANGULUS(INLINED)
-   TABLE()::TIterator<MUTABLE>::TIterator(
-      const InfoType* info, 
-      const InfoType* sentinel, 
-      const K* key, 
-      const V* value
-   ) noexcept
-      : mInfo {info}
-      , mSentinel {sentinel}
-      , mKey {key}
-      , mValue {value} {}
-
-   TEMPLATE()
-   template<bool MUTABLE>
-   LANGULUS(INLINED)
-   TABLE()::TIterator<MUTABLE>& TABLE()::TIterator<MUTABLE>::operator = (const TABLE()::TIterator<MUTABLE>& rhs) noexcept {
-      mInfo = rhs.mInfo;
-      mSentinel = rhs.mSentinel;
-      mKey = rhs.mKey;
-      mValue = rhs.mValue;
-      return *this;
-   }
-
-   /// Prefix increment operator                                              
-   ///   @attention assumes iterator points to a valid element                
-   ///   @return the modified iterator                                        
-   TEMPLATE()
-   template<bool MUTABLE>
-   LANGULUS(INLINED)
-   typename ITERATOR()& TABLE()::TIterator<MUTABLE>::operator ++ () noexcept {
-      if (mInfo == mSentinel)
-         return *this;
-
-      // Seek next valid info, or hit sentinel at the end               
-      const auto previous = mInfo;
-      while (not *++mInfo)
-         ;
-      const auto offset = mInfo - previous;
-      mKey += offset;
-      mValue += offset;
-      return *this;
-   }
-
-   /// Suffix increment operator                                              
-   ///   @attention assumes iterator points to a valid element                
-   ///   @return the previous value of the iterator                           
-   TEMPLATE()
-   template<bool MUTABLE>
-   LANGULUS(INLINED)
-   typename ITERATOR() TABLE()::TIterator<MUTABLE>::operator ++ (int) noexcept {
-      const auto backup = *this;
-      operator ++ ();
-      return backup;
-   }
-
-   /// Compare unordered map entries                                          
-   ///   @param rhs - the other iterator                                      
-   ///   @return true if entries match                                        
-   TEMPLATE()
-   template<bool MUTABLE>
-   LANGULUS(INLINED)
-   bool TABLE()::TIterator<MUTABLE>::operator == (const TIterator& rhs) const noexcept {
-      return mInfo == rhs.mInfo;
-   }
-
-   /// Iterator access operator                                               
-   ///   @return a pair at the current iterator position                      
-   TEMPLATE()
-   template<bool MUTABLE>
-   LANGULUS(INLINED)
-   typename TABLE()::PairRef TABLE()::TIterator<MUTABLE>::operator * () const noexcept requires (MUTABLE) {
-      return {*const_cast<K*>(mKey), *const_cast<V*>(mValue)};
-   }
-
-   /// Iterator access operator                                               
-   ///   @return a pair at the current iterator position                      
-   TEMPLATE()
-   template<bool MUTABLE>
-   LANGULUS(INLINED)
-   typename TABLE()::PairConstRef TABLE()::TIterator<MUTABLE>::operator * () const noexcept requires (not MUTABLE) {
-      return {*mKey, *mValue};
-   }
-
-   /// Iterator access operator                                               
-   ///   @return a pair at the current iterator position                      
-   TEMPLATE()
-   template<bool MUTABLE>
-   LANGULUS(INLINED)
-   typename TABLE()::PairRef TABLE()::TIterator<MUTABLE>::operator -> () const noexcept requires (MUTABLE) {
-      return **this;
-   }
-
-   /// Iterator access operator                                               
-   ///   @return a pair at the current iterator position                      
-   TEMPLATE()
-   template<bool MUTABLE>
-   LANGULUS(INLINED)
-   typename TABLE()::PairConstRef TABLE()::TIterator<MUTABLE>::operator -> () const noexcept requires (not MUTABLE) {
-      return **this;
-   }
-
-   /// Explicit bool operator, to check if iterator is valid                  
-   TEMPLATE()
-   template<bool MUTABLE>
-   LANGULUS(INLINED)
-   constexpr TABLE()::TIterator<MUTABLE>::operator bool() const noexcept {
-      return mInfo != mSentinel;
-   }*/
-
 } // namespace Langulus::Anyness
 
-#undef ITERATOR
 #undef TEMPLATE
 #undef TABLE

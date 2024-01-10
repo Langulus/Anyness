@@ -76,16 +76,15 @@ namespace Langulus::Anyness
          if constexpr (CT::Typed<FROM> or CT::Typed<TO>) {
             using B = Conditional<CT::Typed<FROM>, FROM, TO>;
             auto asFrom = reinterpret_cast<const B*>(&*other);
-            auto asTo = reinterpret_cast<B*>(this);
-            asTo->AllocateFresh(asFrom->GetReserved());
+            AllocateFresh<B>(asFrom->GetReserved());
 
             // Clone info array                                         
-            CopyMemory(asTo->mInfo, asFrom->mInfo, GetReserved() + 1);
+            CopyMemory(mInfo, asFrom->mInfo, GetReserved() + 1);
 
-            auto info = asTo->GetInfo();
-            const auto infoEnd = asTo->GetInfoEnd();
-            auto dstKey = asTo->GetHandle(0);
-            auto srcKey = asFrom->GetHandle(0);
+            auto info = GetInfo();
+            const auto infoEnd = GetInfoEnd();
+            auto dstKey = GetHandle<B>(0);
+            auto srcKey = asFrom->template GetHandle<B>(0);
             while (info != infoEnd) {
                if (*info)
                   dstKey.New(Clone(srcKey));
@@ -96,20 +95,18 @@ namespace Langulus::Anyness
             }
          }
          else {
-            AllocateFresh(other->GetReserved());
+            AllocateFresh<TO>(other->GetReserved());
 
             // Clone info array                                         
             CopyMemory(mInfo, other->mInfo, GetReserved() + 1);
 
             auto info = GetInfo();
             const auto infoEnd = GetInfoEnd();
-            auto dstKey = GetInner(0);
-            auto srcKey = other->GetInner(0);
+            auto dstKey = GetRaw<TO>(0);
+            auto srcKey = other->GetRaw(0);
             while (info != infoEnd) {
-               if (*info) {
-                  dstKey.CallUnknownSemanticConstructors(
-                     1, Clone(srcKey));
-               }
+               if (*info)
+                  dstKey.CallSemanticConstructors(1, Clone(srcKey));
 
                ++info;
                dstKey.Next();

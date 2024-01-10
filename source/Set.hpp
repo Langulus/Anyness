@@ -45,6 +45,32 @@ namespace Langulus::Anyness
       Set& operator = (CT::Inner::UnfoldInsertable auto&&);
 
       ///                                                                     
+      ///   Iteration                                                         
+      ///                                                                     
+      using Iterator = BlockSet::Iterator<Set>;
+      using ConstIterator = BlockSet::Iterator<const Set>;
+
+      NOD() Iterator begin() noexcept;
+      NOD() Iterator last() noexcept;
+      NOD() ConstIterator begin() const noexcept;
+      NOD() ConstIterator last() const noexcept;
+
+      template<bool REVERSE = false>
+      Count ForEach(auto&&...);
+      template<bool REVERSE = false>
+      Count ForEach(auto&&...) const;
+
+      template<bool REVERSE = false>
+      Count ForEachElement(auto&&);
+      template<bool REVERSE = false>
+      Count ForEachElement(auto&&) const;
+      
+      template<bool REVERSE = false, bool SKIP = true>
+      Count ForEachDeep(auto&&...);
+      template<bool REVERSE = false, bool SKIP = true>
+      Count ForEachDeep(auto&&...) const;
+
+      ///                                                                     
       ///   Insertion                                                         
       ///                                                                     
       Set& operator << (CT::Inner::UnfoldInsertable auto&&);

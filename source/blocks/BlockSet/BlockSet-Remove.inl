@@ -70,19 +70,13 @@ namespace Langulus::Anyness
 
       // Destroy the key and info at the start                          
       // Use statically typed optimizations where possible              
-      auto key = [this, &index]{
-         if constexpr (CT::Void<K>) {
-            auto key = GetInner(index);
-            key.CallUnknownDestructors();
-            key.Next();
-            return key;
-         }
-         else {
-            auto key = GetHandle<K>(index);
-            (key++).Destroy();
-            return key;
-         }
-      }();
+      auto key = GetHandle<THIS>(index);
+      if constexpr (CT::TypeErased<K>)
+         (key++).Destroy();
+      else {
+         key.CallUnknownDestructors();
+         key.Next();
+      }
 
       *(psl++) = 0;
 
@@ -98,7 +92,7 @@ namespace Langulus::Anyness
             #pragma GCC diagnostic ignored "-Wplacement-new"
          #endif
 
-         if constexpr (CT::Void<K>) {
+         if constexpr (CT::TypeErased<K>) {
             const_cast<const Block&>(key).Prev()
                .CallUnknownSemanticConstructors(1, Abandon(key));
             key.CallUnknownDestructors();
@@ -124,16 +118,16 @@ namespace Langulus::Anyness
          GetInfo()[last] = (*psl) - 1;
 
          // Shift first entry to the back                               
-         if constexpr (CT::Void<K>) {
-            key = GetInner(0);
-            GetInner(last)
-               .CallUnknownSemanticConstructors(1, Abandon(key));
-            key.CallUnknownDestructors();
+         key = GetHandle<THIS>(0);
+         auto lastkey = GetHandle<THIS>(last);
+
+         if constexpr (CT::TypeErased<K>) {
+            lastkey.CallSemanticConstructors(1, Abandon(key));
+            key.CallDestructors();
             key.Next();
          }
          else {
-            key = GetHandle<K>(0);
-            GetHandle<K>(last).New(Abandon(key));
+            lastkey.New(Abandon(key));
             (key++).Destroy();
          }
 

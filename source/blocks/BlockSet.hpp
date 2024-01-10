@@ -103,12 +103,19 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Capsulation                                                       
       ///                                                                     
+      template<CT::Set>
       NOD() DMeta GetType() const noexcept;
+      template<CT::Set>
       NOD() constexpr bool IsUntyped() const noexcept;
+      template<CT::Set>
       NOD() constexpr bool IsTypeConstrained() const noexcept;
+      template<CT::Set>
       NOD() constexpr bool IsDeep() const noexcept;
+      template<CT::Set>
       NOD() constexpr bool IsSparse() const noexcept;
+      template<CT::Set>
       NOD() constexpr bool IsDense() const noexcept;
+      template<CT::Set>
       NOD() constexpr Size GetStride() const noexcept;
       NOD() constexpr Count GetCount() const noexcept;
       NOD() Count GetCountDeep() const noexcept;
@@ -117,7 +124,9 @@ namespace Langulus::Anyness
       NOD() constexpr bool IsEmpty() const noexcept;
       NOD() constexpr bool IsAllocated() const noexcept;
       NOD() bool IsMissing() const noexcept;
+      template<CT::Set>
       NOD() bool IsMissingDeep() const;
+      template<CT::Set>
       NOD() bool IsOrdered() const noexcept;
 
       NOD() constexpr bool HasAuthority() const noexcept;
@@ -125,13 +134,13 @@ namespace Langulus::Anyness
 
       NOD() constexpr explicit operator bool() const noexcept;
 
-      DEBUGGERY(void Dump() const);
+      DEBUGGERY(template<CT::Set> void Dump() const);
 
    protected:
-      template<CT::Data T>
-      NOD() TAny<T> const& GetValues() const noexcept;
-      template<CT::Data T>
-      NOD() TAny<T>&       GetValues() noexcept;
+      template<CT::Set>
+      NOD() auto& GetValues() const noexcept;
+      template<CT::Set>
+      NOD() auto& GetValues() noexcept;
 
       NOD() InfoType const* GetInfo() const noexcept;
       NOD() InfoType*       GetInfo() noexcept;
@@ -144,83 +153,65 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Indexing                                                          
       ///                                                                     
-      NOD() Block Get(CT::Index auto);
-      NOD() Block Get(CT::Index auto) const;
-
-      NOD() Block operator[] (CT::Index auto);
-      NOD() Block operator[] (CT::Index auto) const;
+      template<CT::Set>
+      NOD() decltype(auto) Get(CT::Index auto);
+      template<CT::Set>
+      NOD() decltype(auto) Get(CT::Index auto) const;
 
    protected:
-      NOD() Block GetInner(Offset)       IF_UNSAFE(noexcept);
-      NOD() Block GetInner(Offset) const IF_UNSAFE(noexcept);
+      template<CT::Set, CT::Index INDEX>
+      NOD() Offset SimplifyIndex(INDEX) const
+      noexcept(not LANGULUS_SAFE() and CT::BuiltinInteger<INDEX>);
 
       NOD() static Offset GetBucket(Offset, const CT::NotSemantic auto&) noexcept;
       NOD() static Offset GetBucketUnknown(Offset, const Block&) noexcept;
 
-      template<CT::Data T>
-      NOD() constexpr T&       GetRaw(Offset)       IF_UNSAFE(noexcept);
-      template<CT::Data T>
-      NOD() constexpr T const& GetRaw(Offset) const IF_UNSAFE(noexcept);
+      template<CT::Set>
+      NOD() decltype(auto) GetRaw(Offset)       IF_UNSAFE(noexcept);
+      template<CT::Set>
+      NOD() decltype(auto) GetRaw(Offset) const IF_UNSAFE(noexcept);
 
-      template<CT::Data T>
-      NOD() constexpr Handle<T> GetHandle(Offset) const IF_UNSAFE(noexcept);
+      template<CT::Set>
+      NOD() auto GetHandle(Offset) const IF_UNSAFE(noexcept);
 
    public:
       ///                                                                     
       ///   Iteration                                                         
       ///                                                                     
-      template<bool MUTABLE>
-      struct TIterator;
+      template<class Set>
+      struct Iterator;
 
-      using Iterator = TIterator<true>;
-      using ConstIterator = TIterator<false>;
+      template<CT::Set SET>
+      NOD() Iterator<SET> begin() noexcept;
+      template<CT::Set SET>
+      NOD() Iterator<const SET> begin() const noexcept;
 
-      NOD() Iterator begin() noexcept;
-      NOD() Iterator end() noexcept;
-      NOD() Iterator last() noexcept;
-      NOD() ConstIterator begin() const noexcept;
-      NOD() ConstIterator end() const noexcept;
-      NOD() ConstIterator last() const noexcept;
+      template<CT::Set SET>
+      NOD() Iterator<SET> last() noexcept;
+      template<CT::Set SET>
+      NOD() Iterator<const SET> last() const noexcept;
 
-      template<bool REVERSE = false, bool MUTABLE = true>
-      Count ForEachElement(auto&&);
-      template<bool REVERSE = false>
+      constexpr A::IteratorEnd end() const noexcept { return {}; }
+
+      template<bool REVERSE = false, CT::Set>
+      Count ForEach(auto&&...) const;
+
+      template<bool REVERSE = false, CT::Set>
       Count ForEachElement(auto&&) const;
 
-      template<bool REVERSE = false, bool MUTABLE = true, class... F>
-      Count ForEach(F&&...);
-      template<bool REVERSE = false, class... F>
-      Count ForEach(F&&...) const;
-   
-      template<bool REVERSE = false, bool SKIP = true, bool MUTABLE = true, class... F>
-      Count ForEachDeep(F&&...);
-      template<bool REVERSE = false, bool SKIP = true, class... F>
-      Count ForEachDeep(F&&...) const;
-
-      template<bool MUTABLE, class... F>
-      Count ForEachElementRev(F&&...);
-      template<class... F>
-      Count ForEachElementRev(F&&...) const;
-
-      template<bool MUTABLE, class... F>
-      Count ForEachRev(F&&...);
-      template<class... F>
-      Count ForEachRev(F&&...) const;
-
-      template<bool SKIP, bool MUTABLE, class... F>
-      Count ForEachDeepRev(F&&...);
-      template<bool SKIP, class... F>
-      Count ForEachDeepRev(F&&...) const;
+      template<bool REVERSE = false, bool SKIP = true, CT::Set>
+      Count ForEachDeep(auto&&...) const;
 
    protected:
       template<class F>
       static constexpr bool NoexceptIterator = not LANGULUS_SAFE()
          and noexcept(Fake<F&&>().operator() (Fake<ArgumentOf<F>>()));
 
-      template<class R, CT::Data A, bool REVERSE, bool MUTABLE>
-      Count ForEachInner(auto&& f) noexcept(NoexceptIterator<decltype(f)>);
-      template<class R, CT::Data A, bool REVERSE, bool SKIP, bool MUTABLE>
-      Count ForEachDeepInner(auto&&);
+      template<CT::Set, class R, CT::Data A, bool REVERSE>
+      Count ForEachInner(auto&& f) const noexcept(NoexceptIterator<decltype(f)>);
+
+      template<CT::Set, class R, CT::Data A, bool REVERSE, bool SKIP>
+      Count ForEachDeepInner(auto&&) const;
 
    public:
       ///                                                                     
@@ -249,6 +240,7 @@ namespace Langulus::Anyness
       template<CT::Set = UnorderedSet>
       bool operator == (CT::Set auto const&) const;
 
+      template<CT::Set = UnorderedSet>
       NOD() Hash GetHash() const;
 
       template<CT::Set = UnorderedSet>
@@ -256,10 +248,10 @@ namespace Langulus::Anyness
 
       template<CT::Set = UnorderedSet>
       NOD() Index Find(const CT::NotSemantic auto&) const;
-      template<CT::Set = UnorderedSet>
-      NOD() Iterator FindIt(const CT::NotSemantic auto&);
-      template<CT::Set = UnorderedSet>
-      NOD() ConstIterator FindIt(const CT::NotSemantic auto&) const;
+      template<CT::Set THIS = UnorderedSet>
+      NOD() Iterator<THIS> FindIt(const CT::NotSemantic auto&);
+      template<CT::Set THIS = UnorderedSet>
+      NOD() Iterator<const THIS> FindIt(const CT::NotSemantic auto&) const;
 
    protected:
       template<CT::NotSemantic>
@@ -269,7 +261,7 @@ namespace Langulus::Anyness
       template<CT::Set>
       NOD() Offset FindInner(const CT::NotSemantic auto&) const;
       template<CT::Set>
-      NOD() Offset FindInnerUnknown(const Block&) const;
+      NOD() Offset FindBlockInner(const Block&) const;
 
    public:
       ///                                                                     
@@ -319,7 +311,7 @@ namespace Langulus::Anyness
 
       template<CT::Set, bool CHECK_FOR_MATCH, template<class> class S>
       requires CT::Semantic<S<Block>>
-      Offset InsertInnerUnknown(Offset, S<Block>&&);
+      Offset InsertBlockInner(Offset, S<Block>&&);
 
       template<CT::Set>
       Count UnfoldInsert(auto&&);
@@ -355,35 +347,49 @@ namespace Langulus::Anyness
 
 
    ///                                                                        
-   ///   Map iterator                                                         
+   ///   Set iterator                                                         
    ///                                                                        
-   template<bool MUTABLE>
-   struct BlockSet::TIterator {
+   template<class SET>
+   struct BlockSet::Iterator : A::Iterator {
+      static_assert(CT::Set<SET>, "SET must be a CT::Set type");
+      static constexpr bool Mutable = CT::Mutable<SET>;
+
+      using T = Conditional<CT::Typed<SET>
+         , Conditional<Mutable, TypeOf<SET>, const TypeOf<SET>>
+         , void>;
+
+      LANGULUS(ABSTRACT) false;
+      LANGULUS(TYPED)    T;
+
    protected:
       friend struct BlockSet;
+      using InnerT = Conditional<CT::Typed<SET>, T*, Block>;
 
-      const InfoType* mInfo {};
-      const InfoType* mSentinel {};
-      Block mKey;
+      const InfoType* mInfo;
+      const InfoType* const mSentinel;
+      InnerT mKey;
 
-      TIterator(const InfoType*, const InfoType*, const Block&) noexcept;
+      constexpr Iterator(const InfoType*, const InfoType*, const InnerT&) noexcept;
 
    public:
-      TIterator() noexcept = default;
-      TIterator(const TIterator&) noexcept = default;
-      TIterator(TIterator&&) noexcept = default;
+      Iterator() noexcept = delete;
+      constexpr Iterator(const Iterator&) noexcept = default;
+      constexpr Iterator(Iterator&&) noexcept = default;
+      constexpr Iterator(const A::IteratorEnd&) noexcept;
 
-      NOD() bool operator == (const TIterator&) const noexcept;
+      NOD() constexpr bool operator == (const Iterator&) const noexcept;
+      NOD() constexpr bool operator == (const A::IteratorEnd&) const noexcept;
 
-      NOD() Any operator * () const noexcept;
+      NOD() constexpr decltype(auto) operator * () const;
 
       // Prefix operator                                                
-      TIterator& operator ++ () noexcept;
+      constexpr Iterator& operator ++ () noexcept;
 
       // Suffix operator                                                
-      NOD() TIterator operator ++ (int) noexcept;
+      NOD() constexpr Iterator operator ++ (int) noexcept;
 
       constexpr explicit operator bool() const noexcept;
+      constexpr operator Iterator<const SET>() const noexcept requires Mutable;
    };
 
 } // namespace Langulus::Anyness

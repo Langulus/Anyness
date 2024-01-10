@@ -14,7 +14,7 @@ namespace Langulus::Anyness
 {
 
    /// Checks if both sets contain the same entries                           
-   ///   @param other - the set to compare against, type-erased or not        
+   ///   @param rhs - the set to compare against, type-erased or not          
    ///   @return true if sets are the same                                    
    template<CT::Set THIS>
    bool BlockSet::operator == (CT::Set auto const& rhs) const {
@@ -37,7 +37,7 @@ namespace Langulus::Anyness
             }
             else {
                // ...via rtti, since all sets are type-erased           
-               if (rhs.FindInnerUnknown(GetInner(index)) == InvalidOffset)
+               if (rhs.template FindBlockInner<RHS>(GetRaw<RHS>(index)) == InvalidOffset)
                   return false;
             }
          }
@@ -52,10 +52,10 @@ namespace Langulus::Anyness
    /// Get hash of the set contents                                           
    ///   @attention the hash is not cached, so this is a slow operation       
    ///   @return the hash                                                     
-   LANGULUS(INLINED)
+   template<CT::Set THIS> LANGULUS(INLINED)
    Hash BlockSet::GetHash() const {
       TAny<Hash> hashes;
-      for (auto element : *this)
+      for (auto& element : reinterpret_cast<const THIS&>(*this))
          hashes << element.GetHash();
       return hashes.GetHash();
    }
@@ -81,14 +81,14 @@ namespace Langulus::Anyness
    ///   @param key - the key to search for                                   
    ///   @return the iterator                                                 
    template<CT::Set THIS> LANGULUS(INLINED)
-   BlockSet::Iterator BlockSet::FindIt(const CT::NotSemantic auto& key) {
+   BlockSet::Iterator<THIS> BlockSet::FindIt(const CT::NotSemantic auto& key) {
       const auto offset = FindInner<THIS>(key);
       if (offset == InvalidOffset)
          return end();
 
       return {
          GetInfo() + offset, GetInfoEnd(),
-         GetInner(offset)
+         GetRaw<THIS>(offset)
       };
    }
    
@@ -96,7 +96,7 @@ namespace Langulus::Anyness
    ///   @param key - the key to search for                                   
    ///   @return the iterator                                                 
    template<CT::Set THIS> LANGULUS(INLINED)
-   BlockSet::ConstIterator BlockSet::FindIt(const CT::NotSemantic auto& key) const {
+   BlockSet::Iterator<const THIS> BlockSet::FindIt(const CT::NotSemantic auto& key) const {
       return const_cast<BlockSet*>(this)->template FindIt<THIS>(key);
    }
 
@@ -186,7 +186,8 @@ namespace Langulus::Anyness
    ///   @attention assumes keys are of the exactly same type                 
    ///   @param match - the key to search for                                 
    ///   @return the index, or InvalidOffset if not found                     
-   inline Offset BlockSet::FindInnerUnknown(const Block& match) const {
+   template<CT::Set THIS>
+   Offset BlockSet::FindBlockInner(const Block& match) const {
       if (IsEmpty() or not IsSimilar(match.GetType()))
          return InvalidOffset;
 
@@ -197,12 +198,16 @@ namespace Langulus::Anyness
          return InvalidOffset;
 
       // Test first candidate                                           
-      auto key = GetInner(start);
+      auto key = GetHandle<THIS>(start);
       if (key == match)
          return start;
 
       // Test all candidates on the right up until the end              
-      key.Next();
+      if constexpr (CT::Typed<THIS>)
+         ++key;
+      else
+         key.Next();
+
       ++info;
 
       auto infoEnd = GetInfoEnd();
@@ -214,7 +219,11 @@ namespace Langulus::Anyness
             return info - GetInfo();
 
          ++info;
-         key.Next();
+
+         if constexpr (CT::Typed<THIS>)
+            ++key;
+         else
+            key.Next();
       }
 
       // Reached only if info has reached the end                       
@@ -223,11 +232,15 @@ namespace Langulus::Anyness
       if (not *info)
          return InvalidOffset;
 
-      key = GetInner(0);
+      key = GetHandle<THIS>(0);
       if (key == match)
          return 0;
 
-      key.Next();
+      if constexpr (CT::Typed<THIS>)
+         ++key;
+      else
+         key.Next();
+
       ++info;
 
       infoEnd = GetInfo() + start;
@@ -239,7 +252,11 @@ namespace Langulus::Anyness
             return info - GetInfo();
 
          ++info;
-         key.Next();
+
+         if constexpr (CT::Typed<THIS>)
+            ++key;
+         else
+            key.Next();
       }
       
       // No such key was found                                          

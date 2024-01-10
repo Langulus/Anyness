@@ -45,7 +45,6 @@ namespace Langulus::Anyness
       Bytes& operator = (S<Bytes>&&) requires CT::Semantic<S<Bytes>>;
       
    public:
-      NOD() Bytes Clone() const;
       NOD() Bytes Crop(const Offset&, const Count&) const;
       NOD() Bytes Crop(const Offset&, const Count&);
 

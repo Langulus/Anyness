@@ -127,7 +127,7 @@ SCENARIO("Byte manipulation", "[bytes]") {
       }
 
       WHEN("Bytes are cloned") {
-         Bytes copy = data.Clone();
+         Bytes copy = Clone(data);
 
          REQUIRE(data.GetCount() == copy.GetCount());
          REQUIRE(data.GetReserved() == copy.GetReserved());

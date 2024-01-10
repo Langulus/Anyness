@@ -15,39 +15,39 @@ namespace Langulus::Anyness
    
    /// Templated tables are always typed                                      
    ///   @return false                                                        
-   LANGULUS(INLINED)
+   template<CT::Set THIS> LANGULUS(INLINED)
    constexpr bool BlockSet::IsUntyped() const noexcept {
       return mKeys.IsUntyped();
    }
    
    /// Templated tables are always type-constrained                           
    ///   @return true                                                         
-   LANGULUS(INLINED)
+   template<CT::Set THIS> LANGULUS(INLINED)
    constexpr bool BlockSet::IsTypeConstrained() const noexcept {
       return mKeys.IsTypeConstrained();
    }
 
    /// Check if key type is deep                                              
-   LANGULUS(INLINED)
+   template<CT::Set THIS> LANGULUS(INLINED)
    constexpr bool BlockSet::IsDeep() const noexcept {
       return mKeys.IsDeep();
    }
 
    /// Check if the key type is a pointer                                     
-   LANGULUS(INLINED)
+   template<CT::Set THIS> LANGULUS(INLINED)
    constexpr bool BlockSet::IsSparse() const noexcept {
       return mKeys.IsSparse();
    }
 
    /// Check if the key type is not a pointer                                 
-   LANGULUS(INLINED)
+   template<CT::Set THIS> LANGULUS(INLINED)
    constexpr bool BlockSet::IsDense() const noexcept {
       return mKeys.IsDense();
    }
 
    /// Get the size of a single key, in bytes                                 
    ///   @return the number of bytes a single key contains                    
-   LANGULUS(INLINED)
+   template<CT::Set THIS> LANGULUS(INLINED)
    constexpr Size BlockSet::GetStride() const noexcept {
       return mKeys.GetStride();
    }
@@ -55,10 +55,7 @@ namespace Langulus::Anyness
    /// Get the type of the set                                                
    template<CT::Set THIS> LANGULUS(INLINED)
    DMeta BlockSet::GetType() const noexcept {
-      if constexpr (CT::Typed<THIS>)
-         return (mKeys.mType = MetaDataOf<TypeOf<THIS>>);
-      else
-         return mKeys.mType;
+      return GetKeys<THIS>().GetType();
    }
 
    /// Get the info array (const)                                             
@@ -84,16 +81,16 @@ namespace Langulus::Anyness
 
    /// Get the templated values container                                     
    ///   @attention for internal use only, elements might not be initialized  
-   template<CT::Data T> LANGULUS(INLINED)
-   const TAny<T>& BlockSet::GetValues() const noexcept {
-      return reinterpret_cast<const TAny<T>&>(mKeys);
+   template<CT::Set THIS> LANGULUS(INLINED)
+   auto& BlockSet::GetValues() const noexcept {
+      return reinterpret_cast<const TAny<TypeOf<THIS>>&>(mKeys);
    }
 
    /// Get the templated values container                                     
    ///   @attention for internal use only, elements might not be initialized  
-   template<CT::Data T> LANGULUS(INLINED)
-   TAny<T>& BlockSet::GetValues() noexcept {
-      return reinterpret_cast<TAny<T>&>(mKeys);
+   template<CT::Set THIS> LANGULUS(INLINED)
+   auto& BlockSet::GetValues() noexcept {
+      return reinterpret_cast<TAny<TypeOf<THIS>>&>(mKeys);
    }
 
    /// Get the number of inserted pairs                                       
@@ -133,7 +130,7 @@ namespace Langulus::Anyness
    
    /// Check if the set contains at least one missing entry (nested)          
    ///   @return true if the set has missing entries                          
-   LANGULUS(INLINED)
+   template<CT::Set THIS> LANGULUS(INLINED)
    bool BlockSet::IsMissingDeep() const {
       bool missing = false;
       ForEachDeep([&](const Block& value) {
@@ -185,14 +182,15 @@ namespace Langulus::Anyness
    }
 
 #if LANGULUS(DEBUG)
-   inline void BlockSet::Dump() const {
+   template<CT::Set THIS>
+   void BlockSet::Dump() const {
       Logger::Info("---------------- BlockSet::Dump start ----------------");
       auto info = GetInfo();
       const auto infoEnd = GetInfoEnd();
       while (info != infoEnd) {
          const auto index = info - GetInfo();
          if (*info)
-            Logger::Info('[', index, "] -", (*info-1), " -> ", GetInner(index).GetHash().mHash);
+            Logger::Info('[', index, "] -", (*info-1), " -> ", GetRaw<THIS>(index).GetHash().mHash);
          else
             Logger::Info('[', index, "] empty");
 

@@ -496,7 +496,19 @@ namespace Langulus::Anyness
    ///   @return true if block was deepened to incorporate the new type       
    template<CT::Block THIS, CT::Data T, class FORCE> LANGULUS(INLINED)
    bool Block::Mutate() {
-      return Mutate<THIS, FORCE>(MetaDataOf<T>());
+      if constexpr (CT::Typed<THIS>) {
+         if constexpr (CT::Similar<TypeOf<THIS>, T>) {
+            // No need to mutate - types are compatible                 
+            return false;
+         }
+         else if constexpr (not CT::Void<FORCE> and IsDeep<THIS>()) {
+            // Container is already deep, just make it deeper           
+            Deepen<FORCE, true, THIS>();
+            return true;
+         }
+         else LANGULUS_OOPS(Mutate, "Can't mutate to incompatible type");
+      }
+      else return Mutate<THIS, FORCE>(MetaDataOf<T>());
    }
    
    /// Mutate to another compatible type, deepening the container if allowed  
@@ -506,11 +518,14 @@ namespace Langulus::Anyness
    ///   @return true if block was deepened to incorporate the new type       
    template<CT::Block THIS, class FORCE>
    bool Block::Mutate(DMeta meta) {
+      static_assert(not CT::Typed<THIS>,
+         "Can't set type of a statically typed container");
+
       if (IsUntyped<THIS>() or (not mState.IsTyped() and mType->mIsAbstract
                                 and IsEmpty() and meta->CastsTo(mType))
       ) {
          // Undefined/abstract containers can mutate freely             
-         SetType<THIS, false>(meta);
+         SetType<false, THIS>(meta);
       }
       else if (mType->IsSimilar(meta)) {
          // No need to mutate - types are compatible                    
@@ -539,7 +554,7 @@ namespace Langulus::Anyness
    /// Set the data ID - use this only if you really know what you're doing   
    ///   @tparam CONSTRAIN - whether or not to enable type-constraint         
    ///   @param type - the type meta to set                                   
-   template<CT::Block THIS, bool CONSTRAIN>
+   template<bool CONSTRAIN, CT::Block THIS>
    void Block::SetType(DMeta type) {
       static_assert(not CT::Typed<THIS>,
          "Can't set type of a statically typed container");
@@ -580,9 +595,9 @@ namespace Langulus::Anyness
    /// Set the contained data type                                            
    ///   @tparam T - the contained type                                       
    ///   @tparam CONSTRAIN - whether or not to enable type-constraints        
-   template<CT::Block THIS, CT::Data T, bool CONSTRAIN> LANGULUS(INLINED)
+   template<CT::Data T, bool CONSTRAIN, CT::Block THIS> LANGULUS(INLINED)
    void Block::SetType() {
-      SetType<THIS, CONSTRAIN>(MetaDataOf<T>());
+      SetType<CONSTRAIN, THIS>(MetaDataOf<T>());
    }
    
    /// Reset the type of the block, unless it's type-constrained              
