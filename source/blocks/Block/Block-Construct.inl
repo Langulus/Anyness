@@ -255,39 +255,4 @@ namespace Langulus::Anyness
          UnfoldInsert<false>(0, other.Forward());
    }
 
-   /// Swap contents of this block, with the contents of another, using       
-   /// a temporary block                                                      
-   ///   @attention assumes both containers have same initialized count       
-   ///   @attention assumes T is the type of this and rhs                     
-   ///   @param rhs - the block to swap with                                  
-   template<CT::Block THIS, template<class> class S>
-   requires CT::Semantic<S<Block>>
-   void Block::SwapInner(S<Block>&& rhs) {
-      LANGULUS_ASSUME(DevAssumes, rhs->mCount == mCount,
-         "Count mismatch");
-      LANGULUS_ASSUME(DevAssumes, mCount,
-         "Can't swap zero count");
-      LANGULUS_ASSUME(DevAssumes, IsSimilar(rhs->GetType()),
-         "Type mismatch");
-
-      Block temporary {mState, mType};
-      temporary.AllocateFresh(temporary.RequestSize<THIS>(mCount));
-      temporary.mCount = mCount;
-
-      // Abandon this to temporary                                      
-      temporary.CallSemanticConstructors<THIS>(mCount, Abandon(*this));
-      // Destroy elements in this                                       
-      CallDestructors<THIS>();
-      // Abandon rhs to this                                            
-      CallSemanticConstructors<THIS>(rhs->mCount, rhs.Forward());
-      // Destroy elements in rhs                                        
-      rhs->template CallDestructors<THIS>();
-      // Abandon temporary to rhs                                       
-      rhs->template CallSemanticConstructors<THIS>(temporary.mCount, Abandon(temporary));
-      // Cleanup temporary                                              
-      temporary.CallDestructors<THIS>();
-
-      Allocator::Deallocate(const_cast<Allocation*>(temporary.mEntry));
-   }
-
 } // namespace Langulus::Anyness

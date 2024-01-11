@@ -29,14 +29,14 @@ SCENARIO("Deep sequential containers", "[any]") {
       pack << subpack1 << subpack2 << subpack3;
       pack.MakeTypeConstrained();
 
-      auto memory = pack.GetRaw();
+      auto memory = pack.GetRaw<Any>();
       //auto& submemory4 = subpack3.As<Any>(0);
       //auto& submemory5 = subpack3.As<Any>(1);
 
       REQUIRE(pack.GetCount() == 3);
       REQUIRE(pack.GetReserved() >= 3);
       REQUIRE(pack.Is<Any>());
-      REQUIRE(pack.GetRaw());
+      REQUIRE(pack.GetRaw<Any>());
 
       WHEN("Getting deep elements") {
          REQUIRE(pack.GetCountDeep() == 6);
@@ -67,7 +67,7 @@ SCENARIO("Deep sequential containers", "[any]") {
          REQUIRE(pack.GetCount() == 3);
          REQUIRE(pack.GetReserved() >= 3);
          REQUIRE(pack.Is<Any>());
-         REQUIRE(pack.GetRaw());
+         REQUIRE(pack.GetRaw<Any>());
       }
 
       WHEN("Element 0 is removed") {
@@ -79,7 +79,7 @@ SCENARIO("Deep sequential containers", "[any]") {
          REQUIRE(pack.As<Any>(1) == subpack3);
          REQUIRE(pack.GetReserved() >= 3);
          REQUIRE(pack.Is<Any>());
-         REQUIRE(pack.GetRaw() == memory);
+         REQUIRE(pack.GetRaw<Any>() == memory);
          REQUIRE(pack.GetUses() == refsBefore);
          REQUIRE(subpack1.GetUses() == 2);
          REQUIRE(subpack2.GetUses() == 3);
@@ -95,7 +95,7 @@ SCENARIO("Deep sequential containers", "[any]") {
          REQUIRE(pack.As<Any>(1) == subpack3);
          REQUIRE(pack.GetReserved() >= 3);
          REQUIRE(pack.Is<Any>());
-         REQUIRE(pack.GetRaw() == memory);
+         REQUIRE(pack.GetRaw<Any>() == memory);
          REQUIRE(pack.GetUses() == refsBefore);
          REQUIRE(subpack1.GetUses() == 3);
          REQUIRE(subpack2.GetUses() == 2);
@@ -111,7 +111,7 @@ SCENARIO("Deep sequential containers", "[any]") {
          REQUIRE(pack.As<Any>(1) == subpack2);
          REQUIRE(pack.GetReserved() >= 3);
          REQUIRE(pack.Is<Any>());
-         REQUIRE(pack.GetRaw() == memory);
+         REQUIRE(pack.GetRaw<Any>() == memory);
          REQUIRE(pack.GetUses() == refsBefore);
          REQUIRE(subpack1.GetUses() == 3);
          REQUIRE(subpack2.GetUses() == 3);
@@ -127,7 +127,7 @@ SCENARIO("Deep sequential containers", "[any]") {
          REQUIRE(pack.GetReserved() > 0);
          REQUIRE(pack.Is<Any>());
          REQUIRE(pack.IsTypeConstrained());
-         REQUIRE(pack.GetRaw() != nullptr);
+         REQUIRE(pack.GetRaw<Any>() != nullptr);
          REQUIRE(pack.GetUses() > 0);
          REQUIRE(subpack1.GetUses() == 2);
          REQUIRE(subpack2.GetUses() == 2);
@@ -142,7 +142,7 @@ SCENARIO("Deep sequential containers", "[any]") {
          REQUIRE(pack.As<Any>(1) == subpack3);
          REQUIRE(pack.GetReserved() >= 3);
          REQUIRE(pack.Is<Any>());
-         REQUIRE(pack.GetRaw() != nullptr);
+         REQUIRE(pack.GetRaw<Any>() != nullptr);
       }
 
       WHEN("Pack is cleared") {
@@ -150,7 +150,7 @@ SCENARIO("Deep sequential containers", "[any]") {
 
          REQUIRE(pack.GetCount() == 0);
          REQUIRE(pack.GetReserved() >= 3);
-         REQUIRE(pack.GetRaw() == memory);
+         REQUIRE(pack.GetRaw<Any>() == memory);
          REQUIRE(pack.Is<Any>());
       }
 
@@ -159,7 +159,7 @@ SCENARIO("Deep sequential containers", "[any]") {
 
          REQUIRE(pack.GetCount() == 0);
          REQUIRE(pack.GetReserved() == 0);
-         REQUIRE(pack.GetRaw() == nullptr);
+         REQUIRE(pack.GetRaw<Any>() == nullptr);
          REQUIRE(pack.Is<Any>());
          REQUIRE(pack.IsTypeConstrained());
       }
@@ -170,28 +170,28 @@ SCENARIO("Deep sequential containers", "[any]") {
 
          auto copy = pack;
 
-         REQUIRE(copy.GetRaw() == pack.GetRaw());
+         REQUIRE(copy.GetRaw<Any>() == pack.GetRaw<Any>());
          REQUIRE(copy.GetCount() == pack.GetCount());
          REQUIRE(copy.GetReserved() == pack.GetReserved());
          REQUIRE(copy.GetState() == pack.GetState());
          REQUIRE(copy.GetType() == pack.GetType());
          REQUIRE(copy.GetUses() == 2);
-         REQUIRE(copy.As<Any>(0).GetRaw() == subpack1.GetRaw());
+         REQUIRE(copy.As<Any>(0).GetRaw<Any>() == subpack1.GetRaw<Any>());
          REQUIRE(copy.As<Any>(0).IsOr());
          REQUIRE(copy.As<Any>(0).GetCount() == subpack1.GetCount());
          REQUIRE(copy.As<Any>(0).GetUses() == 3);
-         REQUIRE(copy.As<Any>(1).GetRaw() == subpack2.GetRaw());
+         REQUIRE(copy.As<Any>(1).GetRaw<Any>() == subpack2.GetRaw<Any>());
          REQUIRE(copy.As<Any>(1).GetState() == DataState::Default);
          REQUIRE(copy.As<Any>(1).GetCount() == subpack2.GetCount());
          REQUIRE(copy.As<Any>(1).GetUses() == 3);
-         REQUIRE(copy.As<Any>(2).GetRaw() == subpack3.GetRaw());
+         REQUIRE(copy.As<Any>(2).GetRaw<Any>() == subpack3.GetRaw<Any>());
          REQUIRE(copy.As<Any>(2).GetState() == DataState::Default);
          REQUIRE(copy.As<Any>(2).GetCount() == subpack3.GetCount());
          REQUIRE(copy.As<Any>(2).GetUses() == 2);
-         REQUIRE(copy.As<Any>(2).As<Any>(0).GetRaw() == subpack1.GetRaw());
+         REQUIRE(copy.As<Any>(2).As<Any>(0).GetRaw<Any>() == subpack1.GetRaw<Any>());
          REQUIRE(copy.As<Any>(2).As<Any>(0).GetState() == DataState::Default);
          REQUIRE(copy.As<Any>(2).As<Any>(0).GetCount() == subpack1.GetCount());
-         REQUIRE(copy.As<Any>(2).As<Any>(1).GetRaw() == subpack2.GetRaw());
+         REQUIRE(copy.As<Any>(2).As<Any>(1).GetRaw<Any>() == subpack2.GetRaw<Any>());
          REQUIRE(copy.As<Any>(2).As<Any>(1).IsOr());
          REQUIRE(copy.As<Any>(2).As<Any>(1).GetCount() == subpack2.GetCount());
       }
@@ -202,34 +202,34 @@ SCENARIO("Deep sequential containers", "[any]") {
 
          Any clone = Clone(pack);
 
-         REQUIRE(clone.GetRaw() != pack.GetRaw());
+         REQUIRE(clone.GetRaw<Any>() != pack.GetRaw<Any>());
          REQUIRE(clone.GetCount() == pack.GetCount());
          REQUIRE(clone.GetReserved() >= clone.GetCount());
          REQUIRE(clone.GetState() == pack.GetState());
          REQUIRE(clone.GetType() == pack.GetType());
          REQUIRE(clone.GetUses() == 1);
          REQUIRE(pack.GetUses() == 1);
-         REQUIRE(clone.As<Any>(0).GetRaw() != subpack1.GetRaw());
+         REQUIRE(clone.As<Any>(0).GetRaw<Any>() != subpack1.GetRaw<Any>());
          REQUIRE(clone.As<Any>(0).IsOr());
          REQUIRE(clone.As<Any>(0).GetCount() == subpack1.GetCount());
          REQUIRE(clone.As<Any>(0).GetUses() == 1);
          REQUIRE(pack.As<Any>(0).GetUses() == 3);
-         REQUIRE(clone.As<Any>(1).GetRaw() != subpack2.GetRaw());
+         REQUIRE(clone.As<Any>(1).GetRaw<Any>() != subpack2.GetRaw<Any>());
          REQUIRE(clone.As<Any>(1).GetState() == DataState::Default);
          REQUIRE(clone.As<Any>(1).GetCount() == subpack2.GetCount());
          REQUIRE(clone.As<Any>(1).GetUses() == 1);
          REQUIRE(pack.As<Any>(1).GetUses() == 3);
-         REQUIRE(clone.As<Any>(2).GetRaw() != subpack3.GetRaw());
+         REQUIRE(clone.As<Any>(2).GetRaw<Any>() != subpack3.GetRaw<Any>());
          REQUIRE(clone.As<Any>(2).GetState() == DataState::Default);
          REQUIRE(clone.As<Any>(2).GetCount() == subpack3.GetCount());
          REQUIRE(clone.As<Any>(2).GetUses() == 1);
          REQUIRE(pack.As<Any>(2).GetUses() == 2);
-         REQUIRE(clone.As<Any>(2).As<Any>(0).GetRaw() != subpack1.GetRaw());
+         REQUIRE(clone.As<Any>(2).As<Any>(0).GetRaw<Any>() != subpack1.GetRaw<Any>());
          REQUIRE(clone.As<Any>(2).As<Any>(0).GetState() == DataState::Default);
          REQUIRE(clone.As<Any>(2).As<Any>(0).GetCount() == subpack1.GetCount());
          REQUIRE(clone.As<Any>(2).As<Any>(0).GetUses() == 1);
          REQUIRE(pack.As<Any>(2).As<Any>(0).GetUses() == 3);
-         REQUIRE(clone.As<Any>(2).As<Any>(1).GetRaw() != subpack2.GetRaw());
+         REQUIRE(clone.As<Any>(2).As<Any>(1).GetRaw<Any>() != subpack2.GetRaw<Any>());
          REQUIRE(clone.As<Any>(2).As<Any>(1).IsOr());
          REQUIRE(clone.As<Any>(2).As<Any>(1).GetCount() == subpack2.GetCount());
          REQUIRE(clone.As<Any>(2).As<Any>(1).GetUses() == 1);

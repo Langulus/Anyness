@@ -38,9 +38,9 @@ namespace Langulus::Anyness
    ///   @return a cloned text container with the extension                   
    LANGULUS(INLINED)
    Text Path::GetExtension() const {
-      Offset offset {};
-      if (Text::FindOffsetReverse(Text {'.'}, offset))
-         return Text::Crop(mCount - offset, offset);
+      const auto found = Find<true>('.');
+      if (found)
+         return Text::Crop(found);
       return {};
    }
 
@@ -48,9 +48,9 @@ namespace Langulus::Anyness
    ///   @return the directory part, including the last '/'                   
    LANGULUS(INLINED)
    Path Path::GetDirectory() const {
-      Offset offset {};
-      if (Text::FindOffsetReverse(Text {Separator}, offset))
-         return Text::Crop(0, offset + 1);
+      const auto found = Find<true>(Separator);
+      if (found)
+         return Text::Crop(0, found.GetOffsetUnsafe() + 1);
       return {};
    }
 
@@ -58,9 +58,9 @@ namespace Langulus::Anyness
    ///   @return the filename part (after the last '/')                       
    LANGULUS(INLINED)
    Path Path::GetFilename() const {
-      Offset offset {};
-      if (Text::FindOffsetReverse(Text {Separator}, offset))
-         return Text::Crop(offset + 1, mCount - offset - 1);
+      const auto found = Find<true>(Separator);
+      if (found)
+         return Text::Crop(found + 1);
       return *this;
    }
 

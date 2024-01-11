@@ -46,9 +46,9 @@ namespace Langulus::Anyness
    /// an array, as well as any other kinds of anies                          
    ///   @param t1 - first element                                            
    ///   @param tail - tail of elements (optional)                            
-   TEMPLATE() template<class T1, class... TAIL>
+   TEMPLATE() template<class T1, class...TAIL>
    requires CT::DeepMakable<T, T1, TAIL...> LANGULUS(INLINED)
-   TAny<T>::TAny(T1&& t1, TAIL&&... tail) {
+   TAny<T>::TAny(T1&& t1, TAIL&&...tail) {
       if constexpr (sizeof...(TAIL) == 0) {
          using S = SemanticOf<T1>;
          using ST = TypeOf<S>;
@@ -91,7 +91,7 @@ namespace Langulus::Anyness
                   // erased Any back to its TAny equivalent             
                   BlockTransfer<TAny>(S::Nest(t1));
                }
-               else Insert(IndexBack, Forward<T1>(t1));
+               else InsertBlock(IndexBack, Forward<T1>(t1));
             }
          }
          else Insert(IndexBack, Forward<T1>(t1));
@@ -128,8 +128,13 @@ namespace Langulus::Anyness
                Meta, "Provided array type is not a multiple of sizeof(T)");
             count = count2 / sizeof(T);
 
-            if constexpr (CT::Similar<T, DST> or CT::POD<T, DST>)
-               result.SetMemory(DataState::Constrained, result.GetType(), count, DesemCast(what), nullptr);
+            if constexpr (CT::Similar<T, DST> or CT::POD<T, DST>) {
+               result.SetMemory(
+                  DataState::Constrained,
+                  result.GetType(), count,
+                  DesemCast(what), nullptr
+               );
+            }
             else {
                LANGULUS_ERROR(
                   "Can't wrap a bounded array inside incompatible TAny<T>:"
@@ -145,8 +150,13 @@ namespace Langulus::Anyness
                Meta, "Provided pointer type is not a multiple of sizeof(T)");
             count = count2 / sizeof(T);
 
-            if constexpr (CT::Similar<T, DST> or CT::POD<T, DST>)
-               result.SetMemory(DataState::Constrained, result.GetType(), count, DesemCast(what), nullptr);
+            if constexpr (CT::Similar<T, DST> or CT::POD<T, DST>) {
+               result.SetMemory(
+                  DataState::Constrained,
+                  result.GetType(), count,
+                  DesemCast(what), nullptr
+               );
+            }
             else {
                LANGULUS_ERROR(
                   "Can't wrap a unbounded array inside incompatible TAny<T>:"
@@ -160,8 +170,13 @@ namespace Langulus::Anyness
                "Provided type is not a multiple of sizeof(T)");
             count = sizeof(ST) / sizeof(T);
 
-            if constexpr (CT::Similar<T, ST> or CT::POD<T, ST>)
-               result.SetMemory(DataState::Constrained, result.GetType(), count, &DesemCast(what), nullptr);
+            if constexpr (CT::Similar<T, ST> or CT::POD<T, ST>) {
+               result.SetMemory(
+                  DataState::Constrained,
+                  result.GetType(), count,
+                  &DesemCast(what), nullptr
+               );
+            }
             else {
                LANGULUS_ERROR(
                   "Can't wrap a dense element inside incompatible TAny<T>:"
@@ -355,19 +370,19 @@ namespace Langulus::Anyness
    ///   @return a constant pointer to the first element in the array         
    TEMPLATE() LANGULUS(INLINED)
    const T* TAny<T>::GetRaw() const noexcept {
-      return GetRawAs<T>();
+      return Block::GetRaw<TAny>();
    }
 
    TEMPLATE() LANGULUS(INLINED)
    T* TAny<T>::GetRaw() noexcept {
-      return GetRawAs<T>();
+      return Block::GetRaw<TAny>();
    }
 
    /// Return the typed raw data end pointer (const)                          
    ///   @return a constant pointer to one past the last element in the array 
    TEMPLATE() LANGULUS(INLINED)
    const T* TAny<T>::GetRawEnd() const noexcept {
-      return GetRaw() + mCount;
+      return Block::GetRawEnd<TAny>();
    }
    
    /// Return a handle to a sparse element, or a pointer to dense one         
@@ -455,13 +470,13 @@ namespace Langulus::Anyness
    ///   @return a reference to the element                                   
    TEMPLATE() LANGULUS(INLINED)
    const T& TAny<T>::operator [] (const CT::Index auto index) const {
-      const auto offset = SimplifyIndex<T>(index);
+      const auto offset = SimplifyIndex<TAny>(index);
       return GetRaw()[offset];
    }
 
    TEMPLATE() LANGULUS(INLINED)
    T& TAny<T>::operator [] (const CT::Index auto index) {
-      const auto offset = SimplifyIndex<T>(index);
+      const auto offset = SimplifyIndex<TAny>(index);
       return GetRaw()[offset];
    }
 
@@ -1047,7 +1062,7 @@ namespace Langulus::Anyness
    requires CT::DeepMakable<T, T1> LANGULUS(INLINED)
    TAny<T>& TAny<T>::operator += (T1&& rhs) {
       using S = SemanticOf<decltype(rhs)>;
-      Block::InsertBlock<TAny, void, true>(IndexBack, S::Nest(rhs));
+      Block::InsertBlock<TAny, void>(IndexBack, S::Nest(rhs));
       return *this;
    }
 

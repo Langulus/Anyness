@@ -97,16 +97,32 @@ namespace Langulus::Anyness
       }
    }
 
-   TEMPLATE() LANGULUS(INLINED)
-   constexpr bool HAND()::operator == (const T* rhs) const noexcept
-   requires Embedded {
-      return mValue == rhs;
+   /// Compare a handle with a comparable value                               
+   TEMPLATE() template<class T1> requires CT::Inner::Comparable<T, T1>
+   LANGULUS(INLINED)
+   constexpr bool HAND()::operator == (const T1& rhs) const noexcept {
+      if constexpr (Embedded)
+         return *mValue == rhs;
+      else
+         return mValue == rhs;
    }
       
-   TEMPLATE() LANGULUS(INLINED)
-   constexpr bool HAND()::operator == (const HAND()& rhs) const noexcept
-   requires Embedded {
-      return mValue == rhs.mValue;
+   /// Compare handles                                                        
+   TEMPLATE() template<class T1, bool EMBED1> requires CT::Inner::Comparable<T, T1>
+   LANGULUS(INLINED)
+   constexpr bool HAND()::operator == (const Handle<T1, EMBED1>& rhs) const noexcept {
+      if constexpr (Embedded) {
+         if constexpr (EMBED1)
+            return *mValue == *rhs.mValue;
+         else
+            return *mValue == rhs.mValue;
+      }
+      else {
+         if constexpr (EMBED1)
+            return mValue == *rhs.mValue;
+         else
+            return mValue == rhs.mValue;
+      }
    }
       
    /// Prefix increment operator                                              

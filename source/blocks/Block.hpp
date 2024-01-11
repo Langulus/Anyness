@@ -323,19 +323,21 @@ namespace Langulus::Anyness
       constexpr void ResetState() noexcept;
 
    protected: IF_LANGULUS_TESTING(public:)
-      NOD() constexpr void*       GetRaw() noexcept;
-      NOD() constexpr void const* GetRaw() const noexcept;
       template<CT::Block>
-      NOD() constexpr void const* GetRawEnd() const noexcept;
+      NOD() constexpr auto GetRaw() noexcept;
+      template<CT::Block>
+      NOD() constexpr auto GetRaw() const noexcept;
+      template<CT::Block>
+      NOD() constexpr auto GetRawEnd() const noexcept;
 
       template<CT::Block>
-      NOD() void**             GetRawSparse()       IF_UNSAFE(noexcept);
+      NOD() auto GetRawSparse()       IF_UNSAFE(noexcept);
       template<CT::Block>
-      NOD() void const* const* GetRawSparse() const IF_UNSAFE(noexcept);
+      NOD() auto GetRawSparse() const IF_UNSAFE(noexcept);
 
-      template<CT::Data T>
+      template<CT::Data T, CT::Block>
       NOD() T*       GetRawAs() noexcept;
-      template<CT::Data T>
+      template<CT::Data T, CT::Block>
       NOD() T const* GetRawAs() const noexcept;
       template<CT::Data T, CT::Block>
       NOD() T const* GetRawEndAs() const noexcept;
@@ -354,10 +356,6 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Indexing                                                          
       ///                                                                     
-      NOD() constexpr Index Constrain(Index) const noexcept;
-      template<CT::Data>
-      NOD() Index ConstrainMore(Index) const IF_UNSAFE(noexcept);
-
       NOD() IF_UNSAFE(constexpr)
       Byte* At(Offset = 0) IF_UNSAFE(noexcept);
       NOD() IF_UNSAFE(constexpr)
@@ -435,7 +433,7 @@ namespace Langulus::Anyness
       template<Count = CountMax>
       NOD() Block GetDense() const;
 
-      template<CT::Data>
+      template<CT::Block = Any>
       void Swap(CT::Index auto, CT::Index auto);
 
       template<CT::Data T, Index INDEX>
@@ -449,6 +447,13 @@ namespace Langulus::Anyness
       void Sort() noexcept;
 
    protected:
+      template<CT::Block, template<class> class S>
+      requires CT::Semantic<S<Block>>
+      void SwapInner(S<Block>&&);
+
+      template<CT::Block>
+      NOD() Index Constrain(Index) const IF_UNSAFE(noexcept);
+
       template<CT::Data T>
       NOD() Handle<T> GetHandle(Offset) const IF_UNSAFE(noexcept);
 
@@ -459,7 +464,7 @@ namespace Langulus::Anyness
       NOD() Block Next() const IF_UNSAFE(noexcept);
       NOD() Block Prev() const IF_UNSAFE(noexcept);
 
-      template<class, CT::Index INDEX>
+      template<CT::Block, CT::Index INDEX>
       Offset SimplifyIndex(INDEX) const
       noexcept(not LANGULUS_SAFE() and CT::BuiltinInteger<INDEX>);
 
@@ -714,10 +719,6 @@ namespace Langulus::Anyness
       NOD() THIS Extend(Count);
 
    protected:
-      template<CT::Block, template<class> class S>
-      requires CT::Semantic<S<Block>>
-      void SwapInner(S<Block>&&);
-
       template<CT::Block, class FORCE, bool MOVE_ASIDE>
       void InsertInner(CT::Index auto, auto&&);
 

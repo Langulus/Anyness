@@ -202,28 +202,17 @@ namespace Langulus::Anyness
       return *this;
    }
 
-   /// Swap two container's contents                                          
-   ///   @param other - [in/out] the container to swap contents with          
-   LANGULUS(INLINED)
-   void Any::SwapBlock(CT::Block auto& other) noexcept {
-      other = ::std::exchange(*this, ::std::move(other)); //TODO sketchy, does std::exchange do what we want?
-   }
-
-   /// Pick a constant region and reference it from another container         
-   ///   @param start - starting element index                                
-   ///   @param count - number of elements                                    
-   ///   @return the container                                                
-   LANGULUS(INLINED)
-   Any Any::Crop(const Offset start, const Count count) const {
-      return Block::Crop<Any>(start, count);
-   }
-
    /// Pick a region and reference it from another container                  
    ///   @param start - starting element index                                
    ///   @param count - number of elements                                    
    ///   @return the container                                                
    LANGULUS(INLINED)
    Any Any::Crop(const Offset start, const Count count) {
+      return Block::Crop<Any>(start, count);
+   }
+
+   LANGULUS(INLINED)
+   Any Any::Crop(const Offset start, const Count count) const {
       return Block::Crop<Any>(start, count);
    }
 

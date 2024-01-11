@@ -343,7 +343,7 @@ namespace Langulus::Anyness
          return end();
 
       if constexpr (CT::Typed<THIS>)
-         return {GetRawAs<TypeOf<THIS>>(), GetRawEndAs<Byte, THIS>()};
+         return {GetRaw<THIS>(), GetRawEndAs<Byte, THIS>()};
       else
          return {GetElement(), GetRawEndAs<Byte, THIS>()};
    }
@@ -361,7 +361,7 @@ namespace Langulus::Anyness
          return end();
 
       if constexpr (CT::Typed<THIS>) {
-         const auto ptr = GetRawAs<TypeOf<THIS>>();
+         const auto ptr = GetRaw<THIS>();
          return {ptr + (mCount - 1), reinterpret_cast<const Byte*>(ptr + mCount)};
       }
       else return {GetElement(), GetRawEndAs<Byte, THIS>()};

@@ -119,7 +119,7 @@ namespace Langulus::Anyness
 
       if constexpr (MOVE_ASIDE) {
          AllocateMore<THIS>(mCount + count);
-         idx = SimplifyIndex<T>(index);
+         idx = SimplifyIndex<THIS>(index);
 
          if (idx < mCount) {
             // Move memory if required                                  
@@ -135,7 +135,7 @@ namespace Langulus::Anyness
                );
          }
       }
-      else idx = SimplifyIndex<T>(index);
+      else idx = SimplifyIndex<THIS>(index);
 
       // Construct data in place                                        
       CropInner(idx, count).template CallSemanticConstructors<THIS>(
@@ -169,7 +169,7 @@ namespace Langulus::Anyness
 
          if constexpr (MOVE_ASIDE) {
             AllocateMore<THIS>(mCount + 1);
-            idx = SimplifyIndex<T>(index);
+            idx = SimplifyIndex<THIS>(index);
 
             if (idx < mCount) {
                // Move memory if required                               
@@ -185,7 +185,7 @@ namespace Langulus::Anyness
                   );
             }
          }
-         else idx = SimplifyIndex<T>(index);
+         else idx = SimplifyIndex<THIS>(index);
 
          CropInner(idx, 1).CallDescriptorConstructors<THIS>(1, *item);
       }
@@ -215,7 +215,7 @@ namespace Langulus::Anyness
          // If reached, we have compatible type, so allocate            
          if constexpr (MOVE_ASIDE) {
             AllocateMore<THIS>(mCount + 1);
-            idx = SimplifyIndex<T>(index);
+            idx = SimplifyIndex<THIS>(index);
 
             if (idx < mCount) {
                // Move memory if required                               
@@ -231,7 +231,7 @@ namespace Langulus::Anyness
                   );
             }
          }
-         else idx = SimplifyIndex<T>(index);
+         else idx = SimplifyIndex<THIS>(index);
 
          GetHandle<T>(idx).New(S::Nest(item));
       }
@@ -459,8 +459,7 @@ namespace Langulus::Anyness
          if constexpr (not ::std::constructible_from<T, A...>)
             LANGULUS_ERROR("T is not constructible with the given arguments");
 
-         const auto offset = SimplifyIndex<T>(idx);
-
+         const auto offset = SimplifyIndex<THIS>(idx);
          if constexpr (MOVE_ASIDE) {
             AllocateMore<THIS>(mCount + 1);
 
@@ -487,8 +486,7 @@ namespace Langulus::Anyness
          ++mCount;
       }
       else {
-         const auto offset = SimplifyIndex<void>(idx);
-
+         const auto offset = SimplifyIndex<THIS>(idx);
          if constexpr (MOVE_ASIDE) {
             AllocateMore<THIS>(mCount + 1);
 
@@ -721,10 +719,12 @@ namespace Langulus::Anyness
       // on a second thought, this should also probably be implemented on a lower level
       // inside inner insertion, when inserting at the back
       THIS result;
-      result.template AllocateFresh<THIS>(
-         result.template RequestSize<THIS>(mCount + rhs->GetCount()));
-      result.template InsertBlock<THIS, void, false>(0, Copy(lhs));
-      result.template InsertBlock<THIS, void, false>(mCount, rhs.Forward());
+      result.Block::template AllocateFresh<THIS>(
+         result.Block::template RequestSize<THIS>(mCount + rhs->GetCount()));
+      result.Block::template InsertBlock<THIS, void, false>(
+         0, Copy(lhs));
+      result.Block::template InsertBlock<THIS, void, false>(
+         mCount, rhs.Forward());
       return Abandon(result);
    }
 
@@ -1123,7 +1123,7 @@ namespace Langulus::Anyness
 
                // Clone each inner element by nesting this call         
                auto lhs = mthis->template GetHandle<Byte*>(0);
-               const auto lhsEnd = lhs.mValue + count;
+               const auto lhsEnd = lhs + count;
                auto dst = clonedCoalescedSrc.GetElement();
                auto src = source->GetElement();
                while (lhs != lhsEnd) {
