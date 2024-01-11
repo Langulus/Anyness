@@ -238,8 +238,7 @@ namespace Langulus::Anyness
          // Pick a preferably typed block to optimize the construction  
          using B = Conditional<CT::Typed<FROM>, FROM, TO>;
          AllocateFresh<B>(RequestSize<B>(mCount));
-         CallSemanticConstructors<B>(
-            mCount, from.template Forward<Block>());
+         CreateSemantic<B>(from.Forward());
       }
    }
    

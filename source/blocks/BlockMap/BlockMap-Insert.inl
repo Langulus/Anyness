@@ -512,26 +512,13 @@ namespace Langulus::Anyness
 
             if (not mInfo[to] and attempt < *oldInfo) {
                // Empty spot found, so move pair there                  
-               if constexpr (CT::Typed<THIS>) {
-                  auto key = GetKeyHandle<THIS>(oldIndex);
-                  GetKeyHandle<THIS>(to).New(Abandon(key));
-                  key.Destroy();
+               auto key = GetKeyHandle<THIS>(oldIndex);
+               GetKeyHandle<THIS>(to).CreateSemantic(Abandon(key));
+               key.Destroy();
 
-                  auto val = GetValueHandle<THIS>(oldIndex);
-                  GetValueHandle<THIS>(to).New(Abandon(val));
-                  val.Destroy();
-               }
-               else {
-                  auto key = GetKeyHandle<THIS>(oldIndex);
-                  GetKeyHandle<THIS>(to)
-                     .CallSemanticConstructors<Any>(1, Abandon(key));
-                  key.CallDestructors<Any>();
-
-                  auto val = GetValueHandle<THIS>(oldIndex);
-                  GetValueHandle<THIS>(to)
-                     .CallSemanticConstructors<Any>(1, Abandon(val));
-                  val.CallDestructors<Any>();
-               }
+               auto val = GetValueHandle<THIS>(oldIndex);
+               GetValueHandle<THIS>(to).CreateSemantic(Abandon(val));
+               val.Destroy();
 
                mInfo[to] = attempt;
                *oldInfo = 0;
@@ -541,9 +528,32 @@ namespace Langulus::Anyness
          ++oldInfo;
       }
    }
+
+   template<CT::Map THIS>
+   auto CreateKeyHandle(CT::Semantic auto&& key) {
+      if constexpr (CT::Typed<THIS>) {
+         using K = Conditional<CT::Typed<THIS>
+            , typename THIS::Key
+            , TypeOf<decltype(key)>>;
+         return HandleLocal<K> {key.Forward()};
+      }
+      else return Any {key.Forward()};
+   }
+   
+   template<CT::Map THIS>
+   auto CreateValHandle(CT::Semantic auto&& val) {
+      if constexpr (CT::Typed<THIS>) {
+         using V = Conditional<CT::Typed<THIS>
+            , typename THIS::Value
+            , TypeOf<decltype(val)>>;
+         return HandleLocal<V> {val.Forward()};
+      }
+      else return Any {val.Forward()};
+   }
    
    /// Inner insertion function                                               
-   ///   @attention assumes inserted types are similar to THIS's              
+   ///   @attention assumes that keys and values are constructible with the   
+   ///      provided arguments                                                
    ///   @tparam CHECK_FOR_MATCH - false if you guarantee key doesn't exist   
    ///   @param start - the starting index                                    
    ///   @param key - key & semantic to insert                                
@@ -553,14 +563,8 @@ namespace Langulus::Anyness
    Offset BlockMap::InsertInner(
       const Offset start, CT::Semantic auto&& key, CT::Semantic auto&& val
    ) {
-      using K = Conditional<CT::Typed<THIS>
-         , typename THIS::Key
-         , TypeOf<decltype(key)>>;
-      using V = Conditional<CT::Typed<THIS>
-         , typename THIS::Value
-         , TypeOf<decltype(val)>>;
-      HandleLocal<K> keyswapper {key.Forward()};
-      HandleLocal<V> valswapper {val.Forward()};
+      auto keyswapper = CreateKeyHandle<THIS>(key.Forward());
+      auto valswapper = CreateValHandle<THIS>(val.Forward());
 
       // Get the starting index based on the key hash                   
       auto psl = GetInfo() + start;
@@ -601,8 +605,8 @@ namespace Langulus::Anyness
       // Might not seem like it, but we gave a guarantee, that this is  
       // eventually reached, unless key exists and returns early        
       const auto index = psl - GetInfo();
-      GetKeyHandle<THIS>(index).New(Abandon(keyswapper));
-      GetValueHandle<THIS>(index).New(Abandon(valswapper));
+      GetKeyHandle<THIS>(index).CreateSemantic(Abandon(keyswapper));
+      GetValueHandle<THIS>(index).CreateSemantic(Abandon(valswapper));
       if (insertedAt == mValues.mReserved)
          insertedAt = index;
 
@@ -631,8 +635,7 @@ namespace Langulus::Anyness
             const auto candidate = GetRawKey<THIS>(index);
             if (candidate == *key) {
                // Neat, the key already exists - just set value and go  
-               GetRawValue<THIS>(index)
-                  .CallSemanticAssignment(1, val.Forward());
+               GetRawValue<THIS>(index).Assign(val.Forward());
 
                if constexpr (S2<T>::Move) {
                   val->CallDestructors();
@@ -667,21 +670,19 @@ namespace Langulus::Anyness
       // eventually reached, unless key exists and returns early        
       // We're moving only a single element, so no chance of overlap    
       const auto index = psl - GetInfo();
-      GetRawKey<THIS>(index)
-         .CallSemanticConstructors(1, key.Forward());
-      GetRawValue<THIS>(index)
-         .CallSemanticConstructors(1, val.Forward());
+      GetRawKey<THIS>(index).CreateSemantic(key.Forward());
+      GetRawValue<THIS>(index).CreateSemantic(val.Forward());
 
       if (insertedAt == mValues.mReserved)
          insertedAt = index;
 
       if constexpr (S1<T>::Move) {
-         key->CallDestructors();
+         key->Destroy();
          key->mCount = 0;
       }
 
       if constexpr (S2<T>::Move) {
-         val->CallDestructors();
+         val->Destroy();
          val->mCount = 0;
       }
 

@@ -267,10 +267,10 @@ namespace Langulus::Anyness
       Count MergeBlock(CT::Index auto, T1&&);
    
       template<class...A>
-      requires CT::Inner::MakableFrom<T, A...>
+      requires ::std::constructible_from<T, A...>
       Count New(Count, A&&...);
 
-      Count New(Count = 1);
+      Count New(Count = 1) requires CT::Inner::Defaultable<T>;
 
       template<CT::Deep T1, bool TRANSFER_OR = true>
       requires CT::CanBeDeepened<T1, TAny>

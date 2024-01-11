@@ -95,8 +95,8 @@ namespace Langulus::Anyness
             auto srcVal = asFrom->template GetValueHandle<B>(0);
             while (info != infoEnd) {
                if (*info) {
-                  dstKey.New(Clone(srcKey));
-                  dstVal.New(Clone(srcVal));
+                  dstKey.CreateSemantic(Clone(srcKey));
+                  dstVal.CreateSemantic(Clone(srcVal));
                }
 
                ++info;
@@ -119,8 +119,8 @@ namespace Langulus::Anyness
             auto srcVal = other->GetValue(0);
             while (info != infoEnd) {
                if (*info) {
-                  dstKey.CallSemanticConstructors(1, Clone(srcKey));
-                  dstVal.CallSemanticConstructors(1, Clone(srcVal));
+                  dstKey.CreateSemantic(Clone(srcKey));
+                  dstVal.CreateSemantic(Clone(srcVal));
                }
 
                ++info;

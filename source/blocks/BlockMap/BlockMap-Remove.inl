@@ -339,16 +339,8 @@ namespace Langulus::Anyness
             const auto offset = inf - GetInfo();
             auto key = GetKeyHandle  <THIS>(offset);
             auto val = GetValueHandle<THIS>(offset);
-
-            if constexpr (CT::Typed<THIS>) {
-               key.Destroy();
-               val.Destroy();
-            }
-            else {
-               key.template CallDestructors<Any>();
-               val.template CallDestructors<Any>();
-            }
-
+            key.Destroy();
+            val.Destroy();
             --remaining;
          }
 

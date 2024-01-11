@@ -203,6 +203,7 @@ namespace Langulus::Anyness
 
       if constexpr (CT::TypedMap<THIS>) {
          using K = typename THIS::Key;
+
          LANGULUS_ASSUME(DevAssumes, mKeys.template IsSimilar<K>(),
             "Wrong type when accessing map key",
             ", using type `", NameOf<K>(), "` instead of `", mKeys.GetType(), '`');
@@ -224,6 +225,7 @@ namespace Langulus::Anyness
 
       if constexpr (CT::TypedMap<THIS>) {
          using V = typename THIS::Value;
+
          LANGULUS_ASSUME(DevAssumes, mValues.template IsSimilar<V>(),
             "Wrong type when accessing map value",
             ", using type `", NameOf<V>(), "` instead of `", mValues.GetType(), '`');

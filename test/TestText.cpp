@@ -117,7 +117,7 @@ TEMPLATE_TEST_CASE("Testing text containers", "[text]",
       }
 
       WHEN("Constructed with a count-terminated literal") {
-         text = new TestType {"test2", 5};
+         text = new TestType {Text::From("test2", 5)};
 
          CheckState_OwnedFull(*text);
          REQUIRE((*text).GetCount() == 5);

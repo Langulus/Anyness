@@ -70,10 +70,10 @@ namespace Langulus::Anyness
       NOD() T& Get() const noexcept;
       NOD() const Allocation*& GetEntry() const noexcept;
 
-      void New(T,        const Allocation* = nullptr) noexcept requires CT::Sparse<T>;
-      void New(const T&, const Allocation* = nullptr) noexcept requires CT::Dense<T>;
-      void New(T&&,      const Allocation* = nullptr) noexcept requires CT::Dense<T>;
-      void New(CT::Semantic auto&&);
+      void Create(T,        const Allocation* = nullptr) noexcept requires CT::Sparse<T>;
+      void Create(const T&, const Allocation* = nullptr) noexcept requires CT::Dense<T>;
+      void Create(T&&,      const Allocation* = nullptr) noexcept requires CT::Dense<T>;
+      void CreateSemantic(CT::Semantic auto&&);
 
       void Assign(CT::Semantic auto&&);
 

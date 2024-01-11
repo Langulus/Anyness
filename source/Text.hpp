@@ -73,7 +73,7 @@ namespace Langulus::Anyness
 
       template<class T> requires (CT::StringPointer<Desem<T>>
                               or  CT::StringLiteral<Desem<T>>)
-      Text(T&&, Count);
+      static Text From(T&&, Count);
 
       ///                                                                     
       ///   Assignment                                                        

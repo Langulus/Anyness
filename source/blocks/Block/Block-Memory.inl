@@ -69,8 +69,7 @@ namespace Langulus::Anyness
                   // But is not yet initialized, so initialize it       
                   if (mCount < elements) {
                      const auto count = elements - mCount;
-                     CropInner(mCount, count)
-                        .template CallDefaultConstructors<THIS>(count);
+                     CropInner(mCount, count).CreateDefault<THIS>();
                   }
                }
 
@@ -103,11 +102,7 @@ namespace Langulus::Anyness
                   // entry, if managed memory is enabled                
                   if constexpr (CT::AbandonMakable<T> or CT::MoveMakable<T> or CT::CopyMakable<T>) {
                      mRaw = const_cast<Byte*>(mEntry->GetBlockStart());
-                     CallSemanticConstructors<THIS>(
-                        previousBlock.mCount, Abandon(previousBlock)
-                     );
-
-                     // Also, we should free the previous allocation    
+                     CreateSemantic<THIS>(Abandon(previousBlock));
                      previousBlock.Free();
                   }
                   else LANGULUS_THROW(Construct, "Memory moved, but T is not move-constructible");
@@ -118,9 +113,7 @@ namespace Langulus::Anyness
                   // This will throw, if data is not copy-constructible 
                   if constexpr (CT::DisownMakable<T> or CT::CopyMakable<T>) {
                      AllocateFresh<THIS>(request);
-                     CallSemanticConstructors<THIS>(
-                        previousBlock.mCount, Copy(previousBlock)
-                     );
+                     CreateSemantic<THIS>(Copy(previousBlock));
                   }
                   else LANGULUS_THROW(Construct, "Memory moved, but T is not copy-constructible");
                }
@@ -130,7 +123,9 @@ namespace Langulus::Anyness
                if constexpr (CT::Sparse<T>) {
                   // Move entry data to its new place                   
                   MoveMemory(
-                     GetEntries<THIS>(), previousBlock.GetEntries<THIS>(), mCount
+                     GetEntries<THIS>(),
+                     previousBlock.GetEntries<THIS>(),
+                     mCount
                   );
                }
             }
@@ -138,8 +133,7 @@ namespace Langulus::Anyness
             if constexpr (CREATE) {
                // Default-construct the rest                            
                const auto count = elements - mCount;
-               CropInner(mCount, count)
-                  .template CallDefaultConstructors<THIS>(count);
+               CropInner(mCount, count).CreateDefault<THIS>();
             }
          }
          else {
@@ -149,8 +143,7 @@ namespace Langulus::Anyness
 
             if constexpr (CREATE) {
                // Default-construct everything                          
-               CropInner(mCount, elements)
-                  .template CallDefaultConstructors<THIS>(elements);
+               CropInner(mCount, elements).CreateDefault<THIS>();
             }
          }
       }
@@ -171,8 +164,7 @@ namespace Langulus::Anyness
                // But is not yet initialized, so initialize it          
                if (mCount < elements) {
                   const auto count = elements - mCount;
-                  CropInner(mCount, count)
-                     .CallDefaultConstructors<THIS>(count);
+                  CropInner(mCount, count).CreateDefault<THIS>();
                }
             }
          }
@@ -255,7 +247,7 @@ namespace Langulus::Anyness
       // Copy all elements                                              
       Block clone {*this};
       clone.AllocateFresh<THIS>(RequestSize<THIS>(mCount));
-      clone.CallSemanticConstructors<THIS>(mCount, Copy(*this));
+      clone.CreateSemantic<THIS>(Copy(*this));
 
       // Overwrite this block directly                                  
       CopyMemory(this, &clone);
@@ -300,24 +292,24 @@ namespace Langulus::Anyness
                // Sparse containers have additional memory allocated for
                // each pointer's entry, if managed memory is enabled    
                mRaw = const_cast<Byte*>(mEntry->GetBlockStart());
-               CallSemanticConstructors<THIS>(previousBlock.mCount,
-                  Abandon(previousBlock));
+               CreateSemantic<THIS>(Abandon(previousBlock));
             }
             else {
-               // Memory is used from multiple locations, and we must      
-               // copy the memory for this block - we can't move it!       
+               // Memory is used from multiple locations, and we must   
+               // copy the memory for this block - we can't move it!    
                AllocateFresh<THIS>(request);
-               CallSemanticConstructors<THIS>(previousBlock.mCount,
-                  Copy(previousBlock));
+               CreateSemantic<THIS>(Copy(previousBlock));
                previousBlock.Free<Any>();
             }
          }
          else {
-            // Memory didn't move, but reserved count changed        
+            // Memory didn't move, but reserved count changed           
             if (mType->mIsSparse) {
-               // Move entry data to its new place                   
+               // Move entry data to its new place                      
                MoveMemory(
-                  GetEntries<THIS>(), previousBlock.GetEntries<THIS>(), mCount
+                  GetEntries<THIS>(),
+                  previousBlock.GetEntries<THIS>(),
+                  mCount
                );
             }
          }
@@ -327,7 +319,7 @@ namespace Langulus::Anyness
       if constexpr (CREATE) {
          // Default-construct the rest                                  
          const auto count = elements - mCount;
-         CropInner(mCount, count).CallDefaultConstructors<THIS>(count);
+         CropInner(mCount, count).CreateDefault<THIS>();
          mCount = elements;
       }
    }
@@ -375,7 +367,7 @@ namespace Langulus::Anyness
       if (mEntry->GetUses() == 1) {
          // Destroy all elements                                        
          if (mCount)
-            CallDestructors<THIS>();
+            Destroy<THIS>();
 
          // Free memory                                                 
          Allocator::Deallocate(const_cast<Allocation*>(mEntry));
