@@ -659,24 +659,20 @@ namespace Langulus::Anyness
    ///   @param count - number of elements to construct                       
    ///   @return the number of new elements                                   
    TEMPLATE() LANGULUS(INLINED)
-   Count TAny<T>::New(const Count count) {
+   Count TAny<T>::New(const Count count) requires CT::Inner::Defaultable<T> {
       return Block::New<TAny>(count);
    }
 
    /// Create N new elements, using the provided arguments for construction   
    /// Elements will be added to the back of the container                    
    ///   @param count - number of elements to construct                       
-   ///   @param ...arguments - constructor arguments                          
+   ///   @param arguments... - constructor arguments, all forwarded together  
+   ///      for each instance of T                                            
    ///   @return the number of new elements                                   
    TEMPLATE() template<class...A>
-   requires CT::Inner::MakableFrom<T, A...> LANGULUS(INLINED)
+   requires ::std::constructible_from<T, A...> LANGULUS(INLINED)
    Count TAny<T>::New(const Count count, A&&...arguments) {
-      AllocateMore<TAny, false>(mCount + count);
-      CropInner(mCount, 0).CallConstructors<TAny>(
-         count, Forward<A>(arguments)...
-      );
-      mCount += count;
-      return count;
+      return Block::New<TAny>(count, Forward<A>(arguments)...);
    }
 
    /// Insert an element at the back of the container                         

@@ -44,30 +44,34 @@ namespace Langulus::Anyness
       );
 
       if constexpr (CT::Typed<THIS> and CT::Typed<RHS>) {
-         if (mRaw == right.mRaw)
-            return mCount == right.mCount;
-         else if (mCount != right.mCount)
-            return false;
-
          using T = TypeOf<THIS>;
-         static_assert(CT::Similar<T, TypeOf<RHS>>, "Different types");
+         if constexpr (not CT::Similar<T, TypeOf<RHS>>) {
+            // Types are different                                      
+            return false;
+         }
+         else {
+            if (mRaw == right.mRaw)
+               return mCount == right.mCount;
+            else if (mCount != right.mCount)
+               return false;
 
-         if constexpr (CT::Sparse<T> or CT::POD<T>) {
-            // Batch compare POD/pointers                               
-            return 0 == ::std::memcmp(GetRaw(), right.GetRaw(), GetBytesize<THIS>());
-         }
-         else if constexpr (CT::Inner::Comparable<T>) {
-            // Use comparison operator between all elements             
-            auto t1 = GetRawAs<T>();
-            auto t2 = right.template GetRawAs<T>();
-            const auto t1end = t1 + mCount;
-            while (t1 < t1end and *t1 == *t2) {
-               ++t1;
-               ++t2;
+            if constexpr (CT::Sparse<T> or CT::POD<T>) {
+               // Batch compare POD/pointers                            
+               return 0 == ::std::memcmp(mRaw, right.mRaw, GetBytesize<THIS>());
             }
-            return t1 == t1end;
+            else if constexpr (CT::Inner::Comparable<T>) {
+               // Use comparison operator between all elements          
+               auto t1 = GetRaw<THIS>();
+               auto t2 = right.GetRaw();
+               const auto t1end = t1 + mCount;
+               while (t1 < t1end and *t1 == *t2) {
+                  ++t1;
+                  ++t2;
+               }
+               return t1 == t1end;
+            }
+            else LANGULUS_ERROR("Elements not comparable");
          }
-         else LANGULUS_ERROR("Elements not comparable");
       }
 
       if (mCount != right.mCount) {
@@ -114,8 +118,8 @@ namespace Langulus::Anyness
          }
          else if (mType->mComparer) {
             // Call compare operator for each element pair              
-            auto lhs = GetRawAs<Byte>();
-            auto rhs = right.template GetRawAs<Byte>();
+            auto lhs = GetRawAs<Byte, THIS>();
+            auto rhs = right.template GetRawAs<Byte, THIS>();
             const auto lhsEnd = GetRawEndAs<Byte, THIS>();
             while (lhs != lhsEnd) {
                if (not mType->mComparer(lhs, rhs))
@@ -267,7 +271,7 @@ namespace Langulus::Anyness
 
          if (mCount == 1) {
             // Exactly one element means exactly one hash               
-            return HashOf(*GetRawAs<T>());
+            return HashOf(*GetRaw<THIS>());
          }
 
          // Hashing multiple elements                                   
@@ -355,19 +359,19 @@ namespace Langulus::Anyness
 
       if constexpr (CT::Typed<THIS>) {
          using T = TypeOf<THIS>;
-         static_assert(CT::Inner::Comparable<T, ALT_T>,
-            "Can't find non-comparable element");
+         if constexpr (not CT::Inner::Comparable<T, ALT_T>)
+            return IndexNone;
 
          auto start = REVERSE
-            ? GetRawEndAs<T, THIS>() - 1 - cookie
-            : GetRawAs<T>() + cookie;
+            ? GetRawEnd<THIS>() - 1 - cookie
+            : GetRaw<THIS>() + cookie;
          const auto end = REVERSE
             ? start - mCount
             : start + mCount;
 
          while (start != end) {
             if (*start == item)
-               return start - GetRawAs<T>();
+               return start - GetRaw<THIS>();
 
             if constexpr (REVERSE)
                --start;
@@ -379,10 +383,14 @@ namespace Langulus::Anyness
          // First check if element is contained inside this block's     
          // memory, because if so, we can easily find it, without       
          // calling a single compare function                           
-         if constexpr (CT::Deep<ALT_T>) {
+         //TODO these heurisrics are bad! the pattern may appear in memory,
+         // but there may be other occurences before that memory point! at best, we should
+         // simply narrow the search scope, and after scanning it, fallback to the
+         // one found pointer-wise
+         /*if constexpr (CT::Deep<ALT_T>) {
             // Deep items have a bit looser type requirements           
             if (IsDense<THIS>() and IsDeep<THIS>() and Owns<THIS>(&item)) {
-               const Offset index = &item - GetRawAs<ALT_T>();
+               const Offset index = &item - GetRawAs<ALT_T, THIS>();
                // Check required, because Owns tests in reserved range  
                return index < mCount ? index : IndexNone;
             }
@@ -390,11 +398,11 @@ namespace Langulus::Anyness
          else {
             // Search for a conventional item                           
             if (IsExact<ALT_T>() and Owns<THIS>(&item)) {
-               const Offset index = &item - GetRawAs<ALT_T>();
+               const Offset index = &item - GetRawAs<ALT_T, THIS>();
                // Check required, because Owns tests in reserved range  
                return index < mCount ? index : IndexNone;
             }
-         }
+         }*/
 
          // Item is not in this block's memory, so we start comparing by
          // values                                                      
@@ -540,34 +548,45 @@ namespace Langulus::Anyness
    template<CT::Block THIS> LANGULUS(INLINED)
    bool Block::CompareSingleValue(const CT::NotSemantic auto& rhs) const {
       using T = Deref<decltype(rhs)>;
-      if (mCount != 1 or IsUntyped<THIS>())
+      if (mCount != 1)
          return false;
 
-      if constexpr (CT::Deep<T>) {
-         // Deep types can be more loosely compared                     
-         if (mType->mIsSparse or not mType->mIsDeep)
+      if constexpr (CT::Typed<THIS>) {
+         // Both sides are statically typed                             
+         if constexpr (CT::Inner::Comparable<TypeOf<THIS>, T>)
+            return *GetRaw<THIS>() == rhs;
+         else
             return false;
-         return GetRawAs<Block, THIS>()->Compare(rhs);
-      }
-      else if constexpr (CT::StringLiteral<T>) {
-         if (mType->template IsSimilar<Text>()) {
-            // Implicitly make a text container on string literal       
-            return *GetRawAs<Text, THIS>() == Text {Disown(rhs)};
-         }
-         else if (mType->template IsSimilar<char*, wchar_t*>()) {
-            // Cast away the extent, compare against pointer            
-            return *GetRawSparse<Any>() == static_cast<const void*>(rhs);
-         }
-         else return false;
       }
       else {
-         // Non-deep element compare                                    
-         static_assert(CT::Inner::Comparable<T>,
-            "T is not equality-comparable");
-
-         if (not mType->template IsSimilar<T>())
+         // THIS is type-erased, do runtime type checks                 
+         if (IsUntyped<THIS>())
             return false;
-         return *GetRawAs<T>() == rhs;
+
+         if constexpr (CT::Deep<T>) {
+            // Deep types can be more loosely compared                  
+            if (mType->mIsSparse or not mType->mIsDeep)
+               return false;
+            return GetRawAs<Block, THIS>()->Compare(rhs);
+         }
+         else if constexpr (CT::StringLiteral<T>) {
+            if (mType->template IsSimilar<Text>()) {
+               // Implicitly make a text container on string literal    
+               return *GetRawAs<Text, THIS>() == Text {Disown(rhs)};
+            }
+            else if (mType->template IsSimilar<char*, wchar_t*>()) {
+               // Cast away the extent, compare against pointer         
+               return *GetRawSparse<THIS>() == static_cast<const void*>(rhs);
+            }
+            else return false;
+         }
+         else if constexpr (CT::Inner::Comparable<T>) {
+            // Non-deep element compare                                 
+            if (not mType->template IsSimilar<T>())
+               return false;
+            return *GetRawAs<T, THIS>() == rhs;
+         }
+         else return false;
       }
    }
    

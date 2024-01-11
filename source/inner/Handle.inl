@@ -224,7 +224,7 @@ namespace Langulus::Anyness
    ///   @param pointer - the new pointer to assign                           
    ///   @param entry - the allocation that the pointer is part of            
    TEMPLATE() LANGULUS(INLINED)
-   void HAND()::New(T pointer, const Allocation* entry) noexcept requires CT::Sparse<T> {
+   void HAND()::Create(T pointer, const Allocation* entry) noexcept requires CT::Sparse<T> {
       Get() = pointer;
       GetEntry() = entry;
    }
@@ -234,7 +234,7 @@ namespace Langulus::Anyness
    ///   @param value - the new value to assign                               
    ///   @param entry - the allocation that the value is part of              
    TEMPLATE() LANGULUS(INLINED)
-   void HAND()::New(T&& value, const Allocation* entry) noexcept requires CT::Dense<T> {
+   void HAND()::Create(T&& value, const Allocation* entry) noexcept requires CT::Dense<T> {
       SemanticNew(&Get(), Move(value));
       GetEntry() = entry;
    }
@@ -244,7 +244,7 @@ namespace Langulus::Anyness
    ///   @param value - the new value to assign                               
    ///   @param entry - the allocation that the value is part of              
    TEMPLATE() LANGULUS(INLINED)
-   void HAND()::New(const T& value, const Allocation* entry) noexcept requires CT::Dense<T> {
+   void HAND()::Create(const T& value, const Allocation* entry) noexcept requires CT::Dense<T> {
       SemanticNew(&Get(), Copy(value));
       GetEntry() = entry;
    }
@@ -253,7 +253,7 @@ namespace Langulus::Anyness
    ///   @attention this overwrites previous handle without dereferencing it  
    ///   @param rhs - what are we assigning                                   
    TEMPLATE() LANGULUS(INLINED)
-   void HAND()::New(CT::Semantic auto&& rhs) {
+   void HAND()::CreateSemantic(CT::Semantic auto&& rhs) {
       using S = Deref<decltype(rhs)>;
       using ST = TypeOf<S>;
 
@@ -438,7 +438,7 @@ namespace Langulus::Anyness
          }
 
          if constexpr (RESET)
-            New(nullptr, nullptr);
+            Create(nullptr, nullptr);
       }
       else if constexpr (EMBED) {
          // Handle is dense and embedded, we should call the remote     
@@ -481,7 +481,7 @@ namespace Langulus::Anyness
          }
 
          if constexpr (RESET)
-            New(nullptr, nullptr);
+            Create(nullptr, nullptr);
       }
    }
 

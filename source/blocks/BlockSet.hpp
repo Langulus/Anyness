@@ -117,6 +117,7 @@ namespace Langulus::Anyness
       NOD() constexpr bool IsDense() const noexcept;
       template<CT::Set = UnorderedSet>
       NOD() constexpr Size GetStride() const noexcept;
+      NOD() constexpr DataState GetState() const noexcept;
       NOD() constexpr Count GetCount() const noexcept;
       NOD() Count GetCountDeep() const noexcept;
       NOD() Count GetCountElementsDeep() const noexcept;
@@ -166,12 +167,12 @@ namespace Langulus::Anyness
       NOD() static Offset GetBucket(Offset, const CT::NotSemantic auto&) noexcept;
       NOD() static Offset GetBucketUnknown(Offset, const Block&) noexcept;
 
-      template<CT::Set>
+      template<CT::Set = UnorderedSet>
       NOD() decltype(auto) GetRaw(Offset)       IF_UNSAFE(noexcept);
-      template<CT::Set>
+      template<CT::Set = UnorderedSet>
       NOD() decltype(auto) GetRaw(Offset) const IF_UNSAFE(noexcept);
 
-      template<CT::Set>
+      template<CT::Set = UnorderedSet>
       NOD() auto GetHandle(Offset) const IF_UNSAFE(noexcept);
 
    public:

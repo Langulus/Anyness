@@ -133,7 +133,7 @@ namespace Langulus::Anyness
             return InvalidOffset;
 
          // Test first candidate                                        
-         auto key = &GetRaw<K>(start);
+         auto key = &GetRaw<THIS>(start);
          if (*key == match)
             return start;
 
@@ -158,7 +158,7 @@ namespace Langulus::Anyness
          if (not *info)
             return InvalidOffset;
 
-         key = &GetRaw<K>(0);
+         key = &GetRaw<THIS>(0);
          if (*key == match)
             return 0;
 

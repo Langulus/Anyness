@@ -260,13 +260,12 @@ namespace Langulus::Anyness
                   InsertInner<THIS, false>(newBucket, Abandon(keyswap));
                }
                else {
-                  Block keyswap {mKeys.GetState(), GetType()};
+                  Block keyswap {GetState(), GetType(), 1, nullptr, nullptr};
                   keyswap.AllocateFresh(keyswap.RequestSize<Any>(1));
-                  keyswap.CallSemanticConstructors(1, Abandon(oldKey));
-                  keyswap.mCount = 1;
+                  keyswap.CreateSemantic(Abandon(oldKey));
 
                   // Destroy the pair and info at old index             
-                  oldKey.CallDestructors();
+                  oldKey.Destroy();
                   *oldInfo = 0;
                   --mKeys.mCount;
 

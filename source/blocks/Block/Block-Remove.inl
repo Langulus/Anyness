@@ -84,15 +84,15 @@ namespace Langulus::Anyness
             }
             else {
                // Call the destructors on the correct region            
-               CropInner(idx, count).CallDestructors<THIS>();
+               CropInner(idx, count).Destroy<THIS>();
 
                if (ender < mCount) {
                   // Fill gap	if any by invoking move constructions     
                   // Moving to the left, so no overlap possible         
                   const auto tail = mCount - ender;
-                  CropInner(idx, 0).CallSemanticConstructors<THIS>(
-                        tail, Abandon(CropInner(ender, tail))
-                     );
+                  CropInner(idx, tail)
+                     .CreateSemantic<THIS>(
+                        Abandon(CropInner(ender, tail)));
                }
             }
          }
@@ -116,16 +116,16 @@ namespace Langulus::Anyness
             }
 
             // First call the destructors on the correct region         
-            CropInner(idx, removed).CallDestructors<THIS>();
+            CropInner(idx, removed).Destroy<THIS>();
 
             if (ender < mCount) {
                // Fill gap by invoking abandon-constructors             
                // We're moving to the left, so no reverse is required   
                LANGULUS_ASSERT(GetUses() == 1, Move, "Moving elements in use");
                const auto tail = mCount - ender;
-               CropInner(idx, 0).CallSemanticConstructors<THIS>(
-                     tail, Abandon(CropInner(ender, tail))
-                  );
+               CropInner(idx, tail)
+                  .CreateSemantic<THIS>(
+                     Abandon(CropInner(ender, tail)));
             }
          }
 
@@ -188,7 +188,7 @@ namespace Langulus::Anyness
       }
 
       // Call destructors and change count                              
-      CropInner(count, mCount - count).CallDestructors<THIS>();
+      CropInner(count, mCount - count).Destroy<THIS>();
       mCount = count;
    }
 
@@ -241,7 +241,7 @@ namespace Langulus::Anyness
       if (mEntry->GetUses() == 1) {
          // Entry is used only in this block, so it's safe to           
          // destroy all elements. We can reuse the entry                
-         CallDestructors<THIS>();
+         Destroy<THIS>();
          mCount = 0;
       }
       else {
@@ -276,7 +276,7 @@ namespace Langulus::Anyness
    ///   @attention assumes block is not empty                                
    ///   @attention assumes block is not static                               
    template<CT::Block THIS>
-   void Block::CallDestructors() const {
+   void Block::Destroy() const {
       LANGULUS_ASSUME(DevAssumes, not IsEmpty(),
          "Attempting to destroy elements in an empty container");
       LANGULUS_ASSUME(DevAssumes, not IsStatic(),
@@ -289,7 +289,7 @@ namespace Langulus::Anyness
          if constexpr (CT::Sparse<T>) {
             // Destroy all indirection layers, if their references reach
             // 1, and destroy the dense element, if it has destructor   
-            auto handle = GetHandle<T>(0);
+            auto handle = GetHandle<T, THIS>(0);
             const auto handleEnd = handle + mCount;
             while (handle != handleEnd) {
                handle.Destroy();
@@ -299,7 +299,7 @@ namespace Langulus::Anyness
          else if constexpr (CT::Destroyable<T>) {
             // Destroy every dense element                              
             using DT = Decay<T>;
-            auto data = mthis->template GetRawAs<T>();
+            auto data = mthis->GetRaw<THIS>();
             const auto dataEnd = data + mCount;
             while (data != dataEnd) {
                data->~DT();
@@ -311,7 +311,7 @@ namespace Langulus::Anyness
          if (mType->mIsSparse) {
             // Destroy all indirection layers, if their references reach
             // 1, and destroy the dense element, if it has destructor   
-            auto handle = mthis->template GetHandle<Byte*>(0);
+            auto handle = mthis->template GetHandle<Byte*, THIS>(0);
             const auto handleEnd = handle + mCount;
             while (handle != handleEnd) {
                handle.DestroyUnknown(mType);
@@ -320,7 +320,7 @@ namespace Langulus::Anyness
          }
          else if (mType->mDestructor) {
             // Destroy every dense element                              
-            auto data = mthis->template GetRawAs<Byte>();
+            auto data = mthis->mRaw;
             const auto dataEnd = data + mType->mSize * mCount;
             while (data != dataEnd) {
                mType->mDestructor(data);
@@ -330,7 +330,7 @@ namespace Langulus::Anyness
       }
 
       // Always nullify upon destruction only if we're paranoid         
-      IF_LANGULUS_PARANOID(ZeroMemory(mRaw, GetBytesize()));
+      IF_LANGULUS_PARANOID(ZeroMemory(mRaw, GetBytesize<THIS>()));
    }
 
    /// Reset the memory inside the block                                      

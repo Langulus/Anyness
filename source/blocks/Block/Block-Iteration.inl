@@ -258,20 +258,21 @@ namespace Langulus::Anyness
       // These are used as detectors for block change while iterating   
       // Should be optimized-out when !MUTABLE                          
       using DA = Deref<A>;
+      const auto raw = const_cast<Block*>(this)->GetRawAs<DA, THIS>();
       UNUSED() DA* initialData;
       UNUSED() Count initialCount;
       if constexpr (CT::Mutable<THIS>) {
-         initialData = const_cast<Block*>(this)->GetRawAs<DA>();
+         initialData = raw;
          initialCount = count;
       }
 
       // Prepare for the loop                                           
       constexpr bool HasBreaker = CT::Bool<R>;
-      auto data = const_cast<Block*>(this)->GetRawAs<DA>();
+      auto data = raw;
       if constexpr (REVERSE)
          data += count - 1;
 
-      auto dataEnd = REVERSE ? GetRawAs<DA>() - 1 : GetRawAs<DA>() + count;
+      auto dataEnd = REVERSE ? raw - 1 : raw + count;
       while (data != dataEnd) {
          // Execute function                                            
          if constexpr (HasBreaker) {
@@ -286,16 +287,16 @@ namespace Langulus::Anyness
             // The block might change while iterating - make sure we    
             // consider this. It is always assumed, that the change     
             // happened in the last call at '*data'                     
-            if (GetRawAs<DA>() != initialData) {
+            if (raw != initialData) {
                // Memory moved, so we have to recalculate iterators     
                // based on the new memory (can happen independently)    
-               data = const_cast<Block*>(this)->GetRawAs<DA>() + (data - initialData);
+               data = raw + (data - initialData);
                if constexpr (REVERSE)
-                  dataEnd = GetRawAs<DA>() - 1;
+                  dataEnd = raw - 1;
                else
-                  dataEnd = GetRawAs<DA>() + count;
+                  dataEnd = raw + count;
 
-               initialData = const_cast<Block*>(this)->GetRawAs<DA>();
+               initialData = raw;
             }
 
             if (count > initialCount) {

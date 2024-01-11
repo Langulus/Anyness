@@ -151,7 +151,7 @@ namespace Langulus::Anyness
             --lastChar;
          }
 
-         (*this) = Text {temp, static_cast<Count>(lastChar - temp)};
+         (*this) = Text::From(temp, static_cast<Count>(lastChar - temp));
       }
       else if constexpr (CT::Integer<T>) {
          // Stringify an integer                                        
@@ -161,7 +161,7 @@ namespace Langulus::Anyness
          LANGULUS_ASSERT(errorCode == ::std::errc(), Convert,
             "std::to_chars failure");
 
-         (*this) += Text {temp, static_cast<Count>(lastChar - temp)};
+         (*this) += Text::From(temp, static_cast<Count>(lastChar - temp));
       }
       else LANGULUS_ERROR("Unsupported number type");
    }
@@ -171,8 +171,9 @@ namespace Langulus::Anyness
    ///   @param count - number of characters inside text                      
    template<class T> requires (CT::StringPointer<Desem<T>>
                            or  CT::StringLiteral<Desem<T>>)
-   Text::Text(T&& text, const Count count)
-      : Base {Base::From(Forward<T>(text), count)} { }
+   static Text Text::From(T&& text, Count count) {
+      return Base::From(Forward<T>(text), count);
+   }
 
    /// Shallow copy assignment                                                
    ///   @param rhs - the text to copy                                        
@@ -191,6 +192,7 @@ namespace Langulus::Anyness
    }
    
    /// Assign a block of any kind                                             
+   ///   @param rhs - the block to assign                                     
    template<class T> requires CT::Block<Desem<T>> LANGULUS(INLINED)
    Text& Text::operator = (T&& rhs) {
       Base::operator = (Forward<T>(rhs));
@@ -514,7 +516,7 @@ namespace Langulus::Anyness
    ///   @return true if this container contains this exact character         
    LANGULUS(INLINED)
    bool Text::operator == (const CT::DenseCharacter auto& rhs) const noexcept {
-      return operator == (Text {Disown(&rhs), 1});
+      return operator == (Text::From(Disown(&rhs), 1));
    }
 
    /// Compare with a null-terminated string                                  
@@ -582,9 +584,9 @@ namespace Langulus::Anyness
    template<class T> requires CT::DenseCharacter<Desem<T>>
    LANGULUS(INLINED) Text Text::operator + (T&& rhs) const {
       if constexpr (CT::Semantic<T>)
-         return operator + (Text {Disown(&*rhs), 1});
+         return operator + (Text::From(Disown(&*rhs), 1));
       else
-         return operator + (Text {Disown(&rhs), 1});
+         return operator + (Text::From(Disown(&rhs), 1));
    }
 
    template<class T> requires CT::StringPointer<Desem<T>>
@@ -609,9 +611,9 @@ namespace Langulus::Anyness
    template<class T> requires CT::DenseCharacter<Desem<T>>
    LANGULUS(INLINED) Text operator + (T&& lhs, const Text& rhs) {
       if constexpr (CT::Semantic<T>)
-         return Text {Disown(&*lhs), 1} + rhs;
+         return Text::From(Disown(&*lhs), 1) + rhs;
       else
-         return Text {Disown(&lhs), 1} + rhs;
+         return Text::From(Disown(&lhs), 1) + rhs;
    }
 
    template<class T> requires CT::StringPointer<Desem<T>>
@@ -659,9 +661,9 @@ namespace Langulus::Anyness
    template<class T> requires CT::DenseCharacter<Desem<T>>
    Text& Text::operator += (T&& rhs) {
       if constexpr (CT::Semantic<T>)
-         return operator += (Text {Disown(&*rhs), 1});
+         return operator += (Text::From(Disown(&*rhs), 1));
       else
-         return operator += (Text {Disown(&rhs), 1});
+         return operator += (Text::From(Disown(&rhs), 1));
    }
 
    template<class T> requires CT::StringPointer<Desem<T>>
@@ -764,7 +766,7 @@ namespace Langulus
    /// Make a text literal                                                    
    LANGULUS(INLINED)
    Anyness::Text operator "" _text(const char* text, ::std::size_t size) {
-      return Anyness::Text {Disown(text), size};
+      return Anyness::Text::From(Disown(text), size);
    }
 
 } // namespace Langulus
