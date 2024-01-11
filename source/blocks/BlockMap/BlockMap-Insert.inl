@@ -524,13 +524,13 @@ namespace Langulus::Anyness
                else {
                   auto key = GetKeyHandle<THIS>(oldIndex);
                   GetKeyHandle<THIS>(to)
-                     .CallUnknownSemanticConstructors(1, Abandon(key));
-                  key.CallUnknownDestructors();
+                     .CallSemanticConstructors<Any>(1, Abandon(key));
+                  key.CallDestructors<Any>();
 
                   auto val = GetValueHandle<THIS>(oldIndex);
                   GetValueHandle<THIS>(to)
-                     .CallUnknownSemanticConstructors(1, Abandon(val));
-                  val.CallUnknownDestructors();
+                     .CallSemanticConstructors<Any>(1, Abandon(val));
+                  val.CallDestructors<Any>();
                }
 
                mInfo[to] = attempt;

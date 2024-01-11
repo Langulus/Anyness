@@ -75,10 +75,6 @@ namespace Langulus::Anyness
       Any& operator = (CT::Inner::UnfoldInsertable auto&&);
 
    public:
-      using Block::Swap;
-
-      void SwapBlock(CT::Block auto&) noexcept;
-
       NOD() Any Crop(Offset, Count) const;
       NOD() Any Crop(Offset, Count);
 

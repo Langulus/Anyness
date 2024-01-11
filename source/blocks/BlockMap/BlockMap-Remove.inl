@@ -54,7 +54,7 @@ namespace Langulus::Anyness
       auto& me = reinterpret_cast<THIS&>(*this);
 
       if (me.template KeyIsSimilar<K>()
-      or (CT::Typed<THIS> and ::std::equality_comparable_with<typename THIS::Key, K>)) {
+      or (CT::Typed<THIS> and CT::Inner::Comparable<typename THIS::Key, K>)) {
          return RemoveKeyInner<THIS>(key);
       }
       else if constexpr (CT::StringLiteral<K>) {
@@ -100,7 +100,7 @@ namespace Langulus::Anyness
       auto& me = reinterpret_cast<THIS&>(*this);
 
       if (me.template ValueIsSimilar<V>()
-      or (CT::Typed<THIS> and ::std::equality_comparable_with<typename THIS::Value, V>)) {
+      or (CT::Typed<THIS> and CT::Inner::Comparable<typename THIS::Value, V>)) {
          return RemoveValueInner<THIS>(value);
       }
       else if constexpr (CT::StringLiteral<V>) {
@@ -139,8 +139,8 @@ namespace Langulus::Anyness
                val.Destroy();
             }
             else {
-               key.CallDestructors<Any>();
-               val.CallDestructors<Any>();
+               key.template CallDestructors<Any>();
+               val.template CallDestructors<Any>();
             }
 
             *psl = 0;

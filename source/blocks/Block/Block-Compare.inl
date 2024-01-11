@@ -302,17 +302,22 @@ namespace Langulus::Anyness
             else if (mType->mHasher)
                return mType->mHasher(mRaw);
             else if (mType->mIsPOD) {
-               if (mType->mAlignment < Bitness / 8)
-                  return HashBytes<DefaultHashSeed, true>(mRaw, static_cast<int>(mType->mSize));
-               else
-                  return HashBytes<DefaultHashSeed, false>(mRaw, static_cast<int>(mType->mSize));
+               if (mType->mAlignment < Bitness / 8) {
+                  return HashBytes<DefaultHashSeed, true>(
+                     mRaw, static_cast<int>(mType->mSize));
+               }
+               else {
+                  return HashBytes<DefaultHashSeed, false>(
+                     mRaw, static_cast<int>(mType->mSize));
+               }
             }
             else LANGULUS_OOPS(Access, "Unhashable type", ": ", GetToken());
          }
 
          // Hashing multiple elements                                   
          if (mType->mIsSparse) {
-            return HashBytes<DefaultHashSeed, false>(mRaw, static_cast<int>(GetBytesize<THIS>()));
+            return HashBytes<DefaultHashSeed, false>(
+               mRaw, static_cast<int>(GetBytesize<THIS>()));
          }
          else if (mType->mHasher) {
             // Use the reflected hasher for each element, and then      
@@ -325,10 +330,14 @@ namespace Langulus::Anyness
             return h.GetHash();
          }
          else if (mType->mIsPOD) {
-            if (mType->mAlignment < Bitness / 8)
-               return HashBytes<DefaultHashSeed, true>(mRaw, static_cast<int>(GetBytesize<THIS>()));
-            else
-               return HashBytes<DefaultHashSeed, false>(mRaw, static_cast<int>(GetBytesize<THIS>()));
+            if (mType->mAlignment < Bitness / 8) {
+               return HashBytes<DefaultHashSeed, true>(
+                  mRaw, static_cast<int>(GetBytesize<THIS>()));
+            }
+            else {
+               return HashBytes<DefaultHashSeed, false>(
+                  mRaw, static_cast<int>(GetBytesize<THIS>()));
+            }
          }
          else LANGULUS_OOPS(Access, "Unhashable type", ": ", GetToken());
          return {};
@@ -350,7 +359,7 @@ namespace Langulus::Anyness
             "Can't find non-comparable element");
 
          auto start = REVERSE
-            ? GetRawEndAs<T>() - 1 - cookie
+            ? GetRawEndAs<T, THIS>() - 1 - cookie
             : GetRawAs<T>() + cookie;
          const auto end = REVERSE
             ? start - mCount
@@ -436,17 +445,17 @@ namespace Langulus::Anyness
          }
 
          // If reached, types are comparable                               
-         auto lhs = REVERSE ? GetRawEndAs<TL>() - cookie - item.GetCount()
-                            : GetRawAs<TL>() + cookie;
+         auto lhs = REVERSE ? GetRawEnd<TAny<TL>>() - cookie - item.GetCount()
+                            : GetRaw<TAny<TL>>() + cookie;
          auto rhs = item.template GetRawAs<TR>();
-         const auto lhsEnd = REVERSE ? GetRawAs<TL>() - 1
-                                     : GetRawEndAs<TL>() - item.GetCount() + 1;
-         const auto rhsEnd = item.template GetRawEndAs<TR>();
-         UNUSED() const auto bytesize = item.GetBytesize();
+         const auto lhsEnd = REVERSE ? GetRaw<TAny<TL>>() - 1
+                                     : GetRawEnd<TAny<TL>>() - item.GetCount() + 1;
+         const auto rhsEnd = item.template GetRawEnd<TAny<TR>>();
+         UNUSED() const auto bytesize = item.Block::template GetBytesize<TAny<TL>>();
          while (lhs != lhsEnd) {
             if (*lhs == *rhs) {
-               cookie = REVERSE ? GetRawEndAs<TL>() - lhs - 1
-                                : lhs - GetRaw();
+               cookie = REVERSE ? GetRawEnd<TAny<TL>>() - lhs - 1
+                                : lhs - GetRaw<TAny<TL>>();
                ++lhs;
                ++rhs;
 
@@ -467,9 +476,9 @@ namespace Langulus::Anyness
                      return cookie;
                }
 
-               lhs = REVERSE ? GetRawEndAs<TL>() - cookie - 1
-                             : GetRaw() + cookie;
-               rhs = item.template GetRawAs<TR>();
+               lhs = REVERSE ? GetRawEnd<TAny<TL>>() - cookie - 1
+                             : GetRaw<TAny<TL>>() + cookie;
+               rhs = item.template GetRaw<TAny<TR>>();
             }
 
             if constexpr (REVERSE)
@@ -481,7 +490,7 @@ namespace Langulus::Anyness
          return IndexNone;
       }
       else {
-         // One of the participators is type-årased                     
+         // One of the participators is type-erased                     
          // First check if element is contained inside this block's     
          // memory, because if so, we can easily find it, without       
          // calling a single compare function                           
@@ -508,7 +517,8 @@ namespace Langulus::Anyness
 
          // Slow and tedious RTTI-based compare                         
          Offset i = REVERSE ? mCount - 1 - cookie : cookie;
-         const auto iend = REVERSE ? Offset {-1} : mCount - item.GetCount() + 1;
+         const auto iend = REVERSE ? static_cast<Offset>(-1)
+                                   : mCount - item.GetCount() + 1;
          while (i != iend) {
             if (CropInner(i, item.GetCount()) == item)
                return i;
@@ -537,16 +547,16 @@ namespace Langulus::Anyness
          // Deep types can be more loosely compared                     
          if (mType->mIsSparse or not mType->mIsDeep)
             return false;
-         return GetRawAs<Block>()->Compare(rhs);
+         return GetRawAs<Block, THIS>()->Compare(rhs);
       }
       else if constexpr (CT::StringLiteral<T>) {
          if (mType->template IsSimilar<Text>()) {
             // Implicitly make a text container on string literal       
-            return *GetRawAs<Text>() == Text {Disown(rhs)};
+            return *GetRawAs<Text, THIS>() == Text {Disown(rhs)};
          }
          else if (mType->template IsSimilar<char*, wchar_t*>()) {
             // Cast away the extent, compare against pointer            
-            return *GetRawSparse<THIS>() == static_cast<const void*>(rhs);
+            return *GetRawSparse<Any>() == static_cast<const void*>(rhs);
          }
          else return false;
       }

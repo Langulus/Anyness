@@ -62,8 +62,10 @@ namespace Langulus::Anyness
       constexpr Handle& operator = (const Handle&) noexcept = default;
       constexpr Handle& operator = (Handle&&) noexcept = default;
 
-      constexpr bool operator == (const T*) const noexcept requires Embedded;
-      constexpr bool operator == (const Handle&) const noexcept requires Embedded;
+      template<class T1> requires CT::Inner::Comparable<T, T1>
+      constexpr bool operator == (const T1&) const noexcept;
+      template<class T1, bool EMBED1> requires CT::Inner::Comparable<T, T1>
+      constexpr bool operator == (const Handle<T1, EMBED1>&) const noexcept;
 
       NOD() T& Get() const noexcept;
       NOD() const Allocation*& GetEntry() const noexcept;

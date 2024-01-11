@@ -131,6 +131,7 @@ namespace Langulus::Anyness
       else LANGULUS_ERROR("Unable to insert as bytes");
    }
 
+
    ///                                                                        
    ///   Concatenation                                                        
    ///                                                                        
@@ -180,7 +181,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this modified container                       
    template<template<class> class S> LANGULUS(INLINED)
    Bytes& Bytes::operator += (S<Bytes>&& rhs) requires CT::Semantic<S<Bytes>> {
-      InsertBlock<Bytes, void, true>(IndexBack, rhs.Forward());
+      Block::InsertBlock<Bytes, void, true>(IndexBack, rhs.Forward());
       return *this;
    }
    
@@ -199,21 +200,17 @@ namespace Langulus::Anyness
       return Compare(other);
    }
 
-   /// Pick a constant part of the byte array                                 
-   ///   @param start - the starting byte offset                              
-   ///   @param count - the number of bytes after 'start' to remain           
-   ///   @return a new container that references the original memory          
-   LANGULUS(INLINED)
-   Bytes Bytes::Crop(Offset start, Count count) const {
-      return Block::Crop<Bytes>(start, count);
-   }
-
    /// Pick a part of the byte array                                          
    ///   @param start - the starting byte offset                              
    ///   @param count - the number of bytes after 'start' to remain           
    ///   @return a new container that references the original memory          
    LANGULUS(INLINED)
    Bytes Bytes::Crop(Offset start, Count count) {
+      return Block::Crop<Bytes>(start, count);
+   }
+
+   LANGULUS(INLINED)
+   Bytes Bytes::Crop(Offset start, Count count) const {
       return Block::Crop<Bytes>(start, count);
    }
 
@@ -249,7 +246,9 @@ namespace Langulus::Anyness
 
    ///                                                                        
    LANGULUS(INLINED)
-   void Bytes::RequestMoreBytes(Offset read, Size byteCount, const Loader& loader) const {
+   void Bytes::RequestMoreBytes(
+      Offset read, Size byteCount, const Loader& loader
+   ) const {
       if (read >= GetCount() or GetCount() - read < byteCount) {
          if (not loader)
             LANGULUS_THROW(Access, "Deserializer has no loader");
@@ -263,7 +262,9 @@ namespace Langulus::Anyness
    ///   @param header - environment header                                   
    ///   @param loader - loader for streaming                                 
    ///   @return the number of read bytes from byte container                 
-   inline Size Bytes::DeserializeAtom(Offset& result, Offset read, const Header& header, const Loader& loader) const {
+   inline Size Bytes::DeserializeAtom(
+      Offset& result, Offset read, const Header& header, const Loader& loader
+   ) const {
       if (header.mAtomSize == 4) {
          // We're deserializing data, that was serialized on a 32-bit   
          // architecture                                                
@@ -306,12 +307,14 @@ namespace Langulus::Anyness
    ///   @param loader - loader for streaming                                 
    ///   @return number of read bytes                                         
    template<class META>
-   Size Bytes::DeserializeMeta(META& result, Offset read, const Header& header, const Loader& loader) const {
+   Size Bytes::DeserializeMeta(
+      META& result, Offset read, const Header& header, const Loader& loader
+   ) const {
       Count count = 0;
       read = DeserializeAtom(count, read, header, loader);
       if (count) {
          RequestMoreBytes(read, count, loader);
-         const Token token {GetRawAs<Letter>() + read, count};
+         const Token token {GetRawAs<Letter, Bytes>() + read, count};
          if constexpr (CT::Same<META, DMeta>)
             result = RTTI::GetMetaData(token);
          else if constexpr (CT::Same<META, VMeta>)

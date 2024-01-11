@@ -71,7 +71,8 @@ namespace Langulus::Anyness
       Text(const CT::Meta auto&);
       Text(const CT::DenseBuiltinNumber auto&);
 
-      template<class T> requires CT::StringPointer<Desem<T>>
+      template<class T> requires (CT::StringPointer<Desem<T>>
+                              or  CT::StringLiteral<Desem<T>>)
       Text(T&&, Count);
 
       ///                                                                     
@@ -81,20 +82,20 @@ namespace Langulus::Anyness
       Text& operator = (Text&&) noexcept;
 
       template<class T> requires CT::Block<Desem<T>>
-      Text& operator = (const T&);
+      Text& operator = (T&&);
 
       template<class T> requires CT::DenseCharacter<Desem<T>>
-      Text& operator = (const T&);
+      Text& operator = (T&&);
 
       template<class T> requires CT::StringPointer<Desem<T>>
-      Text& operator = (const T&);
+      Text& operator = (T&&);
 
       template<class T> requires CT::StringLiteral<Desem<T>>
-      Text& operator = (const T&);
+      Text& operator = (T&&);
 
       template<class T> requires (CT::StandardContiguousContainer<Desem<T>>
                              and  CT::DenseCharacter<TypeOf<Desem<T>>>)
-      Text& operator = (const T&);
+      Text& operator = (T&&);
 
       ///                                                                     
       ///   Capsulation                                                       
@@ -107,8 +108,10 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Indexing                                                          
       ///                                                                     
-      NOD() Text Crop(Offset, Count) const;
-      NOD() Text Crop(Offset, Count);
+      NOD() Text Crop(CT::Index auto, Count) const;
+      NOD() Text Crop(CT::Index auto, Count);
+      NOD() Text Crop(CT::Index auto) const;
+      NOD() Text Crop(CT::Index auto);
 
       ///                                                                     
       ///   Comparison                                                        
@@ -137,28 +140,28 @@ namespace Langulus::Anyness
       ///   Concatenation                                                     
       ///                                                                     
       template<class T> requires CT::Block<Desem<T>>
-      NOD() Text operator + (const T&) const;
+      NOD() Text operator + (T&&) const;
       template<class T> requires CT::DenseCharacter<Desem<T>>
-      NOD() Text operator + (const T&) const;
+      NOD() Text operator + (T&&) const;
       template<class T> requires CT::StringPointer<Desem<T>>
-      NOD() Text operator + (const T&) const;
+      NOD() Text operator + (T&&) const;
       template<class T> requires CT::StringLiteral<Desem<T>>
-      NOD() Text operator + (const T&) const;
+      NOD() Text operator + (T&&) const;
       template<class T> requires (CT::StandardContiguousContainer<T>
                              and  CT::DenseCharacter<TypeOf<T>>)
-      NOD() Text operator + (const T&) const;
+      NOD() Text operator + (T&&) const;
 
       template<class T> requires CT::Block<Desem<T>>
-      Text& operator += (const T&);
+      Text& operator += (T&&);
       template<class T> requires CT::DenseCharacter<Desem<T>>
-      Text& operator += (const T&);
+      Text& operator += (T&&);
       template<class T> requires CT::StringPointer<Desem<T>>
-      Text& operator += (const T&);
+      Text& operator += (T&&);
       template<class T> requires CT::StringLiteral<Desem<T>>
-      Text& operator += (const T&);
+      Text& operator += (T&&);
       template<class T> requires (CT::StandardContiguousContainer<T>
                              and  CT::DenseCharacter<TypeOf<T>>)
-      Text& operator += (const T&);
+      Text& operator += (T&&);
 
       ///                                                                     
       ///   Services                                                          
@@ -189,17 +192,17 @@ namespace Langulus::Anyness
    ///                                                                        
 
    template<class T> requires CT::DenseCharacter<Desem<T>>
-   Text operator + (const T&, const Text&);
+   Text operator + (T&&, const Text&);
 
    template<class T> requires CT::StringPointer<Desem<T>>
-   Text operator + (const T&, const Text&);
+   Text operator + (T&&, const Text&);
 
    template<class T> requires CT::StringLiteral<Desem<T>>
-   Text operator + (const T&, const Text&);
+   Text operator + (T&&, const Text&);
 
    template<class T> requires (CT::StandardContiguousContainer<T>
                           and  CT::DenseCharacter<TypeOf<T>>)
-   Text operator + (const T&, const Text&);
+   Text operator + (T&&, const Text&);
 
 
    /// Text container specialized for logging                                 
@@ -210,6 +213,7 @@ namespace Langulus::Anyness
       LANGULUS(FILES) "";
 
       using Text::Text;
+      using Text::operator ==;
 
       Debug(const Text&);
       Debug(Text&&);

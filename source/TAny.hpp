@@ -117,8 +117,8 @@ namespace Langulus::Anyness
       NOD() constexpr bool IsInsertable(DMeta) const noexcept;
       NOD() constexpr bool IsInsertable() const noexcept;
 
-   private: IF_LANGULUS_TESTING(public:)
-      using Any::GetRawSparse;
+   //private: IF_LANGULUS_TESTING(public:)
+   //   using Any::GetRawSparse;
 
    public:
       ///                                                                     

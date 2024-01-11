@@ -42,11 +42,7 @@ namespace Langulus::Anyness
             return oldCount;
          }
 
-         Index idx;
-         if constexpr (CT::Typed<THIS>)
-            idx = ConstrainMore<TypeOf<THIS>>(index);
-         else
-            idx = Constrain(index);
+         auto idx = Constrain<THIS>(index);
          if (idx.IsSpecial())
             return 0;
 
@@ -279,7 +275,6 @@ namespace Langulus::Anyness
    ///   @attention never modifies any block state                            
    ///   @attention assumes block is not empty                                
    ///   @attention assumes block is not static                               
-   ///   @tparam T - the type to destroy                                      
    template<CT::Block THIS>
    void Block::CallDestructors() const {
       LANGULUS_ASSUME(DevAssumes, not IsEmpty(),
@@ -295,7 +290,7 @@ namespace Langulus::Anyness
             // Destroy all indirection layers, if their references reach
             // 1, and destroy the dense element, if it has destructor   
             auto handle = GetHandle<T>(0);
-            const auto handleEnd = handle.mValue + mCount;
+            const auto handleEnd = handle + mCount;
             while (handle != handleEnd) {
                handle.Destroy();
                ++handle;
@@ -317,7 +312,7 @@ namespace Langulus::Anyness
             // Destroy all indirection layers, if their references reach
             // 1, and destroy the dense element, if it has destructor   
             auto handle = mthis->template GetHandle<Byte*>(0);
-            const auto handleEnd = handle.mValue + mCount;
+            const auto handleEnd = handle + mCount;
             while (handle != handleEnd) {
                handle.DestroyUnknown(mType);
                ++handle;
