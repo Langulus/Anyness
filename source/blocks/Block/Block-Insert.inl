@@ -974,8 +974,8 @@ namespace Langulus::Anyness
       LANGULUS_ASSUME(DevAssumes, source->GetType() &= GetType<THIS>(),
          "T doesn't match RHS type",
          ": ", source->GetType(), " != ", GetType<THIS>());
-      const auto mthis = reinterpret_cast<THIS*>(const_cast<Block*>(this));
 
+      const auto mthis = reinterpret_cast<THIS*>(const_cast<Block*>(this));
       if constexpr (CT::Typed<THIS> or CT::Typed<B>) {
          using T = Conditional<CT::Typed<THIS>, TypeOf<THIS>, TypeOf<B>>;
 
@@ -1117,8 +1117,7 @@ namespace Langulus::Anyness
                ShallowBatchPointerConstruction(source.Forward());
             }
             else if (not mType->mDeptr->mIsSparse
-               and (mType->mIsUnallocatable or not mType->mCloneConstructor)
-               ) {
+            and (mType->mIsUnallocatable or not mType->mCloneConstructor)) {
                // We early-return with an enforced shallow pointer      
                // transfer, because its requesting to clone             
                // unallocatable/unclonable/abstract data, such as metas 
