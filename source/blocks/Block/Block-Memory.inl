@@ -39,13 +39,19 @@ namespace Langulus::Anyness
    /// Reserve a number of elements without initializing them                 
    /// If reserved data is smaller than currently initialized count, the      
    /// excess elements will be destroyed                                      
+   ///   @tparam SETSIZE - whether or not to set size, too                    
+   ///   @attention using SETSIZE will NOT construct any elements, use only   
+   ///      if you know what you're doing                                     
    ///   @param count - number of elements to reserve                         
-   template<CT::Block THIS> LANGULUS(INLINED)
+   template<bool SETSIZE, CT::Block THIS> LANGULUS(INLINED)
    void Block::Reserve(const Count count) {
       if (count < mCount)
          AllocateLess<THIS>(count);
       else 
          AllocateMore<THIS>(count);
+
+      if constexpr (SETSIZE)
+         mCount = count;
    }
    
    /// Allocate a number of elements, relying on the type of the container    
@@ -180,7 +186,7 @@ namespace Langulus::Anyness
    ///   @attention assumes 'elements' is smaller than the current reserve    
    ///   @param elements - number of elements to allocate                     
    template<CT::Block THIS> LANGULUS(INLINED)
-   void Block::AllocateLess(Count elements) {
+   void Block::AllocateLess(const Count elements) {
       LANGULUS_ASSUME(DevAssumes, elements < mReserved, "Bad element count");
 
       if (mCount > elements) {
@@ -381,10 +387,18 @@ namespace Langulus::Anyness
    ///   @attention for internal use only, use only if you know what you're   
    ///              doing!                                                    
    LANGULUS(INLINED)
+   void Block::SetMemory(
+      const DataState& state, DMeta meta, Count count
+   ) IF_UNSAFE(noexcept) {
+      SetMemory(state + DataState::Constant, meta, count, (void*) nullptr, nullptr);
+   }
+      
+   /// Sets the currently interfaced memory                                   
+   ///   @attention for internal use only, use only if you know what you're   
+   ///              doing!                                                    
+   LANGULUS(INLINED)
    void Block::SetMemory(const DataState& state
-      , DMeta meta
-      , Count count
-      , const void* raw
+      , DMeta meta, Count count, const void* raw
    ) IF_UNSAFE(noexcept) {
       SetMemory(
          state + DataState::Constant, meta, count, 
@@ -397,9 +411,7 @@ namespace Langulus::Anyness
    ///              doing!                                                    
    LANGULUS(INLINED)
    void Block::SetMemory(const DataState& state
-      , DMeta meta
-      , Count count
-      , void* raw
+      , DMeta meta, Count count, void* raw
    ) IF_UNSAFE(noexcept) {
       SetMemory(
          state, meta, count, 
@@ -413,10 +425,7 @@ namespace Langulus::Anyness
    ///              doing!                                                    
    LANGULUS(INLINED) IF_UNSAFE(constexpr)
    void Block::SetMemory(const DataState& state
-      , DMeta meta
-      , Count count
-      , const void* raw
-      , const Allocation* entry
+      , DMeta meta, Count count, const void* raw, const Allocation* entry
    ) {
       SetMemory(
          state + DataState::Constant, meta, count, 
@@ -429,10 +438,7 @@ namespace Langulus::Anyness
    ///              doing!                                                    
    LANGULUS(INLINED) IF_UNSAFE(constexpr)
    void Block::SetMemory(const DataState& state
-      , DMeta meta
-      , Count count
-      , void* raw
-      , const Allocation* entry
+      , DMeta meta, Count count, void* raw, const Allocation* entry
    ) {
       LANGULUS_ASSUME(DevAssumes, raw, "Invalid data pointer");
       LANGULUS_ASSUME(DevAssumes, meta, "Invalid data type");

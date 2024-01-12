@@ -208,7 +208,7 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
          REQUIRE(pack.template As<DenseE>() == denseValue);
          REQUIRE(*pack.template As<DenseE*>() == denseValue);
          REQUIRE(pack.GetUses() == 1);
-         REQUIRE(*pack.GetRawSparse() == asbytes(sparseValue));
+         REQUIRE(*pack.GetRawSparse<T>() == sparseValue);
          IF_LANGULUS_MANAGED_MEMORY(REQUIRE(*pack.GetEntries() == nullptr));
          REQUIRE_THROWS(pack.template As<float>() == 0.0f);
          REQUIRE_THROWS(pack.template As<float*>() == nullptr);
@@ -1049,7 +1049,7 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
             REQUIRE(pack.template As<DenseE>() == denseValue);
             REQUIRE(*pack.template As<DenseE*>() == denseValue);
             REQUIRE(pack.GetUses() == 1);
-            REQUIRE(*pack.GetRawSparse() == asbytes(sparseValue));
+            REQUIRE(*pack.GetRawSparse<T>() == sparseValue);
             IF_LANGULUS_MANAGED_MEMORY(REQUIRE(*pack.GetEntries() == nullptr));
             REQUIRE_THROWS(pack.template As<float>() == 0.0f);
             REQUIRE_THROWS(pack.template As<float*>() == nullptr);
@@ -1090,7 +1090,7 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
             REQUIRE(pack.template As<DenseE>() == denseValue);
             REQUIRE(*pack.template As<DenseE*>() == denseValue);
             REQUIRE(pack.GetUses() == 1);
-            REQUIRE(*pack.GetRawSparse() == asbytes(sparseValue));
+            REQUIRE(*pack.GetRawSparse<T>() == sparseValue);
             IF_LANGULUS_MANAGED_MEMORY(REQUIRE(*pack.GetEntries() == nullptr));
             REQUIRE_THROWS(pack.template As<float>() == 0.0f);
             REQUIRE_THROWS(pack.template As<float*>() == nullptr);
@@ -1130,7 +1130,7 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
             REQUIRE(pack.template As<DenseE>() == denseValue);
             REQUIRE(*pack.template As<DenseE*>() == denseValue);
             REQUIRE(pack.GetUses() == 1);
-            REQUIRE(*pack.GetRawSparse() == asbytes(sparseValue));
+            REQUIRE(*pack.GetRawSparse<T>() == sparseValue);
             IF_LANGULUS_MANAGED_MEMORY(REQUIRE(*pack.GetEntries() == nullptr));
             REQUIRE_THROWS(pack.template As<float>() == 0.0f);
             REQUIRE_THROWS(pack.template As<float*>() == nullptr);
@@ -1171,7 +1171,7 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
             REQUIRE(pack.template As<DenseE>() == denseValue);
             REQUIRE(*pack.template As<DenseE*>() == denseValue);
             REQUIRE(pack.GetUses() == 1);
-            REQUIRE(*pack.GetRawSparse() == asbytes(sparseValue));
+            REQUIRE(*pack.GetRawSparse<T>() == sparseValue);
             IF_LANGULUS_MANAGED_MEMORY(REQUIRE(*pack.GetEntries() == nullptr));
             REQUIRE_THROWS(pack.template As<float>() == 0.0f);
             REQUIRE_THROWS(pack.template As<float*>() == nullptr);
@@ -1286,7 +1286,7 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
          REQUIRE(pack.template As<DenseE>() == denseValue);
          REQUIRE(*pack.template As<DenseE*>() == denseValue);
          REQUIRE(pack.GetUses() == 1);
-         REQUIRE(*pack.GetRawSparse() == asbytes(sparseValue));
+         REQUIRE(*pack.GetRawSparse<T>() == sparseValue);
          IF_LANGULUS_MANAGED_MEMORY(REQUIRE(*pack.GetEntries() == nullptr));
          REQUIRE_THROWS(pack.template As<float>() == 0.0f);
          REQUIRE_THROWS(pack.template As<float*>() == nullptr);
@@ -1330,7 +1330,7 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
          REQUIRE(pack.template As<DenseE>() == denseValue);
          REQUIRE(*pack.template As<DenseE*>() == denseValue);
          REQUIRE(pack.GetUses() == 1);
-         REQUIRE(*pack.GetRawSparse() == asbytes(sparseValue));
+         REQUIRE(*pack.GetRawSparse<T>() == sparseValue);
          IF_LANGULUS_MANAGED_MEMORY(REQUIRE(*pack.GetEntries() == nullptr));
          REQUIRE_THROWS(pack.template As<float>() == 0.0f);
          REQUIRE_THROWS(pack.template As<float*>() == nullptr);
@@ -1377,7 +1377,7 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
          REQUIRE(pack.template As<DenseE>() == denseValue);
          REQUIRE(*pack.template As<DenseE*>() == denseValue);
          REQUIRE(pack.GetUses() == 1);
-         REQUIRE(*pack.GetRawSparse() == asbytes(sparseValue));
+         REQUIRE(*pack.GetRawSparse<T>() == sparseValue);
          IF_LANGULUS_MANAGED_MEMORY(REQUIRE(*pack.GetEntries() == nullptr));
          REQUIRE_THROWS(pack.template As<float>() == 0.0f);
          REQUIRE_THROWS(pack.template As<float*>() == nullptr);

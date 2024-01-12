@@ -88,14 +88,10 @@ namespace Langulus::Anyness
       template<class T1> requires CT::DeepAssignable<T, T1>
       TAny& operator = (T1&&);
 
-   public:
       ///                                                                     
       ///   Capsulation                                                       
       ///                                                                     
       NOD() DMeta    GetType() const noexcept;
-      NOD() T const* GetRaw() const noexcept;
-      NOD() T*       GetRaw()       noexcept;
-      NOD() T const* GetRawEnd() const noexcept;
       constexpr void ResetState() noexcept;
 
       NOD() constexpr bool IsTyped() const noexcept;
@@ -117,8 +113,35 @@ namespace Langulus::Anyness
       NOD() constexpr bool IsInsertable(DMeta) const noexcept;
       NOD() constexpr bool IsInsertable() const noexcept;
 
-   //private: IF_LANGULUS_TESTING(public:)
-   //   using Any::GetRawSparse;
+   protected: IF_LANGULUS_TESTING(public:)
+      template<CT::BlockBased = TAny>
+      NOD() constexpr auto GetRaw() noexcept;
+      template<CT::BlockBased = TAny>
+      NOD() constexpr auto GetRaw() const noexcept;
+      template<CT::BlockBased = TAny>
+      NOD() constexpr auto GetRawEnd() const noexcept;
+
+      template<CT::BlockBased = TAny>
+      NOD() auto GetRawSparse()       IF_UNSAFE(noexcept);
+      template<CT::BlockBased = TAny>
+      NOD() auto GetRawSparse() const IF_UNSAFE(noexcept);
+
+      template<CT::Data T1, CT::BlockBased = TAny>
+      NOD() T1*       GetRawAs() noexcept;
+      template<CT::Data T1, CT::BlockBased = TAny>
+      NOD() T1 const* GetRawAs() const noexcept;
+      template<CT::Data T1, CT::BlockBased = TAny>
+      NOD() T1 const* GetRawEndAs() const noexcept;
+
+      template<CT::Data T1, CT::BlockBased = TAny>
+      NOD() T1**             GetRawSparseAs()       IF_UNSAFE(noexcept);
+      template<CT::Data T1, CT::BlockBased = TAny>
+      NOD() T1 const* const* GetRawSparseAs() const IF_UNSAFE(noexcept);
+
+      template<CT::BlockBased = TAny>
+      NOD() const Allocation* const* GetEntries() const IF_UNSAFE(noexcept);
+      template<CT::BlockBased = TAny>
+      NOD() const Allocation**       GetEntries()       IF_UNSAFE(noexcept);
 
    public:
       ///                                                                     
@@ -138,11 +161,11 @@ namespace Langulus::Anyness
       NOD() decltype(auto) GetHandle(Offset)       IF_UNSAFE(noexcept);
       NOD() decltype(auto) GetHandle(Offset) const IF_UNSAFE(noexcept);
 
-      NOD() Block*       GetBlockDeep(Offset) noexcept;
+      /*NOD() Block*       GetBlockDeep(Offset) noexcept;
       NOD() Block const* GetBlockDeep(Offset) const noexcept;
 
       NOD() Block GetElementDeep(Offset) noexcept;
-      NOD() Block GetElementDeep(Offset) const noexcept;
+      NOD() Block GetElementDeep(Offset) const noexcept;*/
 
       NOD() TAny Crop(Offset, Count) const;
       NOD() TAny Crop(Offset, Count);
@@ -241,6 +264,7 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Memory management                                                 
       ///                                                                     
+      template<bool SETSIZE = false>
       void Reserve(Count);
 
       ///                                                                     
@@ -296,7 +320,6 @@ namespace Langulus::Anyness
       requires CT::Inner::UnfoldMakableFrom<T, T1>
       TAny& operator >>= (T1&&);
 
-   public:
       ///                                                                     
       ///   Removal                                                           
       ///                                                                     
@@ -338,6 +361,13 @@ namespace Langulus::Anyness
       using Any::SetType;
       using Any::MakeTypeConstrained;
       using Any::SmartPush;
+      using Any::GetResolved;
+      using Any::GetDense;
+      using Any::GetBlockDeep;
+      using Any::GetElementDeep;
+      using Any::GetElement;
+      using Any::GetElementResolved;
+      using Any::GetElementDense;
    };
 
 } // namespace Langulus::Anyness

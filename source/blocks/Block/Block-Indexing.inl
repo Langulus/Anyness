@@ -203,7 +203,7 @@ namespace Langulus::Anyness
    ///   @return the dense resolved memory block for the element              
    LANGULUS(INLINED)
    Block Block::GetElementResolved(Offset index) {
-      return GetElement(index).GetResolved<Block>();
+      return GetElement(index).GetResolved();
    }
 
    LANGULUS(INLINED)
@@ -337,7 +337,7 @@ namespace Langulus::Anyness
    /// Get the resolved first mutable element of this block                   
    ///   @attention assumes this block is valid and has at least one element  
    ///   @return the mutable resolved first element                           
-   template<CT::Block THIS> LANGULUS(INLINED)
+   template<CT::BlockBased THIS> LANGULUS(INLINED)
    Block Block::GetResolved() {
       LANGULUS_ASSUME(DevAssumes, IsTyped<THIS>(),
          "Block is not typed");
@@ -350,7 +350,7 @@ namespace Langulus::Anyness
          return GetDense();
    }
 
-   template<CT::Block THIS> LANGULUS(INLINED)
+   template<CT::BlockBased THIS> LANGULUS(INLINED)
    Block Block::GetResolved() const {
       auto result = const_cast<Block*>(this)->GetResolved<THIS>();
       result.MakeConst();
@@ -424,7 +424,7 @@ namespace Langulus::Anyness
       using S = SemanticOf<T>;
       LANGULUS_ASSUME(DevAssumes, mCount and DesemCast(rhs).mCount == mCount,
          "Invalid count");
-      LANGULUS_ASSUME(DevAssumes, GetType() &= DesemCast(rhs).GetType(),
+      LANGULUS_ASSUME(DevAssumes, GetType<THIS>() &= DesemCast(rhs).GetType(),
          "Type mismatch");
 
       using B = Conditional<CT::Typed<THIS>, THIS, TypeOf<S>>;
@@ -439,13 +439,13 @@ namespace Langulus::Anyness
       // Abandon rhs to this                                            
       CallSemanticConstructors<THIS>(rhs->mCount, rhs.Forward());*/
       // Assign all elements from rhs to this                           
-      Assign<B>(S::Nest(rhs));
+      AssignSemantic<B>(S::Nest(rhs));
       // Destroy elements in rhs                                        
       /*rhs->template CallDestructors<THIS>();
       // Abandon temporary to rhs                                       
       rhs->template CallSemanticConstructors<THIS>(temporary.mCount, Abandon(temporary));*/
       // Assign all elements from temporary to rhs                      
-      DesemCast(rhs).template Assign<B>(Abandon(temporary));
+      DesemCast(rhs).template AssignSemantic<B>(Abandon(temporary));
       // Cleanup temporary                                              
       temporary.Destroy<B>();
 

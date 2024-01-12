@@ -51,6 +51,19 @@ namespace Langulus::A
          state + DataState::Member,
          meta, count, raw, Allocator::Find(meta, raw)
       } {}
+
+   /// Manual construction from mutable data                                  
+   ///   @attention assumes data is not sparse                                
+   ///   @param state - the initial state of the container                    
+   ///   @param meta - the type of the memory block                           
+   ///   @param count - initial element count and reserve                     
+   LANGULUS(INLINED)
+   Block::Block(const DataState& state, DMeta meta, Count count)
+      IF_UNSAFE(noexcept)
+      : Block {
+         state + DataState::Member,
+         meta, count, (void*) nullptr, nullptr
+      } {}
    
    /// Manual construction from constant data                                 
    /// This constructor has runtime overhead if managed memory is enabled     

@@ -97,7 +97,7 @@ namespace Langulus::Anyness
    /// Destroys the set and all it's contents                                 
    TEMPLATE()
    TABLE()::~TSet() {
-      Free<TSet>();
+      BlockSet::Free<TSet>();
    }
 
    /// Shallow-copy assignment                                                
@@ -139,7 +139,7 @@ namespace Langulus::Anyness
       else {
          // Unfold-insert                                               
          Clear();
-         UnfoldInsert(S::Nest(rhs));
+         BlockSet::UnfoldInsert<TSet>(S::Nest(rhs));
       }
 
       return *this;
@@ -280,8 +280,8 @@ namespace Langulus::Anyness
    requires CT::Inner::UnfoldMakableFrom<T, T1, TAIL...> LANGULUS(INLINED)
    Count TABLE()::Insert(T1&& t1, TAIL&&...tail){
       Count inserted = 0;
-        inserted += UnfoldInsert<TSet>(Forward<T1>(t1));
-      ((inserted += UnfoldInsert<TSet>(Forward<TAIL>(tail))), ...);
+        inserted += BlockSet::UnfoldInsert<TSet>(Forward<T1>(t1));
+      ((inserted += BlockSet::UnfoldInsert<TSet>(Forward<TAIL>(tail))), ...);
       return inserted;
    }
    
@@ -352,8 +352,9 @@ namespace Langulus::Anyness
    /// Checks if both tables contain the same entries                         
    ///   @param other - the table to compare against                          
    ///   @return true if tables match                                         
-   TEMPLATE() LANGULUS(INLINED)
-   bool TABLE()::operator == (CT::Set auto const& other) const {
+   TEMPLATE() template<CT::NotSemantic T1>
+   requires (CT::Set<T1> or CT::Inner::Comparable<T, T1>) LANGULUS(INLINED)
+   bool TABLE()::operator == (const T1& other) const {
       return BlockSet::operator == <TSet> (other);
    }
 
@@ -361,7 +362,7 @@ namespace Langulus::Anyness
    ///   @param key - the key to search for                                   
    ///   @return true if key is found, false otherwise                        
    TEMPLATE() template<CT::NotSemantic T1>
-   requires ::std::equality_comparable_with<T, T1> LANGULUS(INLINED)
+   requires CT::Inner::Comparable<T, T1> LANGULUS(INLINED)
    bool TABLE()::Contains(T1 const& key) const {
       return BlockSet::Contains<TSet>(key);
    }
@@ -370,7 +371,7 @@ namespace Langulus::Anyness
    ///   @param key - the key to search for                                   
    ///   @return the index if key was found, or IndexNone if not              
    TEMPLATE() template<CT::NotSemantic T1>
-   requires ::std::equality_comparable_with<T, T1> LANGULUS(INLINED)
+   requires CT::Inner::Comparable<T, T1> LANGULUS(INLINED)
    Index TABLE()::Find(T1 const& key) const {
       return BlockSet::Find<TSet>(key);
    }
@@ -379,7 +380,7 @@ namespace Langulus::Anyness
    ///   @param key - the key to search for                                   
    ///   @return the iterator                                                 
    TEMPLATE() template<CT::NotSemantic T1>
-   requires ::std::equality_comparable_with<T, T1> LANGULUS(INLINED)
+   requires CT::Inner::Comparable<T, T1> LANGULUS(INLINED)
    typename TABLE()::Iterator TABLE()::FindIt(T1 const& key) {
       const auto found = FindInner<TABLE()>(key);
       if (found == InvalidOffset)
@@ -392,7 +393,7 @@ namespace Langulus::Anyness
    }
 
    TEMPLATE() template<CT::NotSemantic T1>
-   requires ::std::equality_comparable_with<T, T1> LANGULUS(INLINED)
+   requires CT::Inner::Comparable<T, T1> LANGULUS(INLINED)
    typename TABLE()::ConstIterator TABLE()::FindIt(T1 const& key) const {
       return const_cast<TABLE()*>(this)->FindIt(key);
    }
@@ -422,61 +423,28 @@ namespace Langulus::Anyness
       return BlockSet::Get<TSet>(i);
    }
 
-
-   ///                                                                        
-   ///   Iteration                                                            
-   ///                                                                        
-
    /// Get iterator to first element                                          
    ///   @return an iterator to the first element, or end if empty            
    TEMPLATE() LANGULUS(INLINED)
    typename TABLE()::Iterator TABLE()::begin() noexcept {
-      if (IsEmpty())
-         return end();
-
-      // Seek first valid info, or hit sentinel at the end              
-      auto info = GetInfo();
-      while (not *info) ++info;
-      return {info, GetInfoEnd(), &GetRaw(info - GetInfo())};
+      return BlockSet::begin<TSet>();
+   }
+   
+   TEMPLATE() LANGULUS(INLINED)
+   typename TABLE()::ConstIterator TABLE()::begin() const noexcept {
+      return BlockSet::begin<TSet>();
    }
 
    /// Get iterator to the last element                                       
    ///   @return an iterator to the last element, or end if empty             
    TEMPLATE() LANGULUS(INLINED)
    typename TABLE()::Iterator TABLE()::last() noexcept {
-      if (IsEmpty())
-         return end();
-
-      // Seek first valid info in reverse, until one past first is met  
-      auto info = GetInfoEnd();
-      while (info >= GetInfo() and not *--info);
-      return {info, GetInfoEnd(), &GetRaw(info - GetInfo())};
+      return BlockSet::last<TSet>();
    }
 
-   /// Get iterator to first element                                          
-   ///   @return a constant iterator to the first element, or end if empty    
-   TEMPLATE() LANGULUS(INLINED)
-   typename TABLE()::ConstIterator TABLE()::begin() const noexcept {
-      if (IsEmpty())
-         return end();
-
-      // Seek first valid info, or hit sentinel at the end              
-      auto info = GetInfo();
-      while (not *info) ++info;
-      return {info, GetInfoEnd(), &GetRaw(info - GetInfo())};
-   }
-
-   /// Get iterator to the last valid element                                 
-   ///   @return a constant iterator to the last element, or end if empty     
    TEMPLATE() LANGULUS(INLINED)
    typename TABLE()::ConstIterator TABLE()::last() const noexcept {
-      if (IsEmpty())
-         return end();
-
-      // Seek first valid info in reverse, until one past first is met  
-      auto info = GetInfoEnd();
-      while (info >= GetInfo() and not *--info);
-      return {info, GetInfoEnd(), &GetRaw(info - GetInfo())};
+      return BlockSet::last<TSet>();
    }
 
    /// Iterate all keys inside the map, and perform f() on them               

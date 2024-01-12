@@ -164,22 +164,20 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Comparison                                                        
       ///                                                                     
-      bool operator == (CT::Set auto const&) const;
-
       template<CT::NotSemantic T1>
-      requires ::std::equality_comparable_with<T, T1>
+      requires (CT::Set<T1> or CT::Inner::Comparable<T, T1>)
+      bool operator == (const T1&) const;
+
+      template<CT::NotSemantic T1> requires CT::Inner::Comparable<T, T1>
       NOD() bool Contains(T1 const&) const;
 
-      template<CT::NotSemantic T1>
-      requires ::std::equality_comparable_with<T, T1>
+      template<CT::NotSemantic T1> requires CT::Inner::Comparable<T, T1>
       NOD() Index Find(T1 const&) const;
 
-      template<CT::NotSemantic T1>
-      requires ::std::equality_comparable_with<T, T1>
+      template<CT::NotSemantic T1> requires CT::Inner::Comparable<T, T1>
       NOD() Iterator FindIt(T1 const&);
 
-      template<CT::NotSemantic T1>
-      requires ::std::equality_comparable_with<T, T1>
+      template<CT::NotSemantic T1> requires CT::Inner::Comparable<T, T1>
       NOD() ConstIterator FindIt(T1 const&) const;
 
       ///                                                                     

@@ -56,7 +56,7 @@ namespace Langulus::Anyness
    template<CT::Block THIS> LANGULUS(INLINED)
    Count Block::New(const Count count) {
       AllocateMore<THIS>(mCount + count);
-      CropInner(mCount, 0).CallDefaultConstructors<THIS>(count);
+      CropInner(mCount, count).CreateDefault<THIS>();
       mCount += count;
       return count;
    }
@@ -68,7 +68,7 @@ namespace Langulus::Anyness
    ///      for each instance of T                                            
    ///   @return the number of new elements                                   
    template<CT::Block THIS, class...A> LANGULUS(INLINED)
-   Count Block::New(Count count, A&&...arguments) {
+   Count Block::New(const Count count, A&&...arguments) {
       LANGULUS_ASSUME(UserAssumes, count, "Zero count not allowed");
       AllocateMore<THIS>(mCount + count);
       CropInner(mCount, count).Create<THIS>(Forward<A>(arguments)...);
@@ -419,29 +419,23 @@ namespace Langulus::Anyness
       return inserted;
    }
 
-   /// Semantically insert each element that is not found in this container   
+   /// Search for a sequence of elements, and if not found, semantically      
+   /// insert it                                                              
    ///   @tparam FORCE - insert even if types mismatch, by making this block  
    ///      deep with provided type - use void to disable                     
    ///   @tparam MOVE_ASIDE - true to allocate more elements, and move any    
    ///      elements at index to the right, in order to fit the insertion     
-   ///   @param index - special/simple index to insert at                     
-   ///   @param other - the block to insert                                   
+   ///   @param index - index to insert at                                    
+   ///   @param other - the block to search for, and eventually insert        
    ///   @return the number of inserted elements                              
    template<CT::Block THIS, class FORCE, bool MOVE_ASIDE, class T>
    requires CT::Block<Desem<T>> LANGULUS(INLINED)
    Count Block::MergeBlock(CT::Index auto index, T&& other) {
-      using S = SemanticOf<decltype(other)>;
-      decltype(auto) rhs = DesemCast(other);
-
       Count inserted = 0;
-      for (Count i = 0; i < rhs.GetCount(); ++i) {
-         auto element = rhs.GetElement(i);
-         if (not FindUnknown(element)) {
-            inserted += InsertBlock<THIS, FORCE, MOVE_ASIDE>(
-               index, S::Nest(element));
-         }
+      if (not FindBlock(DesemCast(other))) {
+         inserted += InsertBlock<THIS, FORCE, MOVE_ASIDE>(
+            index, SemanticOf<T>::Nest(other));
       }
-
       return inserted;
    }
    
@@ -895,7 +889,7 @@ namespace Langulus::Anyness
          );
 
          const Neat descriptor {Forward<A>(arguments)...};
-         CreateDescribe<THIS>(descriptor);
+         CreateDescribe<THIS>(Describe(descriptor));
       }
    }
 
@@ -964,9 +958,9 @@ namespace Langulus::Anyness
    ///   @tparam REVERSE - calls constructors in reverse, to let you          
    ///                     account for potential memory overlap               
    ///   @param source - the source of the elements to move                   
-   template<CT::Block THIS, bool REVERSE, template<class> class S, CT::Block B>
-   requires CT::Semantic<S<B>>
-   void Block::CreateSemantic(S<B>&& source) const {
+   template<CT::Block THIS, bool REVERSE, template<class> class S, CT::Block OTHER>
+   requires CT::Semantic<S<OTHER>>
+   void Block::CreateSemantic(S<OTHER>&& source) const {
       LANGULUS_ASSUME(DevAssumes, mCount and mCount <= mReserved,
          "Count outside limits", '(', mCount, " > ", mReserved);
       LANGULUS_ASSUME(DevAssumes, mCount <= source->mCount,
@@ -975,22 +969,24 @@ namespace Langulus::Anyness
          "T doesn't match RHS type",
          ": ", source->GetType(), " != ", GetType<THIS>());
 
-      const auto mthis = reinterpret_cast<THIS*>(const_cast<Block*>(this));
-      if constexpr (CT::Typed<THIS> or CT::Typed<B>) {
-         using T = Conditional<CT::Typed<THIS>, TypeOf<THIS>, TypeOf<B>>;
+      using B = Conditional<CT::Typed<THIS>, THIS, OTHER>;
+      using T = Conditional<CT::Typed<B>, TypeOf<B>, void>;
+      const auto mthis = reinterpret_cast<B*>(const_cast<Block*>(this));
+      const auto other = reinterpret_cast<B*>(const_cast<OTHER*>(&(*source)));
 
+      if constexpr (not CT::TypeErased<T>) {
+         // Leverage the fact, that containers are statically typed     
          if constexpr (CT::Sparse<T>) {
             using DT = Deptr<T>;
-
             if constexpr (S<B>::Shallow) {
                // Shallow pointer transfer                              
-               ShallowBatchPointerConstruction(mCount, source.Forward());
+               ShallowBatchPointerConstruction(source.Forward());
             }
             else if constexpr (CT::Unallocatable<T> or not CT::CloneMakable<T>) {
                // We early-return with an enforced shallow pointer      
                // transfer, because its requesting to clone             
                // unallocatable/unclonable/abstract data, such as metas 
-               ShallowBatchPointerConstruction(mCount, Copy(*source));
+               ShallowBatchPointerConstruction(Copy(*source));
             }
             else if constexpr (CT::Sparse<DT> or not CT::Resolvable<T>) {
                // If contained type is not resolvable, or its deptr     
@@ -1008,14 +1004,15 @@ namespace Langulus::Anyness
                const auto srcEnd = src + mCount;
                while (src != srcEnd) {
                   SemanticNew(dst, Clone(**src));
-                  handle.New(dst, clonedCoalescedSrc.mEntry);
+                  handle.Create(dst, clonedCoalescedSrc.mEntry);
 
                   ++dst;
                   ++src;
                   ++handle;
                }
 
-               const_cast<Allocation*>(clonedCoalescedSrc.mEntry)->Keep(mCount - 1);
+               const_cast<Allocation*>(clonedCoalescedSrc.mEntry)
+                  ->Keep(mCount - 1);
             }
             else {
                // Type can be resolved to objects of varying size, so   
@@ -1027,7 +1024,7 @@ namespace Langulus::Anyness
          else if constexpr (CT::POD<T>) {
             // Both RHS and LHS are dense and POD                       
             auto lhs = mthis->GetRaw();
-            auto rhs = source->GetRaw();
+            auto rhs = other->GetRaw();
             if constexpr (REVERSE)
                MoveMemory(lhs, rhs, mCount);
             else
@@ -1037,14 +1034,14 @@ namespace Langulus::Anyness
             // Both RHS and LHS are dense and non POD                   
             // Call constructor for each element (optionally in reverse)
             auto lhs = mthis->GetRaw();
-            auto rhs = source->GetRaw();
+            auto rhs = other->GetRaw();
             if constexpr (REVERSE) {
                lhs += mCount - 1;
                rhs += mCount - 1;
             }
             const auto lhsEnd = REVERSE ? lhs - mCount : lhs + mCount;
             while (lhs != lhsEnd) {
-               /*if constexpr (CT::Abandoned<S<Block>> and not CT::AbandonMakable<T>) {
+               if constexpr (CT::Abandoned<S<B>> and not CT::AbandonMakable<T>) {
                   if constexpr (CT::MoveMakable<T>) {
                      // We can fallback to move-construction, but report
                      // a performance warning                           
@@ -1055,9 +1052,9 @@ namespace Langulus::Anyness
                      ));
                      SemanticNew(lhs, Move(*rhs));
                   }
-                  else LANGULUS_ERROR("T is not movable/abandon-constructible");
+                  else LANGULUS_ERROR("T is not movable, nor abandon-constructible");
                }
-               else*/ SemanticNew(lhs, S<B>::Nest(*rhs));
+               else SemanticNew(lhs, S<B>::Nest(*rhs));
 
                if constexpr (REVERSE) {
                   --lhs;
@@ -1071,6 +1068,7 @@ namespace Langulus::Anyness
          }
       }
       else {
+         // Containers are type-erased                                  
          // First make sure that reflected constructors are available   
          // There's no point in iterating anything otherwise            
          if constexpr (S<B>::Move) {
@@ -1206,10 +1204,10 @@ namespace Langulus::Anyness
    template<template<class> class S, CT::Block T> requires CT::Semantic<S<T>>
    void Block::ShallowBatchPointerConstruction(S<T>&& source) const {
       const auto mthis = const_cast<Block*>(this);
-      const auto pointersDst = mthis->GetRawSparse<Block>();
-      const auto pointersSrc = source->template GetRawSparse<Block>();
-      const auto entriesDst = mthis->GetEntries<Block>();
-      const auto entriesSrc = source->template GetEntries<Block>();
+      const auto pointersDst = mthis->GetRawSparse();
+      const auto pointersSrc = source->GetRawSparse();
+      const auto entriesDst = mthis->GetEntries();
+      const auto entriesSrc = source->GetEntries();
 
       if constexpr (S<T>::Move) {
          // Move/Abandon                                                
@@ -1254,7 +1252,7 @@ namespace Langulus::Anyness
    ///   @param source - the elements to assign                               
    template<CT::Block THIS, template<class> class S, CT::Block B>
    requires CT::Semantic<S<B>>
-   void Block::Assign(S<B>&& source) const {
+   void Block::AssignSemantic(S<B>&& source) const {
       const auto mthis = reinterpret_cast<THIS*>(const_cast<Block*>(this));
 
       LANGULUS_ASSUME(DevAssumes, mCount and mCount <= mReserved,

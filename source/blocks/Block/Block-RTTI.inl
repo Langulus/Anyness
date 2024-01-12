@@ -197,250 +197,22 @@ namespace Langulus::Anyness
    /// Get the memory block corresponding to a local member variable          
    ///   @attention assumes block is not empty                                
    ///   @param member - the member to get                                    
+   ///   @param idx - the element to get member from                          
    ///   @return a static memory block                                        
    template<CT::Block THIS> LANGULUS(INLINED)
-   Block Block::GetMember(const RTTI::Member& member) {
+   Block Block::GetMember(const RTTI::Member& member, CT::Index auto idx) {
       LANGULUS_ASSUME(DevAssumes, not IsEmpty(),
          "Getting member from an empty block");
-
+      const auto index = SimplifyIndex<THIS>(idx);
       return { 
-         DataState::Member, member.GetType(),
-         member.mCount, member.Get(mRaw),
-         mEntry
+         DataState::Member, member.GetType(), member.mCount,
+         member.Get(mRaw + mType->mSize * index), mEntry
       };
    }
 
-   /// Get the memory Block corresponding to a local member variable (const)  
-   ///   @attention assumes block is not empty                                
-   ///   @param member - the member to get                                    
-   ///   @return a static constant memory block                               
    template<CT::Block THIS> LANGULUS(INLINED)
-   Block Block::GetMember(const RTTI::Member& member) const {
-      auto result = const_cast<Block*>(this)->GetMember<THIS>(member);
-      result.MakeConst();
-      return result;
-   }
-   
-   /// Get a trait-tagged member from first element inside block              
-   ///   @attention assumes block is not empty                                
-   ///   @param trait - the trait tag to search for                           
-   ///   @return the static mutable block corresponding to that member        
-   template<CT::Block THIS> LANGULUS(INLINED)
-   Block Block::GetMember(TMeta trait) {
-      // Scan members                                                   
-      for (auto& member : mType->mMembers) {
-         if (member.GetTrait() == trait)
-            return GetMember<THIS>(member);
-      }
-
-      // No such trait found, so check in bases                         
-      for (auto& base : mType->mBases) {
-         const auto found = GetBaseMemory(base.mType, base)
-            .GetMember<Block>(trait);
-         if (found.IsTyped<Block>()) //TODO is this check still required?
-            return found;
-      }
-
-      return {};
-   }
-
-   /// Get a trait-tagged member from first element inside block (const)      
-   ///   @attention assumes block is not empty                                
-   ///   @param trait - the trait tag to search for                           
-   ///   @return the static constant block corresponding to that member       
-   template<CT::Block THIS> LANGULUS(INLINED)
-   Block Block::GetMember(TMeta trait) const {
-      auto result = const_cast<Block*>(this)->GetMember<THIS>(trait);
-      result.MakeConst();
-      return result;
-   }
-   
-   /// Get a member of specific type, from first element inside block         
-   ///   @attention assumes block is not empty                                
-   ///   @param data - the type to search for                                 
-   ///   @return the static block corresponding to that member                
-   template<CT::Block THIS> LANGULUS(INLINED)
-   Block Block::GetMember(DMeta data) {
-      // Scan members                                                   
-      for (auto& member : mType->mMembers) {
-         if (member.GetType()->CastsTo(data))
-            return GetMember<THIS>(member);
-      }
-
-      // No such data found, so check in bases                          
-      for (auto& base : mType->mBases) {
-         const auto found = GetBaseMemory(base.mType, base)
-            .GetMember<Block>(data);
-         if (found.IsTyped<Block>()) //TODO is this check still required?
-            return found;
-      }
-
-      return {};
-   }
-
-   /// Get a member of specific type, from first element inside block (const) 
-   ///   @attention assumes block is not empty                                
-   ///   @param data - the type to search for                                 
-   ///   @return the static constant block corresponding to that member       
-   template<CT::Block THIS> LANGULUS(INLINED)
-   Block Block::GetMember(DMeta data) const {
-      auto result = const_cast<Block*>(this)->GetMember<THIS>(data);
-      result.MakeConst();
-      return result;
-   }
-
-   /// Get the first member of the first element inside block                 
-   ///   @attention assumes block is not empty                                
-   ///   @return the static mutable block corresponding to that member        
-   template<CT::Block THIS> LANGULUS(INLINED)
-   Block Block::GetMember(::std::nullptr_t) {
-      if (mType->mMembers.empty())
-         return {};
-      return GetMember<THIS>(mType->mMembers[0]);
-   }
-
-   /// Get the first member of the first element inside block (const)         
-   ///   @attention assumes block is not empty                                
-   ///   @return the static constant block corresponding to that member       
-   template<CT::Block THIS> LANGULUS(INLINED)
-   Block Block::GetMember(::std::nullptr_t) const {
-      if (mType->mMembers.empty())
-         return {};
-      return GetMember<THIS>(mType->mMembers[0]);
-   }
-      
-   /// Select a member by trait or index (or both)                            
-   ///   @attention assumes block is not empty                                
-   ///   @param trait - the trait to get                                      
-   ///   @param index - the trait index to get                                
-   ///   @return the static memory block of the member                        
-   template<CT::Block THIS>
-   Block Block::GetMember(TMeta trait, CT::Index auto index) {
-      // Scan immediate members                                         
-      Offset offset = SimplifyMemberIndex(index);
-      Offset counter = 0;
-      for (auto& member : mType->mMembers) {
-         if (trait and member.GetTrait() != trait)
-            continue;
-
-         // Matched, but check index first                              
-         if (counter < offset) {
-            ++counter;
-            continue;
-         }
-
-         // Found                                                       
-         return GetMember<THIS>(member);
-      }
-
-      // If reached, then nothing found in local members, so check bases
-      offset -= counter;
-      for (auto& base : mType->mBases) {
-         auto found = GetBaseMemory(base.mType, base)
-            .GetMember<Block>(trait, offset);
-         if (found.IsTyped<Block>()) //TODO is this check still required?
-            return found;
-
-         offset -= base.mType->GetMemberCount();
-      }
-
-      return {};
-   }
-
-   /// Select a member by trait or index (or both) (const)                    
-   ///   @attention assumes block is not empty                                
-   ///   @param trait - the trait to get                                      
-   ///   @param index - the trait index to get                                
-   ///   @return the static constant memory block of the member               
-   template<CT::Block THIS> LANGULUS(INLINED)
-   Block Block::GetMember(TMeta trait, CT::Index auto index) const {
-      auto result = const_cast<Block*>(this)->GetMember<THIS>(trait, index);
-      result.MakeConst();
-      return result;
-   }
-   
-   /// Select a member by data type or index (or both)                        
-   ///   @attention assumes block is not empty                                
-   ///   @param data - the type to search for                                 
-   ///   @param index - the member index to get                               
-   ///   @return the static memory block of the member                        
-   template<CT::Block THIS>
-   Block Block::GetMember(DMeta data, CT::Index auto index) {
-      // Scan immediate members                                         
-      Offset offset = SimplifyMemberIndex(index);
-      Offset counter = 0;
-      for (auto& member : mType->mMembers) {
-         if (data and not member.GetType()->CastsTo(data))
-            continue;
-
-         // Matched, but check index first                              
-         if (counter < offset) {
-            ++counter;
-            continue;
-         }
-
-         // Found                                                       
-         return GetMember<THIS>(member);
-      }
-
-      // If reached, then nothing found in local members, so check bases
-      offset -= counter;
-      for (auto& base : mType->mBases) {
-         const auto found = GetBaseMemory(base.mType, base)
-            .GetMember<Block>(data, offset);
-         if (found.IsTyped<Block>()) //TODO is this check still required?
-            return found;
-
-         offset -= base.mType->GetMemberCount();
-      }
-
-      return {};
-   }
-
-   /// Select a member by data type or index (or both) (const)                
-   ///   @attention assumes block is not empty                                
-   ///   @param data - the type to search for                                 
-   ///   @param index - the trait index to get                                
-   ///   @return the static constant memory block of the member               
-   template<CT::Block THIS> LANGULUS(INLINED)
-   Block Block::GetMember(DMeta data, CT::Index auto index) const {
-      auto result = const_cast<Block*>(this)->GetMember<THIS>(data, index);
-      result.MakeConst();
-      return result;
-   }
-
-   /// Select a member by index only                                          
-   ///   @attention assumes block is not empty                                
-   ///   @param index - the member index to get                               
-   ///   @return the static memory block of the member                        
-   template<CT::Block THIS>
-   Block Block::GetMember(std::nullptr_t, CT::Index auto index) {
-      // Check immediate members first                                  
-      Offset offset = SimplifyMemberIndex(index);
-      if (offset < mType->mMembers.size())
-         return GetMember<THIS>(mType->mMembers[offset]);
-
-      // If reached, then nothing found in local members, so check bases
-      offset -= mType->mMembers.size();
-      for (auto& base : mType->mBases) {
-         const auto found = GetBaseMemory(base.mType, base)
-            .GetMember<Block>(nullptr, offset);
-         if (found.IsTyped<Block>()) //TODO is this check still required?
-            return found;
-
-         offset -= base.mType->GetMemberCount();
-      }
-
-      return {};
-   }
-
-   /// Select a member by index only                                          
-   ///   @attention assumes block is not empty                                
-   ///   @param index - the member index to get                               
-   ///   @return the static constant memory block of the member               
-   template<CT::Block THIS> LANGULUS(INLINED)
-   Block Block::GetMember(std::nullptr_t, CT::Index auto index) const {
-      auto result = const_cast<Block*>(this)->GetMember<THIS>(nullptr, index);
+   Block Block::GetMember(const RTTI::Member& member, CT::Index auto idx) const {
+      auto result = const_cast<Block*>(this)->GetMember<THIS>(member, idx);
       result.MakeConst();
       return result;
    }
@@ -459,11 +231,6 @@ namespace Langulus::Anyness
       };
    }
 
-   /// Get the memory block corresponding to a base (const)                   
-   ///   @attention assumes block is not empty                                
-   ///   @param meta - the type of the resulting base block                   
-   ///   @param base - the base reflection to use                             
-   ///   @return the static immutable block for the base                      
    LANGULUS(INLINED)
    Block Block::GetBaseMemory(DMeta meta, const RTTI::Base& base) const {
       auto result = const_cast<Block*>(this)->GetBaseMemory(meta, base);
@@ -480,10 +247,6 @@ namespace Langulus::Anyness
       return GetBaseMemory(base.mType, base);
    }
 
-   /// Get the memory block corresponding to a base (const)                   
-   ///   @attention assumes block is not empty                                
-   ///   @param base - the base reflection to use                             
-   ///   @return the static immutable block for the base                      
    LANGULUS(INLINED)
    Block Block::GetBaseMemory(const RTTI::Base& base) const {
       return GetBaseMemory(base.mType, base);
@@ -557,7 +320,7 @@ namespace Langulus::Anyness
    template<bool CONSTRAIN, CT::Block THIS>
    void Block::SetType(DMeta type) {
       static_assert(not CT::Typed<THIS>,
-         "Can't set type of a statically typed container");
+         "Can't change type of a statically typed container");
 
       if (mType == type) {
          if constexpr (CONSTRAIN)
@@ -597,6 +360,8 @@ namespace Langulus::Anyness
    ///   @tparam CONSTRAIN - whether or not to enable type-constraints        
    template<CT::Data T, bool CONSTRAIN, CT::Block THIS> LANGULUS(INLINED)
    void Block::SetType() {
+      static_assert(not CT::Typed<THIS>,
+         "Can't change type of a statically typed container");
       SetType<CONSTRAIN, THIS>(MetaDataOf<T>());
    }
    
@@ -608,24 +373,6 @@ namespace Langulus::Anyness
          if (not IsTypeConstrained<THIS>())
             mType = nullptr;
       }
-   }
-
-   /// Simplify an index by constraining it to the number of reflected members
-   ///   @param index - the index to simplify                                 
-   ///   @return the simple index                                             
-   template<CT::Index INDEX> LANGULUS(INLINED)
-   Offset Block::SimplifyMemberIndex(const INDEX& index) const 
-   noexcept(not LANGULUS_SAFE() and CT::BuiltinInteger<INDEX>) {
-      if constexpr (CT::Same<INDEX, Index>)
-         return index.Constrained(mType->GetMemberCount()).GetOffset();
-      else if constexpr (CT::BuiltinInteger<INDEX>) {
-         LANGULUS_ASSUME(DevAssumes, index > 0,
-            "Negative raw index not allowed - "
-            "for indexing in reverse, use negative Index instead"
-         );
-         return static_cast<Offset>(index);
-      }
-      else return index;
    }
 
 } // namespace Langulus::Anyness

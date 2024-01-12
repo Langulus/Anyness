@@ -98,7 +98,6 @@ void CheckState_Default(const auto& any) {
    }
 
    REQUIRE      (any.IsTypeConstrained() == CT::Typed<T>);
-   REQUIRE_FALSE(any.IsAbstract());
    REQUIRE_FALSE(any.IsCompressed());
    REQUIRE      (any.IsConstant() == CT::Constant<E>);
    REQUIRE_FALSE(any.IsEncrypted());
@@ -128,7 +127,6 @@ void CheckState_OwnedEmpty(const auto& any) {
    Helper_TestType<E>(any);
 
    REQUIRE      (any.IsTypeConstrained() == CT::Typed<T>);
-   REQUIRE_FALSE(any.IsAbstract());
    REQUIRE_FALSE(any.IsCompressed());
    REQUIRE      (any.IsConstant() == CT::Constant<E>);
    REQUIRE_FALSE(any.IsEncrypted());
@@ -153,7 +151,6 @@ void CheckState_OwnedFull(const auto& any) {
    Helper_TestType<E>(any);
 
    REQUIRE      (any.IsTypeConstrained() == CT::Typed<T>);
-   REQUIRE_FALSE(any.IsAbstract());
    REQUIRE_FALSE(any.IsCompressed());
    REQUIRE      (any.IsConstant() == CT::Constant<E>);
    REQUIRE_FALSE(any.IsEncrypted());

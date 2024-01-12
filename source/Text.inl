@@ -448,7 +448,7 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    Text Text::Strip(const Letter symbol) const {
       Text result;
-      Count start {}, end {};
+      Count start = 0, end = 0;
       for (Count i = 0; i <= mCount; ++i) {
          if (i == mCount or (*this)[i] == symbol) {
             const auto size = end - start;

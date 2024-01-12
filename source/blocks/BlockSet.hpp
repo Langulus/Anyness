@@ -239,7 +239,7 @@ namespace Langulus::Anyness
       ///   Comparison                                                        
       ///                                                                     
       template<CT::Set = UnorderedSet>
-      bool operator == (CT::Set auto const&) const;
+      bool operator == (const CT::NotSemantic auto&) const;
 
       template<CT::Set = UnorderedSet>
       NOD() Hash GetHash() const;
