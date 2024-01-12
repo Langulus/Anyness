@@ -160,7 +160,7 @@ namespace Langulus::Anyness
       else {
          // Unfold-insert                                               
          Clear();
-         UnfoldInsert<Any, void, true>(IndexFront, S::Nest(rhs));
+         Block::UnfoldInsert<Any, void, true>(IndexFront, S::Nest(rhs));
       }
 
       return *this;

@@ -98,7 +98,7 @@ namespace Langulus::Anyness
       else {
          // Unfold-insert                                               
          Clear();
-         UnfoldInsert<Set>(S::Nest(rhs));
+         BlockSet::UnfoldInsert<Set>(S::Nest(rhs));
       }
 
       return *this;
@@ -109,7 +109,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container for chaining                   
    TEMPLATE() LANGULUS(INLINED)
    TABLE()& TABLE()::operator << (CT::Inner::UnfoldInsertable auto&& other) {
-      UnfoldInsert<Set>(Forward<decltype(other)>(other));
+      BlockSet::UnfoldInsert<Set>(Forward<decltype(other)>(other));
       return *this;
    }
    
@@ -118,7 +118,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container for chaining                   
    TEMPLATE() LANGULUS(INLINED)
    TABLE()& TABLE()::operator >> (CT::Inner::UnfoldInsertable auto&& other) {
-      UnfoldInsert<Set>(Forward<decltype(other)>(other));
+      BlockSet::UnfoldInsert<Set>(Forward<decltype(other)>(other));
       return *this;
    }
 

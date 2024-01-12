@@ -60,6 +60,7 @@ namespace Langulus
          constexpr Block(const DataState&, DMeta) noexcept;
 
          Block(const DataState&, CMeta) IF_UNSAFE(noexcept);
+         Block(const DataState&, DMeta, Count) IF_UNSAFE(noexcept);
          Block(const DataState&, DMeta, Count, const void*) IF_UNSAFE(noexcept);
          Block(const DataState&, DMeta, Count, void*) IF_UNSAFE(noexcept);
          Block(const DataState&, DMeta, Count, const void*, const Allocation*) IF_UNSAFE(noexcept);
@@ -244,15 +245,15 @@ namespace Langulus::Anyness
 
       NOD() constexpr explicit operator bool() const noexcept;
 
-      template<CT::Block = Any>
+      template<CT::BlockBased = Any>
       NOD() bool Owns(const void*) const noexcept;
       NOD() constexpr bool HasAuthority() const noexcept;
       NOD() constexpr Count GetUses() const noexcept;
-      template<CT::Block = Any>
+      template<CT::BlockBased = Any>
       NOD() constexpr DMeta GetType() const noexcept;
       NOD() constexpr Count GetCount() const noexcept;
       NOD() constexpr Count GetReserved() const noexcept;
-      template<CT::Block = Any>
+      template<CT::BlockBased = Any>
       NOD() constexpr Size GetReservedSize() const noexcept;
       template<CT::Block = Any>
       NOD() Count GetCountDeep() const noexcept;
@@ -263,11 +264,11 @@ namespace Langulus::Anyness
       NOD() constexpr bool IsFuture() const noexcept;
       NOD() constexpr bool IsNow() const noexcept;
       NOD() constexpr bool IsMissing() const noexcept;
-      template<CT::Block = Any>
+      template<CT::BlockBased = Any>
       NOD() constexpr bool IsTyped() const noexcept;
-      template<CT::Block = Any>
+      template<CT::BlockBased = Any>
       NOD() constexpr bool IsUntyped() const noexcept;
-      template<CT::Block = Any>
+      template<CT::BlockBased = Any>
       NOD() constexpr bool IsTypeConstrained() const noexcept;
       NOD() constexpr bool IsEncrypted() const noexcept;
       NOD() constexpr bool IsCompressed() const noexcept;
@@ -278,26 +279,26 @@ namespace Langulus::Anyness
       NOD() constexpr bool IsEmpty() const noexcept;
       NOD() constexpr bool IsValid() const noexcept;
       NOD() constexpr bool IsInvalid() const noexcept;
-      template<CT::Block = Any>
+      template<CT::BlockBased = Any>
       NOD() constexpr bool IsDense() const noexcept;
-      template<CT::Block = Any>
+      template<CT::BlockBased = Any>
       NOD() constexpr bool IsSparse() const noexcept;
-      template<CT::Block = Any>
+      template<CT::BlockBased = Any>
       NOD() constexpr bool IsPOD() const noexcept;
-      template<CT::Block = Any>
+      template<CT::BlockBased = Any>
       NOD() constexpr bool IsResolvable() const noexcept;
-      template<CT::Block = Any>
+      template<CT::BlockBased = Any>
       NOD() constexpr bool IsDeep() const noexcept;
-      template<CT::Block = Any>
+      template<CT::BlockBased = Any>
       NOD() constexpr bool IsBlock() const noexcept;
       NOD() constexpr bool CanFitPhase(const Block&) const noexcept;
-      template<CT::Block = Any>
+      template<CT::BlockBased = Any>
       NOD() constexpr bool CanFitState(const Block&) const noexcept;
       NOD() constexpr bool CanFitOrAnd(const Block&) const noexcept;
-      template<CT::Block = Any>
+      template<CT::BlockBased = Any>
       NOD() constexpr Count GetBytesize() const noexcept;
       NOD() constexpr Token GetToken() const noexcept;
-      template<CT::Block = Any>
+      template<CT::BlockBased = Any>
       NOD() constexpr Size GetStride() const noexcept;
       NOD() constexpr DataState GetState() const noexcept;
       NOD() constexpr DataState GetUnconstrainedState() const noexcept;
@@ -323,44 +324,39 @@ namespace Langulus::Anyness
       constexpr void ResetState() noexcept;
 
    protected: IF_LANGULUS_TESTING(public:)
-      template<CT::Block = Any>
+      template<CT::BlockBased = Any>
       NOD() constexpr auto GetRaw() noexcept;
-      template<CT::Block = Any>
+      template<CT::BlockBased = Any>
       NOD() constexpr auto GetRaw() const noexcept;
-      template<CT::Block = Any>
+      template<CT::BlockBased = Any>
       NOD() constexpr auto GetRawEnd() const noexcept;
 
-      template<CT::Block = Any>
+      template<CT::BlockBased = Any>
       NOD() auto GetRawSparse()       IF_UNSAFE(noexcept);
-      template<CT::Block = Any>
+      template<CT::BlockBased = Any>
       NOD() auto GetRawSparse() const IF_UNSAFE(noexcept);
 
-      template<CT::Data T, CT::Block = Any>
+      template<CT::Data T, CT::BlockBased = Any>
       NOD() T*       GetRawAs() noexcept;
-      template<CT::Data T, CT::Block = Any>
+      template<CT::Data T, CT::BlockBased = Any>
       NOD() T const* GetRawAs() const noexcept;
-      template<CT::Data T, CT::Block = Any>
+      template<CT::Data T, CT::BlockBased = Any>
       NOD() T const* GetRawEndAs() const noexcept;
 
-      template<CT::Data T, CT::Block = Any>
+      template<CT::Data T, CT::BlockBased = Any>
       NOD() T**             GetRawSparseAs()       IF_UNSAFE(noexcept);
-      template<CT::Data T, CT::Block = Any>
+      template<CT::Data T, CT::BlockBased = Any>
       NOD() T const* const* GetRawSparseAs() const IF_UNSAFE(noexcept);
 
-      template<CT::Block = Any>
+      template<CT::BlockBased = Any>
       NOD() const Allocation* const* GetEntries() const IF_UNSAFE(noexcept);
-      template<CT::Block = Any>
+      template<CT::BlockBased = Any>
       NOD() const Allocation**       GetEntries()       IF_UNSAFE(noexcept);
 
    public:
       ///                                                                     
       ///   Indexing                                                          
       ///                                                                     
-      NOD() IF_UNSAFE(constexpr)
-      Byte* At(Offset = 0) IF_UNSAFE(noexcept);
-      NOD() IF_UNSAFE(constexpr)
-      const Byte* At(Offset = 0) const IF_UNSAFE(noexcept);
-   
       NOD() Block operator[] (CT::Index auto);
       NOD() Block operator[] (CT::Index auto) const;
 
@@ -423,9 +419,9 @@ namespace Langulus::Anyness
       template<CT::Block = Any>
       NOD() Block GetElementDeep(Offset) const noexcept;
 
-      template<CT::Block>
+      template<CT::BlockBased = Any>
       NOD() Block GetResolved();
-      template<CT::Block>
+      template<CT::BlockBased = Any>
       NOD() Block GetResolved() const;
 
       template<Count = CountMax>
@@ -449,6 +445,11 @@ namespace Langulus::Anyness
       void Sort() noexcept;
 
    protected:
+      NOD() IF_UNSAFE(constexpr)
+      Byte* At(Offset = 0) IF_UNSAFE(noexcept);
+      NOD() IF_UNSAFE(constexpr)
+      const Byte* At(Offset = 0) const IF_UNSAFE(noexcept);
+   
       template<CT::Block>
       NOD() Index Constrain(Index) const IF_UNSAFE(noexcept);
 
@@ -549,38 +550,13 @@ namespace Langulus::Anyness
       NOD() TAny<T> ReinterpretAs() const;
 
       template<CT::Block>
-      NOD() Block GetMember(const RTTI::Member&);
+      NOD() Block GetMember(const RTTI::Member&, CT::Index auto);
       template<CT::Block>
-      NOD() Block GetMember(const RTTI::Member&) const;
-      template<CT::Block>
-      NOD() Block GetMember(TMeta);
-      template<CT::Block>
-      NOD() Block GetMember(TMeta) const;
-      template<CT::Block>
-      NOD() Block GetMember(DMeta);
-      template<CT::Block>
-      NOD() Block GetMember(DMeta) const;
-      template<CT::Block>
-      NOD() Block GetMember(::std::nullptr_t);
-      template<CT::Block>
-      NOD() Block GetMember(::std::nullptr_t) const;
-
-      template<CT::Block>
-      NOD() Block GetMember(TMeta, CT::Index auto);
-      template<CT::Block>
-      NOD() Block GetMember(TMeta, CT::Index auto) const;
-      template<CT::Block>
-      NOD() Block GetMember(DMeta, CT::Index auto);
-      template<CT::Block>
-      NOD() Block GetMember(DMeta, CT::Index auto) const;
-      template<CT::Block>
-      NOD() Block GetMember(::std::nullptr_t, CT::Index auto);
-      template<CT::Block>
-      NOD() Block GetMember(::std::nullptr_t, CT::Index auto) const;
+      NOD() Block GetMember(const RTTI::Member&, CT::Index auto) const;
    
-      template<bool CONSTRAIN = false, CT::Block>
+      template<bool CONSTRAIN = false, CT::Block = Any>
       void SetType(DMeta);
-      template<CT::Data, bool CONSTRAIN = false, CT::Block>
+      template<CT::Data, bool CONSTRAIN = false, CT::Block = Any>
       void SetType();
 
    protected:
@@ -591,10 +567,6 @@ namespace Langulus::Anyness
 
       template<CT::Block>
       constexpr void ResetType() noexcept;
-
-      template<CT::Index INDEX>
-      Offset SimplifyMemberIndex(const INDEX&) const
-      noexcept(not LANGULUS_SAFE() and CT::BuiltinInteger<INDEX>);
 
    IF_LANGULUS_TESTING(public:)
       NOD() Block GetBaseMemory(DMeta, const RTTI::Base&);
@@ -643,7 +615,7 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Memory management                                                 
       ///                                                                     
-      template<CT::Block = Any>
+      template<bool SETSIZE = false, CT::Block = Any>
       void Reserve(Count);
 
    protected:
@@ -668,6 +640,7 @@ namespace Langulus::Anyness
       template<CT::Block = Any>
       void Free();
 
+      void SetMemory(const DataState&, DMeta, Count) IF_UNSAFE(noexcept);
       void SetMemory(const DataState&, DMeta, Count, const void*) IF_UNSAFE(noexcept);
       void SetMemory(const DataState&, DMeta, Count, void*) IF_UNSAFE(noexcept);
       IF_UNSAFE(constexpr)
@@ -761,7 +734,7 @@ namespace Langulus::Anyness
    public:
       template<CT::Block = Any, template<class> class S, CT::Block T>
       requires CT::Semantic<S<T>>
-      void Assign(S<T>&&) const;
+      void AssignSemantic(S<T>&&) const;
 
       ///                                                                     
       ///   Removal                                                           
@@ -936,7 +909,7 @@ namespace Langulus::Anyness
       // Current iterator position pointer                              
       TypeInner mValue;
       // Iterator position which is considered the 'end' iterator       
-      Byte const* const mEnd;
+      Byte const* mEnd;
 
       constexpr Iterator(TypeInner, Byte const*) noexcept;
 
@@ -945,6 +918,9 @@ namespace Langulus::Anyness
       constexpr Iterator(const Iterator&) noexcept = default;
       constexpr Iterator(Iterator&&) noexcept = default;
       constexpr Iterator(const A::IteratorEnd&) noexcept;
+
+      constexpr Iterator& operator = (const Iterator&) noexcept = default;
+      constexpr Iterator& operator = (Iterator&&) noexcept = default;
 
       NOD() constexpr bool operator == (const Iterator&) const noexcept;
       NOD() constexpr bool operator == (const A::IteratorEnd&) const noexcept;

@@ -220,7 +220,8 @@ namespace Langulus::Anyness
    }
 
    /// Assign a new pointer and entry at the handle                           
-   ///   @attention this overwrites previous handle without dereferencing it  
+   ///   @attention this overwrites previous handle without dereferencing it, 
+   ///      and without destroying anything                                   
    ///   @param pointer - the new pointer to assign                           
    ///   @param entry - the allocation that the pointer is part of            
    TEMPLATE() LANGULUS(INLINED)
@@ -230,7 +231,8 @@ namespace Langulus::Anyness
    }
    
    /// Move-assign a new value and entry at the handle                        
-   ///   @attention this overwrites previous handle without dereferencing it  
+   ///   @attention this overwrites previous handle without dereferencing it, 
+   ///      and without destroying anything                                   
    ///   @param value - the new value to assign                               
    ///   @param entry - the allocation that the value is part of              
    TEMPLATE() LANGULUS(INLINED)
@@ -240,7 +242,8 @@ namespace Langulus::Anyness
    }
 
    /// Copy-assign a new value and entry at the handle                        
-   ///   @attention this overwrites previous handle without dereferencing it  
+   ///   @attention this overwrites previous handle without dereferencing it, 
+   ///      and without destroying anything                                   
    ///   @param value - the new value to assign                               
    ///   @param entry - the allocation that the value is part of              
    TEMPLATE() LANGULUS(INLINED)
@@ -250,55 +253,35 @@ namespace Langulus::Anyness
    }
 
    /// Semantically assign anything at the handle                             
-   ///   @attention this overwrites previous handle without dereferencing it  
+   ///   @attention this overwrites previous handle without dereferencing it, 
+   ///      and without destroying anything                                   
    ///   @param rhs - what are we assigning                                   
-   TEMPLATE() LANGULUS(INLINED)
-   void HAND()::CreateSemantic(CT::Semantic auto&& rhs) {
-      using S = Deref<decltype(rhs)>;
-      using ST = TypeOf<S>;
-
-      if constexpr (S::Shallow and CT::Sparse<T>) {
+   TEMPLATE() template<template<class> class S, class ST>
+   requires CT::Semantic<S<ST>> LANGULUS(INLINED)
+   void HAND()::CreateSemantic(S<ST>&& rhs) {
+      if constexpr (S<ST>::Shallow and CT::Sparse<T>) {
          // Do a copy/disown/abandon/move sparse LHS                    
          if constexpr (CT::Handle<ST>) {
             // RHS is a handle                                          
             using HT = TypeOf<ST>;
-            static_assert(CT::Same<T, HT>, "Type mismatch");
+            static_assert(CT::Similar<T, HT>, "Handle type mismatch");
+            Get() = rhs->Get();
 
-            if constexpr (CT::Dense<HT>) {
-               if constexpr (CT::Dense<T>)
-                  // Dense = Dense                                      
-                  SemanticNew<T>(&Get(), S::Nest(rhs->Get()));
-               else
-                  // Sparse = Dense                                     
-                  Get() = &rhs->Get();
-            }
-            else {
-               if constexpr (CT::Dense<T>)
-                  // Dense = Sparse                                     
-                  SemanticNew<T>(&Get(), S::Nest(*rhs->Get()));
-               else
-                  // Sparse = Sparse                                    
-                  Get() = rhs->Get();
-            }
-
-            if constexpr (S::Keep or S::Move)
+            if constexpr (S<ST>::Keep or S<ST>::Move)
                GetEntry() = rhs->GetEntry();
             else
                GetEntry() = nullptr;
 
-            if constexpr (S::Move) {
+            if constexpr (S<ST>::Move) {
                // We're moving RHS, so we need to clear it up           
-               if constexpr (S::Keep and CT::Sparse<T, HT>) {
-                  // Clear the value only if we're not abandoning RHS   
-                  // (and if the value is a pointer)                    
+               if constexpr (S<ST>::Keep)
                   rhs->Get() = nullptr;
-               }
 
                // Clearing entry is mandatory, because we're            
                // transferring the ownership                            
                rhs->GetEntry() = nullptr;
             }
-            else if constexpr (S::Keep) {
+            else if constexpr (S<ST>::Keep) {
                // Copying RHS, but keep it only if not disowning it     
                if (GetEntry())
                   const_cast<Allocation*>(GetEntry())->Keep();
@@ -317,7 +300,7 @@ namespace Langulus::Anyness
             Get() = rhsh.Get();
             GetEntry() = rhsh.GetEntry();
 
-            if constexpr (S::Keep) {
+            if constexpr (S<ST>::Keep) {
                if (GetEntry())
                   const_cast<Allocation*>(GetEntry())->Keep();
             }
@@ -326,7 +309,7 @@ namespace Langulus::Anyness
       else if constexpr (CT::Dense<T>) {
          // Do a copy/disown/abandon/move/clone inside a dense handle   
          if constexpr (CT::Handle<ST> and CT::Similar<T, TypeOf<ST>>)
-            SemanticNew(&Get(), S::Nest(rhs->Get()));
+            SemanticNew(&Get(), S<ST>::Nest(rhs->Get()));
          else if constexpr (CT::Similar<T, ST>)
             SemanticNew(&Get(), rhs.Forward());
          else if constexpr (CT::Pointer<T> and CT::Similar<TypeOf<T>, ST>)
@@ -355,11 +338,11 @@ namespace Langulus::Anyness
 
             if constexpr (CT::Handle<ST>) {
                static_assert(CT::Exact<T, TypeOf<ST>>, "Type mismatch");
-               SemanticNew(pointer, S::Nest(*rhs->Get()));
+               SemanticNew(pointer, S<ST>::Nest(*rhs->Get()));
             }
             else {
                static_assert(CT::Exact<T, ST>, "Type mismatch");
-               SemanticNew(pointer, S::Nest(**rhs));
+               SemanticNew(pointer, S<ST>::Nest(**rhs));
             }
 
             Get() = pointer;
@@ -373,12 +356,12 @@ namespace Langulus::Anyness
    }
 
    /// Dereference/destroy the current handle contents, and set new ones      
-   ///   @tparam S - the semantic to use for the assignment                   
    ///   @param rhs - new contents to assign                                  
-   TEMPLATE() LANGULUS(INLINED)
-   void HAND()::Assign(CT::Semantic auto&& rhs) {
+   TEMPLATE() template<template<class> class S, class ST>
+   requires CT::Semantic<S<ST>> LANGULUS(INLINED)
+   void HAND()::AssignSemantic(S<ST>&& rhs) {
       Destroy();
-      New(rhs.Forward());
+      CreateSemantic(rhs.Forward());
    }
    
    /// Swap two handles                                                       
@@ -387,8 +370,8 @@ namespace Langulus::Anyness
    TEMPLATE() template<bool RHS_EMBED> LANGULUS(INLINED)
    void HAND()::Swap(Handle<T, RHS_EMBED>& rhs) {
       HandleLocal<T> tmp {Abandon(*this)};
-      New(Abandon(rhs));
-      rhs.New(Abandon(tmp));
+      CreateSemantic(Abandon(rhs));
+      rhs.CreateSemantic(Abandon(tmp));
    }
 
    /// Compare the contents of the handle with content                        

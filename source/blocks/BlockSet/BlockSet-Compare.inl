@@ -14,39 +14,51 @@ namespace Langulus::Anyness
 {
 
    /// Checks if both sets contain the same entries                           
-   ///   @param rhs - the set to compare against, type-erased or not          
+   ///   @param rhs - the set/value to compare against, type-erased or not    
    ///   @return true if sets are the same                                    
    template<CT::Set THIS>
-   bool BlockSet::operator == (CT::Set auto const& rhs) const {
-      if (rhs.GetCount() != GetCount()
-      or not IsTypeCompatibleWith<THIS>(rhs))
-         return false;
+   bool BlockSet::operator == (const CT::NotSemantic auto& rhs) const {
+      using OTHER = Deref<decltype(rhs)>;
+      using TYPED = Conditional<CT::Typed<THIS>, THIS, OTHER>;
 
-      // If reached, then both sets contain similar types of data       
-      using RHS = Conditional<CT::Typed<THIS>, THIS, Deref<decltype(rhs)>>;
-      auto info = GetInfo();
-      const auto infoEnd = GetInfoEnd();
-      while (info != infoEnd) {
-         if (*info) {
-            // Compare each valid entry...                              
-            const auto index = info - GetInfo();
-            if constexpr (CT::Typed<RHS>) {
-               // ...with known types, if any of the sets are typed     
-               if (rhs.template FindInner<RHS>(GetRaw<RHS>(index)) == InvalidOffset)
-                  return false;
+      if constexpr (CT::Set<OTHER>) {
+         // Compare against another set of any kind                     
+         if (rhs.GetCount() != GetCount()
+         or not IsTypeCompatibleWith<THIS>(rhs))
+            return false;
+
+         // If reached, then both sets contain similar types of data    
+         auto info = GetInfo();
+         const auto infoEnd = GetInfoEnd();
+         while (info != infoEnd) {
+            if (*info) {
+               // Compare each valid entry...                           
+               const auto index = info - GetInfo();
+
+               if constexpr (CT::Typed<TYPED>) {
+                  // ...with known types, if any of the sets are typed  
+                  if (rhs.template FindInner<TYPED>(GetRaw<TYPED>(index))
+                  == InvalidOffset)
+                     return false;
+               }
+               else {
+                  // ...via rtti, since all sets are type-erased        
+                  if (rhs.template FindBlockInner<TYPED>(GetRaw<TYPED>(index))
+                  == InvalidOffset)
+                     return false;
+               }
             }
-            else {
-               // ...via rtti, since all sets are type-erased           
-               if (rhs.template FindBlockInner<RHS>(GetRaw<RHS>(index)) == InvalidOffset)
-                  return false;
-            }
+
+            ++info;
          }
 
-         ++info;
+         // If reached, then both sets are the same                     
+         return true;
       }
-
-      // If reached, then both maps are the same                        
-      return true;
+      else {
+         // Compare against a single value                              
+         return GetCount() == 1 and Contains<THIS>(rhs);
+      }
    }
 
    /// Get hash of the set contents                                           

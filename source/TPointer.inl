@@ -41,7 +41,7 @@ namespace Langulus::Anyness
    TEMPLATE() template<template<class> class S> LANGULUS(INLINED)
    TME()::TPointer(S<TPointer>&& other) requires CT::Inner::SemanticMakable<S, Type> {
       using SS = S<TPointer>;
-      GetHandle().Create(SS::Nest(other->GetHandle()));
+      GetHandle().CreateSemantic(SS::Nest(other->GetHandle()));
 
       if constexpr (SS::Move) {
          // Remote value is removed, if moved and double-referenced     
@@ -190,7 +190,7 @@ namespace Langulus::Anyness
                "Unrelated type inside shared pointer"
             );
 
-            GetHandle().Assign(S::Nest(rhs->GetHandle()));
+            GetHandle().AssignSemantic(S::Nest(rhs->GetHandle()));
 
             if constexpr (S::Shallow and not S::Move and S::Keep) {
                if constexpr (DR and CT::Referencable<T>) {
@@ -206,7 +206,7 @@ namespace Langulus::Anyness
             );
 
             // Raw pointers are always copied, and thus referenced      
-            GetHandle().Assign(Copy(*rhs));
+            GetHandle().AssignSemantic(Copy(*rhs));
 
             if constexpr (DR and CT::Referencable<T>) {
                if (mValue)

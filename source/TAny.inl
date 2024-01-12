@@ -240,7 +240,7 @@ namespace Langulus::Anyness
       else {
          // Unfold-insert                                               
          Clear();
-         UnfoldInsert<TAny, void, true>(0, S::Nest(rhs));
+         Block::UnfoldInsert<TAny, void, true>(0, S::Nest(rhs));
       }
 
       return *this;
@@ -365,24 +365,76 @@ namespace Langulus::Anyness
    void TAny<T>::Reset() {
       Block::Reset<TAny>();
    }
-
-   /// Return the typed raw data (const)                                      
-   ///   @return a constant pointer to the first element in the array         
-   TEMPLATE() LANGULUS(INLINED)
-   const T* TAny<T>::GetRaw() const noexcept {
-      return Block::GetRaw<TAny>();
+   
+   /// Get the raw data inside the container                                  
+   ///   @attention as unsafe as it gets, but as fast as it gets              
+   ///   @return a pointer to the first allocated element                     
+   TEMPLATE() template<CT::BlockBased THIS> LANGULUS(INLINED)
+   constexpr auto TAny<T>::GetRaw() noexcept {
+      return Block::GetRaw<THIS>();
    }
 
-   TEMPLATE() LANGULUS(INLINED)
-   T* TAny<T>::GetRaw() noexcept {
-      return Block::GetRaw<TAny>();
+   TEMPLATE() template<CT::BlockBased THIS> LANGULUS(INLINED)
+   constexpr auto TAny<T>::GetRaw() const noexcept {
+      return Block::GetRaw<THIS>();
    }
 
-   /// Return the typed raw data end pointer (const)                          
-   ///   @return a constant pointer to one past the last element in the array 
-   TEMPLATE() LANGULUS(INLINED)
-   const T* TAny<T>::GetRawEnd() const noexcept {
-      return Block::GetRawEnd<TAny>();
+   /// Get the end raw data pointer inside the container (const)              
+   ///   @attention as unsafe as it gets, but as fast as it gets              
+   ///   @attention the resulting pointer never points to a valid element     
+   ///   @return a pointer to the last+1 element (never initialized)          
+   TEMPLATE() template<CT::BlockBased THIS> LANGULUS(INLINED)
+   constexpr auto TAny<T>::GetRawEnd() const noexcept {
+      return Block::GetRawEnd<THIS>();
+   }
+
+   /// Get a pointer array - useful only for sparse containers                
+   ///   @return the raw data as an array of pointers                         
+   TEMPLATE() template<CT::BlockBased THIS> LANGULUS(INLINED)
+   IF_UNSAFE(constexpr) auto TAny<T>::GetRawSparse() IF_UNSAFE(noexcept) {
+      return Block::GetRawSparse<THIS>();
+   }
+
+   TEMPLATE() template<CT::BlockBased THIS> LANGULUS(INLINED)
+   IF_UNSAFE(constexpr) auto TAny<T>::GetRawSparse() const IF_UNSAFE(noexcept) {
+      return Block::GetRawSparse<THIS>();
+   }
+   
+   /// Get a pointer array - useful only for sparse containers                
+   ///   @tparam T - the type (dense) to interpret pointers as                
+   ///   @return the pointer to the first pointer of T                        
+   TEMPLATE() template<CT::Data T1, CT::BlockBased THIS> LANGULUS(INLINED)
+   T1** TAny<T>::GetRawSparseAs() IF_UNSAFE(noexcept) {
+      return Block::GetRawSparseAs<T1, THIS>();
+   }
+
+   TEMPLATE() template<CT::Data T1, CT::BlockBased THIS> LANGULUS(INLINED)
+   const T1* const* TAny<T>::GetRawSparseAs() const IF_UNSAFE(noexcept) {
+      return Block::GetRawSparseAs<T1, THIS>();
+   }
+   
+   /// Get the raw data inside the container, reinterpreted as some type      
+   ///   @attention as unsafe as it gets, but as fast as it gets              
+   ///   @tparam T - the type we're interpreting as                           
+   ///   @return a pointer to the first element of type T                     
+   TEMPLATE() template<CT::Data T1, CT::BlockBased THIS> LANGULUS(INLINED)
+   T1* TAny<T>::GetRawAs() noexcept {
+      return Block::GetRawAs<T1, THIS>();
+   }
+
+   TEMPLATE() template<CT::Data T1, CT::BlockBased THIS> LANGULUS(INLINED)
+   const T1* TAny<T>::GetRawAs() const noexcept {
+      return Block::GetRawAs<T1, THIS>();
+   }
+
+   /// Get the end raw data pointer inside the container                      
+   ///   @attention never points to a valid element                           
+   ///   @attention as unsafe as it gets, but as fast as it gets              
+   ///   @tparam T - the type we're interpreting as                           
+   ///   @return a pointer to the last+1 element of type T                    
+   TEMPLATE() template<CT::Data T1, CT::BlockBased THIS> LANGULUS(INLINED)
+   const T1* TAny<T>::GetRawEndAs() const noexcept {
+      return Block::GetRawEndAs<T1, THIS>();
    }
    
    /// Return a handle to a sparse element, or a pointer to dense one         
@@ -406,7 +458,7 @@ namespace Langulus::Anyness
    ///                               N being the size of that subblock        
    ///      ... and so on ...                                                 
    ///   @return a pointer to the block or nullptr if index is invalid        
-   TEMPLATE() LANGULUS(INLINED)
+   /*TEMPLATE() LANGULUS(INLINED)
    Block* TAny<T>::GetBlockDeep(const Offset index) noexcept {
       return Block::GetBlockDeep<TAny>(index);
    }
@@ -427,7 +479,7 @@ namespace Langulus::Anyness
    TEMPLATE() LANGULUS(INLINED)
    Block TAny<T>::GetElementDeep(const Offset index) const noexcept {
       return Block::GetElementDeep<TAny>(index);
-   }
+   }*/
 
    /// Get an element in the way you want (const, unsafe)                     
    /// This is a statically optimized variant of Block::Get                   
@@ -632,9 +684,9 @@ namespace Langulus::Anyness
    requires CT::Inner::UnfoldMakableFrom<T, T1, TAIL...> LANGULUS(INLINED)
    Count TAny<T>::Insert(CT::Index auto index, T1&& t1, TAIL&&...tail) {
       Count inserted = 0;
-      inserted   += UnfoldInsert<TAny, Any, MOVE_ASIDE>(
+      inserted   += Block::UnfoldInsert<TAny, Any, MOVE_ASIDE>(
          index, Forward<T1>(t1));
-      ((inserted += UnfoldInsert<TAny, Any, MOVE_ASIDE>(
+      ((inserted += Block::UnfoldInsert<TAny, Any, MOVE_ASIDE>(
          index + inserted, Forward<TAIL>(tail))), ...);
       return inserted;
    }
@@ -912,10 +964,13 @@ namespace Langulus::Anyness
    }
 
    /// Reserve a number of elements without initializing them                 
+   ///   @tparam SETSIZE - whether or not to set size, too                    
+   ///   @attention using SETSIZE will NOT construct any elements, use only   
+   ///      if you know what you're doing                                     
    ///   @param count - number of elements to reserve                         
-   TEMPLATE() LANGULUS(INLINED)
+   TEMPLATE() template<bool SETSIZE> LANGULUS(INLINED)
    void TAny<T>::Reserve(const Count count) {
-      Block::Reserve<TAny>(count);
+      Block::Reserve<SETSIZE, TAny>(count);
    }
    
    /// Extend the container via default construction, and return the new part 

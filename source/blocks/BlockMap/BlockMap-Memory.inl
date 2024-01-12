@@ -179,18 +179,18 @@ namespace Langulus::Anyness
                val.Destroy();
             }
             else {
-               InsertInnerUnknown<THIS, false>(
+               InsertBlockInner<THIS, false>(
                   GetBucketUnknown(hashmask, key),
                   Abandon(key), Abandon(val)
                );
 
                if (key)
-                  key.CallUnknownDestructors();
+                  key.Destroy();
                else
                   key.mCount = 1;
 
                if (val)
-                  val.CallUnknownDestructors();
+                  val.Destroy();
                else
                   val.mCount = 1;
             }

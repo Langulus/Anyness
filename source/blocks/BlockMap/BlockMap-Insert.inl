@@ -285,20 +285,18 @@ namespace Langulus::Anyness
                   );
                }
                else {
-                  Block keyswap {mKeys.GetState(), GetKeyType<THIS>()};
+                  Block keyswap {mKeys.GetState(), GetKeyType<THIS>(), 1};
                   keyswap.AllocateFresh<Any>(keyswap.RequestSize<Any>(1));
-                  keyswap.CallSemanticConstructors<Any>(1, Abandon(oldKey));
-                  keyswap.mCount = 1;
+                  keyswap.CreateSemantic(Abandon(oldKey));
 
                   auto oldValue = GetValueHandle<THIS>(oldIndex);
-                  Block valswap {mValues.GetState(), GetValueType<THIS>()};
+                  Block valswap {mValues.GetState(), GetValueType<THIS>(), 1};
                   valswap.AllocateFresh<Any>(valswap.RequestSize<Any>(1));
-                  valswap.CallSemanticConstructors<Any>(1, Abandon(oldValue));
-                  valswap.mCount = 1;
+                  valswap.CreateSemantic(Abandon(oldValue));
 
                   // Destroy the pair and info at old index             
-                  oldKey.template CallDestructors<Any>();
-                  oldValue.template CallDestructors<Any>();
+                  oldKey.Destroy();
+                  oldValue.Destroy();
                   *oldInfo = 0;
                   --mValues.mCount;
 
@@ -358,7 +356,6 @@ namespace Langulus::Anyness
                // Move pair only if it won't end up in same bucket      
                if constexpr (CT::Typed<THIS>) {
                   using K = typename THIS::Key;
-
                   HandleLocal<K> keyswap {Abandon(oldKey)};
 
                   // Destroy the key, info and value                    
@@ -374,17 +371,16 @@ namespace Langulus::Anyness
                   );
                }
                else {
-                  Block keyswap {mKeys.GetState(), GetKeyType<THIS>()};
+                  Block keyswap {mKeys.GetState(), GetKeyType<THIS>(), 1};
                   keyswap.AllocateFresh<Any>(keyswap.RequestSize<Any>(1));
-                  keyswap.CallSemanticConstructors<Any>(1, Abandon(oldKey));
-                  keyswap.mCount = 1;
+                  keyswap.CreateSemantic(Abandon(oldKey));
 
                   // Destroy the pair and info at old index             
-                  oldKey.template CallDestructors<Any>();
+                  oldKey.Destroy();
                   *oldInfo = 0;
                   --mValues.mCount;
 
-                  InsertInnerUnknown<THIS, false>(
+                  InsertBlockInner<THIS, false>(
                      newBucket,
                      Abandon(keyswap),
                      Copy(old.GetValueHandle<THIS>(oldIndex))
@@ -456,17 +452,16 @@ namespace Langulus::Anyness
                }
                else {
                   auto oldValue = old.GetValueHandle<THIS>(oldIndex);
-                  Block valswap {mValues.GetState(), GetValueType<THIS>()};
+                  Block valswap {mValues.GetState(), GetValueType<THIS>(), 1};
                   valswap.AllocateFresh<Any>(valswap.RequestSize<Any>(1));
-                  valswap.CallSemanticConstructors<Any>(1, Abandon(oldValue));
-                  valswap.mCount = 1;
+                  valswap.CreateSemantic(Abandon(oldValue));
 
                   // Destroy the pair and info at old index             
-                  oldValue.template CallDestructors<Any>();
+                  oldValue.Destroy();
                   *oldInfo = 0;
                   --mValues.mCount;
 
-                  InsertInnerUnknown<THIS, false>(
+                  InsertBlockInner<THIS, false>(
                      newBucket, Copy(oldKey), Abandon(valswap));
 
                   valswap.Free();
@@ -578,7 +573,7 @@ namespace Langulus::Anyness
             const auto& candidate = GetRawKey<THIS>(index);
             if (keyswapper.Compare(candidate)) {
                // Neat, the key already exists - just set value and go  
-               GetValueHandle<THIS>(index).Assign(Abandon(valswapper));
+               GetValueHandle<THIS>(index).AssignSemantic(Abandon(valswapper));
                return index;
             }
          }
@@ -635,10 +630,10 @@ namespace Langulus::Anyness
             const auto candidate = GetRawKey<THIS>(index);
             if (candidate == *key) {
                // Neat, the key already exists - just set value and go  
-               GetRawValue<THIS>(index).Assign(val.Forward());
+               GetRawValue<THIS>(index).AssignSemantic(val.Forward());
 
                if constexpr (S2<T>::Move) {
-                  val->CallDestructors();
+                  val->Destroy();
                   val->mCount = 0;
                }
 
@@ -648,8 +643,8 @@ namespace Langulus::Anyness
 
          if (attempts > *psl) {
             // The pair we're inserting is closer to bucket, so swap    
-            GetRawKey  <THIS>(index).template SwapInner<Any>(key.Forward());
-            GetRawValue<THIS>(index).template SwapInner<Any>(val.Forward());
+            GetRawKey  <THIS>(index).Swap(key.Forward());
+            GetRawValue<THIS>(index).Swap(val.Forward());
 
             ::std::swap(attempts, *psl);
             if (insertedAt == mValues.mReserved)

@@ -71,6 +71,17 @@ namespace Langulus::Anyness
       Count ForEachDeep(auto&&...) const;
 
       ///                                                                     
+      ///   Comparison                                                        
+      ///                                                                     
+      bool operator == (const CT::NotSemantic auto&) const;
+
+      NOD() Hash GetHash() const;
+      NOD() bool Contains(const CT::NotSemantic auto&) const;
+      NOD() Index Find(const CT::NotSemantic auto&) const;
+      NOD() Iterator FindIt(const CT::NotSemantic auto&);
+      NOD() ConstIterator FindIt(const CT::NotSemantic auto&) const;
+
+      ///                                                                     
       ///   Insertion                                                         
       ///                                                                     
       Set& operator << (CT::Inner::UnfoldInsertable auto&&);

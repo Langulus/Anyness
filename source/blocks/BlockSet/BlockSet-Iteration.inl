@@ -285,8 +285,8 @@ namespace Langulus::Anyness
    ///   @param info - the info pointer                                       
    ///   @param sentinel - the end of info pointers                           
    ///   @param key - pointer/block to the key element                        
-   template<class T> LANGULUS(INLINED)
-   constexpr BlockSet::Iterator<T>::Iterator(
+   template<class SET> LANGULUS(INLINED)
+   constexpr BlockSet::Iterator<SET>::Iterator(
       const InfoType* info, 
       const InfoType* sentinel, 
       const InnerT&   key
@@ -296,8 +296,8 @@ namespace Langulus::Anyness
       , mSentinel {sentinel} {}
 
    /// Construct from end point                                               
-   template<class T> LANGULUS(INLINED)
-   constexpr BlockSet::Iterator<T>::Iterator(const A::IteratorEnd&) noexcept
+   template<class SET> LANGULUS(INLINED)
+   constexpr BlockSet::Iterator<SET>::Iterator(const A::IteratorEnd&) noexcept
       : mKey {}
       , mInfo {}
       , mSentinel {} {}
@@ -305,8 +305,8 @@ namespace Langulus::Anyness
    /// Prefix increment operator                                              
    /// Moves pointers to the right, unless end has been reached               
    ///   @return the modified iterator                                        
-   template<class T> LANGULUS(INLINED)
-   constexpr BlockSet::Iterator<T>& BlockSet::Iterator<T>::operator ++ () noexcept {
+   template<class SET> LANGULUS(INLINED)
+   constexpr BlockSet::Iterator<SET>& BlockSet::Iterator<SET>::operator ++ () noexcept {
       if (mInfo == mSentinel)
          return *this;
 
@@ -316,7 +316,7 @@ namespace Langulus::Anyness
          ;
 
       const auto offset = mInfo - previous;
-      if constexpr (CT::Typed<T>) {
+      if constexpr (CT::Typed<SET>) {
          const_cast<InnerT&>(mKey) += offset;
       }
       else {
@@ -335,8 +335,8 @@ namespace Langulus::Anyness
    /// Suffix increment operator                                              
    /// Moves pointers to the right, unless end has been reached               
    ///   @return the previous value of the iterator                           
-   template<class T> LANGULUS(INLINED)
-   constexpr BlockSet::Iterator<T> BlockSet::Iterator<T>::operator ++ (int) noexcept {
+   template<class SET> LANGULUS(INLINED)
+   constexpr BlockSet::Iterator<SET> BlockSet::Iterator<SET>::operator ++ (int) noexcept {
       const auto backup = *this;
       operator ++ ();
       return backup;
@@ -345,15 +345,15 @@ namespace Langulus::Anyness
    /// Compare iterators                                                      
    ///   @param rhs - the other iterator                                      
    ///   @return true if entries match                                        
-   template<class T> LANGULUS(INLINED)
-   constexpr bool BlockSet::Iterator<T>::operator == (const Iterator& rhs) const noexcept {
+   template<class SET> LANGULUS(INLINED)
+   constexpr bool BlockSet::Iterator<SET>::operator == (const Iterator& rhs) const noexcept {
       return mInfo == rhs.mInfo;
    }
 
    /// Check if iterator has reached the end                                  
    ///   @return true if entries match                                        
-   template<class T> LANGULUS(INLINED)
-   constexpr bool BlockSet::Iterator<T>::operator == (const A::IteratorEnd&) const noexcept {
+   template<class SET> LANGULUS(INLINED)
+   constexpr bool BlockSet::Iterator<SET>::operator == (const A::IteratorEnd&) const noexcept {
       return mInfo >= mSentinel;
    }
 
@@ -361,22 +361,22 @@ namespace Langulus::Anyness
    /// It is required for ranged-for expressions                              
    /// In our case, it just generates a temporary pair of references          
    ///   @return the pair at the current iterator position                    
-   template<class T> LANGULUS(INLINED)
-   constexpr decltype(auto) BlockSet::Iterator<T>::operator * () const {
+   template<class SET> LANGULUS(INLINED)
+   constexpr decltype(auto) BlockSet::Iterator<SET>::operator * () const {
       if (mInfo >= mSentinel)
          LANGULUS_OOPS(Access, "Trying to access end of iteration");
       return DenseCast(mKey);
    }
 
    /// Explicit bool operator, to check if iterator is valid                  
-   template<class T> LANGULUS(INLINED)
-   constexpr BlockSet::Iterator<T>::operator bool() const noexcept {
+   template<class SET> LANGULUS(INLINED)
+   constexpr BlockSet::Iterator<SET>::operator bool() const noexcept {
       return mInfo < mSentinel;
    }
 
    /// Implicitly convert to a constant iterator                              
-   template<class T> LANGULUS(INLINED)
-   constexpr BlockSet::Iterator<T>::operator Iterator<const T>() const noexcept requires Mutable {
+   template<class SET> LANGULUS(INLINED)
+   constexpr BlockSet::Iterator<SET>::operator Iterator<const SET>() const noexcept requires Mutable {
       return {mInfo, mSentinel, mKey};
    }
 
