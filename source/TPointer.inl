@@ -38,12 +38,10 @@ namespace Langulus::Anyness
    
    /// Semantic construction                                                  
    ///   @param other - the value to initialize with                          
-   TEMPLATE()
-   template<template<class> class S>
-   LANGULUS(INLINED)
+   TEMPLATE() template<template<class> class S> LANGULUS(INLINED)
    TME()::TPointer(S<TPointer>&& other) requires CT::Inner::SemanticMakable<S, Type> {
       using SS = S<TPointer>;
-      GetHandle().New(SS::Nest(other->GetHandle()));
+      GetHandle().Create(SS::Nest(other->GetHandle()));
 
       if constexpr (SS::Move) {
          // Remote value is removed, if moved and double-referenced     
@@ -59,9 +57,7 @@ namespace Langulus::Anyness
 
    /// Forward any compatible arguments towards contained value constructor   
    ///   @param arguments... - the arguments to forward                       
-   TEMPLATE()
-   template<class A>
-   LANGULUS(INLINED)
+   TEMPLATE() template<class A> LANGULUS(INLINED)
    TME()::TPointer(A&& other) requires CT::Inner::MakableFrom<Type, A&&> {
       if constexpr (CT::Nullptr<A>) {
          // Assign a nullptr                                            
@@ -89,10 +85,8 @@ namespace Langulus::Anyness
    ///   @tparam ...ARGS - the deduced arguments                              
    ///   @param arguments - the arguments                                     
    ///   @return the new instance                                             
-   TEMPLATE()
-   template<class... ARGS>
-   LANGULUS(INLINED)
-   void TME()::New(ARGS&&... arguments) {
+   TEMPLATE() template<class...ARGS> LANGULUS(INLINED)
+   void TME()::New(ARGS&&...arguments) {
       TPointer pointer;
       pointer.mEntry = Allocator::Allocate(
          MetaDataOf<Decay<T>>(), 
@@ -251,11 +245,6 @@ namespace Langulus::Anyness
    TME()::operator const T& () const noexcept {
       return mValue;
    }
-
-   /*TEMPLATE() LANGULUS(INLINED)
-   TME()::operator T* () const noexcept {
-      return mValue;
-   }*/
 
    /// Check if we have authority over the memory                             
    ///   @return true if we own the memory behind the pointer                 
