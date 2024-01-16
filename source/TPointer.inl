@@ -24,88 +24,102 @@ namespace Langulus::Anyness
       return Handle<Type> {mthis->mValue, mthis->mEntry};
    }
 
+   /// Default costructor                                                     
+   TEMPLATE() LANGULUS(INLINED)
+   constexpr TME()::TPointer() noexcept
+      : Base {nullptr}
+      , mEntry {nullptr} {}
+
    /// Copy constructor                                                       
    ///   @param other - pointer to reference                                  
    TEMPLATE() LANGULUS(INLINED)
-   TME()::TPointer(const TPointer& other)
+   constexpr TME()::TPointer(const TPointer& other)
       : TPointer {Copy(other)} {}
 
    /// Move constructor                                                       
    ///   @param other - pointer to move                                       
    TEMPLATE() LANGULUS(INLINED)
-   TME()::TPointer(TPointer&& other)
+   constexpr TME()::TPointer(TPointer&& other)
       : TPointer {Move(other)} {}
    
    /// Semantic construction                                                  
    ///   @param other - the value to initialize with                          
-   TEMPLATE() template<template<class> class S> LANGULUS(INLINED)
-   TME()::TPointer(S<TPointer>&& other) requires CT::Inner::SemanticMakable<S, Type> {
+   TEMPLATE() template<template<class> class S> 
+   requires CT::Inner::SemanticMakable<S, T*> LANGULUS(INLINED)
+   constexpr TME()::TPointer(S<TPointer>&& other) {
       using SS = S<TPointer>;
       GetHandle().CreateSemantic(SS::Nest(other->GetHandle()));
 
       if constexpr (SS::Move) {
          // Remote value is removed, if moved and double-referenced     
+         // Notice it is always nullified, even when abandoned          
          if constexpr (DR and CT::Referencable<T>)
             other->mValue = {};
       }
       else if constexpr (SS::Shallow and SS::Keep) {
          // Reference value, if double-referenced and copied            
-         if constexpr (DR and CT::Referencable<T>)
-            mValue->Keep();
+         if constexpr (DR and CT::Referencable<T>) {
+            if (mValue)
+               mValue->Keep();
+         }
       }
    }
 
-   /// Forward any compatible arguments towards contained value constructor   
-   ///   @param arguments... - the arguments to forward                       
-   TEMPLATE() template<class A> LANGULUS(INLINED)
-   TME()::TPointer(A&& other) requires CT::Inner::MakableFrom<Type, A&&> {
-      if constexpr (CT::Nullptr<A>) {
+   /// Construct from any compatible pointer                                  
+   ///   @attention this will search for the allocation source of the pointer 
+   ///      which will incur some runtime overhead, unless you use Disown     
+   ///   @param other - the pointer                                           
+   TEMPLATE() template<class A>
+   requires CT::Inner::MakableFrom<T*, A> LANGULUS(INLINED)
+   constexpr TME()::TPointer(A&& other) {
+      using S = SemanticOf<A>;
+      using ST = TypeOf<S>;
+
+      if constexpr (CT::Nullptr<ST>) {
          // Assign a nullptr                                            
          return;
       }
       else {
          // Always copy, and thus reference raw pointers                
-         auto converted = static_cast<Type>(other);
-         GetHandle().New(Copy(converted));
+         auto converted = static_cast<Type>(DesemCast(other));
+         GetHandle().CreateSemantic(S::Nest(converted));
 
-         // Always reference value, if double-referenced                
-         if constexpr (DR and CT::Referencable<T>)
-            mValue->Keep();
+         if constexpr (S::Shallow and S::Keep) {
+            // Reference value, if double-referenced and copied         
+            if constexpr (DR and CT::Referencable<T>) {
+               if (mValue)
+                  mValue->Keep();
+            }
+         }
       }
    }
 
    /// Shared pointer destruction                                             
    TEMPLATE() LANGULUS(INLINED)
    TME()::~TPointer() {
-      if (mValue)
-         ResetInner();
+      ResetInner();
    }
 
    /// Create a new instance of T by providing constructor arguments          
-   ///   @tparam ...ARGS - the deduced arguments                              
    ///   @param arguments - the arguments                                     
    ///   @return the new instance                                             
-   TEMPLATE() template<class...ARGS> LANGULUS(INLINED)
-   void TME()::New(ARGS&&...arguments) {
+   TEMPLATE() template<class...A>
+   requires ::std::constructible_from<T, A...> LANGULUS(INLINED)
+   void TME()::New(A&&...arguments) {
       TPointer pointer;
-      pointer.mEntry = Allocator::Allocate(
-         MetaDataOf<Decay<T>>(), 
-         sizeof(Decay<T>)
-      );
+      pointer.mEntry = Allocator::Allocate(MetaDataOf<T>(), sizeof(T));
       LANGULUS_ASSERT(pointer.mEntry, Allocate, "Out of memory");
-      pointer.mValue = reinterpret_cast<decltype(pointer.mValue)>(
-         const_cast<Byte*>(pointer.mEntry->GetBlockStart()));
-      new (pointer.mValue) Decay<T> {Forward<ARGS>(arguments)...};
+      pointer.mValue = reinterpret_cast<T*>(pointer.mEntry->GetBlockStart());
+      new (pointer.mValue) T {Forward<A>(arguments)...};
       *this = Move(pointer);
    }
 
    /// Reset the pointer                                                      
-   ///   @attention assumes mValue is a valid pointer                         
    TEMPLATE() LANGULUS(INLINED)
    void TME()::ResetInner() {
-      // Do referencing in the element itself, if available             
       if constexpr (DR and CT::Referencable<T>) {
-         if (mValue->GetReferences() > 1)
+         // Do double referencing                                       
+         if (mValue)
             mValue->Free();
       }
 
@@ -115,17 +129,15 @@ namespace Langulus::Anyness
    /// Reset the pointer                                                      
    TEMPLATE() LANGULUS(INLINED)
    void TME()::Reset() {
-      if (mValue) {
-         ResetInner();
-         mValue = {};
-      }
+      ResetInner();
+      mValue = {};
    }
 
    /// Copy-assignment                                                        
    ///   @param rhs - pointer to reference                                    
    ///   @return a reference to this shared pointer                           
    TEMPLATE() LANGULUS(INLINED)
-   TME()& TME()::operator = (const TPointer& rhs) {
+   constexpr TME()& TME()::operator = (const TPointer& rhs) {
       return operator = (Copy(rhs));
    }
 
@@ -133,105 +145,69 @@ namespace Langulus::Anyness
    ///   @param rhs - pointer to move                                         
    ///   @return a reference to this shared pointer                           
    TEMPLATE() LANGULUS(INLINED)
-   TME()& TME()::operator = (TPointer&& rhs) {
-      return operator = (Move(rhs));
-   }
-
-   /// Copy-assign from any pointer/shared pointer/nullptr/related pointer    
-   ///   @param rhs - the value to assign                                     
-   ///   @return a reference to this shared pointer                           
-   TEMPLATE() LANGULUS(INLINED)
-   TME()& TME()::operator = (const CT::PointerRelated auto& rhs) {
-      return operator = (Copy(rhs));
-   }
-
-   /// Copy-assign from any pointer/shared pointer/nullptr/related pointer    
-   ///   @param rhs - the value to assign                                     
-   ///   @return a reference to this shared pointer                           
-   TEMPLATE() LANGULUS(INLINED)
-   TME()& TME()::operator = (CT::PointerRelated auto& rhs) {
-      return operator = (Copy(rhs));
-   }
-
-   /// Move-assign from any pointer/shared pointer/nullptr/related pointer    
-   ///   @param rhs - the value to assign                                     
-   ///   @return a reference to this shared pointer                           
-   TEMPLATE() LANGULUS(INLINED)
-   TME()& TME()::operator = (CT::PointerRelated auto&& rhs) {
+   constexpr TME()& TME()::operator = (TPointer&& rhs) {
       return operator = (Move(rhs));
    }
 
    /// Semantically assign from any pointer/shared pointer/nullptr/related    
    ///   @param rhs - the value and semantic to assign                        
    ///   @return a reference to this shared pointer                           
-   TEMPLATE() LANGULUS(INLINED)
-   TME()& TME()::AssignFrom(CT::Semantic auto&& rhs) {
-      using S = Decay<decltype(rhs)>;
+   TEMPLATE() template<template<class> class S>
+   requires CT::Inner::SemanticAssignable<S, T*> LANGULUS(INLINED)
+   TME()& TME()::operator = (S<TPointer>&& rhs) {
+      using SS = S<TPointer>;
+      if constexpr (DR and CT::Referencable<T>) {
+         // Decrement deeper references                                 
+         if (mValue)
+            mValue->Free();
+      }
+
+      GetHandle().AssignSemantic(SS::Nest(rhs->GetHandle()));
+
+      if constexpr (SS::Shallow and not SS::Move and SS::Keep) {
+         // Reference value, if double-referenced and copied            
+         if constexpr (DR and CT::Referencable<T>)
+            mValue->Keep();
+      }
+
+      return *this;
+   }
+
+   /// Semantically assign from any pointer/shared pointer/nullptr/related    
+   ///   @param rhs - the value and semantic to assign                        
+   ///   @return a reference to this shared pointer                           
+   TEMPLATE() template<CT::NotOwned A>
+   requires CT::Inner::AssignableFrom<T*, A> LANGULUS(INLINED)
+   TME()& TME()::operator = (A&& rhs) {
+      using S = SemanticOf<A>;
       using ST = TypeOf<S>;
 
       if constexpr (CT::Nullptr<ST>) {
          // Assign a nullptr, essentially resetting the shared pointer  
          Reset();
-         return *this;
       }
       else {
-         // Move/Abandon/Disown/Copy/Clone another TPointer or raw,     
-         // pointer, as long as it is related                           
-         if constexpr (S::Shallow and not S::Move and S::Keep) {
-            if constexpr (DR and CT::Referencable<T>) {
-               if (mValue and mEntry->GetUses() > 1)
-                  mValue->Free();
-            }
+         // Assign a new pointer                                        
+         if constexpr (DR and CT::Referencable<T>) {
+            // Decrement deeper references                              
+            if (mValue)
+               mValue->Free();
          }
 
-         if constexpr (CT::Pointer<ST>) {
-            static_assert(
-               CT::Exact<Type, TypeOf<ST>> or CT::DerivedFrom<TypeOf<ST>, T>,
-               "Unrelated type inside shared pointer"
-            );
+         // Raw pointers are always copied, and thus referenced         
+         auto converted = static_cast<Type>(DesemCast(rhs));
+         GetHandle().AssignSemantic(S::Nest(converted));
 
-            GetHandle().AssignSemantic(S::Nest(rhs->GetHandle()));
-
-            if constexpr (S::Shallow and not S::Move and S::Keep) {
-               if constexpr (DR and CT::Referencable<T>) {
-                  if (mValue)
-                     mValue->Keep();
-               }
-            }
-         }
-         else {
-            static_assert(
-               CT::Exact<Type, ST> or CT::DerivedFrom<ST, T>,
-               "Unrelated raw pointer"
-            );
-
-            // Raw pointers are always copied, and thus referenced      
-            GetHandle().AssignSemantic(Copy(*rhs));
-
+         if constexpr (S::Shallow and S::Keep) {
+            // Reference value, if double-referenced and copied         
             if constexpr (DR and CT::Referencable<T>) {
                if (mValue)
                   mValue->Keep();
             }
          }
-
-         return *this;
       }
-   }
-   
-   /// Semantically assign from any pointer/shared pointer/nullptr/related    
-   ///   @param rhs - the value and semantic to assign                        
-   ///   @return a reference to this shared pointer                           
-   TEMPLATE() LANGULUS(INLINED)
-   TME()& TME()::operator = (CT::ShallowSemantic auto&& rhs) {
-      return AssignFrom(rhs.Forward());
-   }
-   
-   /// Semantically assign from any pointer/shared pointer/nullptr/related    
-   ///   @param rhs - the value and semantic to assign                        
-   ///   @return a reference to this shared pointer                           
-   TEMPLATE() LANGULUS(INLINED)
-   TME()& TME()::operator = (CT::DeepSemantic auto&& rhs) requires CT::CloneAssignable<T> {
-      return AssignFrom(rhs.Forward());
+
+      return *this;
    }
 
    /// Cast to a constant pointer, if mutable                                 

@@ -64,9 +64,9 @@ namespace Langulus::Anyness
    template<CT::Set THIS> LANGULUS(INLINED)
    decltype(auto) BlockSet::GetRef(const Offset i) IF_UNSAFE(noexcept) {
       if constexpr (CT::Typed<THIS>)
-         return *GetRaw(i);
+         return *GetRaw<THIS>(i);
       else
-         return GetRaw(i);
+         return GetRaw<THIS>(i);
    }
 
    template<CT::Set THIS> LANGULUS(INLINED)

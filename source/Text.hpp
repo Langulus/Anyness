@@ -20,6 +20,7 @@ namespace Langulus::CT
    }
 
    /// Concept for differentiating managed text types                         
+   /// Text containers are always binary compatible to Block                  
    template<class...T>
    concept Text = (Inner::Text<Decay<T>> and ...);
 
@@ -42,6 +43,11 @@ namespace Langulus::Anyness
 
    ///                                                                        
    ///   Count-terminated UTF8 text container                                 
+   ///                                                                        
+   ///   This is a general purpose text container. It can contain serialized  
+   /// data, but converting to it doesn't necessarily mean data will be       
+   /// serialized. Consider it a general day to day speech container, that    
+   /// may or may not be formal.                                              
    ///                                                                        
    struct Text : TAny<Letter> {
       using Base = TAny<Letter>;
@@ -69,28 +75,13 @@ namespace Langulus::Anyness
       template<CT::Semantic T> requires CT::StringLiteral<TypeOf<T>>
       Text(T&&);
 
-      template<class...T> requires (sizeof...(T) > 1 and ((CT::Inner::Text<T> or CT::Formattable<T>) and ...))
+      template<class...T>
+      requires (sizeof...(T) > 1 and (
+         (CT::Inner::Text<T> or CT::Formattable<T>) and ...))
       Text(T&&...);
 
       /// By extending libfmt via formatters, we also extend Text capabilities
       Text(CT::Formattable auto&&);
-
-      /*template<class T> requires CT::DenseCharacter<Desem<T>>
-      Text(T&&);
-
-      template<class T> requires CT::StringPointer<Desem<T>>
-      Text(T&&);
-
-      template<class T> requires CT::StringLiteral<Desem<T>>
-      Text(T&&);
-
-      template<class T> requires (CT::StandardContiguousContainer<Desem<T>>
-                             and  CT::DenseCharacter<TypeOf<Desem<T>>>)
-      Text(T&&);
-
-      Text(const Exception&);
-      Text(const CT::Meta auto&);
-      Text(const CT::DenseBuiltinNumber auto&);*/
 
       template<class T> requires (CT::StringPointer<Desem<T>>
                               or  CT::StringLiteral<Desem<T>>)
@@ -107,19 +98,6 @@ namespace Langulus::Anyness
 
       /// By extending libfmt via formatters, we also extend Text capabilities
       Text& operator = (CT::Formattable auto&&);
-
-      /*template<class T> requires CT::DenseCharacter<Desem<T>>
-      Text& operator = (T&&);
-
-      template<class T> requires CT::StringPointer<Desem<T>>
-      Text& operator = (T&&);
-
-      template<class T> requires CT::StringLiteral<Desem<T>>
-      Text& operator = (T&&);
-
-      template<class T> requires (CT::StandardContiguousContainer<Desem<T>>
-                             and  CT::DenseCharacter<TypeOf<Desem<T>>>)
-      Text& operator = (T&&);*/
 
       ///                                                                     
       ///   Capsulation                                                       
@@ -165,33 +143,11 @@ namespace Langulus::Anyness
       ///                                                                     
       template<class T> requires CT::Text<Desem<T>>
       NOD() Text operator + (T&&) const;
-
       NOD() Text operator + (CT::Formattable auto&&) const;
-
-      /*template<class T> requires CT::DenseCharacter<Desem<T>>
-      NOD() Text operator + (T&&) const;
-      template<class T> requires CT::StringPointer<Desem<T>>
-      NOD() Text operator + (T&&) const;
-      template<class T> requires CT::StringLiteral<Desem<T>>
-      NOD() Text operator + (T&&) const;
-      template<class T> requires (CT::StandardContiguousContainer<T>
-                             and  CT::DenseCharacter<TypeOf<T>>)
-      NOD() Text operator + (T&&) const;*/
 
       template<class T> requires CT::Text<Desem<T>>
       Text& operator += (T&&);
-
       Text& operator += (CT::Formattable auto&&);
-
-      /*template<class T> requires CT::DenseCharacter<Desem<T>>
-      Text& operator += (T&&);
-      template<class T> requires CT::StringPointer<Desem<T>>
-      Text& operator += (T&&);
-      template<class T> requires CT::StringLiteral<Desem<T>>
-      Text& operator += (T&&);
-      template<class T> requires (CT::StandardContiguousContainer<T>
-                             and  CT::DenseCharacter<TypeOf<T>>)
-      Text& operator += (T&&);*/
 
       ///                                                                     
       ///   Services                                                          
@@ -222,19 +178,6 @@ namespace Langulus::Anyness
    ///                                                                        
    Text operator + (CT::Formattable auto&&, const Text&);
 
-   /*template<class T> requires CT::DenseCharacter<Desem<T>>
-   Text operator + (T&&, const Text&);
-
-   template<class T> requires CT::StringPointer<Desem<T>>
-   Text operator + (T&&, const Text&);
-
-   template<class T> requires CT::StringLiteral<Desem<T>>
-   Text operator + (T&&, const Text&);
-
-   template<class T> requires (CT::StandardContiguousContainer<T>
-                          and  CT::DenseCharacter<TypeOf<T>>)
-   Text operator + (T&&, const Text&);*/
-
 
    /// Text container specialized for logging                                 
    /// Serializing to text might produce a lot of unncessesary text, so this  
@@ -258,12 +201,12 @@ namespace Langulus::CT
    {
 
       template<class T>
-      concept Stringifiable = not Text<T> and not StandardContiguousContainer<T> and (
+      concept Stringifiable = /*not Text<T> and not StandardContiguousContainer<T> and*/ (
          requires (T& a) { a.operator ::Langulus::Anyness::Text(); }
       );
 
       template<class T>
-      concept Debuggable = not Text<T> and not StandardContiguousContainer<T> and (
+      concept Debuggable = /*not Text<T> and not StandardContiguousContainer<T> and*/ (
          requires (T& a) { a.operator ::Langulus::Anyness::Debug(); }
       );
 
@@ -295,7 +238,7 @@ namespace fmt
    
    ///                                                                        
    /// Extend FMT to be capable of logging anything that is derived from      
-   /// Anyness::Text                                                          
+   /// Anyness::Text. Constness of T doesn't matter.                          
    ///                                                                        
    template<Langulus::CT::Text T>
    struct formatter<T> {
@@ -310,7 +253,7 @@ namespace fmt
          using namespace Langulus;
          static_assert(CT::Complete<T>, "T isn't complete");
 
-         auto asText = element.operator Token();
+         auto asText = const_cast<T&>(element).operator Token();
          return fmt::format_to(ctx.out(), "{}", asText);
       }
    };
@@ -320,6 +263,7 @@ namespace fmt
    /// Extend FMT to be capable of logging anything that is statically        
    /// convertible to a Token/Debug/Text string by an explicit or implicit    
    /// conversion operator. It doesn't apply to these typed directly.         
+   /// Constness of T doesn't matter.                                         
    ///                                                                        
    template<Langulus::CT::Debuggable T>
    struct formatter<T> {
@@ -334,13 +278,21 @@ namespace fmt
          using namespace Langulus;
          static_assert(CT::Complete<T>, "T isn't complete");
 
-         if constexpr (requires (T& a) { a.operator Anyness::Debug(); }) {
-            auto asText = element.operator Anyness::Debug();
+         if constexpr (requires (T& a) {
+            a.operator Anyness::Debug();
+         }) {
+            // Convert to a debug string if possible                    
+            auto asText = const_cast<T&>(element)
+               .operator Anyness::Debug();
             return fmt::format_to(ctx.out(), "{}",
                static_cast<Logger::TextView>(asText));
          }
-         else if constexpr (requires (T& a) { a.operator Anyness::Text(); }) {
-            auto asText = element.operator Anyness::Text();
+         else if constexpr (requires (T& a) {
+            a.operator Anyness::Text();
+         }) {
+            // Convert to text as a fallback                            
+            auto asText = const_cast<T&>(element)
+               .operator Anyness::Text();
             return fmt::format_to(ctx.out(), "{}",
                static_cast<Logger::TextView>(asText));
          }
