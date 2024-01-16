@@ -17,45 +17,45 @@ namespace Langulus::Anyness
    ///   @return false                                                        
    template<CT::Set THIS> LANGULUS(INLINED)
    constexpr bool BlockSet::IsUntyped() const noexcept {
-      return mKeys.IsUntyped();
+      return GetValues<THIS>().IsUntyped();
    }
    
    /// Templated tables are always type-constrained                           
    ///   @return true                                                         
    template<CT::Set THIS> LANGULUS(INLINED)
    constexpr bool BlockSet::IsTypeConstrained() const noexcept {
-      return mKeys.IsTypeConstrained();
+      return GetValues<THIS>().IsTypeConstrained();
    }
 
    /// Check if key type is deep                                              
    template<CT::Set THIS> LANGULUS(INLINED)
    constexpr bool BlockSet::IsDeep() const noexcept {
-      return mKeys.IsDeep();
+      return GetValues<THIS>().IsDeep();
    }
 
    /// Check if the key type is a pointer                                     
    template<CT::Set THIS> LANGULUS(INLINED)
    constexpr bool BlockSet::IsSparse() const noexcept {
-      return mKeys.IsSparse();
+      return GetValues<THIS>().IsSparse();
    }
 
    /// Check if the key type is not a pointer                                 
    template<CT::Set THIS> LANGULUS(INLINED)
    constexpr bool BlockSet::IsDense() const noexcept {
-      return mKeys.IsDense();
+      return GetValues<THIS>().IsDense();
    }
 
    /// Get the size of a single key, in bytes                                 
    ///   @return the number of bytes a single key contains                    
    template<CT::Set THIS> LANGULUS(INLINED)
    constexpr Size BlockSet::GetStride() const noexcept {
-      return mKeys.GetStride();
+      return GetValues<THIS>().GetStride();
    }
 
    /// Get the type of the set                                                
    template<CT::Set THIS> LANGULUS(INLINED)
    DMeta BlockSet::GetType() const noexcept {
-      return GetKeys<THIS>().GetType();
+      return GetValues<THIS>().GetType();
    }
 
    /// Get the info array (const)                                             

@@ -312,7 +312,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
       }
 
       WHEN("Populated using Any::New") {
-         if constexpr (!CT::Typed<T>) {
+         if constexpr (not CT::Typed<T>) {
             if constexpr (CT::Trait<T>)
                pack = T::template From<Traits::Count, E>();
             else

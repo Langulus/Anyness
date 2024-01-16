@@ -138,14 +138,16 @@ namespace Langulus::Anyness
             else {
                // Only values moved, reinsert them, rehash the rest     
                RehashKeys<THIS>(old);
-               Allocator::Deallocate(const_cast<Allocation*>(old.mValues.mEntry));
+               Allocator::Deallocate(
+                  const_cast<Allocation*>(old.mValues.mEntry));
             }
             return;
          }
          else if (mValues.mEntry == old.mValues.mEntry) {
             // Only keys moved, reinsert them, rehash the rest          
-            RehashValues<THIS>(old);
-            Allocator::Deallocate(const_cast<Allocation*>(old.mKeys.mEntry));
+            RehashVals<THIS>(old);
+            Allocator::Deallocate(
+               const_cast<Allocation*>(old.mKeys.mEntry));
             return;
          }
       }
@@ -164,7 +166,7 @@ namespace Langulus::Anyness
 
       UNUSED() auto& me = reinterpret_cast<const THIS&>(*this);
       auto key = old.GetKeyHandle<THIS>(0);
-      auto val = old.GetValueHandle<THIS>(0);
+      auto val = old.GetValHandle<THIS>(0);
       const auto hashmask = GetReserved() - 1;
       const auto infoend = old.GetInfoEnd();
 

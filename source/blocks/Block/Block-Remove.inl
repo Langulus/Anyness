@@ -163,6 +163,27 @@ namespace Langulus::Anyness
       else TODO();
    }
 
+   /// Remove an element by using an iterator                                 
+   ///   @param index - the iterator of the starting element                  
+   ///   @param count - the number of elements to remove                      
+   ///   @return an iterator pointing to the element at index - 1, or at end  
+   ///      if block became empty                                             
+   template<CT::Block THIS>
+   Block::Iterator<THIS> Block::RemoveIt(const Iterator<THIS>& index, const Count count) {
+      if (index.mValue >= GetRawEnd<THIS>())
+         return end();
+
+      const auto rawstart = GetRaw<THIS>();
+      RemoveIndex<THIS>(index.mValue - rawstart, count);
+
+      if (IsEmpty())
+         return end();
+      else if (index.mValue == rawstart)
+         return {rawstart, GetRawEndAs<Byte, THIS>()};
+      else
+         return {index.mValue - 1, GetRawEndAs<Byte, THIS>()};
+   }
+
    /// Remove elements at the back                                            
    ///   @param count - the new count                                         
    template<CT::Block THIS>

@@ -46,7 +46,7 @@ namespace Langulus::Anyness
 
    /// Construct from single character                                        
    ///   @param other - the character to copy                                 
-   template<class T> requires CT::DenseCharacter<Desem<T>> LANGULUS(INLINED)
+   /*template<class T> requires CT::DenseCharacter<Desem<T>> LANGULUS(INLINED)
    Text::Text(T&& other) {
       AllocateFresh<Text>(RequestSize<Text>(1));
       (*this)[0] = DesemCast(other);
@@ -64,7 +64,7 @@ namespace Langulus::Anyness
       if (not count)
          return;
 
-      SetMemory(DataState::Constrained, mType, count, DesemCast(other), nullptr);
+      SetMemory(DataState::Constrained, mType, count, DesemCast(other));
       if constexpr (S::Move or S::Keep)
          TakeAuthority<Text>();
    }
@@ -83,7 +83,7 @@ namespace Langulus::Anyness
       if (not count)
          return;
 
-      SetMemory(DataState::Constrained, mType, count, DesemCast(other), nullptr);
+      SetMemory(DataState::Constrained, mType, count, DesemCast(other));
       if constexpr (S::Move or S::Keep)
          TakeAuthority<Text>();
    }
@@ -105,7 +105,10 @@ namespace Langulus::Anyness
       else
          count = DesemCast(other).size();
 
-      SetMemory(DataState::Constrained, mType, DesemCast(other).data(), DesemCast(other).size(), nullptr);
+      SetMemory(
+         DataState::Constrained, mType,
+         DesemCast(other).size(), DesemCast(other).data()
+      );
       if constexpr (S::Move or S::Keep)
          TakeAuthority<Text>();
    }
@@ -164,14 +167,14 @@ namespace Langulus::Anyness
          (*this) += Text::From(temp, static_cast<Count>(lastChar - temp));
       }
       else LANGULUS_ERROR("Unsupported number type");
-   }
+   }*/
 
    /// Semantic construction from count-terminated array                      
    ///   @param text - text memory to wrap                                    
    ///   @param count - number of characters inside text                      
    template<class T> requires (CT::StringPointer<Desem<T>>
                            or  CT::StringLiteral<Desem<T>>)
-   static Text Text::From(T&& text, Count count) {
+   Text Text::From(T&& text, Count count) {
       return Base::From(Forward<T>(text), count);
    }
 
@@ -193,22 +196,22 @@ namespace Langulus::Anyness
    
    /// Assign a block of any kind                                             
    ///   @param rhs - the block to assign                                     
-   template<class T> requires CT::Block<Desem<T>> LANGULUS(INLINED)
+   template<class T> requires CT::Text<Desem<T>> LANGULUS(INLINED)
    Text& Text::operator = (T&& rhs) {
       Base::operator = (Forward<T>(rhs));
 
       // Base constructor should handle initialization from anything    
       // TAny<Letter> based, but it will not make any null-             
       // termination corrections, so we have to do them here.           
-      if constexpr (not CT::Text<Desem<T>>)
-         mCount = strnlen(GetRaw(), mCount);
+      /*if constexpr (not CT::Text<Desem<T>>)
+         mCount = strnlen(GetRaw(), mCount);*/
       return *this;
    }
 
    /// Assign a single character                                              
    ///   @param rhs - the character                                           
    ///   @return a reference to this container                                
-   template<class T> requires CT::DenseCharacter<Desem<T>> LANGULUS(INLINED)
+   /*template<class T> requires CT::DenseCharacter<Desem<T>> LANGULUS(INLINED)
    Text& Text::operator = (T&& rhs) {
       Base::operator = (Forward<T>(rhs));
       return *this;
@@ -272,7 +275,7 @@ namespace Langulus::Anyness
       if constexpr (S::Move or S::Keep)
          TakeAuthority<Text>();
       return *this;
-   }
+   }*/
 
    #if LANGULUS_FEATURE(UNICODE)
       /// Widen the text container to the utf16                               
@@ -357,7 +360,7 @@ namespace Langulus::Anyness
          // and attach a zero at the end of it                          
          if (mReserved > mCount) {
             // Required memory is already available                     
-            mutableThis->GetRaw()[mCount] = '\0';
+            mutableThis->GetRaw<Text>()[mCount] = '\0';
             return *this;
          }
 
@@ -376,7 +379,7 @@ namespace Langulus::Anyness
          }
 
          // Add the null-termination                                    
-         mutableThis->GetRaw()[mCount] = '\0';
+         mutableThis->GetRaw<Text>()[mCount] = '\0';
          return *this;
       }
       else {
@@ -388,7 +391,7 @@ namespace Langulus::Anyness
          result.mCount = mCount;
          //result.mReserved = request.mElementCount;
          CopyMemory(result.mRaw, mRaw, mCount);
-         result.GetRaw()[mCount] = '\0';
+         result.GetRaw<Text>()[mCount] = '\0';
          return Abandon(result);
       }
    }
@@ -454,7 +457,7 @@ namespace Langulus::Anyness
             const auto size = end - start;
             if (size) {
                auto segment = result.Extend(size);
-               CopyMemory(segment.GetRaw(), GetRaw() + start, size);
+               CopyMemory(segment.GetRaw<Text>(), GetRaw<Text>() + start, size);
             }
 
             start = end = i + 1;
@@ -476,14 +479,14 @@ namespace Langulus::Anyness
    ///   @return a hash of the contained byte sequence                        
    LANGULUS(INLINED)
    Hash Text::GetHash() const {
-      return HashBytes(GetRaw(), static_cast<int>(GetCount()));
+      return HashBytes(GetRaw<Text>(), static_cast<int>(GetCount()));
    }
 
    /// Interpret text container as a string_view                              
    ///   @attention the string is null-terminated only after Terminate()      
    LANGULUS(INLINED)
    Text::operator Token() const noexcept {
-      return {GetRaw(), mCount};
+      return {GetRaw<Text>(), mCount};
    }
 
    /// Compare with another block                                             
@@ -556,7 +559,7 @@ namespace Langulus::Anyness
    /// Concatenate two text containers                                        
    ///   @param rhs - right hand side                                         
    ///   @return the concatenated text container                              
-   template<class T> requires CT::Block<Desem<T>> LANGULUS(INLINED)
+   template<class T> requires CT::Text<Desem<T>> LANGULUS(INLINED)
    Text Text::operator + (T&& rhs) const {
       using S = SemanticOf<T>;
       using B = TypeOf<S>;
@@ -581,7 +584,7 @@ namespace Langulus::Anyness
    /// Concatenate with stuff to the right                                    
    ///   @param rhs - right hand side                                         
    ///   @return the concatenated text container                              
-   template<class T> requires CT::DenseCharacter<Desem<T>>
+   /*template<class T> requires CT::DenseCharacter<Desem<T>>
    LANGULUS(INLINED) Text Text::operator + (T&& rhs) const {
       if constexpr (CT::Semantic<T>)
          return operator + (Text::From(Disown(&*rhs), 1));
@@ -603,7 +606,7 @@ namespace Langulus::Anyness
                           and  CT::DenseCharacter<TypeOf<T>>)
    LANGULUS(INLINED) Text Text::operator + (T&& rhs) const {
       return operator + (Text {Disown(rhs)});
-   }
+   }*/
 
    /// Concatenate with stuff to the left                                     
    ///   @param rhs - right hand side                                         
@@ -635,7 +638,7 @@ namespace Langulus::Anyness
    /// Concatenate (destructively) text containers                            
    ///   @param rhs - right hand side                                         
    ///   @return a reference to this container                                
-   template<class T> requires CT::Block<Desem<T>>
+   template<class T> requires CT::Text<Desem<T>>
    Text& Text::operator += (T&& rhs) {
       using S = SemanticOf<T>;
       using B = TypeOf<S>;
@@ -658,7 +661,7 @@ namespace Langulus::Anyness
       return *this;
    }
 
-   template<class T> requires CT::DenseCharacter<Desem<T>>
+   /*template<class T> requires CT::DenseCharacter<Desem<T>>
    Text& Text::operator += (T&& rhs) {
       if constexpr (CT::Semantic<T>)
          return operator += (Text::From(Disown(&*rhs), 1));
@@ -680,7 +683,7 @@ namespace Langulus::Anyness
                           and  CT::DenseCharacter<TypeOf<T>>)
    Text& Text::operator += (T&& rhs) {
       return operator += (Text {Disown(rhs)});
-   }
+   }*/
 
    
    /// Fill template arguments using libfmt                                   

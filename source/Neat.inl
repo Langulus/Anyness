@@ -509,7 +509,7 @@ namespace Langulus::Anyness
          if (found)
             *found.mValue << Messy {S::Nest(item)};
          else
-            mAnythingElse.Insert(meta, TAny<Messy> {Messy {S::Nest(item)}});
+            mAnythingElse.Insert(meta, Messy {S::Nest(item)});
       }
 
       // Demand a new hash on the next compare                          
@@ -743,7 +743,7 @@ namespace Langulus::Anyness
          if (found)
             *found.mValue << messy.Forward();
          else
-            mAnythingElse.Insert(meta, TAny<Messy> {messy.Forward()});
+            mAnythingElse.Insert(meta, messy.Forward());
       }
       else if constexpr (CT::Exact<T, DMeta>) {
          // Insert data without contents                                
@@ -753,7 +753,7 @@ namespace Langulus::Anyness
          if (found)
             *found.mValue << Any {};
          else
-            mAnythingElse.Insert(dmeta, TAny<Messy> {Any {}});
+            mAnythingElse.Insert(dmeta, Any {});
       }
       else LANGULUS_ERROR("Can't insert data");
    }
@@ -1099,8 +1099,8 @@ namespace Langulus::Anyness
 
    /// Iterate all other types of data                                        
    /// You can provide a TAny iterator, to filter based on data type          
-   ///   @tparam F - the function signature (deducible)                       
    ///   @tparam MUTABLE - whether changes inside container are allowed       
+   ///   @tparam F - the function signature (deducible)                       
    ///   @param call - the function to execute for each block                 
    ///   @return the number of executions of 'call'                           
    template<bool MUTABLE, class F>
@@ -1118,8 +1118,8 @@ namespace Langulus::Anyness
             return 0;
 
          // Iterate all relevant datas                                  
-         Count index {};
-         for (auto& data : found->mValue) {
+         Count index = 0;
+         for (auto& data : found.mValue) {
             auto& dataTyped = reinterpret_cast<Decay<A>&>(data);
             if constexpr (CT::Bool<R>) {
                // If F returns bool, you can decide when to break the   
@@ -1136,7 +1136,7 @@ namespace Langulus::Anyness
       }
       else if constexpr (CT::Deep<A>) {
          // Iterate all datas                                           
-         Count index {};
+         Count index = 0;
          for (auto group : mAnythingElse) {
             for (auto& data : group.mValue) {
                if constexpr (CT::Bool<R>) {
@@ -1161,8 +1161,8 @@ namespace Langulus::Anyness
             return 0;
 
          // Iterate all relevant datas                                  
-         Count index {};
-         for (auto& data : found->mValue) {
+         Count index = 0;
+         for (auto& data : *found.mValue) {
             auto& dataTyped = reinterpret_cast<TAny<Deref<A>>&>(data);
             for (auto& element : dataTyped) {
                if constexpr (CT::Bool<R>) {

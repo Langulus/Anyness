@@ -291,16 +291,16 @@ namespace Langulus::Anyness
       const InfoType* sentinel, 
       const InnerT&   key
    ) noexcept
-      : mKey {key}
-      , mInfo {info}
-      , mSentinel {sentinel} {}
+      : mInfo {info}
+      , mSentinel {sentinel}
+      , mKey {key} {}
 
    /// Construct from end point                                               
    template<class SET> LANGULUS(INLINED)
    constexpr BlockSet::Iterator<SET>::Iterator(const A::IteratorEnd&) noexcept
-      : mKey {}
-      , mInfo {}
-      , mSentinel {} {}
+      : mInfo {}
+      , mSentinel {}
+      , mKey {} {}
 
    /// Prefix increment operator                                              
    /// Moves pointers to the right, unless end has been reached               

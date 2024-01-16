@@ -269,7 +269,7 @@ namespace Langulus::Anyness
                   using K = typename THIS::Key;
                   using V = typename THIS::Value;
 
-                  auto oldValue = GetValueHandle<THIS>(oldIndex);
+                  auto oldValue = GetValHandle<THIS>(oldIndex);
                   HandleLocal<K> keyswap {Abandon(oldKey)};
                   HandleLocal<V> valswap {Abandon(oldValue)};
 
@@ -289,7 +289,7 @@ namespace Langulus::Anyness
                   keyswap.AllocateFresh<Any>(keyswap.RequestSize<Any>(1));
                   keyswap.CreateSemantic(Abandon(oldKey));
 
-                  auto oldValue = GetValueHandle<THIS>(oldIndex);
+                  auto oldValue = GetValHandle<THIS>(oldIndex);
                   Block valswap {mValues.GetState(), GetValueType<THIS>(), 1};
                   valswap.AllocateFresh<Any>(valswap.RequestSize<Any>(1));
                   valswap.CreateSemantic(Abandon(oldValue));
@@ -367,7 +367,7 @@ namespace Langulus::Anyness
                   InsertInner<THIS, false>(
                      newBucket,
                      Abandon(keyswap),
-                     Copy(old.GetValueHandle<THIS>(oldIndex))
+                     Copy(old.GetValHandle<THIS>(oldIndex))
                   );
                }
                else {
@@ -383,7 +383,7 @@ namespace Langulus::Anyness
                   InsertBlockInner<THIS, false>(
                      newBucket,
                      Abandon(keyswap),
-                     Copy(old.GetValueHandle<THIS>(oldIndex))
+                     Copy(old.GetValHandle<THIS>(oldIndex))
                   );
 
                   keyswap.Free();
@@ -410,7 +410,7 @@ namespace Langulus::Anyness
    ///   @attention assumes count > oldCount                                  
    ///   @param old - the old block, where keys and values come from          
    template<CT::Map THIS>
-   void BlockMap::RehashValues(BlockMap& old) {
+   void BlockMap::RehashVals(BlockMap& old) {
       LANGULUS_ASSUME(DevAssumes, GetReserved() > old.GetReserved(),
          "New count is not larger than oldCount");
       LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(GetReserved()),
@@ -438,7 +438,7 @@ namespace Langulus::Anyness
                if constexpr (CT::Typed<THIS>) {
                   using V = typename THIS::Value;
 
-                  auto oldValue = old.GetValueHandle<THIS>(oldIndex);
+                  auto oldValue = old.GetValHandle<THIS>(oldIndex);
                   HandleLocal<V> valswap {Abandon(oldValue)};
 
                   // Destroy the key, info and value                    
@@ -451,7 +451,7 @@ namespace Langulus::Anyness
                      newBucket, Copy(oldKey), Abandon(valswap));
                }
                else {
-                  auto oldValue = old.GetValueHandle<THIS>(oldIndex);
+                  auto oldValue = old.GetValHandle<THIS>(oldIndex);
                   Block valswap {mValues.GetState(), GetValueType<THIS>(), 1};
                   valswap.AllocateFresh<Any>(valswap.RequestSize<Any>(1));
                   valswap.CreateSemantic(Abandon(oldValue));
@@ -511,8 +511,8 @@ namespace Langulus::Anyness
                GetKeyHandle<THIS>(to).CreateSemantic(Abandon(key));
                key.Destroy();
 
-               auto val = GetValueHandle<THIS>(oldIndex);
-               GetValueHandle<THIS>(to).CreateSemantic(Abandon(val));
+               auto val = GetValHandle<THIS>(oldIndex);
+               GetValHandle<THIS>(to).CreateSemantic(Abandon(val));
                val.Destroy();
 
                mInfo[to] = attempt;
@@ -570,10 +570,10 @@ namespace Langulus::Anyness
          const auto index = psl - GetInfo();
 
          if constexpr (CHECK_FOR_MATCH) {
-            const auto& candidate = GetRawKey<THIS>(index);
-            if (keyswapper.Compare(candidate)) {
+            decltype(auto) candidate = GetKeyRef<THIS>(index);
+            if (keyswapper == candidate) {
                // Neat, the key already exists - just set value and go  
-               GetValueHandle<THIS>(index).AssignSemantic(Abandon(valswapper));
+               GetValHandle<THIS>(index).AssignSemantic(Abandon(valswapper));
                return index;
             }
          }
@@ -581,7 +581,7 @@ namespace Langulus::Anyness
          if (attempts > *psl) {
             // The pair we're inserting is closer to bucket, so swap    
             GetKeyHandle<THIS>(index).Swap(keyswapper);
-            GetValueHandle<THIS>(index).Swap(valswapper);
+            GetValHandle<THIS>(index).Swap(valswapper);
             ::std::swap(attempts, *psl);
             if (insertedAt == mValues.mReserved)
                insertedAt = index;
@@ -601,7 +601,7 @@ namespace Langulus::Anyness
       // eventually reached, unless key exists and returns early        
       const auto index = psl - GetInfo();
       GetKeyHandle<THIS>(index).CreateSemantic(Abandon(keyswapper));
-      GetValueHandle<THIS>(index).CreateSemantic(Abandon(valswapper));
+      GetValHandle<THIS>(index).CreateSemantic(Abandon(valswapper));
       if (insertedAt == mValues.mReserved)
          insertedAt = index;
 
@@ -627,10 +627,10 @@ namespace Langulus::Anyness
       while (*psl) {
          const auto index = psl - GetInfo();
          if constexpr (CHECK_FOR_MATCH) {
-            const auto candidate = GetRawKey<THIS>(index);
+            const auto candidate = GetKeyHandle<THIS>(index);
             if (candidate == *key) {
                // Neat, the key already exists - just set value and go  
-               GetRawValue<THIS>(index).AssignSemantic(val.Forward());
+               GetValHandle<THIS>(index).AssignSemantic(val.Forward());
 
                if constexpr (S2<T>::Move) {
                   val->Destroy();
@@ -643,8 +643,8 @@ namespace Langulus::Anyness
 
          if (attempts > *psl) {
             // The pair we're inserting is closer to bucket, so swap    
-            GetRawKey  <THIS>(index).Swap(key.Forward());
-            GetRawValue<THIS>(index).Swap(val.Forward());
+            GetKeyHandle<THIS>(index).Swap(key.Forward());
+            GetValHandle<THIS>(index).Swap(val.Forward());
 
             ::std::swap(attempts, *psl);
             if (insertedAt == mValues.mReserved)
@@ -665,8 +665,8 @@ namespace Langulus::Anyness
       // eventually reached, unless key exists and returns early        
       // We're moving only a single element, so no chance of overlap    
       const auto index = psl - GetInfo();
-      GetRawKey<THIS>(index).CreateSemantic(key.Forward());
-      GetRawValue<THIS>(index).CreateSemantic(val.Forward());
+      GetKeyHandle<THIS>(index).CreateSemantic(key.Forward());
+      GetValHandle<THIS>(index).CreateSemantic(val.Forward());
 
       if (insertedAt == mValues.mReserved)
          insertedAt = index;

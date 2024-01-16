@@ -78,7 +78,7 @@ namespace Langulus::Anyness
          mKeys.mState -= DataState::Static;
          mValues.mState -= DataState::Static;
 
-         if constexpr (CT::TypedMap<TO> or CT::TypedMap<FROM>) {
+         if constexpr (CT::Typed<TO> or CT::Typed<FROM>) {
             using B = Conditional<CT::Typed<FROM>, FROM, TO>;
             auto asFrom = reinterpret_cast<const B*>(&*other);
             AllocateFresh<B>(asFrom->GetReserved());
@@ -90,9 +90,9 @@ namespace Langulus::Anyness
             auto info = GetInfo();
             const auto infoEnd = GetInfoEnd();
             auto dstKey = GetKeyHandle<B>(0);
-            auto dstVal = GetValueHandle<B>(0);
+            auto dstVal = GetValHandle<B>(0);
             auto srcKey = asFrom->template GetKeyHandle<B>(0);
-            auto srcVal = asFrom->template GetValueHandle<B>(0);
+            auto srcVal = asFrom->template GetValHandle<B>(0);
             while (info != infoEnd) {
                if (*info) {
                   dstKey.CreateSemantic(Clone(srcKey));
@@ -114,7 +114,7 @@ namespace Langulus::Anyness
             auto info = GetInfo();
             const auto infoEnd = GetInfoEnd();
             auto dstKey = GetRawKey<TO>(0);
-            auto dstVal = GetRawValue<TO>(0);
+            auto dstVal = GetRawVal<TO>(0);
             auto srcKey = other->GetKey(0);
             auto srcVal = other->GetValue(0);
             while (info != infoEnd) {

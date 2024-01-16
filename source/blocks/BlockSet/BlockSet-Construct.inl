@@ -84,10 +84,10 @@ namespace Langulus::Anyness
             auto info = GetInfo();
             const auto infoEnd = GetInfoEnd();
             auto dstKey = GetHandle<B>(0);
-            auto srcKey = asFrom->template GetHandle<B>(0);
+            auto srcKey = asFrom->BlockSet::template GetHandle<B>(0);
             while (info != infoEnd) {
                if (*info)
-                  dstKey.New(Clone(srcKey));
+                  dstKey.CreateSemantic(Clone(srcKey));
 
                ++info;
                ++dstKey;
@@ -106,7 +106,7 @@ namespace Langulus::Anyness
             auto srcKey = other->GetRaw(0);
             while (info != infoEnd) {
                if (*info)
-                  dstKey.CallSemanticConstructors(1, Clone(srcKey));
+                  dstKey.CreateSemantic(Clone(srcKey));
 
                ++info;
                dstKey.Next();

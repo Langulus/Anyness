@@ -71,6 +71,21 @@ namespace Langulus::Anyness
       Count ForEachDeep(auto&&...) const;
 
       ///                                                                     
+      ///   RTTI                                                              
+      ///                                                                     
+      template<CT::Data, CT::Data...>
+      NOD() constexpr bool Is() const noexcept;
+      NOD() bool Is(DMeta) const noexcept;
+
+      template<CT::Data, CT::Data...>
+      NOD() constexpr bool IsSimilar() const noexcept;
+      NOD() bool IsSimilar(DMeta) const noexcept;
+
+      template<CT::Data, CT::Data...>
+      NOD() constexpr bool IsExact() const noexcept;
+      NOD() bool IsExact(DMeta) const noexcept;
+
+      ///                                                                     
       ///   Comparison                                                        
       ///                                                                     
       bool operator == (const CT::NotSemantic auto&) const;

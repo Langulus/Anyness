@@ -54,7 +54,7 @@ namespace Langulus::Anyness
                using STT = TypeOf<ST>;
                if constexpr (CT::Similar<T, STT>) {
                   // Type is binary compatible, just transfer set       
-                  BlockTransfer<TSet>(S::Nest(t1));
+                  BlockSet::BlockTransfer<TSet>(S::Nest(t1));
                }
                else if constexpr (CT::Sparse<T, STT>) {
                   if constexpr (CT::DerivedFrom<T, STT>) {
@@ -84,7 +84,7 @@ namespace Langulus::Anyness
                   // If types are exactly the same, it is safe to       
                   // absorb the set, essentially converting a type-     
                   // erased Set back to its TSet equivalent             
-                  BlockTransfer<TSet>(S::Nest(t1));
+                  BlockSet::BlockTransfer<TSet>(S::Nest(t1));
                }
                else Insert(Forward<T1>(t1));
             }
@@ -133,7 +133,7 @@ namespace Langulus::Anyness
           == static_cast<const BlockSet*>(&DesemCast(rhs)))
             return *this;
 
-         Free<TSet>();
+         BlockSet::Free<TSet>();
          new (this) TSet {S::Nest(rhs)};
       }
       else {
@@ -229,7 +229,7 @@ namespace Langulus::Anyness
    ///   @param value - the value type to compare against                     
    ///   @return true if value matches the contained key origin type          
    TEMPLATE() LANGULUS(INLINED)
-   constexpr bool TABLE()::Is(DMeta value) const noexcept {
+   bool TABLE()::Is(DMeta value) const noexcept {
       return GetType()->Is(value);
    }
 
@@ -245,7 +245,7 @@ namespace Langulus::Anyness
    ///   @param value - the value type to compare against                     
    ///   @return true if value matches the contained key origin type          
    TEMPLATE() LANGULUS(INLINED)
-   constexpr bool TABLE()::IsSimilar(DMeta value) const noexcept {
+   bool TABLE()::IsSimilar(DMeta value) const noexcept {
       return GetType()->IsSimilar(value);
    }
 
@@ -261,7 +261,7 @@ namespace Langulus::Anyness
    ///   @param value - the value type to compare against                     
    ///   @return true if value matches the contained key origin type          
    TEMPLATE() LANGULUS(INLINED)
-   constexpr bool TABLE()::IsExact(DMeta value) const noexcept {
+   bool TABLE()::IsExact(DMeta value) const noexcept {
       return GetType()->IsExact(value);
    }
 
@@ -278,11 +278,8 @@ namespace Langulus::Anyness
    ///   @return the number of inserted elements                              
    TEMPLATE() template<class T1, class... TAIL>
    requires CT::Inner::UnfoldMakableFrom<T, T1, TAIL...> LANGULUS(INLINED)
-   Count TABLE()::Insert(T1&& t1, TAIL&&...tail){
-      Count inserted = 0;
-        inserted += BlockSet::UnfoldInsert<TSet>(Forward<T1>(t1));
-      ((inserted += BlockSet::UnfoldInsert<TSet>(Forward<TAIL>(tail))), ...);
-      return inserted;
+   Count TABLE()::Insert(T1&& t1, TAIL&&...tail) {
+      return BlockSet::Insert<TSet>(Forward<T1>(t1), Forward<TAIL>(tail)...);
    }
    
    /// Move-insert a pair inside the map                                      

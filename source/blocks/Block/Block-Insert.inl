@@ -145,14 +145,14 @@ namespace Langulus::Anyness
             // reverse to avoid any potential overlap                   
             const auto moved = mCount - idx;
             CropInner(idx + count, moved)
-               .CreateSemantic<THIS, true>(
+               .template CreateSemantic<THIS, true>(
                   Abandon(CropInner(idx, moved)));
          }
       }
       else idx = SimplifyIndex<THIS>(index);
 
       // Construct data in place                                        
-      CropInner(idx, count).CreateSemantic<THIS>(data.Forward());
+      CropInner(idx, count).template CreateSemantic<THIS>(data.Forward());
       mCount += count;
    }
 
@@ -177,9 +177,7 @@ namespace Langulus::Anyness
          LANGULUS_ASSERT(type->mDescriptorConstructor, Meta,
             "Type is not descriptor-constructible");
 
-         using T = Conditional<CT::Typed<THIS>, TypeOf<THIS>, void>;
          Offset idx;
-
          if constexpr (MOVE_ASIDE) {
             AllocateMore<THIS>(mCount + 1);
             idx = SimplifyIndex<THIS>(index);
@@ -193,13 +191,13 @@ namespace Langulus::Anyness
                // reverse to avoid any potential overlap                
                const auto moved = mCount - idx;
                CropInner(idx + 1, moved)
-                  .CreateSemantic<THIS, true>(
+                  .template CreateSemantic<THIS, true>(
                      Abandon(CropInner(idx, moved)));
             }
          }
          else idx = SimplifyIndex<THIS>(index);
 
-         CropInner(idx, 1).CreateDescribe<THIS>(*item);
+         CropInner(idx, 1).template CreateDescribe<THIS>(*item);
       }
       else {
          using T = Conditional<CT::Typed<THIS>, TypeOf<THIS>, TypeOf<S>>;
@@ -238,13 +236,13 @@ namespace Langulus::Anyness
                // reverse to avoid any potential overlap                
                const auto moved = mCount - idx;
                CropInner(idx + 1, moved)
-                  .CreateSemantic<THIS, true>(
+                  .template CreateSemantic<THIS, true>(
                      Abandon(CropInner(idx, moved)));
             }
          }
          else idx = SimplifyIndex<THIS>(index);
 
-         GetHandle<T, THIS>(idx).CreateSemantic(S::Nest(item));
+         GetHandle<T, THIS>(idx).template CreateSemantic(S::Nest(item));
       }
 
       ++mCount;
@@ -301,11 +299,11 @@ namespace Langulus::Anyness
       if constexpr (CT::Array<T>) {
          if constexpr (CT::StringLiteral<T>) {
             // Implicitly convert string literals to Text containers    
-            if (CT::Void<FORCE> and not IsSimilar<Text>())
+            if (CT::Void<FORCE> and not IsSimilar<THIS, Text>())
                return 0;
 
             Text text {S::Nest(item)};
-            if (not IsSimilar<Text>() or not Find<THIS>(text)) {
+            if (not IsSimilar<THIS, Text>() or not Find<false, THIS>(text)) {
                InsertInner<THIS, FORCE, MOVE_ASIDE>(
                   index, Abandon(text));
                return 1;
@@ -314,11 +312,11 @@ namespace Langulus::Anyness
          else {
             // Insert the array                                         
             using DT = Deext<T>;
-            if (CT::Void<FORCE> and not IsSimilar<DT>())
+            if (CT::Void<FORCE> and not IsSimilar<THIS, DT>())
                return 0;
 
             const auto data = Block::From(item);
-            if (not IsSimilar<DT>() or not FindBlock<THIS>(data)) {
+            if (not IsSimilar<THIS, DT>() or not FindBlock<false, THIS>(data)) {
                InsertBlockInner<THIS, FORCE, MOVE_ASIDE, DT>(
                   index, S::Nest(data));
                return ExtentOf<T>;
@@ -328,10 +326,10 @@ namespace Langulus::Anyness
       else {
          // Some of the arguments might still be used directly to       
          // make an element, forward these to standard insertion here   
-         if (CT::Void<FORCE> and not IsSimilar<T>())
+         if (CT::Void<FORCE> and not IsSimilar<THIS, T>())
             return 0;
 
-         if (not IsSimilar<T>() or not Find<THIS>(DesemCast(item))) {
+         if (not IsSimilar<THIS, T>() or not Find<false, THIS>(DesemCast(item))) {
             InsertInner<THIS, FORCE, MOVE_ASIDE>(
                index, S::Nest(item));
             return 1;
@@ -474,12 +472,12 @@ namespace Langulus::Anyness
             // reverse to avoid any overlap                             
             const auto tail = mCount - offset;
             CropInner(offset + 1, tail)
-               .CreateSemantic<THIS, true>(
+               .template CreateSemantic<THIS, true>(
                   Abandon(CropInner(offset, tail)));
          }
       }
 
-      CropInner(offset, 1).Create<THIS>(Forward<A>(arguments)...);
+      CropInner(offset, 1).template Create<THIS>(Forward<A>(arguments)...);
       ++mCount;
       return 1;
    }
@@ -619,7 +617,7 @@ namespace Langulus::Anyness
          SetState(mState + state);
          return Insert<THIS, void>(index, value.Forward());
       }
-      else if (IsExact<T>()) {
+      else if (IsExact<THIS, T>()) {
          // Insert to a same-typed container                            
          SetState(mState + state);
          return Insert<THIS, void>(index, value.Forward());
@@ -747,10 +745,29 @@ namespace Langulus::Anyness
    ///   @attention assumes block elements are not initialized, despite having
    ///      mCount set                                                        
    ///   @param desc - the descriptor to pass on to constructors              
-   template<CT::Block THIS>
-   void Block::CreateDescribe(Describe&& desc) const {
+   template<CT::Block THIS, class...A>
+   void Block::CreateDescribe(A&&...arguments) const {
+      static_assert(sizeof...(A) > 0, "Bad number of arguments");
       LANGULUS_ASSUME(DevAssumes, mCount and mCount <= mReserved,
          "Count outside limits", '(', mCount, " > ", mReserved);
+
+      const auto getNeat = [&] {
+         if constexpr (sizeof...(A) == 1) {
+            using A1 = FirstOf<A...>;
+            if constexpr (CT::Similar<A1, Describe>) {
+               const Neat* t;
+               (t = ... = &*arguments);
+               return *t;
+            }
+            else if constexpr (CT::Similar<A1, Neat>) {
+               const Neat* t;
+               (t = ... = &arguments);
+               return *t;
+            }
+            else return Neat {Forward<A>(arguments)...};
+         }
+         else return Neat {Forward<A>(arguments)...};
+      };
 
       auto mthis = reinterpret_cast<THIS*>(const_cast<Block*>(this));
       if constexpr (CT::Typed<THIS>) {
@@ -759,8 +776,8 @@ namespace Langulus::Anyness
             "T is not descriptor-constructible");
 
          if constexpr (CT::Sparse<T>) {
-            // Bulk-allocate the required count, construct each instance
-            // and push the pointers                                    
+            // Bulk-allocate the required count, construct each         
+            // instance and push the pointers                           
             auto lhsPtr = mthis->GetRawSparse();
             auto lhsEnt = mthis->GetEntries();
             const auto lhsEnd = lhsPtr + mCount;
@@ -772,7 +789,7 @@ namespace Langulus::Anyness
 
             auto rhs = allocation->template As<Decay<T>*>();
             while (lhsPtr != lhsEnd) {
-               new (rhs) Decay<T> {Forward<Describe>(desc)};
+               new (rhs) Decay<T> {Describe(getNeat())};
                *(lhsPtr++) = rhs;
                *(lhsEnt++) = allocation;
                ++rhs;
@@ -783,11 +800,13 @@ namespace Langulus::Anyness
             auto lhs = mthis.GetRaw();
             const auto lhsEnd = lhs + mCount;
             while (lhs != lhsEnd) {
-               new (lhs++) Decay<T> {Forward<Describe>(desc)};
+               new (lhs++) Decay<T> {Describe(getNeat())};
             }
          }
       }
       else {
+         LANGULUS_ASSUME(DevAssumes, IsTyped(),
+            "Block is expected to be typed");
          LANGULUS_ASSERT(
             mType->mDescriptorConstructor, Construct,
             "Can't descriptor-construct ", '`', mType,
@@ -809,7 +828,7 @@ namespace Langulus::Anyness
 
                auto rhs = allocation->GetBlockStart();
                while (lhsPtr != lhsEnd) {
-                  mType->mOrigin->mDescriptorConstructor(rhs, *desc);
+                  mType->mOrigin->mDescriptorConstructor(rhs, getNeat());
                   *(lhsPtr++) = rhs;
                   const_cast<const Allocation*&>(*(lhsEnt++)) = allocation;
                   rhs += mType->mOrigin->mSize;
@@ -825,7 +844,7 @@ namespace Langulus::Anyness
             auto lhs = mRaw;
             const auto lhsEnd = lhs + mCount * mType->mSize;
             while (lhs != lhsEnd) {
-               mType->mDescriptorConstructor(lhs, *desc);
+               mType->mDescriptorConstructor(lhs, getNeat());
                lhs += mType->mSize;
             }
          }
@@ -847,6 +866,10 @@ namespace Langulus::Anyness
    ///   Except::Construct                                                    
    ///   @attention this is assumed to have no initialized elements, despite  
    ///      having its mCount set                                             
+   ///   @attention be mindful when initializing multiple elements with       
+   ///      move/abandon semantics, since those might move data away          
+   ///      from arguments, thus ruining initialization of all elements,      
+   ///      except the first one                                              
    ///   @param arguments... - the arguments to forward to constructor        
    ///   @return the number of emplaced elements                              
    template<CT::Block THIS, class...A>
@@ -860,36 +883,48 @@ namespace Langulus::Anyness
          CreateDefault<THIS>();
       }
       else if constexpr (CT::Typed<THIS>) {
-         // Construct dense stuff                                       
+         // Construct by directly checking if arguments satisfy a       
+         // constructor signature, knowing what the contained type is   
+         // at compile time                                             
          using T = TypeOf<THIS>;
-         auto lhs = mthis->GetRaw<THIS>();
-         const auto lhsEnd = lhs + mCount;
-         while (lhs != lhsEnd) {
-            if constexpr (::std::constructible_from<T, A...>)
-               new (lhs++) T(arguments...);
-            else
-               LANGULUS_ERROR("T is not constructible with these arguments");
+         if constexpr (::std::constructible_from<T, A...>) {
+            auto lhs = mthis->GetRaw();
+            const auto lhsEnd = lhs + mCount;
+            while (lhs != lhsEnd)
+               new (lhs++) T (Forward<A>(arguments)...);
          }
+         else CreateDescribe<THIS>(Forward<A>(arguments)...);
       }
       else {
+         // Constructing type-erased items                              
+         // We expect, that type has been previously set                
+         LANGULUS_ASSUME(DevAssumes, IsTyped(),
+            "Block was expected to be typed");
+
          if constexpr (sizeof...(A) == 1) {
             using F = Deref<FirstOf<A...>>;
-            if (mthis->IsSimilar<F>()) {
-               Create<TAny<F>>(Forward<A>(arguments)...);
-               return;
+
+            if constexpr (CT::Similar<F, Describe>) {
+               // We have a descriptor for argument, forward it to the  
+               // reflected descriptor constructor, if any              
+               CreateDescribe<THIS>(Forward<A>(arguments)...);
             }
+            else if constexpr (CT::Semantic<F>) {
+               // We have a semantic for argument - extract inner type, 
+               // check if compatible, and if so - forward it to the    
+               // appropriate reflected semantic constructor, if any    
+               using FT = TypeOf<F>;
+               if (mthis->template IsSimilar<FT>())
+                  Create<TAny<FT>>(Forward<A>(arguments)...);
+               else
+                  CreateDescribe<THIS>(Forward<A>(arguments)...);
+            }
+            else if (mthis->template IsSimilar<F>()) {
+               Create<TAny<F>>(Forward<A>(arguments)...);
+            }
+            else CreateDescribe<THIS>(Forward<A>(arguments)...);
          }
-
-         // Attempt wrapping argument(s) in a Neat, and doing           
-         // descriptor-construction, if such is reflected               
-         LANGULUS_ASSERT(
-            mType->mDescriptorConstructor, Construct,
-            "Can't descriptor-construct element"
-            " - no descriptor-constructor reflected"
-         );
-
-         const Neat descriptor {Forward<A>(arguments)...};
-         CreateDescribe<THIS>(Describe(descriptor));
+         else CreateDescribe<THIS>(Forward<A>(arguments)...);
       }
    }
 
@@ -965,7 +1000,7 @@ namespace Langulus::Anyness
          "Count outside limits", '(', mCount, " > ", mReserved);
       LANGULUS_ASSUME(DevAssumes, mCount <= source->mCount,
          "Count mismatch");
-      LANGULUS_ASSUME(DevAssumes, source->GetType() &= GetType<THIS>(),
+      LANGULUS_ASSUME(DevAssumes, source->GetType() |= GetType<THIS>(),
          "T doesn't match RHS type",
          ": ", source->GetType(), " != ", GetType<THIS>());
 
@@ -1259,7 +1294,7 @@ namespace Langulus::Anyness
          "Count outside limits", '(', mCount, " > ", mReserved);
       LANGULUS_ASSUME(DevAssumes, mCount <= source->mCount,
          "Count mismatch");
-      LANGULUS_ASSUME(DevAssumes, source->GetType() &= mthis->GetType(),
+      LANGULUS_ASSUME(DevAssumes, source->GetType() |= mthis->GetType(),
          "T doesn't match RHS type",
          ": ", source->GetType(), " != ", mthis->GetType());
 
@@ -1273,14 +1308,14 @@ namespace Langulus::Anyness
 
             if constexpr (S<Block>::Shallow) {
                // Shallow pointer transfer                              
-               CallDestructors<THIS>();
+               Destroy<THIS>();
                ShallowBatchPointerConstruction(mCount, source.Forward());
             }
             else if constexpr (CT::Unallocatable<T> or not CT::CloneAssignable<T>) {
                // We early-return with an enforced shallow pointer      
                // transfer, because its requesting to clone             
                // unallocatable/unclonable/abstract data, such as metas 
-               CallDestructors<THIS>();
+               Destroy<THIS>();
                ShallowBatchPointerConstruction(mCount, Copy(*source));
             }
             else if constexpr (CT::Sparse<DT> or not CT::Resolvable<T>) {
@@ -1379,7 +1414,7 @@ namespace Langulus::Anyness
             auto lhs = mthis->mRawSparse;
             const auto lhsEnd = lhs + mCount;
             auto rhs = source->mRawSparse;
-            auto lhsEntry = mthis->GetEntries<THIS>();
+            auto lhsEntry = mthis->template GetEntries<THIS>();
             auto rhsEntry = source->template GetEntries<THIS>();
 
             while (lhs != lhsEnd) {

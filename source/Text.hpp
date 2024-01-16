@@ -26,6 +26,15 @@ namespace Langulus::CT
    template<class...T>
    concept NotText = not Text<T...>;
 
+   /// Low level concept for checking if a type is stringifiable by libfmt    
+   /// Notice that Blocks are omitted here, to avoid ambiguities              
+   /// Any higher order conversion from containers to Text is achieved by     
+   /// defining an explicit/implicit cast operator to Text, using the         
+   /// CT::Stringifiable and CT::Debuggable concepts instead                  
+   template<class...T>
+   concept Formattable = not Block<T...>
+       and (::fmt::is_formattable<T>::value and ...);
+
 } // namespace Langulus::CT
 
 namespace Langulus::Anyness
@@ -54,7 +63,19 @@ namespace Langulus::Anyness
       template<class T> requires CT::Block<Desem<T>>
       Text(T&&);
 
-      template<class T> requires CT::DenseCharacter<Desem<T>>
+      template<CT::Semantic T> requires CT::StringPointer<TypeOf<T>>
+      Text(T&&);
+
+      template<CT::Semantic T> requires CT::StringLiteral<TypeOf<T>>
+      Text(T&&);
+
+      template<class...T> requires (sizeof...(T) > 1 and ((CT::Inner::Text<T> or CT::Formattable<T>) and ...))
+      Text(T&&...);
+
+      /// By extending libfmt via formatters, we also extend Text capabilities
+      Text(CT::Formattable auto&&);
+
+      /*template<class T> requires CT::DenseCharacter<Desem<T>>
       Text(T&&);
 
       template<class T> requires CT::StringPointer<Desem<T>>
@@ -69,7 +90,7 @@ namespace Langulus::Anyness
 
       Text(const Exception&);
       Text(const CT::Meta auto&);
-      Text(const CT::DenseBuiltinNumber auto&);
+      Text(const CT::DenseBuiltinNumber auto&);*/
 
       template<class T> requires (CT::StringPointer<Desem<T>>
                               or  CT::StringLiteral<Desem<T>>)
@@ -81,10 +102,13 @@ namespace Langulus::Anyness
       Text& operator = (const Text&);
       Text& operator = (Text&&) noexcept;
 
-      template<class T> requires CT::Block<Desem<T>>
+      template<class T> requires CT::Text<Desem<T>>
       Text& operator = (T&&);
 
-      template<class T> requires CT::DenseCharacter<Desem<T>>
+      /// By extending libfmt via formatters, we also extend Text capabilities
+      Text& operator = (CT::Formattable auto&&);
+
+      /*template<class T> requires CT::DenseCharacter<Desem<T>>
       Text& operator = (T&&);
 
       template<class T> requires CT::StringPointer<Desem<T>>
@@ -95,7 +119,7 @@ namespace Langulus::Anyness
 
       template<class T> requires (CT::StandardContiguousContainer<Desem<T>>
                              and  CT::DenseCharacter<TypeOf<Desem<T>>>)
-      Text& operator = (T&&);
+      Text& operator = (T&&);*/
 
       ///                                                                     
       ///   Capsulation                                                       
@@ -139,21 +163,27 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Concatenation                                                     
       ///                                                                     
-      template<class T> requires CT::Block<Desem<T>>
-      NOD() Text operator + (T&&) const;
-      template<class T> requires CT::DenseCharacter<Desem<T>>
-      NOD() Text operator + (T&&) const;
-      template<class T> requires CT::StringPointer<Desem<T>>
-      NOD() Text operator + (T&&) const;
-      template<class T> requires CT::StringLiteral<Desem<T>>
-      NOD() Text operator + (T&&) const;
-      template<class T> requires (CT::StandardContiguousContainer<T>
-                             and  CT::DenseCharacter<TypeOf<T>>)
+      template<class T> requires CT::Text<Desem<T>>
       NOD() Text operator + (T&&) const;
 
-      template<class T> requires CT::Block<Desem<T>>
+      NOD() Text operator + (CT::Formattable auto&&) const;
+
+      /*template<class T> requires CT::DenseCharacter<Desem<T>>
+      NOD() Text operator + (T&&) const;
+      template<class T> requires CT::StringPointer<Desem<T>>
+      NOD() Text operator + (T&&) const;
+      template<class T> requires CT::StringLiteral<Desem<T>>
+      NOD() Text operator + (T&&) const;
+      template<class T> requires (CT::StandardContiguousContainer<T>
+                             and  CT::DenseCharacter<TypeOf<T>>)
+      NOD() Text operator + (T&&) const;*/
+
+      template<class T> requires CT::Text<Desem<T>>
       Text& operator += (T&&);
-      template<class T> requires CT::DenseCharacter<Desem<T>>
+
+      Text& operator += (CT::Formattable auto&&);
+
+      /*template<class T> requires CT::DenseCharacter<Desem<T>>
       Text& operator += (T&&);
       template<class T> requires CT::StringPointer<Desem<T>>
       Text& operator += (T&&);
@@ -161,7 +191,7 @@ namespace Langulus::Anyness
       Text& operator += (T&&);
       template<class T> requires (CT::StandardContiguousContainer<T>
                              and  CT::DenseCharacter<TypeOf<T>>)
-      Text& operator += (T&&);
+      Text& operator += (T&&);*/
 
       ///                                                                     
       ///   Services                                                          
@@ -190,8 +220,9 @@ namespace Langulus::Anyness
    ///                                                                        
    /// Free standing catenators                                               
    ///                                                                        
+   Text operator + (CT::Formattable auto&&, const Text&);
 
-   template<class T> requires CT::DenseCharacter<Desem<T>>
+   /*template<class T> requires CT::DenseCharacter<Desem<T>>
    Text operator + (T&&, const Text&);
 
    template<class T> requires CT::StringPointer<Desem<T>>
@@ -202,7 +233,7 @@ namespace Langulus::Anyness
 
    template<class T> requires (CT::StandardContiguousContainer<T>
                           and  CT::DenseCharacter<TypeOf<T>>)
-   Text operator + (T&&, const Text&);
+   Text operator + (T&&, const Text&);*/
 
 
    /// Text container specialized for logging                                 
@@ -275,8 +306,10 @@ namespace fmt
 
       template<class CONTEXT>
       LANGULUS(INLINED)
-      auto format(T const& element, CONTEXT& ctx) {
+      auto format(const T& element, CONTEXT& ctx) {
          using namespace Langulus;
+         static_assert(CT::Complete<T>, "T isn't complete");
+
          auto asText = element.operator Token();
          return fmt::format_to(ctx.out(), "{}", asText);
       }
@@ -297,8 +330,10 @@ namespace fmt
 
       template<class CONTEXT>
       LANGULUS(INLINED)
-      auto format(T const& element, CONTEXT& ctx) {
+      auto format(const T& element, CONTEXT& ctx) {
          using namespace Langulus;
+         static_assert(CT::Complete<T>, "T isn't complete");
+
          if constexpr (requires (T& a) { a.operator Anyness::Debug(); }) {
             auto asText = element.operator Anyness::Debug();
             return fmt::format_to(ctx.out(), "{}",

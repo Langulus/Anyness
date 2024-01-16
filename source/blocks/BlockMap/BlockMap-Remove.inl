@@ -26,7 +26,7 @@ namespace Langulus::Anyness
       if (offset >= sentinel)
          return end();
 
-      RemoveInner<THIS>(offset--); //TODO what if map shrinks, offset might become invalid? Doesn't shrink for now
+      RemoveInner<THIS>(offset--);
       
       while (offset < sentinel and not mInfo[offset])
          --offset;
@@ -38,7 +38,7 @@ namespace Langulus::Anyness
          mInfo + offset, 
          index.mSentinel,
          GetRawKey<THIS>(offset),
-         GetRawValue<THIS>(offset)
+         GetRawVal<THIS>(offset)
       };
    }
 
@@ -51,18 +51,17 @@ namespace Langulus::Anyness
          return 0;
 
       using K = Deref<decltype(key)>;
-      auto& me = reinterpret_cast<THIS&>(*this);
 
-      if (me.template KeyIsSimilar<K>()
+      if (IsKeySimilar<THIS, K>()
       or (CT::Typed<THIS> and CT::Inner::Comparable<typename THIS::Key, K>)) {
          return RemoveKeyInner<THIS>(key);
       }
       else if constexpr (CT::StringLiteral<K>) {
-         if (me.template KeyIsSimilar<Text>()) {
+         if (IsKeySimilar<THIS, Text>()) {
             // Implicitly make a text container on string literal       
             return RemoveKeyInner<THIS>(Text {Disown(key)});
          }
-         else if (me.template KeyIsSimilar<char*, wchar_t*>()) {
+         else if (IsKeySimilar<THIS, char*, wchar_t*>()) {
             // Cast away the extent, search for pointer                 
             return RemoveKeyInner<THIS>(static_cast<const Deext<K>*>(key));
          }
@@ -97,20 +96,19 @@ namespace Langulus::Anyness
          return 0;
 
       using V = Deref<decltype(value)>;
-      auto& me = reinterpret_cast<THIS&>(*this);
 
-      if (me.template ValueIsSimilar<V>()
+      if (IsValueSimilar<THIS, V>()
       or (CT::Typed<THIS> and CT::Inner::Comparable<typename THIS::Value, V>)) {
-         return RemoveValueInner<THIS>(value);
+         return RemoveValInner<THIS>(value);
       }
       else if constexpr (CT::StringLiteral<V>) {
-         if (me.template ValueIsSimilar<Text>()) {
+         if (IsValueSimilar<THIS, Text>()) {
             // Implicitly make a text container on string literal       
-            return RemoveValueInner<THIS>(Text {Disown(value)});
+            return RemoveValInner<THIS>(Text {Disown(value)});
          }
-         else if (me.template ValueIsSimilar<char*, wchar_t*>()) {
+         else if (IsValueSimilar<THIS, char*, wchar_t*>()) {
             // Cast away the extent, search for pointer                 
-            return RemoveValueInner<THIS>(static_cast<const Deext<V>*>(value));
+            return RemoveValInner<THIS>(static_cast<const Deext<V>*>(value));
          }
          else return 0;
       }
@@ -123,26 +121,18 @@ namespace Langulus::Anyness
    ///   @param value - the value to search for                               
    ///   @return the number of removed pairs                                  
    template<CT::Map THIS>
-   Count BlockMap::RemoveValueInner(const CT::NotSemantic auto& value) {
+   Count BlockMap::RemoveValInner(const CT::NotSemantic auto& value) {
       Count removed = 0;
       auto psl = GetInfo();
       const auto pslEnd = GetInfoEnd();
-      auto val = GetValueHandle<THIS>(0);
+      auto val = GetValHandle<THIS>(0);
 
       while (psl != pslEnd) {
          if (*psl and val == value) {
             // Remove every pair with matching value                    
             auto key = GetKeyHandle<THIS>(psl - GetInfo());
-
-            if constexpr (CT::Typed<THIS>) {
-               key.Destroy();
-               val.Destroy();
-            }
-            else {
-               key.template CallDestructors<Any>();
-               val.template CallDestructors<Any>();
-            }
-
+            key.Destroy();
+            val.Destroy();
             *psl = 0;
             ++removed;
             --mValues.mCount;
@@ -172,17 +162,17 @@ namespace Langulus::Anyness
       // Destroy the key, info and value at the start                   
       // Use statically typed optimizations where possible              
       auto key = GetKeyHandle<THIS>(index);
-      auto val = GetValueHandle<THIS>(index);
+      auto val = GetValHandle<THIS>(index);
 
       if constexpr (CT::Typed<THIS>) {
          (key++).Destroy();
          (val++).Destroy();
       }
       else {
-         key.template CallDestructors<Any>();
+         key.Destroy();
          key.Next();
 
-         val.template CallDestructors<Any>();
+         val.Destroy();
          val.Next();
       }
 
@@ -201,21 +191,21 @@ namespace Langulus::Anyness
          #endif
 
          if constexpr (CT::Typed<THIS>) {
-            (key - 1).New(Abandon(key));
+            (key - 1).CreateSemantic(Abandon(key));
             (key++).Destroy();
 
-            (val - 1).New(Abandon(val));
+            (val - 1).CreateSemantic(Abandon(val));
             (val++).Destroy();
          }
          else {
             const_cast<const Block&>(key).Prev()
-               .CallSemanticConstructors<Any>(1, Abandon(key));
-            key.template CallDestructors<Any>();
+               .CreateSemantic(Abandon(key));
+            key.Destroy();
             key.Next();
 
             const_cast<const Block&>(val).Prev()
-               .CallSemanticConstructors<Any>(1, Abandon(val));
-            val.template CallDestructors<Any>();
+               .CreateSemantic(Abandon(val));
+            val.Destroy();
             val.Next();
          }
 
@@ -236,24 +226,22 @@ namespace Langulus::Anyness
          // Shift first pair to the back                                
          if constexpr (CT::Typed<THIS>) {
             key = GetKeyHandle<THIS>(0);
-            GetKeyHandle<THIS>(last).New(Abandon(key));
+            GetKeyHandle<THIS>(last).CreateSemantic(Abandon(key));
             (key++).Destroy();
 
-            val = GetValueHandle<THIS>(0);
-            GetValueHandle<THIS>(last).New(Abandon(val));
+            val = GetValHandle<THIS>(0);
+            GetValHandle<THIS>(last).CreateSemantic(Abandon(val));
             (val++).Destroy();
          }
          else {
             key = GetKeyHandle<THIS>(0);
-            GetKeyHandle<THIS>(last)
-               .template CallSemanticConstructors<Any>(1, Abandon(key));
-            key.template CallDestructors<Any>();
+            GetKeyHandle<THIS>(last).CreateSemantic(Abandon(key));
+            key.Destroy();
             key.Next();
 
-            val = GetValueHandle<THIS>(0);
-            GetValueHandle<THIS>(last)
-               .template CallSemanticConstructors<Any>(1, Abandon(val));
-            val.template CallDestructors<Any>();
+            val = GetValHandle<THIS>(0);
+            GetValHandle<THIS>(last).CreateSemantic(Abandon(val));
+            val.Destroy();
             val.Next();
          }
 
@@ -337,8 +325,8 @@ namespace Langulus::Anyness
       while (inf != infEnd and remaining) {
          if (*inf) {
             const auto offset = inf - GetInfo();
-            auto key = GetKeyHandle  <THIS>(offset);
-            auto val = GetValueHandle<THIS>(offset);
+            auto key = GetKeyHandle<THIS>(offset);
+            auto val = GetValHandle<THIS>(offset);
             key.Destroy();
             val.Destroy();
             --remaining;

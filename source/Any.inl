@@ -215,11 +215,117 @@ namespace Langulus::Anyness
    Any Any::Crop(const Offset start, const Count count) const {
       return Block::Crop<Any>(start, count);
    }
+        
+   /// Iterate each element block and execute F for it                        
+   ///   @tparam REVERSE - whether to iterate in reverse                      
+   ///   @param call - function to execute for each element block             
+   ///   @return the number of executions                                     
+   template<bool REVERSE> LANGULUS(INLINED)
+   Count Any::ForEachElement(auto&& call) const {
+      return Block::ForEachElement<REVERSE, const Any>(
+         Forward<Deref<decltype(call)>>(call));
+   }
 
+   template<bool REVERSE> LANGULUS(INLINED)
+   Count Any::ForEachElement(auto&& call) {
+      return Block::ForEachElement<REVERSE, Any>(
+         Forward<Deref<decltype(call)>>(call));
+   }
 
-   ///                                                                        
-   ///   Concatenation                                                        
-   ///                                                                        
+   /// Execute functions for each element inside container                    
+   /// Each function has a distinct argument type, that is tested against the 
+   /// contained type. If argument is compatible with the type, the block is  
+   /// iterated, and F is executed for all elements. The rest of the provided 
+   /// functions are ignored, after the first function with viable argument.  
+   ///   @tparam REVERSE - whether to iterate in reverse                      
+   ///   @param calls - all potential functions to iterate with               
+   ///   @return the number of executions                                     
+   template<bool REVERSE> LANGULUS(INLINED)
+   Count Any::ForEach(auto&&...call) const {
+      return Block::ForEach<REVERSE, const Any>(
+         Forward<Deref<decltype(call)>>(call)...);
+   }
+
+   template<bool REVERSE> LANGULUS(INLINED)
+   Count Any::ForEach(auto&&...call) {
+      return Block::ForEach<REVERSE, Any>(
+         Forward<Deref<decltype(call)>>(call)...);
+   }
+
+   /// Execute functions in each sub-block, inclusively                       
+   /// Unlike the flat variants above, this one reaches into sub-blocks.      
+   /// Each function has a distinct argument type, that is tested against the 
+   /// contained type. If argument is compatible with the type, the block is  
+   /// iterated, and F is executed for all elements. None of the provided     
+   /// functions are ignored.                                                 
+   ///   @tparam REVERSE - whether to iterate in reverse                      
+   ///   @tparam SKIP - set to false, to execute F for intermediate blocks,   
+   ///                  too; otherwise will execute only for non-blocks       
+   ///   @param calls - all potential functions to iterate with               
+   ///   @return the number of executions                                     
+   template<bool REVERSE, bool SKIP> LANGULUS(INLINED)
+   Count Any::ForEachDeep(auto&&...call) const {
+      return Block::ForEachDeep<REVERSE, SKIP, const Any>(
+         Forward<Deref<decltype(call)>>(call)...);
+   }
+
+   template<bool REVERSE, bool SKIP> LANGULUS(INLINED)
+   Count Any::ForEachDeep(auto&&...call) {
+      return Block::ForEachDeep<REVERSE, SKIP, Any>(
+         Forward<Deref<decltype(call)>>(call)...);
+   }
+
+   /// Check if type origin is the same as one of the provided types          
+   ///   @attention ignores sparsity and cv-qualifiers                        
+   ///   @tparam T1, TN... - the types to compare against                     
+   ///   @return true if data type is similar to at least one of the types    
+   template<CT::Data T1, CT::Data...TN> LANGULUS(INLINED)
+   constexpr bool Any::Is() const noexcept {
+      return Block::Is<Any, T1, TN...>();
+   }
+
+   /// Check if type origin is the same as another                            
+   ///   @attention ignores sparsity and cv-qualifiers                        
+   ///   @param type - the type to check for                                  
+   ///   @return true if this block contains similar data                     
+   LANGULUS(INLINED)
+   bool Any::Is(DMeta type) const noexcept {
+      return Block::Is(type);
+   }
+
+   /// Check if unqualified type is the same as one of the provided types     
+   ///   @attention ignores only cv-qualifiers                                
+   ///   @tparam T1, TN... - the types to compare against                     
+   ///   @return true if data type is similar to at least one of the types    
+   template<CT::Data T1, CT::Data...TN> LANGULUS(INLINED)
+   constexpr bool Any::IsSimilar() const noexcept {
+      return Block::IsSimilar<Any, T1, TN...>();
+   }
+
+   /// Check if unqualified type is the same as another                       
+   ///   @attention ignores only cv-qualifiers                                
+   ///   @param type - the type to check for                                  
+   ///   @return true if this block contains similar data                     
+   LANGULUS(INLINED)
+   bool Any::IsSimilar(DMeta type) const noexcept {
+      return Block::IsSimilar(type);
+   }
+
+   /// Check if this type is exactly one of the provided types                
+   ///   @tparam T1, TN... - the types to compare against                     
+   ///   @return true if data type matches at least one type                  
+   template<CT::Data T1, CT::Data...TN> LANGULUS(INLINED)
+   constexpr bool Any::IsExact() const noexcept {
+      return Block::IsExact<Any, T1, TN...>();
+   }
+
+   /// Check if this type is exactly another                                  
+   ///   @param type - the type to match                                      
+   ///   @return true if data type matches type exactly                       
+   LANGULUS(INLINED)
+   bool Any::IsExact(DMeta type) const noexcept {
+      return Block::IsExact(type);
+   }
 
    /// Concatenate with any deep type, semantically or not                    
    ///   @param rhs - the right operand                                       

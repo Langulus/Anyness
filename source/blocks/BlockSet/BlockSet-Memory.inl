@@ -199,7 +199,8 @@ namespace Langulus::Anyness
          mKeys.mEntry->GetUses() >= 1, "Bad memory dereferencing");
 
       if (mKeys.mEntry->GetUses() == 1) {
-         ClearInner<THIS>();
+         if (not IsEmpty())
+            ClearInner<THIS>();
 
          // Deallocate stuff                                            
          Allocator::Deallocate(const_cast<Allocation*>(mKeys.mEntry));
