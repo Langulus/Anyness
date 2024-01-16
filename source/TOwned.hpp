@@ -59,7 +59,7 @@ namespace Langulus::Anyness
    template<CT::Data T>
    class TOwned : public A::Owned {
    protected:
-      T mValue {};
+      T mValue;
 
    public:
       LANGULUS(ABSTRACT) false;
@@ -67,56 +67,66 @@ namespace Langulus::Anyness
 
       static constexpr bool Ownership = true;
 
-      constexpr TOwned() noexcept = default;
-      constexpr TOwned(const TOwned&);
-      constexpr TOwned(TOwned&&);
+      ///                                                                     
+      ///   Construction                                                      
+      ///                                                                     
+      constexpr TOwned() requires CT::Inner::Defaultable<T>;
+      constexpr TOwned(const TOwned&) requires CT::Inner::CopyMakable<T>;
+      constexpr TOwned(TOwned&&) requires CT::Inner::MoveMakable<T>;
 
-      constexpr TOwned(const CT::NotSemantic auto&);
-      constexpr TOwned(CT::NotSemantic auto&);
-      constexpr TOwned(CT::NotSemantic auto&&);
-      TOwned(CT::ShallowSemantic auto&&);
-      TOwned(CT::DeepSemantic auto&&) requires CT::CloneMakable<T>;
+      template<template<class> class S>
+      requires CT::Inner::SemanticMakable<S, T>
+      constexpr TOwned(S<TOwned>&&);
 
+      template<CT::NotOwned...A>
+      requires ::std::constructible_from<T, A...>
+      constexpr TOwned(A&&...);
+
+      ///                                                                     
+      ///   Assignment                                                        
+      ///                                                                     
+      constexpr TOwned& operator = (const TOwned&) requires CT::Inner::CopyAssignable<T>;
+      constexpr TOwned& operator = (TOwned&&) requires CT::Inner::MoveAssignable<T>;
+
+      template<template<class> class S>
+      requires CT::Inner::SemanticAssignable<S, T>
+      constexpr TOwned& operator = (S<TOwned>&&);
+
+      template<CT::NotOwned A> requires ::std::assignable_from<T, A>
+      constexpr TOwned& operator = (A&&);
+
+      ///                                                                     
+      ///   Capsulation                                                       
+      ///                                                                     
       NOD() DMeta GetType() const;
-
-      /// Makes TOwned CT::Resolvable                                         
-      NOD() Block GetBlock() const;
-
-      void Reset();
-
-      constexpr TOwned& operator = (const TOwned&);
-      constexpr TOwned& operator = (TOwned&&);
-
-      constexpr TOwned& operator = (const CT::NotSemantic auto&);
-      constexpr TOwned& operator = (CT::NotSemantic auto&);
-      constexpr TOwned& operator = (CT::NotSemantic auto&&);
-      TOwned& operator = (CT::ShallowSemantic auto&&);
-      TOwned& operator = (CT::DeepSemantic auto&&) requires CT::CloneAssignable<T>;
-
-      NOD() Hash GetHash() const requires CT::Hashable<T>;
-
-      NOD() const T& Get() const noexcept;
-      NOD() T& Get() noexcept;
+      NOD() Hash  GetHash() const requires CT::Hashable<T>;
+      NOD() constexpr T const& Get() const noexcept;
+      NOD() constexpr T&       Get()       noexcept;
 
       template<class>
       NOD() auto As() const noexcept requires CT::Sparse<T>;
 
-      NOD() auto operator -> () const;
-      NOD() auto operator -> ();
+      NOD() constexpr auto operator -> () const;
+      NOD() constexpr auto operator -> ();
 
-      NOD() auto& operator * () const IF_UNSAFE(noexcept)
+      NOD() constexpr auto& operator * () const IF_UNSAFE(noexcept)
          requires (CT::Sparse<T> and not CT::Void<Decay<T>>);
-      NOD() auto& operator * ()       IF_UNSAFE(noexcept)
+      NOD() constexpr auto& operator * ()       IF_UNSAFE(noexcept)
          requires (CT::Sparse<T> and not CT::Void<Decay<T>>);
 
-      NOD() explicit operator bool() const noexcept;
-      NOD() operator const T&() const noexcept;
-      NOD() operator T&() noexcept;
+      /// Makes TOwned CT::Resolvable                                         
+      NOD() constexpr Block GetBlock() const;
 
-   private:
-      void ConstructFrom(CT::Semantic auto&&);
-      TOwned& AssignFrom(CT::Semantic auto&&);
+      ///                                                                     
+      ///   Services                                                          
+      ///                                                                     
+      void Reset();
+
+      NOD() explicit constexpr operator bool() const noexcept;
+      NOD() constexpr operator const T&() const noexcept;
+      NOD() constexpr operator T&() noexcept;
    };
+
 
    /// Just a short handle for value with ownership                           
    /// If sparse/fundamental, value will be explicitly nulled after a move    
@@ -124,32 +134,30 @@ namespace Langulus::Anyness
    using Own = TOwned<T>;
 
    template<CT::Data T1, CT::Data T2>
-   LANGULUS(INLINED)
-   bool operator == (const TOwned<T1>& lhs, const TOwned<T2>& rhs) noexcept requires CT::Inner::Comparable<T1, T2> {
+   requires CT::Inner::Comparable<T1, T2> LANGULUS(INLINED)
+   constexpr bool operator == (const TOwned<T1>& lhs, const TOwned<T2>& rhs) noexcept {
       return lhs.Get() == rhs.Get();
    }
 
    template<CT::Data T1, CT::NotOwned T2>
-   LANGULUS(INLINED)
-   bool operator == (const TOwned<T1>& lhs, const T2& rhs) noexcept requires CT::Inner::Comparable<T1, T2> {
+   requires CT::Inner::Comparable<T1, T2> LANGULUS(INLINED)
+   constexpr bool operator == (const TOwned<T1>& lhs, const T2& rhs) noexcept {
       return lhs.Get() == rhs;
    }
 
    template<CT::Data T1, CT::NotOwned T2>
-   LANGULUS(INLINED)
-   bool operator == (const T2& lhs, const TOwned<T1>& rhs) noexcept requires CT::Inner::Comparable<T2, T1> {
+   requires CT::Inner::Comparable<T2, T1> LANGULUS(INLINED)
+   constexpr bool operator == (const T2& lhs, const TOwned<T1>& rhs) noexcept {
       return lhs == rhs.Get();
    }
 
-   template<CT::Data T1, CT::Data T2>
-   LANGULUS(INLINED)
-   bool operator == (const TOwned<T1>& lhs, ::std::nullptr_t) noexcept requires CT::Sparse<T1> {
+   template<CT::Sparse T> LANGULUS(INLINED)
+   constexpr bool operator == (const TOwned<T>& lhs, ::std::nullptr_t) noexcept {
       return lhs.Get() == nullptr;
    }
 
-   template<CT::Data T1, CT::Data T2>
-   LANGULUS(INLINED)
-   bool operator == (::std::nullptr_t, const TOwned<T1>& rhs) noexcept requires CT::Sparse<T1> {
+   template<CT::Sparse T> LANGULUS(INLINED)
+   constexpr bool operator == (::std::nullptr_t, const TOwned<T>& rhs) noexcept {
       return rhs.Get() == nullptr;
    }
 
@@ -168,8 +176,7 @@ namespace fmt
          return ctx.begin();
       }
 
-      template<class CONTEXT>
-      LANGULUS(INLINED)
+      template<class CONTEXT> LANGULUS(INLINED)
       auto format(T const& element, CONTEXT& ctx) {
          using namespace Langulus;
 

@@ -14,7 +14,6 @@ namespace Langulus::Anyness
 {
 
    /// Erase a key                                                            
-   /// The key may not match the contained key type                           
    ///   @param key - the key to search for                                   
    ///   @return the number of removed pairs                                  
    template<CT::Set THIS> LANGULUS(INLINED)
@@ -63,15 +62,14 @@ namespace Langulus::Anyness
    ///              (aka type-erased)                                         
    ///   @param index - the index to remove                                   
    template<CT::Set THIS> LANGULUS(INLINED)
-   void BlockSet::RemoveInner(Offset index) IF_UNSAFE(noexcept) {
-      using K = Conditional<CT::Typed<THIS>, TypeOf<THIS>, void>;
+   void BlockSet::RemoveInner(const Offset index) IF_UNSAFE(noexcept) {
       auto psl = GetInfo() + index;
       LANGULUS_ASSUME(DevAssumes, *psl, "Removing an invalid key");
 
       // Destroy the key and info at the start                          
       // Use statically typed optimizations where possible              
       auto key = GetHandle<THIS>(index);
-      if constexpr (CT::TypeErased<K>)
+      if constexpr (CT::Typed<THIS>)
          (key++).Destroy();
       else {
          key.Destroy();
@@ -92,15 +90,15 @@ namespace Langulus::Anyness
             #pragma GCC diagnostic ignored "-Wplacement-new"
          #endif
 
-         if constexpr (CT::TypeErased<K>) {
+         if constexpr (CT::Typed<THIS>) {
+            (key - 1).CreateSemantic(Abandon(key));
+            (key++).Destroy();
+         }
+         else {
             const_cast<const Block&>(key)
                .Prev().CreateSemantic(Abandon(key));
             key.Destroy();
             key.Next();
-         }
-         else {
-            (key - 1).CreateSemantic(Abandon(key));
-            (key++).Destroy();
          }
 
          #if LANGULUS_COMPILER_GCC()
@@ -121,14 +119,14 @@ namespace Langulus::Anyness
          key = GetHandle<THIS>(0);
          auto lastkey = GetHandle<THIS>(last);
 
-         if constexpr (CT::TypeErased<K>) {
+         if constexpr (CT::Typed<THIS>) {
+            lastkey.CreateSemantic(Abandon(key));
+            (key++).Destroy();
+         }
+         else {
             lastkey.CreateSemantic(1, Abandon(key));
             key.Destroy();
             key.Next();
-         }
-         else {
-            lastkey.CreateSemantic(Abandon(key));
-            (key++).Destroy();
          }
 
          *(psl++) = 0;

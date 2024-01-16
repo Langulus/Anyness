@@ -581,33 +581,6 @@ namespace Langulus::Anyness
       }
    }
 
-   /// Concatenate with stuff to the right                                    
-   ///   @param rhs - right hand side                                         
-   ///   @return the concatenated text container                              
-   /*template<class T> requires CT::DenseCharacter<Desem<T>>
-   LANGULUS(INLINED) Text Text::operator + (T&& rhs) const {
-      if constexpr (CT::Semantic<T>)
-         return operator + (Text::From(Disown(&*rhs), 1));
-      else
-         return operator + (Text::From(Disown(&rhs), 1));
-   }
-
-   template<class T> requires CT::StringPointer<Desem<T>>
-   LANGULUS(INLINED) Text Text::operator + (T&& rhs) const {
-      return operator + (Text {Disown(rhs)});
-   }
-
-   template<class T> requires CT::StringLiteral<Desem<T>>
-   LANGULUS(INLINED) Text Text::operator + (T&& rhs) const {
-      return operator + (Text {Disown(rhs)});
-   }
-
-   template<class T> requires (CT::StandardContiguousContainer<T>
-                          and  CT::DenseCharacter<TypeOf<T>>)
-   LANGULUS(INLINED) Text Text::operator + (T&& rhs) const {
-      return operator + (Text {Disown(rhs)});
-   }*/
-
    /// Concatenate with stuff to the left                                     
    ///   @param rhs - right hand side                                         
    ///   @return the concatenated text container                              
@@ -661,31 +634,6 @@ namespace Langulus::Anyness
       return *this;
    }
 
-   /*template<class T> requires CT::DenseCharacter<Desem<T>>
-   Text& Text::operator += (T&& rhs) {
-      if constexpr (CT::Semantic<T>)
-         return operator += (Text::From(Disown(&*rhs), 1));
-      else
-         return operator += (Text::From(Disown(&rhs), 1));
-   }
-
-   template<class T> requires CT::StringPointer<Desem<T>>
-   Text& Text::operator += (T&& rhs) {
-      return operator += (Text {Disown(rhs)});
-   }
-
-   template<class T> requires CT::StringLiteral<Desem<T>>
-   Text& Text::operator += (T&& rhs) {
-      return operator += (Text {Disown(rhs)});
-   }
-
-   template<class T> requires (CT::StandardContiguousContainer<T>
-                          and  CT::DenseCharacter<TypeOf<T>>)
-   Text& Text::operator += (T&& rhs) {
-      return operator += (Text {Disown(rhs)});
-   }*/
-
-   
    /// Fill template arguments using libfmt                                   
    /// If you get a constexpr error in this function, use TemplateRt instead  
    ///   @param format - the template string                                  

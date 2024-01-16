@@ -17,69 +17,83 @@ namespace Langulus::Anyness
    ///                                                                        
    ///   A shared pointer                                                     
    ///                                                                        
-   /// Provides ownership and referencing. Also, for single-element           
-   /// containment, it is a bit more efficient than TAny. So, essentially     
+   ///   Provides ownership and referencing. Also, for single-element         
+   /// containment, it is a lot more efficient than TAny. So, essentially     
    /// it's equivalent to std::shared_ptr                                     
    ///                                                                        
    template<class T, bool DR>
    class TPointer : public TOwned<T*> {
+   protected:
       using Base = TOwned<T*>;
       using Self = TPointer<T, DR>;
       using Type = TypeOf<Base>;
 
-      LANGULUS(NULLIFIABLE) true;
-
-   protected:
       using Base::mValue;
       const Allocation* mEntry {};
    
       void ResetInner();
 
    public:
-      constexpr TPointer() noexcept = default;
+      LANGULUS(NULLIFIABLE) true;
 
-      TPointer(const TPointer&);
-      TPointer(TPointer&&);
+      ///                                                                     
+      ///   Construction                                                      
+      ///                                                                     
+      constexpr TPointer() noexcept;
+      constexpr TPointer(const TPointer&);
+      constexpr TPointer(TPointer&&);
+
       template<template<class> class S>
-      TPointer(S<TPointer>&&) requires CT::Inner::SemanticMakable<S, Type>;
-      template<class A>
-      TPointer(A&&) requires CT::Inner::MakableFrom<Type, A&&>;
+      requires CT::Inner::SemanticMakable<S, T*>
+      constexpr TPointer(S<TPointer>&&);
+
+      template<class A> requires CT::Inner::MakableFrom<T*, A>
+      constexpr TPointer(A&&);
 
       ~TPointer();
 
-      NOD() Block GetBlock() const;
+      template<class...A> requires ::std::constructible_from<T, A...>
+      void New(A&&...);
+
+      ///                                                                     
+      ///   Assignment                                                        
+      ///                                                                     
+      constexpr TPointer& operator = (const TPointer&);
+      constexpr TPointer& operator = (TPointer&&);
+
+      template<template<class> class S>
+      requires CT::Inner::SemanticAssignable<S, T*>
+      TPointer& operator = (S<TPointer>&&);
+
+      template<CT::NotOwned A> requires CT::Inner::AssignableFrom<T*, A>
+      TPointer& operator = (A&&);
+
+      ///                                                                     
+      ///   Capsulation                                                       
+      ///                                                                     
       NOD() auto GetHandle() const;
       NOD() constexpr bool HasAuthority() const noexcept;
       NOD() constexpr Count GetUses() const noexcept;
-
-      template<class... ARGS>
-      void New(ARGS&&...);
-
-      void Reset();
-
-      TPointer& operator = (const TPointer&);
-      TPointer& operator = (TPointer&&);
-
-      TPointer& operator = (const CT::PointerRelated auto&);
-      TPointer& operator = (CT::PointerRelated auto&);
-      TPointer& operator = (CT::PointerRelated auto&&);
-      TPointer& operator = (CT::ShallowSemantic auto&&);
-      TPointer& operator = (CT::DeepSemantic auto&&) requires CT::CloneAssignable<T>;
-
-      NOD() operator TPointer<const T, DR>() const noexcept requires CT::Mutable<T>;
-      NOD() operator const T& () const noexcept;
-
+      
       using Base::operator bool;
       using Base::operator ->;
       using Base::operator *;
 
-   private:
-      TPointer& AssignFrom(CT::Semantic auto&&);
+      /// Makes TOwned CT::Resolvable                                         
+      NOD() Block GetBlock() const;
+
+      ///                                                                     
+      ///   Services                                                          
+      ///                                                                     
+      void Reset();
+
+      NOD() operator TPointer<const T, DR>() const noexcept requires CT::Mutable<T>;
+      NOD() operator const T& () const noexcept;
    };
 
 } // namespace Langulus::Anyness
 
-namespace fmt
+/*namespace fmt
 {
    
    ///                                                                        
@@ -106,4 +120,4 @@ namespace fmt
       }
    };
 
-} // namespace fmt
+} */// namespace fmt

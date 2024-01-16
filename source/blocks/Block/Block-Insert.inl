@@ -242,7 +242,7 @@ namespace Langulus::Anyness
          }
          else idx = SimplifyIndex<THIS>(index);
 
-         GetHandle<T, THIS>(idx).template CreateSemantic(S::Nest(item));
+         GetHandle<T, THIS>(idx).CreateSemantic(S::Nest(item));
       }
 
       ++mCount;
