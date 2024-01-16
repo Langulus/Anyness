@@ -145,12 +145,10 @@ namespace Langulus::Anyness
             return InvalidOffset;
 
          // Test first candidate                                        
-         auto key = &GetRaw<THIS>(start);
-         if (*key == match)
+         if (GetRef<THIS>(start) == match)
             return start;
 
          // Test all candidates on the right up until the end           
-         ++key;
          ++info;
 
          auto infoEnd = GetInfoEnd();
@@ -158,10 +156,11 @@ namespace Langulus::Anyness
             if (not *info)
                return InvalidOffset;
 
-            if (*key == match)
-               return info - GetInfo();
+            const auto i = info - GetInfo();
+            if (GetRef<THIS>(i) == match)
+               return i;
 
-            ++key; ++info;
+            ++info;
          }
 
          // Reached only if info has reached the end                    
@@ -170,11 +169,9 @@ namespace Langulus::Anyness
          if (not *info)
             return InvalidOffset;
 
-         key = &GetRaw<THIS>(0);
-         if (*key == match)
+         if (GetRef<THIS>(0) == match)
             return 0;
 
-         ++key;
          ++info;
 
          infoEnd = GetInfo() + start;
@@ -182,10 +179,11 @@ namespace Langulus::Anyness
             if (not *info)
                return InvalidOffset;
 
-            if (*key == match)
-               return info - GetInfo();
+            const auto i = info - GetInfo();
+            if (GetRef<THIS>(i) == match)
+               return i;
 
-            ++key; ++info;
+            ++info;
          }
 
          // No such key was found                                       
@@ -200,7 +198,7 @@ namespace Langulus::Anyness
    ///   @return the index, or InvalidOffset if not found                     
    template<CT::Set THIS>
    Offset BlockSet::FindBlockInner(const Block& match) const {
-      if (IsEmpty() or not IsSimilar(match.GetType()))
+      if (IsEmpty() or not IsSimilar<THIS>(match.GetType()))
          return InvalidOffset;
 
       // Get the starting index based on the key hash                   
@@ -210,16 +208,10 @@ namespace Langulus::Anyness
          return InvalidOffset;
 
       // Test first candidate                                           
-      auto key = GetHandle<THIS>(start);
-      if (key == match)
+      if (GetRef<THIS>(start) == match)
          return start;
 
       // Test all candidates on the right up until the end              
-      if constexpr (CT::Typed<THIS>)
-         ++key;
-      else
-         key.Next();
-
       ++info;
 
       auto infoEnd = GetInfoEnd();
@@ -227,15 +219,11 @@ namespace Langulus::Anyness
          if (not *info)
             return InvalidOffset;
 
-         if (key == match)
-            return info - GetInfo();
+         const auto i = info - GetInfo();
+         if (GetRef<THIS>(i) == match)
+            return i;
 
          ++info;
-
-         if constexpr (CT::Typed<THIS>)
-            ++key;
-         else
-            key.Next();
       }
 
       // Reached only if info has reached the end                       
@@ -244,14 +232,8 @@ namespace Langulus::Anyness
       if (not *info)
          return InvalidOffset;
 
-      key = GetHandle<THIS>(0);
-      if (key == match)
+      if (GetRef<THIS>(0) == match)
          return 0;
-
-      if constexpr (CT::Typed<THIS>)
-         ++key;
-      else
-         key.Next();
 
       ++info;
 
@@ -260,15 +242,11 @@ namespace Langulus::Anyness
          if (not *info)
             return InvalidOffset;
 
-         if (key == match)
-            return info - GetInfo();
+         const auto i = info - GetInfo();
+         if (GetRef<THIS>(i) == match)
+            return i;
 
          ++info;
-
-         if constexpr (CT::Typed<THIS>)
-            ++key;
-         else
-            key.Next();
       }
       
       // No such key was found                                          

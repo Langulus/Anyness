@@ -30,7 +30,7 @@ namespace Langulus::Anyness
                // can be used to initialize an element, nesting any     
                // semantic while doing it                               
                Reserve(GetCount() + ExtentOf<T>);
-               for (auto& key : item) {
+               for (auto& key : DesemCast(item)) {
                   InsertInner<THIS, true>(
                      GetBucket(GetReserved() - 1, DesemCast(key)),
                      S::Nest(key)
@@ -42,7 +42,7 @@ namespace Langulus::Anyness
                // Construct from an array of things, which can't be used
                // to directly construct elements, so nest this insert   
                Count inserted = 0;
-               for (auto& key : item)
+               for (auto& key : DesemCast(item))
                   inserted += UnfoldInsert<THIS>(S::Nest(key));
                return inserted;
             }
@@ -61,7 +61,7 @@ namespace Langulus::Anyness
             // Insert the array                                         
             Reserve(GetCount() + ExtentOf<T>);
             Count inserted = 0;
-            for (auto& e : Desem(item)) {
+            for (auto& e : DesemCast(item)) {
                inserted += InsertInner<THIS, true>(
                   GetBucket(GetReserved() - 1, e),
                   S::Nest(e)
@@ -89,19 +89,19 @@ namespace Langulus::Anyness
 
                if constexpr (CT::Inner::MakableFrom<E, T2>) {
                   // Elements are mappable                              
-                  Reserve(GetCount() + item.GetCount());
-                  for (auto& key : item) {
+                  Reserve(GetCount() + DesemCast(item).GetCount());
+                  for (auto& key : DesemCast(item)) {
                      InsertInner<THIS, true>(
                         GetBucket(GetReserved() - 1, key),
                         S::Nest(key)
                      );
                   }
-                  return item.GetCount();
+                  return DesemCast(item).GetCount();
                }
                else if constexpr (CT::Inner::MakableFrom<E, Unfold<T2>>) {
                   // Set elements need to be unfolded one by one        
                   Count inserted = 0;
-                  for (auto& key : item)
+                  for (auto& key : DesemCast(item))
                      inserted += UnfoldInsert<THIS>(S::Nest(key));
                   return inserted;
                }
@@ -109,15 +109,17 @@ namespace Langulus::Anyness
             }
             else {
                // The rhs set is type-erased                            
-               LANGULUS_ASSERT(item.IsSimilar<E>(), Meta, "Type mismatch");
-               Reserve(GetCount() + item.GetCount());
-               for (auto& key : item) {
+               LANGULUS_ASSERT(DesemCast(item).template IsSimilar<E>(), Meta,
+                  "Type mismatch");
+
+               Reserve(GetCount() + DesemCast(item).GetCount());
+               for (auto& key : DesemCast(item)) {
                   InsertInnerUnknown<THIS, true>(
                      GetBucketUnknown(GetReserved() - 1, key),
                      S::Nest(key)
                   );
                }
-               return item.GetCount();
+               return DesemCast(item).GetCount();
             }
          }
          else LANGULUS_ERROR("Can't insert argument");
@@ -128,7 +130,7 @@ namespace Langulus::Anyness
          // make an element, forward these to standard insertion here   
          Reserve(GetCount() + 1);
          return InsertInner<THIS, true>(
-            GetBucket(GetReserved() - 1, Desem(item)),
+            GetBucket(GetReserved() - 1, DesemCast(item)),
             S::Nest(item)
          );
       }
@@ -248,7 +250,6 @@ namespace Langulus::Anyness
                // Move it only if it won't end up in same bucket        
                if constexpr (CT::Typed<THIS>) {
                   using K = TypeOf<THIS>;
-
                   HandleLocal<K> keyswap {Abandon(oldKey)};
 
                   // Destroy the key, info and value                    
@@ -261,7 +262,7 @@ namespace Langulus::Anyness
                }
                else {
                   Block keyswap {GetState(), GetType(), 1, nullptr, nullptr};
-                  keyswap.AllocateFresh(keyswap.RequestSize<Any>(1));
+                  keyswap.AllocateFresh<Any>(keyswap.RequestSize<Any>(1));
                   keyswap.CreateSemantic(Abandon(oldKey));
 
                   // Destroy the pair and info at old index             
@@ -416,11 +417,7 @@ namespace Langulus::Anyness
 
          if (attempts > *psl) {
             // The pair we're inserting is closer to bucket, so swap    
-            if constexpr (CT::Typed<THIS>)
-               GetHandle<THIS>(index).Swap(key.Forward());
-            else
-               GetHandle<THIS>(index).SwapInner<Any>(key.Forward());
-
+            GetHandle<THIS>(index).Swap(key.Forward());
             ::std::swap(attempts, *psl);
             if (insertedAt == mKeys.mReserved)
                insertedAt = index;
@@ -440,11 +437,7 @@ namespace Langulus::Anyness
       // eventually reached, unless element exists and returns early    
       // We're moving only a single element, so no chance of overlap    
       const auto index = psl - GetInfo();
-      if constexpr (CT::Typed<THIS>)
-         GetHandle<THIS>(index).New(key.Forward());
-      else
-         GetHandle<THIS>(index).CallSemanticConstructors(key.Forward());
-
+      GetHandle<THIS>(index).CreateSemantic(key.Forward());
       if (insertedAt == mKeys.mReserved)
          insertedAt = index;
 

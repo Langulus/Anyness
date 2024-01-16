@@ -256,9 +256,9 @@ namespace Langulus::Anyness
    /// Beware, direction matters (this is the inverse of CanFit)              
    ///   @param type - the type check if current type interprets to           
    ///   @return true if able to interpret current type to 'type'             
-   TEMPLATE() LANGULUS(INLINED)
+   TEMPLATE() template<bool BINARY_COMPATIBLE> LANGULUS(INLINED)
    bool TAny<T>::CastsToMeta(DMeta type) const {
-      return GetType()->template CastsTo<CT::Sparse<T>>(type);
+      return Block::CastsToMeta<BINARY_COMPATIBLE>(type);
    }
 
    /// Check if contained data can be interpreted as a given count of type    
@@ -267,39 +267,41 @@ namespace Langulus::Anyness
    ///   @param type - the type check if current type interprets to           
    ///   @param count - the number of elements to interpret as                
    ///   @return true if able to interpret current type to 'type'             
-   TEMPLATE() LANGULUS(INLINED)
+   TEMPLATE() template<bool BINARY_COMPATIBLE> LANGULUS(INLINED)
    bool TAny<T>::CastsToMeta(DMeta type, const Count count) const {
-      return GetType()->CastsTo(type, count);
+      return Block::CastsToMeta<BINARY_COMPATIBLE>(type, count);
    }
    
    /// Check if this container's data can be represented as type T            
    /// with nothing more than pointer arithmetic                              
-   ///   @tparam T - the type to compare against                              
+   ///   @tparam ALT_T - the type to compare against                          
    ///   @tparam BINARY_COMPATIBLE - do we require for the type to be         
    ///      binary compatible with this container's type                      
    ///   @return true if contained data is reinterpretable as T               
-   TEMPLATE() template<CT::Data ALT_T> LANGULUS(INLINED)
+   TEMPLATE() template<CT::Data ALT_T, bool BINARY_COMPATIBLE> LANGULUS(INLINED)
    bool TAny<T>::CastsTo() const {
-      return CastsToMeta(MetaDataOf<Decay<ALT_T>>());
+      return Block::CastsTo<ALT_T, BINARY_COMPATIBLE>();
    }
 
    /// Check if this container's data can be represented as a specific number 
    /// of elements of type T, with nothing more than pointer arithmetic       
-   ///   @tparam T - the type to compare against                              
+   ///   @tparam ALT_T - the type to compare against                          
+   ///   @tparam BINARY_COMPATIBLE - do we require for the type to be         
+   ///      binary compatible with this container's type                      
    ///   @param count - the number of elements of T                           
    ///   @return true if contained data is reinterpretable as T               
-   TEMPLATE() template<CT::Data ALT_T> LANGULUS(INLINED)
+   TEMPLATE() template<CT::Data ALT_T, bool BINARY_COMPATIBLE> LANGULUS(INLINED)
    bool TAny<T>::CastsTo(const Count count) const {
-      return CastsToMeta(MetaDataOf<Decay<ALT_T>>(), count);
+      return Block::CastsTo<ALT_T, BINARY_COMPATIBLE>(count);
    }
 
    /// Check if type origin is the same as one of the provided types          
    ///   @attention ignores sparsity and cv-qualifiers                        
    ///   @tparam T1, TN... - the types to compare against                     
    ///   @return true if data type matches at least one type                  
-   TEMPLATE() template<CT::Data T1, CT::Data... TN> LANGULUS(INLINED)
+   TEMPLATE() template<CT::Data T1, CT::Data...TN> LANGULUS(INLINED)
    constexpr bool TAny<T>::Is() const noexcept {
-      return CT::SameAsOneOf<T, T1, TN...>;
+      return Block::Is<TAny, T1, TN...>();
    }
 
    /// Check if type origin is the same as one of the provided types          
@@ -308,16 +310,16 @@ namespace Langulus::Anyness
    ///   @return if this block contains data similar to 'type'                
    TEMPLATE() LANGULUS(INLINED)
    bool TAny<T>::Is(DMeta type) const noexcept {
-      return GetType()->Is(type);
+      return Block::Is<TAny>(type);
    }
 
    /// Check if unqualified type is the same as one of the provided types     
    ///   @attention ignores only cv-qualifiers                                
    ///   @tparam T1, TN... - the types to compare against                     
    ///   @return true if data type matches at least one type                  
-   TEMPLATE() template<CT::Data T1, CT::Data... TN> LANGULUS(INLINED)
+   TEMPLATE() template<CT::Data T1, CT::Data...TN> LANGULUS(INLINED)
    constexpr bool TAny<T>::IsSimilar() const noexcept {
-      return CT::SimilarAsOneOf<T, T1, TN...>;
+      return Block::IsSimilar<TAny, T1, TN...>();
    }
 
    /// Check if unqualified type is the same as one of the provided types     
@@ -326,15 +328,15 @@ namespace Langulus::Anyness
    ///   @return if this block contains data similar to 'type'                
    TEMPLATE() LANGULUS(INLINED)
    bool TAny<T>::IsSimilar(DMeta type) const noexcept {
-      return GetType()->IsSimilar(type);
+      return Block::IsSimilar<TAny>(type);
    }
 
    /// Check if this type is exactly one of the provided types                
    ///   @tparam T1, TN... - the types to compare against                     
    ///   @return true if data type matches at least one type                  
-   TEMPLATE() template<CT::Data T1, CT::Data... TN> LANGULUS(INLINED)
+   TEMPLATE() template<CT::Data T1, CT::Data...TN> LANGULUS(INLINED)
    constexpr bool TAny<T>::IsExact() const noexcept {
-      return CT::ExactAsOneOf<T, T1, TN...>;
+      return Block::IsExact<TAny, T1, TN...>();
    }
 
    /// Check if this type is exactly one of the provided types                
@@ -342,7 +344,7 @@ namespace Langulus::Anyness
    ///   @return if this block contains data of exactly 'type'                
    TEMPLATE() LANGULUS(INLINED)
    bool TAny<T>::IsExact(DMeta type) const noexcept {
-      return GetType()->IsExact(type);
+      return Block::IsExact<TAny>(type);
    }
 
    /// Allocate 'count' elements and fill the container with zeroes           
@@ -390,13 +392,13 @@ namespace Langulus::Anyness
 
    /// Get a pointer array - useful only for sparse containers                
    ///   @return the raw data as an array of pointers                         
-   TEMPLATE() template<CT::BlockBased THIS> LANGULUS(INLINED)
-   IF_UNSAFE(constexpr) auto TAny<T>::GetRawSparse() IF_UNSAFE(noexcept) {
+   TEMPLATE() template<CT::BlockBased THIS> LANGULUS(INLINED) IF_UNSAFE(constexpr)
+   auto TAny<T>::GetRawSparse() IF_UNSAFE(noexcept) {
       return Block::GetRawSparse<THIS>();
    }
 
-   TEMPLATE() template<CT::BlockBased THIS> LANGULUS(INLINED)
-   IF_UNSAFE(constexpr) auto TAny<T>::GetRawSparse() const IF_UNSAFE(noexcept) {
+   TEMPLATE() template<CT::BlockBased THIS> LANGULUS(INLINED) IF_UNSAFE(constexpr)
+   auto TAny<T>::GetRawSparse() const IF_UNSAFE(noexcept) {
       return Block::GetRawSparse<THIS>();
    }
    
@@ -436,7 +438,7 @@ namespace Langulus::Anyness
    const T1* TAny<T>::GetRawEndAs() const noexcept {
       return Block::GetRawEndAs<T1, THIS>();
    }
-   
+
    /// Return a handle to a sparse element, or a pointer to dense one         
    ///   @param index - the element index                                     
    ///   @return the handle/pointer                                           
@@ -481,11 +483,14 @@ namespace Langulus::Anyness
       return Block::GetElementDeep<TAny>(index);
    }*/
 
-   /// Get an element in the way you want (const, unsafe)                     
+   /// Get an element in the way you want (unsafe)                            
    /// This is a statically optimized variant of Block::Get                   
+   ///   @tparam ALT_T - how to interpret data                                
+   ///   @param index - the element index to retrieve                         
+   ///   @return a reference/pointer to the element, depending on ALT_T       
    TEMPLATE() template<CT::Data ALT_T> LANGULUS(INLINED)
    decltype(auto) TAny<T>::Get(const Offset index) const noexcept {
-      const auto& element = GetRaw()[index];
+      const auto& element = Block::GetRaw<TAny>()[index];
       if constexpr (CT::Dense<T> and CT::Dense<ALT_T>)
          // Dense -> Dense (returning a reference)                      
          return static_cast<const Decay<ALT_T>&>(element);
@@ -502,7 +507,7 @@ namespace Langulus::Anyness
 
    TEMPLATE() template<CT::Data ALT_T> LANGULUS(INLINED)
    decltype(auto) TAny<T>::Get(const Offset index) noexcept {
-      auto& element = GetRaw()[index];
+      auto& element = Block::GetRaw<TAny>()[index];
       if constexpr (CT::Dense<T> and CT::Dense<ALT_T>)
          // Dense -> Dense (returning a reference)                      
          return static_cast<Decay<ALT_T>&>(element);
@@ -523,13 +528,13 @@ namespace Langulus::Anyness
    TEMPLATE() LANGULUS(INLINED)
    const T& TAny<T>::operator [] (const CT::Index auto index) const {
       const auto offset = SimplifyIndex<TAny>(index);
-      return GetRaw()[offset];
+      return Block::GetRaw<TAny>()[offset];
    }
 
    TEMPLATE() LANGULUS(INLINED)
    T& TAny<T>::operator [] (const CT::Index auto index) {
       const auto offset = SimplifyIndex<TAny>(index);
-      return GetRaw()[offset];
+      return Block::GetRaw<TAny>()[offset];
    }
 
    /// Access last element                                                    
@@ -538,13 +543,13 @@ namespace Langulus::Anyness
    TEMPLATE() LANGULUS(INLINED)
    T& TAny<T>::Last() {
       LANGULUS_ASSUME(UserAssumes, mCount, "Can't get last index");
-      return GetRaw()[mCount - 1];
+      return Block::GetRaw<TAny>()[mCount - 1];
    }
 
    TEMPLATE() LANGULUS(INLINED)
    const T& TAny<T>::Last() const {
       LANGULUS_ASSUME(UserAssumes, mCount, "Can't get last index");
-      return GetRaw()[mCount - 1];
+      return Block::GetRaw<TAny>()[mCount - 1];
    }
    
    /// Templated Any containers are always typed                              
@@ -650,7 +655,7 @@ namespace Langulus::Anyness
    }
 
    /// Check if a memory block can be concatenated to this one                
-   ///   @param other - the block to concatenate                              
+   ///   @param b - the block to concatenate                                  
    ///   @return true if able to concatenate to this one                      
    TEMPLATE() LANGULUS(INLINED)
    constexpr bool TAny<T>::IsConcatable(const CT::Block auto& b) const noexcept {
@@ -666,7 +671,6 @@ namespace Langulus::Anyness
    }
 
    /// Check if a static type can be inserted                                 
-   ///   @tparam T - the type to check                                        
    ///   @return true if able to insert an instance of the type to this block 
    TEMPLATE() LANGULUS(INLINED)
    constexpr bool TAny<T>::IsInsertable() const noexcept {
@@ -683,12 +687,8 @@ namespace Langulus::Anyness
    TEMPLATE() template<bool MOVE_ASIDE, class T1, class...TAIL>
    requires CT::Inner::UnfoldMakableFrom<T, T1, TAIL...> LANGULUS(INLINED)
    Count TAny<T>::Insert(CT::Index auto index, T1&& t1, TAIL&&...tail) {
-      Count inserted = 0;
-      inserted   += Block::UnfoldInsert<TAny, Any, MOVE_ASIDE>(
-         index, Forward<T1>(t1));
-      ((inserted += Block::UnfoldInsert<TAny, Any, MOVE_ASIDE>(
-         index + inserted, Forward<TAIL>(tail))), ...);
-      return inserted;
+      return Block::Insert<TAny, Any, MOVE_ASIDE>(
+         index, Forward<T1>(t1), Forward<TAIL>(tail)...);
    }
 
    /// Emplace a single item at the given index, forwarding all arguments     
@@ -834,17 +834,7 @@ namespace Langulus::Anyness
    ///   @return the iterator of the previous element, unless index is first  
    TEMPLATE()
    typename TAny<T>::Iterator TAny<T>::RemoveIt(const Iterator& index, Count count) {
-      const auto rawend = GetRawEnd();
-      if (index.mElement >= rawend)
-         return {rawend};
-
-      const auto rawstart = GetRaw();
-      RemoveIndex(static_cast<Offset>(index.mElement - rawstart), count); //TODO what if map shrinks, offset might become invalid? Doesn't shrink for now
-      
-      if (index.mElement == rawstart)
-         return {rawstart};
-      else
-         return {index.mElement - 1};
+      return Block::RemoveIt<TAny>(index, count);
    }
 
    /// Sort the pack                                                          
@@ -906,8 +896,14 @@ namespace Langulus::Anyness
    ///   @param call - function to execute for each element block             
    ///   @return the number of executions                                     
    TEMPLATE() template<bool REVERSE> LANGULUS(INLINED)
-   Count TAny<T>::ForEachElement(auto&& call) const {
+   Count TAny<T>::ForEachElement(auto&& call) {
       return Block::ForEachElement<REVERSE, TAny>(
+         Forward<Deref<decltype(call)>>(call));
+   }
+
+   TEMPLATE() template<bool REVERSE> LANGULUS(INLINED)
+   Count TAny<T>::ForEachElement(auto&& call) const {
+      return Block::ForEachElement<REVERSE, const TAny>(
          Forward<Deref<decltype(call)>>(call));
    }
 
@@ -920,8 +916,14 @@ namespace Langulus::Anyness
    ///   @param calls - all potential functions to iterate with               
    ///   @return the number of executions                                     
    TEMPLATE() template<bool REVERSE> LANGULUS(INLINED)
-   Count TAny<T>::ForEach(auto&&...call) const {
+   Count TAny<T>::ForEach(auto&&...call) {
       return Block::ForEach<REVERSE, TAny>(
+         Forward<Deref<decltype(call)>>(call)...);
+   }
+
+   TEMPLATE() template<bool REVERSE> LANGULUS(INLINED)
+   Count TAny<T>::ForEach(auto&&...call) const {
+      return Block::ForEach<REVERSE, const TAny>(
          Forward<Deref<decltype(call)>>(call)...);
    }
 
@@ -937,29 +939,14 @@ namespace Langulus::Anyness
    ///   @param calls - all potential functions to iterate with               
    ///   @return the number of executions                                     
    TEMPLATE() template<bool REVERSE, bool SKIP> LANGULUS(INLINED)
-   Count TAny<T>::ForEachDeep(auto&&...call) const {
+   Count TAny<T>::ForEachDeep(auto&&...call) {
       return Block::ForEachDeep<REVERSE, SKIP, TAny>(
          Forward<Deref<decltype(call)>>(call)...);
    }
 
-   /// Same as ForEachElement, but in reverse                                 
-   TEMPLATE() LANGULUS(INLINED)
-   Count TAny<T>::ForEachElementRev(auto&&...call) const {
-      return Block::ForEachElementRev<TAny>(
-         Forward<Deref<decltype(call)>>(call)...);
-   }
-
-   /// Same as ForEach, but in reverse                                        
-   TEMPLATE() LANGULUS(INLINED)
-   Count TAny<T>::ForEachRev(auto&&...call) const {
-      return Block::ForEachRev<TAny>(
-         Forward<Deref<decltype(call)>>(call)...);
-   }
-
-   /// Same as ForEachDeep, but in reverse                                    
-   TEMPLATE() template<bool SKIP> LANGULUS(INLINED)
-   Count TAny<T>::ForEachDeepRev(auto&&...call) const {
-      return Block::ForEachDeepRev<SKIP, TAny>(
+   TEMPLATE() template<bool REVERSE, bool SKIP> LANGULUS(INLINED)
+   Count TAny<T>::ForEachDeep(auto&&...call) const {
+      return Block::ForEachDeep<REVERSE, SKIP, const TAny>(
          Forward<Deref<decltype(call)>>(call)...);
    }
 
@@ -1004,20 +991,7 @@ namespace Langulus::Anyness
    ///   @return true if both containers match loosely                        
    TEMPLATE()
    bool TAny<T>::CompareLoose(const CT::Block auto& other) const noexcept {
-      if constexpr (CT::Character<T>) {
-         if (mRaw == other.mRaw)
-            return mCount == other.mCount;
-         else if (mCount != other.mCount)
-            return false;
-
-         auto t1 = GetRaw();
-         auto t2 = other.GetRaw();
-         while (t1 < GetRawEnd() and ::std::tolower(*t1)
-                                  == ::std::tolower(*(t2++)))
-            ++t1;
-         return (t1 - GetRaw()) == mCount;
-      }
-      else return Compare(other);
+      return Block::CompareLoose<TAny>(other);
    }
 
    /// Count how many consecutive elements match in two containers            
@@ -1025,16 +999,7 @@ namespace Langulus::Anyness
    ///   @return the number of matching items                                 
    TEMPLATE()
    Count TAny<T>::Matches(const CT::Block auto& other) const noexcept {
-      if (mRaw == other.mRaw)
-         return ::std::min(mCount, other.mCount);
-
-      auto t1 = GetRaw();
-      auto t2 = other.GetRaw();
-      const auto t1end = GetRawEnd();
-      const auto t2end = other.GetRawEnd();
-      while (t1 != t1end and t2 != t2end and *t1 == *(t2++))
-         ++t1;
-      return t1 - GetRaw();
+      return Block::Matches<TAny>(other);
    }
 
    /// Compare loosely with another, ignoring upper-case                      
@@ -1043,20 +1008,7 @@ namespace Langulus::Anyness
    ///   @return the number of matching symbols                               
    TEMPLATE()
    Count TAny<T>::MatchesLoose(const CT::Block auto& other) const noexcept {
-      if constexpr (CT::Character<T>) {
-         if (mRaw == other.mRaw)
-            return ::std::min(mCount, other.mCount);
-
-         auto t1 = GetRaw();
-         auto t2 = other.GetRaw();
-         const auto t1end = GetRawEnd();
-         const auto t2end = other.GetRawEnd();
-         while (t1 != t1end and t2 != t2end and ::std::tolower(*t1)
-                                             == ::std::tolower(*(t2++)))
-            ++t1;
-         return t1 - GetRaw();
-      }
-      else return Matches(other);
+      return Block::MatchesLoose<TAny>(other);
    }
   
    /// Hash data inside memory block                                          

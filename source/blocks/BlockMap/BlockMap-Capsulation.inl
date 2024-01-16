@@ -25,7 +25,7 @@ namespace Langulus::Anyness
    ///   @return true if type is available                                    
    template<CT::Map THIS> LANGULUS(INLINED)
    constexpr bool BlockMap::IsValueUntyped() const noexcept {
-      return GetValues<THIS>().IsUntyped();
+      return GetVals<THIS>().IsUntyped();
    }
    
    /// Check if map has its key type-constrained                              
@@ -39,7 +39,7 @@ namespace Langulus::Anyness
    ///   @return true if type is constrained                                  
    template<CT::Map THIS> LANGULUS(INLINED)
    constexpr bool BlockMap::IsValueTypeConstrained() const noexcept {
-      return GetValues<THIS>().IsTypeConstrained();
+      return GetVals<THIS>().IsTypeConstrained();
    }
    
    /// Check if key type is deep                                              
@@ -51,7 +51,7 @@ namespace Langulus::Anyness
    /// Check if value type is deep                                            
    template<CT::Map THIS> LANGULUS(INLINED)
    constexpr bool BlockMap::IsValueDeep() const noexcept {
-      return GetValues<THIS>().IsDeep();
+      return GetVals<THIS>().IsDeep();
    }
 
    /// Check if the key type is a pointer                                     
@@ -63,7 +63,7 @@ namespace Langulus::Anyness
    /// Check if the value type is a pointer                                   
    template<CT::Map THIS> LANGULUS(INLINED)
    constexpr bool BlockMap::IsValueSparse() const noexcept {
-      return GetValues<THIS>().IsSparse();
+      return GetVals<THIS>().IsSparse();
    }
 
    /// Check if the key type is not a pointer                                 
@@ -75,7 +75,7 @@ namespace Langulus::Anyness
    /// Check if the value type is not a pointer                               
    template<CT::Map THIS> LANGULUS(INLINED)
    constexpr bool BlockMap::IsValueDense() const noexcept {
-      return GetValues<THIS>().IsDense();
+      return GetVals<THIS>().IsDense();
    }
 
    /// Get the size of a single key, in bytes                                 
@@ -89,7 +89,7 @@ namespace Langulus::Anyness
    ///   @return the number of bytes a single value contains                  
    template<CT::Map THIS> LANGULUS(INLINED)
    constexpr Size BlockMap::GetValueStride() const noexcept {
-      return GetValues<THIS>().GetStride();
+      return GetVals<THIS>().GetStride();
    }
 
    #if LANGULUS(TESTING)
@@ -103,7 +103,7 @@ namespace Langulus::Anyness
       /// Get raw value memory pointer, used only in testing                  
       ///   @return the pointer                                               
       LANGULUS(INLINED)
-      constexpr const void* BlockMap::GetRawValuesMemory() const noexcept {
+      constexpr const void* BlockMap::GetRawValsMemory() const noexcept {
          return mValues.mRaw;
       }
    #endif
@@ -119,7 +119,7 @@ namespace Langulus::Anyness
    ///   @return the value type definition                                    
    template<CT::Map THIS> LANGULUS(INLINED)
    DMeta BlockMap::GetValueType() const noexcept {
-      return GetValues<THIS>().GetType();
+      return GetVals<THIS>().GetType();
    }
 
    /// Get the info array (const)                                             
@@ -166,7 +166,7 @@ namespace Langulus::Anyness
    /// Get the templated values container                                     
    ///   @attention for internal use only, elements might not be initialized  
    template<CT::Map THIS> LANGULUS(INLINED)
-   auto& BlockMap::GetValues() const noexcept {
+   auto& BlockMap::GetVals() const noexcept {
       if constexpr (CT::Typed<THIS>)
          return reinterpret_cast<const TAny<typename THIS::Value>&>(mValues);
       else
@@ -176,7 +176,7 @@ namespace Langulus::Anyness
    /// Get the templated values container                                     
    ///   @attention for internal use only, elements might not be initialized  
    template<CT::Map THIS> LANGULUS(INLINED)
-   auto& BlockMap::GetValues() noexcept {
+   auto& BlockMap::GetVals() noexcept {
       if constexpr (CT::Typed<THIS>)
          return reinterpret_cast<TAny<typename THIS::Value>&>(mValues);
       else
@@ -208,14 +208,14 @@ namespace Langulus::Anyness
    ///   @return the number of deep key containers                            
    template<CT::Map THIS> LANGULUS(INLINED)
    Count BlockMap::GetValueCountDeep() const noexcept {
-      return GetCountDeep(GetValues<THIS>());
+      return GetCountDeep(GetVals<THIS>());
    }
 
    /// Get the number of deep key containers                                  
    ///   @return the number of deep key containers                            
    template<CT::Map THIS> LANGULUS(INLINED)
    Count BlockMap::GetValueCountElementsDeep() const noexcept {
-      return GetCountElementsDeep(GetValues<THIS>());
+      return GetCountElementsDeep(GetVals<THIS>());
    }
 
    /// Inner function, for counting nested containers in key or value blocks  
@@ -339,8 +339,8 @@ namespace Langulus::Anyness
          const auto index = info - GetInfo();
          if (*info) {
             Logger::Info('[', index, "] -", (*info - 1), " -> ",
-               HashOf(GetRawKey<THIS>(index)), " | ",
-               HashOf(GetRawValue<THIS>(index))
+               HashOf(GetKeyRef<THIS>(index)), " | ",
+               HashOf(GetValRef<THIS>(index))
             );
          }
          else Logger::Info('[', index, "] empty");

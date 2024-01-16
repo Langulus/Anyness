@@ -53,29 +53,6 @@ namespace Langulus::Anyness
       Map& operator = (CT::Inner::UnfoldInsertable auto&&);
 
       ///                                                                     
-      ///   Capsulation                                                       
-      ///                                                                     
-      NOD() DMeta GetKeyType() const noexcept;
-      NOD() DMeta GetValueType() const noexcept;
-      NOD() constexpr bool IsKeyUntyped() const noexcept;
-      NOD() constexpr bool IsValueUntyped() const noexcept;
-      NOD() constexpr bool IsKeyTypeConstrained() const noexcept;
-      NOD() constexpr bool IsValueTypeConstrained() const noexcept;
-      NOD() constexpr bool IsKeyDeep() const noexcept;
-      NOD() constexpr bool IsValueDeep() const noexcept;
-      NOD() constexpr bool IsKeySparse() const noexcept;
-      NOD() constexpr bool IsValueSparse() const noexcept;
-      NOD() constexpr bool IsKeyDense() const noexcept;
-      NOD() constexpr bool IsValueDense() const noexcept;
-      NOD() constexpr Size GetKeyStride() const noexcept;
-      NOD() constexpr Size GetValueStride() const noexcept;
-      NOD() Count GetKeyCountDeep() const noexcept;
-      NOD() Count GetKeyCountElementsDeep() const noexcept;
-      NOD() Count GetValueCountDeep() const noexcept;
-      NOD() Count GetValueCountElementsDeep() const noexcept;
-      NOD() bool IsMissingDeep() const;
-
-      ///                                                                     
       ///   Indexing                                                          
       ///                                                                     
       NOD() Block GetKey(CT::Index auto);
@@ -132,8 +109,71 @@ namespace Langulus::Anyness
       Count ForEachValueDeep(auto&&...);
 
       ///                                                                     
+      ///   RTTI                                                              
+      ///                                                                     
+      template<CT::Data, CT::Data...>
+      NOD() constexpr bool IsKey() const noexcept;
+      NOD() bool IsKey(DMeta) const noexcept;
+
+      template<CT::Data, CT::Data...>
+      NOD() constexpr bool IsKeySimilar() const noexcept;
+      NOD() bool IsKeySimilar(DMeta) const noexcept;
+
+      template<CT::Data, CT::Data...>
+      NOD() constexpr bool IsKeyExact() const noexcept;
+      NOD() bool IsKeyExact(DMeta) const noexcept;
+
+      template<CT::Data, CT::Data...>
+      NOD() constexpr bool IsValue() const noexcept;
+      NOD() bool IsValue(DMeta) const noexcept;
+
+      template<CT::Data, CT::Data...>
+      NOD() constexpr bool IsValueSimilar() const noexcept;
+      NOD() bool IsValueSimilar(DMeta) const noexcept;
+
+      template<CT::Data, CT::Data...>
+      NOD() constexpr bool IsValueExact() const noexcept;
+      NOD() bool IsValueExact(DMeta) const noexcept;
+
+      ///                                                                     
+      ///   Comparison                                                        
+      ///                                                                     
+      bool operator == (CT::Map  auto const&) const;
+      bool operator == (CT::Pair auto const&) const;
+
+      NOD() Hash GetHash() const;
+
+      NOD() bool ContainsKey(const CT::NotSemantic auto&) const;
+      NOD() bool ContainsValue(const CT::NotSemantic auto&) const;
+      NOD() bool ContainsPair(const CT::Pair auto&) const;
+
+      NOD() Index Find(const CT::NotSemantic auto&) const;
+      NOD() Iterator FindIt(const CT::NotSemantic auto&);
+      NOD() ConstIterator FindIt(const CT::NotSemantic auto&) const;
+
+      NOD() decltype(auto) At(const CT::NotSemantic auto&);
+      NOD() decltype(auto) At(const CT::NotSemantic auto&) const;
+
+      NOD() decltype(auto) operator[] (const CT::NotSemantic auto&);
+      NOD() decltype(auto) operator[] (const CT::NotSemantic auto&) const;
+
+      ///                                                                     
+      ///   Memory management                                                 
+      ///                                                                     
+      void Reserve(Count);
+
+      ///                                                                     
       ///   Insertion                                                         
       ///                                                                     
+      Count Insert(auto&&, auto&&);
+
+      template<class T1, class T2>
+      requires CT::Block<Desem<T1>, Desem<T2>>
+      Count InsertBlock(T1&&, T2&&);
+
+      template<class T1, class...TAIL>
+      Count InsertPair(T1&&, TAIL&&...);
+
       Map& operator << (CT::Inner::UnfoldInsertable auto&&);
       Map& operator >> (CT::Inner::UnfoldInsertable auto&&);
 

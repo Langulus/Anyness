@@ -17,74 +17,98 @@ namespace Langulus::Anyness
    ///   @attention ignores sparsity and cv-qualifiers                        
    ///   @tparam T1, TN... - the types to compare against                     
    ///   @return true if data type is similar to at least one of the types    
-   template<CT::Data T1, CT::Data... TN> LANGULUS(INLINED)
-   bool Block::Is() const {
-      return mType and mType->template Is<T1, TN...>();
+   template<CT::Block THIS, CT::Data T1, CT::Data...TN> LANGULUS(INLINED)
+   constexpr bool Block::Is() const noexcept {
+      if constexpr (CT::Typed<THIS>)
+         return CT::SameAsOneOf<TypeOf<THIS>, T1, TN...>;
+      else
+         return mType and mType->template Is<T1, TN...>();
    }
 
    /// Check if type origin is the same as another                            
    ///   @attention ignores sparsity and cv-qualifiers                        
    ///   @param type - the type to check for                                  
    ///   @return true if this block contains similar data                     
-   LANGULUS(INLINED)
+   template<CT::Block THIS> LANGULUS(INLINED)
    bool Block::Is(DMeta type) const noexcept {
-      return mType &= type;
+      return GetType<THIS>() &= type;
    }
 
    /// Check if unqualified type is the same as one of the provided types     
    ///   @attention ignores only cv-qualifiers                                
    ///   @tparam T1, TN... - the types to compare against                     
    ///   @return true if data type is similar to at least one of the types    
-   template<CT::Data T1, CT::Data... TN> LANGULUS(INLINED)
-   bool Block::IsSimilar() const {
-      return mType and mType->template IsSimilar<T1, TN...>();
+   template<CT::Block THIS, CT::Data T1, CT::Data...TN> LANGULUS(INLINED)
+   constexpr bool Block::IsSimilar() const noexcept {
+      if constexpr (CT::Typed<THIS>)
+         return CT::SimilarAsOneOf<TypeOf<THIS>, T1, TN...>;
+      else
+         return mType and mType->template IsSimilar<T1, TN...>();
    }
 
    /// Check if unqualified type is the same as another                       
    ///   @attention ignores only cv-qualifiers                                
    ///   @param type - the type to check for                                  
    ///   @return true if this block contains similar data                     
-   LANGULUS(INLINED)
+   template<CT::Block THIS> LANGULUS(INLINED)
    bool Block::IsSimilar(DMeta type) const noexcept {
-      return mType |= type;
+      return GetType<THIS>() |= type;
    }
 
    /// Check if this type is exactly one of the provided types                
    ///   @tparam T1, TN... - the types to compare against                     
    ///   @return true if data type matches at least one type                  
-   template<CT::Data T1, CT::Data... TN> LANGULUS(INLINED)
-   bool Block::IsExact() const {
-      return mType and mType->template IsExact<T1, TN...>();
+   template<CT::Block THIS, CT::Data T1, CT::Data...TN> LANGULUS(INLINED)
+   constexpr bool Block::IsExact() const noexcept {
+      if constexpr (CT::Typed<THIS>)
+         return CT::ExactAsOneOf<TypeOf<THIS>, T1, TN...>;
+      else
+         return mType and mType->template IsExact<T1, TN...>();
    }
 
    /// Check if this type is exactly another                                  
    ///   @param type - the type to match                                      
    ///   @return true if data type matches type exactly                       
-   LANGULUS(INLINED)
+   template<CT::Block THIS> LANGULUS(INLINED)
    bool Block::IsExact(DMeta type) const noexcept {
-      return mType == type;
+      return GetType<THIS>() == type;
    }
 
    /// Check if contained data can be interpreted as a given type             
    ///   @attention direction matters, if block is dense                      
+   ///   @tparam BINARY_COMPATIBLE - do we require for the type to be         
+   ///      binary compatible with this container's type                      
    ///   @param type - the type check if current type interprets to           
    ///   @return true if able to interpret current type to 'type'             
-   template<bool BINARY_COMPATIBLE> LANGULUS(INLINED)
+   template<bool BINARY_COMPATIBLE, CT::Block THIS> LANGULUS(INLINED)
    bool Block::CastsToMeta(DMeta type) const {
-      return mType and (mType->mIsSparse
-         ? mType->CastsTo<true>(type)
-         : mType->CastsTo(type));
+      if constexpr (CT::Typed<THIS>) {
+         //TODO can be further optimized
+         return GetType()->template
+            CastsTo<BINARY_COMPATIBLE or CT::Sparse<TypeOf<THIS>>>(type);
+      }
+      else {
+         return mType and (BINARY_COMPATIBLE or mType->mIsSparse
+            ? mType->CastsTo<true>(type)
+            : mType->CastsTo(type));
+      }
    }
 
    /// Check if contained data can be interpreted as a number of a type       
    /// For example: a Vec4 can interpret as float[4]                          
    ///   @attention direction matters, if block is dense                      
+   ///   @tparam BINARY_COMPATIBLE - do we require for the type to be         
+   ///      binary compatible with this container's type                      
    ///   @param type - the type check if current type interprets to           
    ///   @param count - the number of elements to interpret as                
    ///   @return true if able to interpret current type to 'type'             
-   template<bool BINARY_COMPATIBLE> LANGULUS(INLINED)
+   template<bool BINARY_COMPATIBLE, CT::Block THIS> LANGULUS(INLINED)
    bool Block::CastsToMeta(DMeta type, Count count) const {
-      return not mType or not type or mType->CastsTo(type, count);
+      if constexpr (CT::Typed<THIS>)
+         //TODO can be further optimized
+         return not type or GetType<THIS>()->CastsTo(type, count);
+      else
+         return not mType or not type or mType->CastsTo(type, count);
    }
 
    /// Check if this container's data can be represented as type T            
@@ -93,9 +117,10 @@ namespace Langulus::Anyness
    ///   @tparam BINARY_COMPATIBLE - do we require for the type to be         
    ///      binary compatible with this container's type                      
    ///   @return true if contained data is reinterpretable as T               
-   template<CT::Data T, bool BINARY_COMPATIBLE> LANGULUS(INLINED)
+   template<CT::Data T, bool BINARY_COMPATIBLE, CT::Block THIS> LANGULUS(INLINED)
    bool Block::CastsTo() const {
-      return CastsToMeta<BINARY_COMPATIBLE>(MetaDataOf<T>());
+      //TODO can be further optimized
+      return CastsToMeta<BINARY_COMPATIBLE, THIS>(MetaDataOf<T>());
    }
 
    /// Check if this container's data can be represented as a specific number 
@@ -105,9 +130,10 @@ namespace Langulus::Anyness
    ///      binary compatible with this container's type                      
    ///   @param count - the number of elements of T                           
    ///   @return true if contained data is reinterpretable as T               
-   template<CT::Data T, bool BINARY_COMPATIBLE> LANGULUS(INLINED)
-   bool Block::CastsTo(Count count) const {
-      return CastsToMeta<BINARY_COMPATIBLE>(MetaDataOf<T>(), count);
+   template<CT::Data T, bool BINARY_COMPATIBLE, CT::Block THIS> LANGULUS(INLINED)
+   bool Block::CastsTo(const Count count) const {
+      //TODO can be further optimized
+      return CastsToMeta<BINARY_COMPATIBLE, THIS>(MetaDataOf<T>(), count);
    }
    
    /// Reinterpret contents of this Block as the type and state of another    
@@ -138,7 +164,8 @@ namespace Langulus::Anyness
             })};
          }
          else if constexpr (CT::POD<T1, T2>) {
-            if constexpr (sizeof(T1) >= sizeof(T2) and (sizeof(T1) % sizeof(T2)) == 0) {
+            if constexpr (sizeof(T1) >= sizeof(T2)
+                     and (sizeof(T1) %  sizeof(T2)) == 0) {
                // Larger view for binary compatible types               
                return RHS {Disown(Block{
                   pattern.GetState() + DataState::Static,
@@ -146,7 +173,8 @@ namespace Langulus::Anyness
                   mRaw, mEntry
                })};
             }
-            else if constexpr (sizeof(T1) <= sizeof(T2) and (sizeof(T2) % sizeof(T1)) == 0) {
+            else if constexpr (sizeof(T1) <= sizeof(T2)
+                          and (sizeof(T2) %  sizeof(T1)) == 0) {
                // Smaller view for binary compatible types              
                return RHS {Disown(Block{
                   pattern.GetState() + DataState::Static,

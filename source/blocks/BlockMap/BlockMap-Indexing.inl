@@ -68,7 +68,7 @@ namespace Langulus::Anyness
       const auto idx = SimplifyIndex<THIS>(index);
       if (not mInfo[idx])
          LANGULUS_OOPS(OutOfRange, "No pair at given index");
-      return GetRawKey<THIS>(idx);
+      return GeKeyRef<THIS>(idx);
    }
 
    template<CT::Map THIS> LANGULUS(INLINED)
@@ -87,7 +87,7 @@ namespace Langulus::Anyness
       const auto idx = SimplifyIndex<THIS>(index);
       if (not mInfo[idx])
          LANGULUS_OOPS(OutOfRange, "No pair at given index");
-      return GetRawValue<THIS>(idx);
+      return GetValRef<THIS>(idx);
    }
 
    template<CT::Map THIS> LANGULUS(INLINED)
@@ -108,8 +108,8 @@ namespace Langulus::Anyness
          LANGULUS_OOPS(OutOfRange, "No pair at given index");
 
       return typename THIS::PairRef {
-         GetRawKey  <THIS>(idx),
-         GetRawValue<THIS>(idx)
+         GetKeyRef<THIS>(idx),
+         GetValRef<THIS>(idx)
       };
    }
    
@@ -144,17 +144,17 @@ namespace Langulus::Anyness
    ///   @param i - the key index                                             
    ///   @return a reference to the key                                       
    template<CT::Map THIS> LANGULUS(INLINED)
-   decltype(auto) BlockMap::GetRawKey(Offset i) IF_UNSAFE(noexcept) {
+   decltype(auto) BlockMap::GetRawKey(const Offset i) IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, i < GetReserved(),
          "Index out of limits when accessing map key",
          ", index ", i, " is beyond the reserved ", GetReserved(), " elements");
 
-      if constexpr (CT::TypedMap<THIS>) {
+      if constexpr (CT::Typed<THIS>) {
          using K = typename THIS::Key;
-         LANGULUS_ASSUME(DevAssumes, mKeys.template IsSimilar<K>(),
+         LANGULUS_ASSUME(DevAssumes, (IsKeySimilar<THIS, K>()),
             "Wrong type when accessing map key",
-            ", using type `", NameOf<K>(), "` instead of `", mKeys.GetType(), '`');
-         return GetKeys<THIS>().GetRaw()[i];
+            ", using type `", NameOf<K>(), "` instead of `", GetKeyType(), '`');
+         return GetKeys<THIS>().GetRaw() + i;
       }
       else return GetKeys<THIS>().GetElement(i);
    }
@@ -164,31 +164,64 @@ namespace Langulus::Anyness
       return const_cast<BlockMap*>(this)->template GetRawKey<THIS>(i);
    }
 
+   template<CT::Map THIS> LANGULUS(INLINED)
+   decltype(auto) BlockMap::GetKeyRef(Offset i) IF_UNSAFE(noexcept) {
+      if constexpr (CT::Typed<THIS>)
+         return *GetRawKey<THIS>(i);
+      else
+         return GetRawKey<THIS>(i);
+   }
+
+   template<CT::Map THIS> LANGULUS(INLINED)
+   decltype(auto) BlockMap::GetKeyRef(Offset i) const IF_UNSAFE(noexcept) {
+      if constexpr (CT::Typed<THIS>)
+         return *GetRawKey<THIS>(i);
+      else
+         return GetRawKey<THIS>(i);
+   }
+
    /// Get a value reference                                                  
    ///   @attention assumes index is in container's limits                    
    ///   @attention assumes V is similar to the contained value type          
    ///   @param i - the value index                                           
    ///   @return a reference to the value                                     
    template<CT::Map THIS> LANGULUS(INLINED)
-   decltype(auto) BlockMap::GetRawValue(Offset i) IF_UNSAFE(noexcept) {
+   decltype(auto) BlockMap::GetRawVal(const Offset i) IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, i < GetReserved(),
          "Index out of limits when accessing map value",
          ", index ", i, " is beyond the reserved ", GetReserved(), " elements");
 
-      if constexpr (CT::TypedMap<THIS>) {
+      if constexpr (CT::Typed<THIS>) {
          using V = typename THIS::Value;
-         LANGULUS_ASSUME(DevAssumes, mValues.template IsSimilar<V>(),
+         LANGULUS_ASSUME(DevAssumes, (IsValueSimilar<THIS, V>()),
             "Wrong type when accessing map value",
-            ", using type `", NameOf<V>(), "` instead of `", mValues.GetType(), '`');
-         return GetValues<THIS>().GetRaw()[i];
+            ", using type `", NameOf<V>(), "` instead of `", GetValueType(), '`');
+         return GetVals<THIS>().GetRaw() + i;
       }
-      else return GetValues<THIS>().GetElement(i);
+      else return GetVals<THIS>().GetElement(i);
    }
 
    template<CT::Map THIS> LANGULUS(INLINED)
-   decltype(auto) BlockMap::GetRawValue(Offset i) const IF_UNSAFE(noexcept) {
-      return const_cast<BlockMap*>(this)->template GetRawValue<THIS>(i);
+   decltype(auto) BlockMap::GetRawVal(Offset i) const IF_UNSAFE(noexcept) {
+      return const_cast<BlockMap*>(this)->template GetRawVal<THIS>(i);
    }
+
+   template<CT::Map THIS> LANGULUS(INLINED)
+   decltype(auto) BlockMap::GetValRef(Offset i) IF_UNSAFE(noexcept) {
+      if constexpr (CT::Typed<THIS>)
+         return *GetRawVal<THIS>(i);
+      else
+         return GetRawVal<THIS>(i);
+   }
+
+   template<CT::Map THIS> LANGULUS(INLINED)
+   decltype(auto) BlockMap::GetValRef(Offset i) const IF_UNSAFE(noexcept) {
+      if constexpr (CT::Typed<THIS>)
+         return *GetRawVal<THIS>(i);
+      else
+         return GetRawVal<THIS>(i);
+   }
+
 
    /// Get a key handle if THIS is typed, otherwise get a block               
    ///   @attention assumes index is in container's limits                    
@@ -196,17 +229,17 @@ namespace Langulus::Anyness
    ///   @param i - the key index                                             
    ///   @return the handle                                                   
    template<CT::Map THIS> LANGULUS(INLINED)
-   auto BlockMap::GetKeyHandle(Offset i) const IF_UNSAFE(noexcept) {
+   auto BlockMap::GetKeyHandle(const Offset i) const IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, i < GetReserved(),
          "Index out of limits when accessing map key",
          ", index ", i, " is beyond the reserved ", GetReserved(), " elements");
 
-      if constexpr (CT::TypedMap<THIS>) {
+      if constexpr (CT::Typed<THIS>) {
          using K = typename THIS::Key;
 
-         LANGULUS_ASSUME(DevAssumes, mKeys.template IsSimilar<K>(),
+         LANGULUS_ASSUME(DevAssumes, (IsKeySimilar<THIS, K>()),
             "Wrong type when accessing map key",
-            ", using type `", NameOf<K>(), "` instead of `", mKeys.GetType(), '`');
+            ", using type `", NameOf<K>(), "` instead of `", GetKeyType(), '`');
          return GetKeys<THIS>().GetHandle(i);
       }
       else return GetKeys<THIS>().GetElement(i);
@@ -218,20 +251,20 @@ namespace Langulus::Anyness
    ///   @param i - the value index                                           
    ///   @return the handle                                                   
    template<CT::Map THIS> LANGULUS(INLINED)
-   auto BlockMap::GetValueHandle(Offset i) const IF_UNSAFE(noexcept) {
+   auto BlockMap::GetValHandle(const Offset i) const IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, i < GetReserved(),
          "Index out of limits when accessing map value",
          ", index ", i, " is beyond the reserved ", GetReserved(), " elements");
 
-      if constexpr (CT::TypedMap<THIS>) {
+      if constexpr (CT::Typed<THIS>) {
          using V = typename THIS::Value;
 
-         LANGULUS_ASSUME(DevAssumes, mValues.template IsSimilar<V>(),
+         LANGULUS_ASSUME(DevAssumes, (IsValueSimilar<THIS, V>()),
             "Wrong type when accessing map value",
-            ", using type `", NameOf<V>(), "` instead of `", mValues.GetType(), '`');
-         return GetValues<THIS>().GetHandle(i);
+            ", using type `", NameOf<V>(), "` instead of `", GetValueType(), '`');
+         return GetVals<THIS>().GetHandle(i);
       }
-      else return GetValues<THIS>().GetElement(i);
+      else return GetVals<THIS>().GetElement(i);
    }
 
 } // namespace Langulus::Anyness

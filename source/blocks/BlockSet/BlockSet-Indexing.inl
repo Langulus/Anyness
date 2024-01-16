@@ -24,7 +24,7 @@ namespace Langulus::Anyness
       const auto idx = SimplifyIndex<THIS>(index);
       if (not mInfo[idx])
          LANGULUS_OOPS(OutOfRange, "No element at given index");
-      return GetRaw<THIS>(idx);
+      return GetRef<THIS>(idx);
    }
 
    template<CT::Set THIS> LANGULUS(INLINED)
@@ -42,12 +42,12 @@ namespace Langulus::Anyness
          "Index out of limits when accessing set",
          ", index ", i, " is beyond the reserved ", GetReserved(), " elements");
 
-      if constexpr (CT::TypedSet<THIS>) {
+      if constexpr (CT::Typed<THIS>) {
          using K = TypeOf<THIS>;
-         LANGULUS_ASSUME(DevAssumes, mKeys.template IsSimilar<K>(),
+         LANGULUS_ASSUME(DevAssumes, (IsSimilar<THIS, K>()),
             "Wrong type when accessing set",
-            ", using type `", NameOf<K>(), "` instead of `", mKeys.GetType(), '`');
-         return GetValues<THIS>().GetRaw()[i];
+            ", using type `", NameOf<K>(), "` instead of `", GetType(), '`');
+         return GetValues<THIS>().GetRaw() + i;
       }
       else return GetValues<THIS>().GetElement(i);
    }
@@ -55,6 +55,23 @@ namespace Langulus::Anyness
    template<CT::Set THIS> LANGULUS(INLINED)
    decltype(auto) BlockSet::GetRaw(const Offset i) const IF_UNSAFE(noexcept) {
       return const_cast<BlockSet*>(this)->template GetRaw<THIS>(i);
+   }
+
+   /// Get a key ref by an unsafe offset                                      
+   ///   @attention assumes index is in container's limits                    
+   ///   @param i - the offset to use                                         
+   ///   @return the element, wrapped in a Block                              
+   template<CT::Set THIS> LANGULUS(INLINED)
+   decltype(auto) BlockSet::GetRef(const Offset i) IF_UNSAFE(noexcept) {
+      if constexpr (CT::Typed<THIS>)
+         return *GetRaw(i);
+      else
+         return GetRaw(i);
+   }
+
+   template<CT::Set THIS> LANGULUS(INLINED)
+   decltype(auto) BlockSet::GetRef(const Offset i) const IF_UNSAFE(noexcept) {
+      return const_cast<BlockSet*>(this)->template GetRef<THIS>(i);
    }
 
    /// Get the bucket index, based on the provided value's hash               
@@ -85,11 +102,11 @@ namespace Langulus::Anyness
          "Index out of limits when accessing map key",
          ", index ", i, " is beyond the reserved ", GetReserved(), " elements");
 
-      if constexpr (CT::TypedSet<THIS>) {
+      if constexpr (CT::Typed<THIS>) {
          using K = TypeOf<THIS>;
-         LANGULUS_ASSUME(DevAssumes, mKeys.template IsSimilar<K>(),
+         LANGULUS_ASSUME(DevAssumes, (IsSimilar<THIS, K>()),
             "Wrong type when accessing map key",
-            ", using type `", NameOf<K>(), "` instead of `", mKeys.GetType(), '`');
+            ", using type `", NameOf<K>(), "` instead of `", GetType(), '`');
          return GetValues<THIS>().GetHandle(i);
       }
       else return GetValues<THIS>().GetElement(i);

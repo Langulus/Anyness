@@ -126,8 +126,8 @@ namespace Langulus::Anyness
          if (mType->mIsSparse) {
             // Iterate using pointers of A                              
             using DA = Conditional<CT::Mutable<THIS>, Decay<A>*, const Decay<A>*>;
-            IterateInner<THIS, R, DA, REVERSE>(
-               mCount, [&index, &f](DA element) noexcept(NOE) -> R {
+            IterateInner<THIS, R, DA, REVERSE>(mCount,
+               [&index, &f](DA element) noexcept(NOE) -> R {
                   ++index;
                   if constexpr (CT::Sparse<A>)  return f(element);
                   else                          return f(*element);
@@ -137,8 +137,8 @@ namespace Langulus::Anyness
          else {
             // Iterate using references of A                            
             using DA = Conditional<CT::Mutable<THIS>, Decay<A>&, const Decay<A>&>;
-            IterateInner<THIS, R, DA, REVERSE>(
-               mCount, [&index, &f](DA element) noexcept(NOE) -> R {
+            IterateInner<THIS, R, DA, REVERSE>(mCount,
+               [&index, &f](DA element) noexcept(NOE) -> R {
                   ++index;
                   if constexpr (CT::Sparse<A>)  return f(&element);
                   else                          return f(element);
@@ -373,9 +373,6 @@ namespace Langulus::Anyness
       return const_cast<Block*>(this)->last<THIS>();
    }
 
-
-
-
    /// Construct an iterator                                                  
    ///   @param start - the current iterator position                         
    ///   @param end - the ending marker                                       
@@ -427,7 +424,7 @@ namespace Langulus::Anyness
    template<class T> LANGULUS(INLINED)
    constexpr decltype(auto) Block::Iterator<T>::operator -> () const noexcept {
       if constexpr (CT::Typed<T>)
-         return mValue;
+         return *mValue;
       else
          return &mValue;
    }

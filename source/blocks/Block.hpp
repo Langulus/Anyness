@@ -384,12 +384,12 @@ namespace Langulus::Anyness
       // and relies on Verbs::Interpret                                 
       // If you receive missing externals, include the following:       
       //    #include <Flow/Verbs/Interpret.hpp>                         
-      template<CT::Data T, bool FATAL_FAILURE = true>
+      template<CT::Data T, bool FATAL_FAILURE = true, CT::Block = Any>
       NOD() T AsCast(CT::Index auto) const;
 
-      template<CT::Data T, bool FATAL_FAILURE = true>
+      template<CT::Data T, bool FATAL_FAILURE = true, CT::Block THIS = Any>
       NOD() LANGULUS(INLINED) T AsCast() const {
-         return AsCast<T, FATAL_FAILURE>(0);
+         return AsCast<T, FATAL_FAILURE, THIS>(0);
       }
    
       template<CT::Block THIS> NOD() IF_UNSAFE(constexpr)
@@ -397,17 +397,14 @@ namespace Langulus::Anyness
       template<CT::Block THIS> NOD() IF_UNSAFE(constexpr)
       THIS Crop(Offset, Count) const IF_UNSAFE(noexcept);
 
-      NOD() Block GetElementDense(Offset);
-      NOD() Block GetElementDense(Offset) const;
+      NOD() Block GetElementDense(Offset = 0);
+      NOD() Block GetElementDense(Offset = 0) const;
    
-      NOD() Block GetElementResolved(Offset);
-      NOD() Block GetElementResolved(Offset) const;
+      NOD() Block GetElementResolved(Offset = 0);
+      NOD() Block GetElementResolved(Offset = 0) const;
    
-      NOD() Block GetElement(Offset)       IF_UNSAFE(noexcept);
-      NOD() Block GetElement(Offset) const IF_UNSAFE(noexcept);
-   
-      NOD() Block GetElement()       IF_UNSAFE(noexcept);
-      NOD() Block GetElement() const IF_UNSAFE(noexcept);
+      NOD() Block GetElement(Offset = 0)       IF_UNSAFE(noexcept);
+      NOD() Block GetElement(Offset = 0) const IF_UNSAFE(noexcept);
    
       template<CT::Block = Any>
       NOD() Block*       GetBlockDeep(Offset) noexcept;
@@ -420,14 +417,14 @@ namespace Langulus::Anyness
       NOD() Block GetElementDeep(Offset) const noexcept;
 
       template<CT::BlockBased = Any>
-      NOD() Block GetResolved();
+      NOD() Any GetResolved();
       template<CT::BlockBased = Any>
-      NOD() Block GetResolved() const;
+      NOD() Any GetResolved() const;
 
       template<Count = CountMax>
-      NOD() Block GetDense();
+      NOD() Any GetDense();
       template<Count = CountMax>
-      NOD() Block GetDense() const;
+      NOD() Any GetDense() const;
 
       template<CT::Block = Any>
       void SwapIndices(CT::Index auto, CT::Index auto);
@@ -522,26 +519,29 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   RTTI                                                              
       ///                                                                     
-      template<CT::Data, CT::Data...>
-      NOD() bool Is() const;
+      template<CT::Block, CT::Data, CT::Data...>
+      NOD() constexpr bool Is() const noexcept;
+      template<CT::Block = Any>
       NOD() bool Is(DMeta) const noexcept;
 
-      template<CT::Data, CT::Data...>
-      NOD() bool IsSimilar() const;
+      template<CT::Block, CT::Data, CT::Data...>
+      NOD() constexpr bool IsSimilar() const noexcept;
+      template<CT::Block = Any>
       NOD() bool IsSimilar(DMeta) const noexcept;
 
-      template<CT::Data, CT::Data...>
-      NOD() bool IsExact() const;
+      template<CT::Block, CT::Data, CT::Data...>
+      NOD() constexpr bool IsExact() const noexcept;
+      template<CT::Block = Any>
       NOD() bool IsExact(DMeta) const noexcept;
 
-      template<bool BINARY_COMPATIBLE = false>
+      template<bool BINARY_COMPATIBLE = false, CT::Block = Any>
       NOD() bool CastsToMeta(DMeta) const;
-      template<bool BINARY_COMPATIBLE = false>
+      template<bool BINARY_COMPATIBLE = false, CT::Block = Any>
       NOD() bool CastsToMeta(DMeta, Count) const;
 
-      template<CT::Data, bool BINARY_COMPATIBLE = false>
+      template<CT::Data, bool BINARY_COMPATIBLE = false, CT::Block = Any>
       NOD() bool CastsTo() const;
-      template<CT::Data, bool BINARY_COMPATIBLE = false>
+      template<CT::Data, bool BINARY_COMPATIBLE = false, CT::Block = Any>
       NOD() bool CastsTo(Count) const;
 
       template<CT::Block>
@@ -549,9 +549,9 @@ namespace Langulus::Anyness
       template<CT::Block, CT::Data T>
       NOD() TAny<T> ReinterpretAs() const;
 
-      template<CT::Block>
+      template<CT::Block = Any>
       NOD() Block GetMember(const RTTI::Member&, CT::Index auto);
-      template<CT::Block>
+      template<CT::Block = Any>
       NOD() Block GetMember(const RTTI::Member&, CT::Index auto) const;
    
       template<bool CONSTRAIN = false, CT::Block = Any>
@@ -560,9 +560,9 @@ namespace Langulus::Anyness
       void SetType();
 
    protected:
-      template<CT::Block THIS, CT::Data, class FORCE = Any>
+      template<CT::Block, CT::Data, class FORCE = Any>
       bool Mutate();
-      template<CT::Block THIS, class FORCE = Any>
+      template<CT::Block, class FORCE = Any>
       bool Mutate(DMeta);
 
       template<CT::Block>
@@ -598,6 +598,13 @@ namespace Langulus::Anyness
 
       template<bool ASCEND = false, CT::Block = Any>
       void Sort();
+
+      template<CT::Block>
+      NOD() bool CompareLoose(const CT::Block auto&) const noexcept;
+      template<CT::Block>
+      NOD() Count Matches(const CT::Block auto&) const noexcept;
+      template<CT::Block>
+      NOD() Count MatchesLoose(const CT::Block auto&) const noexcept;
 
    protected:
       template<CT::Block>
@@ -717,10 +724,10 @@ namespace Langulus::Anyness
       template<CT::Block>
       void CreateDefault() const;
 
-      template<CT::Block>
-      void CreateDescribe(Describe&&) const;
+      template<CT::Block, class...A>
+      void CreateDescribe(A&&...) const;
 
-      template<CT::Block THIS, class...A>
+      template<CT::Block, class...A>
       void Create(A&&...) const;
 
       template<CT::Block = Any, bool REVERSE = false, template<class> class S, CT::Block T>
@@ -783,7 +790,7 @@ namespace Langulus::Anyness
       ///                                                                     
       // Intentionally undefined, because it requires Langulus::Flow    
       // and relies on Verbs::Interpret                                 
-      template<bool ENSCOPE = true, CT::Block TO, CT::Block TO_ORIGINAL = TO>
+      template<bool ENSCOPE = true, CT::Block TO, CT::Block TO_ORIGINAL = TO, CT::Block THIS>
       NOD() Count Serialize(TO&) const;
 
       ///                                                                     

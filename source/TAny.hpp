@@ -161,12 +161,6 @@ namespace Langulus::Anyness
       NOD() decltype(auto) GetHandle(Offset)       IF_UNSAFE(noexcept);
       NOD() decltype(auto) GetHandle(Offset) const IF_UNSAFE(noexcept);
 
-      /*NOD() Block*       GetBlockDeep(Offset) noexcept;
-      NOD() Block const* GetBlockDeep(Offset) const noexcept;
-
-      NOD() Block GetElementDeep(Offset) noexcept;
-      NOD() Block GetElementDeep(Offset) const noexcept;*/
-
       NOD() TAny Crop(Offset, Count) const;
       NOD() TAny Crop(Offset, Count);
 
@@ -182,32 +176,23 @@ namespace Langulus::Anyness
       NOD() ConstIterator last() const noexcept;
 
       template<bool REVERSE = false>
+      Count ForEachElement(auto&&);
+      template<bool REVERSE = false>
       Count ForEachElement(auto&&) const;
 
+      template<bool REVERSE = false>
+      Count ForEach(auto&&...);
       template<bool REVERSE = false>
       Count ForEach(auto&&...) const;
 
       template<bool REVERSE = false, bool SKIP = true>
+      Count ForEachDeep(auto&&...);
+      template<bool REVERSE = false, bool SKIP = true>
       Count ForEachDeep(auto&&...) const;
-
-      Count ForEachElementRev(auto&&...) const;
-
-      Count ForEachRev(auto&&...) const;
-
-      template<bool SKIP = true>
-      Count ForEachDeepRev(auto&&...) const;
 
       ///                                                                     
       ///   RTTI                                                              
       ///                                                                     
-      NOD() bool CastsToMeta(DMeta) const;
-      NOD() bool CastsToMeta(DMeta, Count) const;
-
-      template<CT::Data>
-      NOD() bool CastsTo() const;
-      template<CT::Data>
-      NOD() bool CastsTo(Count) const;
-
       template<CT::Data, CT::Data...>
       NOD() constexpr bool Is() const noexcept;
       NOD() bool Is(DMeta) const noexcept;
@@ -219,6 +204,22 @@ namespace Langulus::Anyness
       template<CT::Data, CT::Data...>
       NOD() constexpr bool IsExact() const noexcept;
       NOD() bool IsExact(DMeta) const noexcept;
+
+      template<bool BINARY_COMPATIBLE = false>
+      NOD() bool CastsToMeta(DMeta) const;
+      template<bool BINARY_COMPATIBLE = false>
+      NOD() bool CastsToMeta(DMeta, Count) const;
+
+      template<CT::Data, bool BINARY_COMPATIBLE = false>
+      NOD() bool CastsTo() const;
+      template<CT::Data, bool BINARY_COMPATIBLE = false>
+      NOD() bool CastsTo(Count) const;
+
+      NOD() auto    ReinterpretAs(const CT::Block auto&) const;
+      NOD() TAny<T> ReinterpretAs() const;
+
+      NOD() Block GetMember(const RTTI::Member&, CT::Index auto);
+      NOD() Block GetMember(const RTTI::Member&, CT::Index auto) const;
 
       ///                                                                     
       ///   Comparison                                                        
@@ -364,10 +365,10 @@ namespace Langulus::Anyness
       using Any::GetResolved;
       using Any::GetDense;
       using Any::GetBlockDeep;
-      using Any::GetElementDeep;
-      using Any::GetElement;
-      using Any::GetElementResolved;
-      using Any::GetElementDense;
+      //using Any::GetElementDeep;
+      //using Any::GetElement;
+      //using Any::GetElementResolved;
+      //using Any::GetElementDense;
    };
 
 } // namespace Langulus::Anyness

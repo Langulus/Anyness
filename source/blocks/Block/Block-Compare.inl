@@ -82,7 +82,7 @@ namespace Langulus::Anyness
             return false;
 
          if constexpr (CT::Typed<THIS>)
-            return Compare<RESOLVE, THIS>(reinterpret_cast<THIS&>(right));
+            return Compare<RESOLVE, THIS>(reinterpret_cast<const THIS&>(right));
          else
             return Compare<RESOLVE, RHS>(right);
       }
@@ -179,7 +179,6 @@ namespace Langulus::Anyness
             // are of the same density, of course                       
             VERBOSE("Batch-comparing POD memory / pointers");
             const auto code = memcmp(mRaw, right.mRaw, GetBytesize<THIS>());
-
             if (code != 0) {
                VERBOSE(Logger::Red, "POD/pointers are not the same ", Logger::Yellow, "(fast)");
                return false;
@@ -748,6 +747,76 @@ namespace Langulus::Anyness
       const auto inserted = output.InsertBlock(IndexBack, Abandon(localOutput));
       localOutput.Free<Any>();
       return inserted;
+   }
+   
+   /// Compare loosely with another TAny, ignoring case                       
+   /// This function applies only if T is character                           
+   ///   @param other - text to compare with                                  
+   ///   @return true if both containers match loosely                        
+   template<CT::Block THIS> LANGULUS(INLINED)
+   bool Block::CompareLoose(const CT::Block auto& other) const noexcept {
+      return MatchesLoose<THIS>(other) == mCount;
+   }
+
+   /// Count how many consecutive elements match in two containers            
+   ///   @param other - container to compare with                             
+   ///   @return the number of matching items                                 
+   template<CT::Block THIS> LANGULUS(INLINED)
+   Count Block::Matches(const CT::Block auto& other) const noexcept {
+      using OTHER = Deref<decltype(other)>;
+
+      if constexpr (CT::Typed<THIS> and CT::Typed<OTHER>) {
+         using T1 = TypeOf<THIS>;
+         using T2 = TypeOf<OTHER>;
+
+         if constexpr (CT::Inner::Comparable<T1, T2>) {
+            if constexpr (CT::Similar<T1, T2>) {
+               if (mRaw == other.mRaw)
+                  return ::std::min(mCount, other.mCount);
+            }
+
+            auto t1 = GetRaw<THIS>();
+            auto t2 = other.template GetRaw<OTHER>();
+            const auto t1end = GetRawEnd<THIS>();
+            const auto t2end = other.template GetRawEnd<OTHER>();
+            while (t1 != t1end and t2 != t2end and *t1 == *(t2++))
+               ++t1;
+            return t1 - GetRaw();
+         }
+         else return false;
+      }
+      else TODO();
+   }
+
+   /// Compare loosely with another, ignoring upper-case                      
+   /// Count how many consecutive letters match in two strings                
+   ///   @param other - text to compare with                                  
+   ///   @return the number of matching symbols                               
+   template<CT::Block THIS> LANGULUS(INLINED)
+   Count Block::MatchesLoose(const CT::Block auto& other) const noexcept {
+      using OTHER = Deref<decltype(other)>;
+
+      if constexpr (CT::Typed<THIS> and CT::Typed<OTHER>) {
+         using T1 = TypeOf<THIS>;
+         using T2 = TypeOf<OTHER>;
+
+         if constexpr (CT::Character<T1> and CT::Similar<T1, T2>) {
+            if (mRaw == other.mRaw)
+               return mCount == other.mCount;
+            else if (mCount != other.mCount)
+               return false;
+
+            auto t1 = GetRaw<THIS>();
+            auto t2 = other.template GetRaw<THIS>();
+            const auto tend = GetRawEnd<THIS>();
+            while (t1 < tend and ::std::tolower(*t1)
+                              == ::std::tolower(*(t2++)))
+               ++t1;
+            return GetRaw<THIS>() - t1;
+         }
+         else TODO();
+      }
+      else TODO();
    }
 
 } // namespace Langulus::Anyness

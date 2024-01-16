@@ -173,6 +173,11 @@ namespace Langulus::Anyness
       NOD() decltype(auto) GetRaw(Offset) const IF_UNSAFE(noexcept);
 
       template<CT::Set = UnorderedSet>
+      NOD() decltype(auto) GetRef(Offset)       IF_UNSAFE(noexcept);
+      template<CT::Set = UnorderedSet>
+      NOD() decltype(auto) GetRef(Offset) const IF_UNSAFE(noexcept);
+
+      template<CT::Set = UnorderedSet>
       NOD() auto GetHandle(Offset) const IF_UNSAFE(noexcept);
 
    public:
@@ -218,16 +223,19 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   RTTI                                                              
       ///                                                                     
-      template<CT::Data, CT::Data...>
-      NOD() bool Is() const noexcept;
+      template<CT::Set, CT::Data, CT::Data...>
+      NOD() constexpr bool Is() const noexcept;
+      template<CT::Set>
       NOD() bool Is(DMeta) const noexcept;
 
-      template<CT::Data, CT::Data...>
-      NOD() bool IsSimilar() const noexcept;
+      template<CT::Set, CT::Data, CT::Data...>
+      NOD() constexpr bool IsSimilar() const noexcept;
+      template<CT::Set>
       NOD() bool IsSimilar(DMeta) const noexcept;
 
-      template<CT::Data, CT::Data...>
-      NOD() bool IsExact() const noexcept;
+      template<CT::Set, CT::Data, CT::Data...>
+      NOD() constexpr bool IsExact() const noexcept;
+      template<CT::Set>
       NOD() bool IsExact(DMeta) const noexcept;
 
    protected:
@@ -367,7 +375,7 @@ namespace Langulus::Anyness
       using InnerT = Conditional<CT::Typed<SET>, T*, Block>;
 
       const InfoType* mInfo;
-      const InfoType* const mSentinel;
+      const InfoType* mSentinel;
       InnerT mKey;
 
       constexpr Iterator(const InfoType*, const InfoType*, const InnerT&) noexcept;
@@ -377,6 +385,9 @@ namespace Langulus::Anyness
       constexpr Iterator(const Iterator&) noexcept = default;
       constexpr Iterator(Iterator&&) noexcept = default;
       constexpr Iterator(const A::IteratorEnd&) noexcept;
+
+      constexpr Iterator& operator = (const Iterator&) noexcept = default;
+      constexpr Iterator& operator = (Iterator&&) noexcept = default;
 
       NOD() constexpr bool operator == (const Iterator&) const noexcept;
       NOD() constexpr bool operator == (const A::IteratorEnd&) const noexcept;

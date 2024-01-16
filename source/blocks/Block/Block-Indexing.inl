@@ -238,29 +238,6 @@ namespace Langulus::Anyness
       return result;
    }
 
-   /// Get first element block (unsafe)                                       
-   ///   @return the first element's block                                    
-   LANGULUS(INLINED)
-   Block Block::GetElement() IF_UNSAFE(noexcept) {
-      LANGULUS_ASSUME(DevAssumes, mRaw,
-         "Invalid memory");
-      LANGULUS_ASSUME(DevAssumes, mCount > 0,
-         "Block is empty");
-
-      Block result {*this};
-      result.mState += DataState::Static;
-      result.mState -= DataState::Or;
-      result.mCount = 1;
-      return result;
-   }
-
-   LANGULUS(INLINED)
-   Block Block::GetElement() const IF_UNSAFE(noexcept) {
-      auto result = const_cast<Block*>(this)->GetElement();
-      result.MakeConst();
-      return result;
-   }
-
    /// Get a deep memory sub-block                                            
    ///   @param index - the index to get, indices are mapped as the following:
    ///      0 always refers to this block                                     
@@ -289,11 +266,11 @@ namespace Langulus::Anyness
       auto data = GetRawAs<Block, THIS>();
       const auto dataEnd = data + mCount;
       while (data != dataEnd) {
-         const auto subpack = data->GetBlockDeep<Block>(index + 1); //TODO can be optimized further with typed THIS
+         const auto subpack = data->template GetBlockDeep<Block>(index + 1); //TODO can be optimized further with typed THIS
          if (subpack)
             return subpack;
 
-         index -= data->GetCountDeep<Block>() - 1; //TODO excess loops here, should be retrieved from GetElementDeep above as an optimization
+         index -= data->template GetCountDeep<Block>() - 1; //TODO excess loops here, should be retrieved from GetElementDeep above as an optimization
          ++data;
       }
 
@@ -316,11 +293,11 @@ namespace Langulus::Anyness
       auto data = GetRawAs<Block, THIS>();
       const auto dataEnd = data + mCount;
       while (data != dataEnd) {
-         const auto subpack = data->GetElementDeep<Block>(index); //TODO can be optimized further with typed THIS
+         const auto subpack = data->template GetElementDeep<Block>(index); //TODO can be optimized further with typed THIS
          if (subpack)
             return subpack;
 
-         index -= data->GetCountElementsDeep<Block>(); //TODO excess loops here, should be retrieved from GetElementDeep above as an optimization
+         index -= data->template GetCountElementsDeep<Block>(); //TODO excess loops here, should be retrieved from GetElementDeep above as an optimization
          ++data;
       }
 
@@ -338,7 +315,7 @@ namespace Langulus::Anyness
    ///   @attention assumes this block is valid and has at least one element  
    ///   @return the mutable resolved first element                           
    template<CT::BlockBased THIS> LANGULUS(INLINED)
-   Block Block::GetResolved() {
+   Any Block::GetResolved() {
       LANGULUS_ASSUME(DevAssumes, IsTyped<THIS>(),
          "Block is not typed");
       LANGULUS_ASSUME(DevAssumes, mCount > 0,
@@ -351,7 +328,7 @@ namespace Langulus::Anyness
    }
 
    template<CT::BlockBased THIS> LANGULUS(INLINED)
-   Block Block::GetResolved() const {
+   Any Block::GetResolved() const {
       auto result = const_cast<Block*>(this)->GetResolved<THIS>();
       result.MakeConst();
       return result;
@@ -363,7 +340,7 @@ namespace Langulus::Anyness
    ///   @tparam COUNT - how many levels of indirection to remove?            
    ///   @return the mutable denser first element                             
    template<Count COUNT> LANGULUS(INLINED)
-   Block Block::GetDense() {
+   Any Block::GetDense() {
       static_assert(COUNT > 0, "COUNT must be greater than 0");
 
       LANGULUS_ASSUME(DevAssumes, IsTyped<Block>(),
@@ -387,7 +364,7 @@ namespace Langulus::Anyness
    }
 
    template<Count COUNT> LANGULUS(INLINED)
-   Block Block::GetDense() const {
+   Any Block::GetDense() const {
       auto result = const_cast<Block*>(this)->GetDense<COUNT>();
       result.MakeConst();
       return result;
@@ -424,7 +401,7 @@ namespace Langulus::Anyness
       using S = SemanticOf<T>;
       LANGULUS_ASSUME(DevAssumes, mCount and DesemCast(rhs).mCount == mCount,
          "Invalid count");
-      LANGULUS_ASSUME(DevAssumes, GetType<THIS>() &= DesemCast(rhs).GetType(),
+      LANGULUS_ASSUME(DevAssumes, GetType<THIS>() |= DesemCast(rhs).GetType(),
          "Type mismatch");
 
       using B = Conditional<CT::Typed<THIS>, THIS, TypeOf<S>>;

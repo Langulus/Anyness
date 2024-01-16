@@ -229,96 +229,96 @@ namespace Langulus::Anyness
    ///   @tparam K1, KN... - the list of types to compare against             
    ///   @return true if key type matches at least one of the others          
    TEMPLATE() template<CT::Data K1, CT::Data...KN> LANGULUS(INLINED)
-   constexpr bool TABLE()::KeyIs() const noexcept {
-      return CT::SameAsOneOf<K, K1, KN...>;
+   constexpr bool TABLE()::IsKey() const noexcept {
+      return BlockMap::IsKey<TMap, K1, KN...>();
    }
 
    /// Check if key origin type matches another                               
    ///   @param key - the key type to compare against                         
    ///   @return true if key matches the contained key origin type            
    TEMPLATE() LANGULUS(INLINED)
-   constexpr bool TABLE()::KeyIs(DMeta key) const noexcept {
-      return GetKeyType()->Is(key);
+   bool TABLE()::IsKey(DMeta key) const noexcept {
+      return BlockMap::IsKey<TMap>(key);
    }
 
    /// Check if cv-unqualified key type matches any of the list               
    ///   @tparam K1, KN... - the list of types to compare against             
    ///   @return true if key type matches at least one of the others          
    TEMPLATE() template<CT::Data K1, CT::Data...KN> LANGULUS(INLINED)
-   constexpr bool TABLE()::KeyIsSimilar() const noexcept {
-      return CT::SimilarAsOneOf<K, K1, KN...>;
+   constexpr bool TABLE()::IsKeySimilar() const noexcept {
+      return BlockMap::IsKeySimilar<TMap, K1, KN...>();
    }
 
    /// Check if cv-unqualified key type matches another                       
    ///   @param key - the key type to compare against                         
    ///   @return true if key matches the contained key unqualified type       
    TEMPLATE() LANGULUS(INLINED)
-   constexpr bool TABLE()::KeyIsSimilar(DMeta key) const noexcept {
-      return GetKeyType()->IsSimilar(key);
+   bool TABLE()::IsKeySimilar(DMeta key) const noexcept {
+      return BlockMap::IsKeySimilar<TMap>(key);
    }
 
    /// Check if key type exactly matches any of the list                      
    ///   @tparam K1, KN... - the list of types to compare against             
    ///   @return true if key type matches at least one of the others          
    TEMPLATE() template<CT::Data K1, CT::Data...KN> LANGULUS(INLINED)
-   constexpr bool TABLE()::KeyIsExact() const noexcept {
-      return CT::ExactAsOneOf<K, K1, KN...>;
+   constexpr bool TABLE()::IsKeyExact() const noexcept {
+      return BlockMap::IsKeyExact<TMap, K1, KN...>();
    }
 
    /// Check if key type exactly matches any of the list                      
    ///   @param key - the key type to compare against                         
    ///   @return true if key matches the contained key unqualified type       
    TEMPLATE() LANGULUS(INLINED)
-   constexpr bool TABLE()::KeyIsExact(DMeta key) const noexcept {
-      return GetKeyType()->IsExact(key);
+   bool TABLE()::IsKeyExact(DMeta key) const noexcept {
+      return BlockMap::IsKeyExact<TMap>(key);
    }
 
    /// Check if value origin type matches any of the list                     
    ///   @tparam V1, VN... - the list of types to compare against             
    ///   @return true if value type matches at least one of the others        
    TEMPLATE() template<CT::Data V1, CT::Data...VN> LANGULUS(INLINED)
-   constexpr bool TABLE()::ValueIs() const noexcept {
-      return CT::SameAsOneOf<V, V1, VN...>;
+   constexpr bool TABLE()::IsValue() const noexcept {
+      return BlockMap::IsValue<TMap, V1, VN...>();
    }
 
    /// Check if value origin type matches another                             
    ///   @param value - the value type to compare against                     
    ///   @return true if value matches the contained key origin type          
    TEMPLATE() LANGULUS(INLINED)
-   constexpr bool TABLE()::ValueIs(DMeta value) const noexcept {
-      return GetValueType()->Is(value);
+   bool TABLE()::IsValue(DMeta value) const noexcept {
+      return BlockMap::IsValue<TMap>(value);
    }
 
    /// Check if cv-unqualified value type matches any of the list             
    ///   @tparam V1, VN... - the list of types to compare against             
    ///   @return true if value type matches at least one of the others        
    TEMPLATE() template<CT::Data V1, CT::Data...VN> LANGULUS(INLINED)
-   constexpr bool TABLE()::ValueIsSimilar() const noexcept {
-      return CT::SimilarAsOneOf<V, V1, VN...>;
+   constexpr bool TABLE()::IsValueSimilar() const noexcept {
+      return BlockMap::IsValueSimilar<TMap, V1, VN...>();
    }
 
    /// Check if cv-unqualified value type matches another                     
    ///   @param value - the value type to compare against                     
    ///   @return true if value matches the contained value unqualified type   
    TEMPLATE() LANGULUS(INLINED)
-   constexpr bool TABLE()::ValueIsSimilar(DMeta value) const noexcept {
-      return GetValueType()->IsSimilar(value);
+   bool TABLE()::IsValueSimilar(DMeta value) const noexcept {
+      return BlockMap::IsValueSimilar<TMap>(value);
    }
 
    /// Check if value type exactly matches any of the list                    
    ///   @tparam V1, VN... - the list of types to compare against             
    ///   @return true if value type matches at least one of the others        
    TEMPLATE() template<CT::Data V1, CT::Data...VN> LANGULUS(INLINED)
-   constexpr bool TABLE()::ValueIsExact() const noexcept {
-      return CT::ExactAsOneOf<V, V1, VN...>;
+   constexpr bool TABLE()::IsValueExact() const noexcept {
+      return BlockMap::IsValueExact<TMap, V1, VN...>();
    }
 
    /// Check if value type exactly matches any of the list                    
    ///   @param value - the value type to compare against                     
    ///   @return true if value matches the contained value unqualified type   
    TEMPLATE() LANGULUS(INLINED)
-   constexpr bool TABLE()::ValueIsExact(DMeta value) const noexcept {
-      return GetValueType()->IsExact(value);
+   bool TABLE()::IsValueExact(DMeta value) const noexcept {
+      return BlockMap::IsValueExact<TMap>(value);
    }
 
    /// Checks type compatibility and sets type for the type-erased map        
@@ -376,47 +376,13 @@ namespace Langulus::Anyness
       return inserted;
    }
 
-   /// Insert a block of pair(s)                                              
-   ///   @param pairs - the block of pairs, semantic or not                   
-   ///   @return the number of inserted pairs                                 
-   TEMPLATE() LANGULUS(INLINED)
-   Count TABLE()::InsertPairBlock(auto&& pairs) {
-      using S = SemanticOf<decltype(pairs)>;
-      using SB = TypeOf<S>;
-      static_assert(CT::Block<SB>, "Pairs must be inside a block type");
-      Count inserted = 0;
-
-      if constexpr (not CT::Typed<SB>) {
-         // Insert pairs from a type-erased block...                    
-         if (DesemCast(pairs).template CastsTo<Anyness::Pair>()) {
-            // ...as type-erased pairs                                  
-            DesemCast(pairs).ForEach([&](const Anyness::Pair& p) {
-               inserted += InsertPair(S::Nest(const_cast<Anyness::Pair&>(p)));
-            });
-         }
-         else if (DesemCast(pairs).template CastsTo<Pair>()) {
-            // ...as exactly typed pairs                                
-            DesemCast(pairs).ForEach([&](const Pair& p) {
-               inserted += InsertPair(S::Nest(const_cast<Pair&>(p)));
-            });
-         }
-      }
-      else if constexpr (CT::Pair<TypeOf<SB>>) {
-         // Insert pairs from a statically-typed block                  
-         for (auto& p : DesemCast(pairs))
-            inserted += InsertPair(S::Nest(p));
-      }
-
-      return inserted;
-   }
-
    /// Insert pair                                                            
    ///   @param pair - the pair to insert                                     
    ///   @return a reference to this map for chaining                         
    TEMPLATE() template<class T1>
    requires CT::Inner::UnfoldMakableFrom<TPair<K, V>, T1> LANGULUS(INLINED)
    TABLE()& TABLE()::operator << (T1&& pair) {
-      InsertPair(pair.Forward());
+      InsertPair(Forward<T1>(pair));
       return *this;
    }
 
@@ -426,7 +392,7 @@ namespace Langulus::Anyness
    TEMPLATE() template<class T1>
    requires CT::Inner::UnfoldMakableFrom<TPair<K, V>, T1> LANGULUS(INLINED)
    TABLE()& TABLE()::operator >> (T1&& pair) {
-      InsertPair(pair.Forward());
+      InsertPair(Forward<T1>(pair));
       return *this;
    }
 
@@ -515,11 +481,6 @@ namespace Langulus::Anyness
    void TABLE()::Compact() {
       return BlockMap::Compact<TMap>();
    }
-
-
-   ///                                                                        
-   ///   Comparison                                                           
-   ///                                                                        
    
    /// Compare this map against another map, type-erased or not               
    ///   @param rhs - map to compare against                                  
@@ -539,29 +500,37 @@ namespace Langulus::Anyness
       return BlockMap::operator == <TMap> (rhs);
    }
 
+   /// Hash the contents of map                                               
+   ///   @attention hashing is slow, it is recommended to cache the value     
+   ///   @return the cache                                                    
+   TEMPLATE() LANGULUS(INLINED)
+   Hash TABLE()::GetHash() const {
+      return BlockMap::GetHash<TMap>();
+   }
+
    /// Search for a key inside the table                                      
    ///   @param key - the key to search for                                   
    ///   @return true if key is found, false otherwise                        
    TEMPLATE() template<CT::NotSemantic K1>
-   requires ::std::equality_comparable_with<K, K1> LANGULUS(INLINED)
+   requires CT::Inner::Comparable<K, K1> LANGULUS(INLINED)
    bool TABLE()::ContainsKey(K1 const& key) const {
       return BlockMap::ContainsKey<TMap>(key);
    }
 
    /// Search for a value inside the table                                    
-   ///   @param match - the value to search for                               
+   ///   @param val - the value to search for                                 
    ///   @return true if value is found, false otherwise                      
    TEMPLATE() template<CT::NotSemantic V1>
-   requires ::std::equality_comparable_with<V, V1> LANGULUS(INLINED)
-   bool TABLE()::ContainsValue(V1 const& match) const {
-      return BlockMap::ContainsValue<TMap>(match);
+   requires CT::Inner::Comparable<V, V1> LANGULUS(INLINED)
+   bool TABLE()::ContainsValue(V1 const& val) const {
+      return BlockMap::ContainsValue<TMap>(val);
    }
 
    /// Search for a pair inside the table                                     
    ///   @param pair - the pair to search for                                 
    ///   @return true if pair is found, false otherwise                       
    TEMPLATE() template<CT::Pair P>
-   requires ::std::equality_comparable_with<TPair<K, V>, P>
+   requires CT::Inner::Comparable<TPair<K, V>, P>
    LANGULUS(INLINED) bool TABLE()::ContainsPair(P const& pair) const {
       return BlockMap::ContainsPair<TMap>(pair);
    }
@@ -570,7 +539,7 @@ namespace Langulus::Anyness
    ///   @param key - the key to search for                                   
    ///   @return the index if key was found, or IndexNone if not              
    TEMPLATE() template<CT::NotSemantic K1>
-   requires ::std::equality_comparable_with<K, K1> LANGULUS(INLINED)
+   requires CT::Inner::Comparable<K, K1> LANGULUS(INLINED)
    Index TABLE()::Find(K1 const& key) const {
       return BlockMap::Find<TMap>(key);
    }
@@ -579,16 +548,13 @@ namespace Langulus::Anyness
    ///   @param key - the key to search for                                   
    ///   @return the iterator                                                 
    TEMPLATE() template<CT::NotSemantic K1>
-   requires ::std::equality_comparable_with<K, K1> LANGULUS(INLINED)
+   requires CT::Inner::Comparable<K, K1> LANGULUS(INLINED)
    typename TABLE()::Iterator TABLE()::FindIt(K1 const& key) {
       return BlockMap::FindIt<TMap>(key);
    }
-      
-   /// Search for a key inside the table, and return an iterator to it        
-   ///   @param key - the key to search for                                   
-   ///   @return the iterator                                                 
+
    TEMPLATE() template<CT::NotSemantic K1>
-   requires ::std::equality_comparable_with<K, K1> LANGULUS(INLINED)
+   requires CT::Inner::Comparable<K, K1> LANGULUS(INLINED)
    typename TABLE()::ConstIterator TABLE()::FindIt(K1 const& key) const {
       return BlockMap::FindIt<TMap>(key);
    }
@@ -598,17 +564,13 @@ namespace Langulus::Anyness
    ///   @param key - the key to search for                                   
    ///   @return a reference to the value                                     
    TEMPLATE() template<CT::NotSemantic K1>
-   requires ::std::equality_comparable_with<K, K1> LANGULUS(INLINED)
+   requires CT::Inner::Comparable<K, K1> LANGULUS(INLINED)
    decltype(auto) TABLE()::At(K1 const& key) {
       return BlockMap::At<TMap>(key);
    }
-   
-   /// Returns a reference to the value found for key (const)                 
-   /// Throws Except::OutOfRange if element cannot be found                   
-   ///   @param key - the key to search for                                   
-   ///   @return a reference to the value                                     
+
    TEMPLATE() template<CT::NotSemantic K1>
-   requires ::std::equality_comparable_with<K, K1> LANGULUS(INLINED)
+   requires CT::Inner::Comparable<K, K1> LANGULUS(INLINED)
    decltype(auto) TABLE()::At(K1 const& key) const {
       return BlockMap::At<TMap>(key);
    }
@@ -617,16 +579,13 @@ namespace Langulus::Anyness
    ///   @param key - the key to find                                         
    ///   @return a reference to the value                                     
    TEMPLATE() template<CT::NotSemantic K1>
-   requires ::std::equality_comparable_with<K, K1> LANGULUS(INLINED)
+   requires CT::Inner::Comparable<K, K1> LANGULUS(INLINED)
    decltype(auto) TABLE()::operator[] (K1 const& key) {
       return BlockMap::operator [] <TMap>(key);
    }
 
-   /// Access value by key                                                    
-   ///   @param key - the key to find                                         
-   ///   @return a reference to the value                                     
    TEMPLATE() template<CT::NotSemantic K1>
-   requires ::std::equality_comparable_with<K, K1> LANGULUS(INLINED)
+   requires CT::Inner::Comparable<K, K1> LANGULUS(INLINED)
    decltype(auto) TABLE()::operator[] (K1 const& key) const {
       return BlockMap::operator [] <TMap>(key);
    }
@@ -640,10 +599,6 @@ namespace Langulus::Anyness
       return BlockMap::GetKey<TMap>(index);
    }
 
-   /// Get a key at an index                                                  
-   ///   @attention will throw OutOfRange if there's no pair at the index     
-   ///   @param index - the index                                             
-   ///   @return the constant key reference                                   
    TEMPLATE() LANGULUS(INLINED)
    const K& TABLE()::GetKey(CT::Index auto index) const {
       return BlockMap::GetKey<TMap>(index);
@@ -658,10 +613,6 @@ namespace Langulus::Anyness
       return BlockMap::GetValue<TMap>(index);
    }
 
-   /// Get a value at an index                                                
-   ///   @attention will throw OutOfRange if there's no pair at the index     
-   ///   @param index - the index                                             
-   ///   @return the constant value reference                                 
    TEMPLATE() LANGULUS(INLINED)
    const V& TABLE()::GetValue(CT::Index auto index) const {
       return BlockMap::GetValue<TMap>(index);
@@ -676,24 +627,20 @@ namespace Langulus::Anyness
       return BlockMap::GetPair<TMap>(index);
    }
 
-   /// Get a pair at an index                                                 
-   ///   @attention will throw OutOfRange if there's no pair at the index     
-   ///   @param index - the index                                             
-   ///   @return the constant pair reference                                  
    TEMPLATE() LANGULUS(INLINED)
    typename TABLE()::PairConstRef TABLE()::GetPair(CT::Index auto index) const {
       return BlockMap::GetPair<TMap>(index);
    }
-   
-
-   ///                                                                        
-   ///   Iteration                                                            
-   ///                                                                        
 
    /// Get iterator to first element                                          
    ///   @return an iterator to the first element, or end if empty            
    TEMPLATE() LANGULUS(INLINED)
    typename TABLE()::Iterator TABLE()::begin() noexcept {
+      return BlockMap::begin<TMap>();
+   }
+
+   TEMPLATE()
+   typename TABLE()::ConstIterator TABLE()::begin() const noexcept {
       return BlockMap::begin<TMap>();
    }
 
@@ -704,15 +651,6 @@ namespace Langulus::Anyness
       return BlockMap::last<TMap>();
    }
 
-   /// Get iterator to first element                                          
-   ///   @return a constant iterator to the first element, or end if empty    
-   TEMPLATE()
-   typename TABLE()::ConstIterator TABLE()::begin() const noexcept {
-      return BlockMap::begin<TMap>();
-   }
-
-   /// Get iterator to the last valid element                                 
-   ///   @return a constant iterator to the last element, or end if empty     
    TEMPLATE()
    typename TABLE()::ConstIterator TABLE()::last() const noexcept {
       return BlockMap::last<TMap>();
@@ -726,13 +664,13 @@ namespace Langulus::Anyness
    TEMPLATE() template<bool REVERSE> LANGULUS(INLINED)
    Count TABLE()::ForEach(auto&& call) const {
       using F = Deref<decltype(call)>;
-      return BlockMap::ForEach<const TMap, REVERSE>(Forward<F>(call));
+      return BlockMap::ForEach<REVERSE, const TMap>(Forward<F>(call));
    }
 
    TEMPLATE() template<bool REVERSE> LANGULUS(INLINED)
    Count TABLE()::ForEach(auto&& call) {
       using F = Deref<decltype(call)>;
-      return BlockMap::ForEach<TMap, REVERSE>(Forward<F>(call));
+      return BlockMap::ForEach<REVERSE, TMap>(Forward<F>(call));
    }
    
    /// Iterate all keys as type-erased blocks inside the map, and perform     
@@ -744,13 +682,13 @@ namespace Langulus::Anyness
    TEMPLATE() template<bool REVERSE> LANGULUS(INLINED)
    Count TABLE()::ForEachKeyElement(auto&& call) const {
       using F = Deref<decltype(call)>;
-      return BlockMap::ForEachKeyElement<const TMap, REVERSE>(Forward<F>(call));
+      return BlockMap::ForEachKeyElement<REVERSE, const TMap>(Forward<F>(call));
    }
 
    TEMPLATE() template<bool REVERSE> LANGULUS(INLINED)
    Count TABLE()::ForEachKeyElement(auto&& call) {
       using F = Deref<decltype(call)>;
-      return BlockMap::ForEachKeyElement<TMap, REVERSE>(Forward<F>(call));
+      return BlockMap::ForEachKeyElement<REVERSE, TMap>(Forward<F>(call));
    }
    
    /// Iterate all values as type-erased blocks inside the map, and perform   
@@ -761,13 +699,13 @@ namespace Langulus::Anyness
    TEMPLATE() template<bool REVERSE> LANGULUS(INLINED)
    Count TABLE()::ForEachValueElement(auto&& call) const {
       using F = Deref<decltype(call)>;
-      return BlockMap::ForEachValueElement<const TMap, REVERSE>(Forward<F>(call));
+      return BlockMap::ForEachValueElement<REVERSE, const TMap>(Forward<F>(call));
    }
 
    TEMPLATE() template<bool REVERSE> LANGULUS(INLINED)
    Count TABLE()::ForEachValueElement(auto&& call) {
       using F = Deref<decltype(call)>;
-      return BlockMap::ForEachValueElement<TMap, REVERSE>(Forward<F>(call));
+      return BlockMap::ForEachValueElement<REVERSE, TMap>(Forward<F>(call));
    }
 
    /// Try different call() functions with different argument types on all    
@@ -778,12 +716,12 @@ namespace Langulus::Anyness
    ///   @return the number of successful call() executions                   
    TEMPLATE() template<bool REVERSE, class...F> LANGULUS(INLINED)
    Count TABLE()::ForEachKey(F&&...calls) const {
-      return BlockMap::ForEachKey<const TMap, REVERSE>(Forward<F>(calls)...);
+      return BlockMap::ForEachKey<REVERSE, const TMap>(Forward<F>(calls)...);
    }
 
    TEMPLATE() template<bool REVERSE, class...F> LANGULUS(INLINED)
    Count TABLE()::ForEachKey(F&&...calls) {
-      return BlockMap::ForEachKey<TMap, REVERSE>(Forward<F>(calls)...);
+      return BlockMap::ForEachKey<REVERSE, TMap>(Forward<F>(calls)...);
    }
 
    /// Try different call() functions with different argument types on all    
@@ -794,12 +732,12 @@ namespace Langulus::Anyness
    ///   @return the number of successful call() executions                   
    TEMPLATE() template<bool REVERSE, class...F> LANGULUS(INLINED)
    Count TABLE()::ForEachValue(F&&...calls) const {
-      return BlockMap::ForEachValue<const TMap, REVERSE>(Forward<F>(calls)...);
+      return BlockMap::ForEachValue<REVERSE, const TMap>(Forward<F>(calls)...);
    }
 
    TEMPLATE() template<bool REVERSE, class...F> LANGULUS(INLINED)
    Count TABLE()::ForEachValue(F&&...calls) {
-      return BlockMap::ForEachValue<TMap, REVERSE>(Forward<F>(calls)...);
+      return BlockMap::ForEachValue<REVERSE, TMap>(Forward<F>(calls)...);
    }
 
    /// Try different call() functions with different argument types on all    
@@ -811,12 +749,12 @@ namespace Langulus::Anyness
    ///   @return the number of successful call() executions                   
    TEMPLATE() template<bool REVERSE, bool SKIP, class...F> LANGULUS(INLINED)
    Count TABLE()::ForEachKeyDeep(F&&...calls) const {
-      return BlockMap::ForEachKeyDeep<const TMap, REVERSE, SKIP>(Forward<F>(calls)...);
+      return BlockMap::ForEachKeyDeep<REVERSE, SKIP, const TMap>(Forward<F>(calls)...);
    }
 
    TEMPLATE() template<bool REVERSE, bool SKIP, class...F> LANGULUS(INLINED)
    Count TABLE()::ForEachKeyDeep(F&&...calls) {
-      return BlockMap::ForEachKeyDeep<TMap, REVERSE, SKIP>(Forward<F>(calls)...);
+      return BlockMap::ForEachKeyDeep<REVERSE, SKIP, TMap>(Forward<F>(calls)...);
    }
 
    /// Try different call() functions with different argument types on all    
@@ -828,12 +766,12 @@ namespace Langulus::Anyness
    ///   @return the number of successful call() executions                   
    TEMPLATE() template<bool REVERSE, bool SKIP, class...F> LANGULUS(INLINED)
    Count TABLE()::ForEachValueDeep(F&&...calls) const {
-      return BlockMap::ForEachValueDeep<const TMap, REVERSE, SKIP>(Forward<F>(calls)...);
+      return BlockMap::ForEachValueDeep<REVERSE, SKIP, const TMap>(Forward<F>(calls)...);
    }
 
    TEMPLATE() template<bool REVERSE, bool SKIP, class...F> LANGULUS(INLINED)
    Count TABLE()::ForEachValueDeep(F&&...calls) {
-      return BlockMap::ForEachValueDeep<TMap, REVERSE, SKIP>(Forward<F>(calls)...);
+      return BlockMap::ForEachValueDeep<REVERSE, SKIP, TMap>(Forward<F>(calls)...);
    }
 
 } // namespace Langulus::Anyness

@@ -17,7 +17,7 @@ namespace Langulus::Anyness
    ///   @tparam REVERSE - whether or not to iterate in reverse               
    ///   @param call - the function to execute for each pair                  
    ///   @return the number of successfull executions                         
-   template<bool REVERSE, CT::Map>
+   template<bool REVERSE, CT::Map THIS>
    Count BlockMap::ForEach(auto&& call) const {
       if (IsEmpty())
          return 0;
@@ -34,7 +34,7 @@ namespace Langulus::Anyness
          // against it prior to iterating                               
          using K = typename A::Key;
          using V = typename A::Value;
-         if (not KeyIs<K>() or not ValueIs<V>()) {
+         if (not IsKey<THIS, K>() or not IsValue<THIS, V>()) {
             // Key/Value mismatch, no need to iterate at all            
             return 0;
          }
@@ -278,7 +278,7 @@ namespace Langulus::Anyness
    Count BlockMap::ForEachValueElement(auto&& call) const {
       using F = Deref<decltype(call)>;
       return ForEachElement<THIS, REVERSE>(
-         GetValues<THIS>(), Forward<F>(call));
+         GetVals<THIS>(), Forward<F>(call));
    }
 
    /// Iterate keys inside the map, and perform a set of functions on them    
@@ -314,7 +314,7 @@ namespace Langulus::Anyness
       Count result = 0;
       (void) (... or (0 != (result = 
          ForEachInner<THIS, ReturnOf<F>, ArgumentOf<F>, REVERSE>(
-            GetValues<THIS>(), Forward<F>(call)))
+            GetVals<THIS>(), Forward<F>(call)))
       ));
       return result;
    }
@@ -351,7 +351,7 @@ namespace Langulus::Anyness
       Count result = 0;
       (void) (... or (0 != (result = 
          ForEachDeepInner<THIS, ReturnOf<F>, ArgumentOf<F>, REVERSE, SKIP>(
-            GetValues<THIS>(), Forward<F>(call)))
+            GetVals<THIS>(), Forward<F>(call)))
       ));
       return result;
    }
@@ -369,20 +369,11 @@ namespace Langulus::Anyness
          ++info;
 
       const auto offset = info - GetInfo();
-      if constexpr (CT::Typed<THIS>) {
-         return {
-            info, GetInfoEnd(),
-            &GetRawKey<THIS>(offset),
-            &GetRawValue<THIS>(offset)
-         };
-      }
-      else {
-         return {
-            info, GetInfoEnd(),
-            GetRawKey<THIS>(offset),
-            GetRawValue<THIS>(offset)
-         };
-      }
+      return {
+         info, GetInfoEnd(),
+         GetRawKey<THIS>(offset),
+         GetRawVal<THIS>(offset)
+      };
    }
 
    template<CT::Map THIS> LANGULUS(INLINED)
@@ -407,7 +398,7 @@ namespace Langulus::Anyness
       return {
          info, GetInfoEnd(),
          GetRawKey<THIS>(offset),
-         GetRawValue<THIS>(offset)
+         GetRawVal<THIS>(offset)
       };
    }
 
@@ -511,15 +502,23 @@ namespace Langulus::Anyness
       if (mInfo >= mSentinel)
          LANGULUS_OOPS(Access, "Trying to access end of iteration");
 
-      if constexpr (CT::Constant<T>) {
-         return TPair<const Deptr<KA>&, const Deptr<VA>&> {
-            DenseCast(mKey), DenseCast(mValue)
-         };
+      using B = Conditional<CT::Mutable<T>, Block&, const Block&>;
+      if constexpr (CT::TypeErased<Key>) {
+         if constexpr (CT::TypeErased<Value>)
+            return TPair<B, B> {mKey, mValue};
+         else {
+            using V = Conditional<CT::Mutable<T>, Value&, const Value&>;
+            return TPair<B, V> {mKey, *mValue};
+         }
       }
       else {
-         return TPair<Deptr<KA>&, Deptr<VA>&> {
-            DenseCast(mKey), DenseCast(mValue)
-         };
+         using K = Conditional<CT::Mutable<T>, Key&, const Key&>;
+         if constexpr (CT::TypeErased<Value>)
+            return TPair<K, B> {*mKey, mValue};
+         else {
+            using V = Conditional<CT::Mutable<T>, Value&, const Value&>;
+            return TPair<K, V> {*mKey, *mValue};
+         }
       }
    }
 

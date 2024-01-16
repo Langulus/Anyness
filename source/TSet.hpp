@@ -52,6 +52,7 @@ namespace Langulus::Anyness
       static_assert(CT::Inner::Comparable<T>,
          "Set's type must be equality-comparable to itself");
 
+      friend struct BlockSet;
       using typename Base::InfoType;
       using Base::InvalidOffset;
       using Base::MinimalAllocation;
@@ -145,15 +146,15 @@ namespace Langulus::Anyness
       ///                                                                     
       template<CT::Data, CT::Data...>
       NOD() constexpr bool Is() const noexcept;
-      NOD() constexpr bool Is(DMeta) const noexcept;
+      NOD() bool Is(DMeta) const noexcept;
 
       template<CT::Data, CT::Data...>
       NOD() constexpr bool IsSimilar() const noexcept;
-      NOD() constexpr bool IsSimilar(DMeta) const noexcept;
+      NOD() bool IsSimilar(DMeta) const noexcept;
 
       template<CT::Data, CT::Data...>
       NOD() constexpr bool IsExact() const noexcept;
-      NOD() constexpr bool IsExact(DMeta) const noexcept;
+      NOD() bool IsExact(DMeta) const noexcept;
 
    protected:
       template<CT::NotSemantic>
@@ -192,8 +193,8 @@ namespace Langulus::Anyness
       requires CT::Inner::UnfoldMakableFrom<T, T1, TAIL...>
       Count Insert(T1&&, TAIL&&...);
 
-      template<class T> requires CT::Set<Desem<T>>
-      Count InsertBlock(T&&);
+      template<class T1> requires CT::Set<Desem<T1>>
+      Count InsertBlock(T1&&);
 
       template<class T1>
       requires CT::Inner::UnfoldMakableFrom<T, T1>

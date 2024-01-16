@@ -40,54 +40,54 @@ namespace Langulus::Anyness
    /// ignoring density and cv-qualifiers                                     
    ///   @tparam T1, TN... - the types to compare against                     
    ///   @return true if value type is similar to at least one of the types   
-   template<CT::Data T1, CT::Data...TN> LANGULUS(INLINED)
-   bool BlockSet::Is() const noexcept {
-      return mKeys.template Is<T1, TN...>();
+   template<CT::Set THIS, CT::Data T1, CT::Data...TN> LANGULUS(INLINED)
+   constexpr bool BlockSet::Is() const noexcept {
+      return GetValues<THIS>().template Is<T1, TN...>();
    }
    
    /// Check if value type loosely matches a given type, ignoring             
    /// density and cv-qualifiers                                              
    ///   @param meta - the type to check for                                  
    ///   @return true if this set contains similar value data                 
-   LANGULUS(INLINED)
+   template<CT::Set THIS> LANGULUS(INLINED)
    bool BlockSet::Is(DMeta meta) const noexcept {
-      return mKeys.Is(meta);
+      return GetValues<THIS>().Is(meta);
    }
 
    /// Check if value type is similar to one of the listed types,             
    /// ignoring cv-qualifiers only                                            
    ///   @tparam T1, TN... - the types to compare against                     
    ///   @return true if value type is similar to at least one of the types   
-   template<CT::Data T1, CT::Data...TN> LANGULUS(INLINED)
-   bool BlockSet::IsSimilar() const noexcept {
-      return mKeys.template IsSimilar<T1, TN...>();
+   template<CT::Set THIS, CT::Data T1, CT::Data...TN> LANGULUS(INLINED)
+   constexpr bool BlockSet::IsSimilar() const noexcept {
+      return GetValues<THIS>().template IsSimilar<T1, TN...>();
    }
    
    /// Check if value type loosely matches a given type, ignoring             
    /// cv-qualifiers only                                                     
    ///   @param meta - the type to check for                                  
    ///   @return true if this set contains similar value data                 
-   LANGULUS(INLINED)
+   template<CT::Set THIS> LANGULUS(INLINED)
    bool BlockSet::IsSimilar(DMeta meta) const noexcept {
-      return mKeys.IsSimilar(meta);
+      return GetValues<THIS>().IsSimilar(meta);
    }
 
    /// Check if value type is exactly as one of the listed types,             
    /// including by density and cv-qualifiers                                 
    ///   @tparam T1, TN... - the types to compare against                     
    ///   @return true if value type exactly matches at least one type         
-   template<CT::Data T1, CT::Data...TN> LANGULUS(INLINED)
-   bool BlockSet::IsExact() const noexcept {
-      return mKeys.template IsExact<T1, TN...>();
+   template<CT::Set THIS, CT::Data T1, CT::Data...TN> LANGULUS(INLINED)
+   constexpr bool BlockSet::IsExact() const noexcept {
+      return GetValues<THIS>().template IsExact<T1, TN...>();
    }
    
    /// Check if value type is exactly the provided type,                      
    /// including the density and cv-qualifiers                                
    ///   @param type - the type to match                                      
    ///   @return true if this set contains this exact value data              
-   LANGULUS(INLINED)
+   template<CT::Set THIS> LANGULUS(INLINED)
    bool BlockSet::IsExact(DMeta meta) const noexcept {
-      return mKeys.IsExact(meta);
+      return GetValues<THIS>().IsExact(meta);
    }
    
    /// Check if types of two sets are compatible for writing                  
@@ -102,7 +102,7 @@ namespace Langulus::Anyness
       }
       else {
          // Dynamic type check                                          
-         return mKeys.IsSimilar(other.GetKeyType());
+         return GetValues<THIS>().IsSimilar(other.GetKeyType());
       }
    }
 

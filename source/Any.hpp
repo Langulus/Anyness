@@ -84,6 +84,36 @@ namespace Langulus::Anyness
       using Iterator = Block::Iterator<Any>;
       using ConstIterator = Block::Iterator<const Any>;
 
+      template<bool REVERSE = false>
+      Count ForEachElement(auto&&) const;
+      template<bool REVERSE = false>
+      Count ForEachElement(auto&&);
+
+      template<bool REVERSE = false>
+      Count ForEach(auto&&...) const;
+      template<bool REVERSE = false>
+      Count ForEach(auto&&...);
+
+      template<bool REVERSE = false, bool SKIP = true>
+      Count ForEachDeep(auto&&...) const;
+      template<bool REVERSE = false, bool SKIP = true>
+      Count ForEachDeep(auto&&...);
+
+      ///                                                                     
+      ///   RTTI                                                              
+      ///                                                                     
+      template<CT::Data, CT::Data...>
+      NOD() constexpr bool Is() const noexcept;
+      NOD() bool Is(DMeta) const noexcept;
+
+      template<CT::Data, CT::Data...>
+      NOD() constexpr bool IsSimilar() const noexcept;
+      NOD() bool IsSimilar(DMeta) const noexcept;
+
+      template<CT::Data, CT::Data...>
+      NOD() constexpr bool IsExact() const noexcept;
+      NOD() bool IsExact(DMeta) const noexcept;
+
       ///                                                                     
       ///   Comparison                                                        
       ///                                                                     

@@ -74,7 +74,7 @@ namespace Langulus::Anyness
       if constexpr (CT::TypeErased<K>)
          (key++).Destroy();
       else {
-         key.CallUnknownDestructors();
+         key.Destroy();
          key.Next();
       }
 
@@ -93,13 +93,13 @@ namespace Langulus::Anyness
          #endif
 
          if constexpr (CT::TypeErased<K>) {
-            const_cast<const Block&>(key).Prev()
-               .CallUnknownSemanticConstructors(1, Abandon(key));
-            key.CallUnknownDestructors();
+            const_cast<const Block&>(key)
+               .Prev().CreateSemantic(Abandon(key));
+            key.Destroy();
             key.Next();
          }
          else {
-            (key - 1).New(Abandon(key));
+            (key - 1).CreateSemantic(Abandon(key));
             (key++).Destroy();
          }
 
@@ -122,12 +122,12 @@ namespace Langulus::Anyness
          auto lastkey = GetHandle<THIS>(last);
 
          if constexpr (CT::TypeErased<K>) {
-            lastkey.CallSemanticConstructors(1, Abandon(key));
-            key.CallDestructors();
+            lastkey.CreateSemantic(1, Abandon(key));
+            key.Destroy();
             key.Next();
          }
          else {
-            lastkey.New(Abandon(key));
+            lastkey.CreateSemantic(Abandon(key));
             (key++).Destroy();
          }
 
@@ -205,12 +205,7 @@ namespace Langulus::Anyness
          if (*inf) {
             const auto offset = inf - GetInfo();
             auto key = GetHandle<THIS>(offset);
-
-            if constexpr (CT::Typed<THIS>)
-               key.Destroy();
-            else
-               key.CallUnknownDestructors();
-
+            key.Destroy();
             --remaining;
          }
 

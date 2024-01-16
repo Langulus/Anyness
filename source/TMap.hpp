@@ -118,28 +118,28 @@ namespace Langulus::Anyness
       ///   RTTI                                                              
       ///                                                                     
       template<CT::Data, CT::Data...>
-      NOD() constexpr bool KeyIs() const noexcept;
-      NOD() constexpr bool KeyIs(DMeta) const noexcept;
+      NOD() constexpr bool IsKey() const noexcept;
+      NOD() bool IsKey(DMeta) const noexcept;
 
       template<CT::Data, CT::Data...>
-      NOD() constexpr bool KeyIsSimilar() const noexcept;
-      NOD() constexpr bool KeyIsSimilar(DMeta) const noexcept;
+      NOD() constexpr bool IsKeySimilar() const noexcept;
+      NOD() bool IsKeySimilar(DMeta) const noexcept;
 
       template<CT::Data, CT::Data...>
-      NOD() constexpr bool KeyIsExact() const noexcept;
-      NOD() constexpr bool KeyIsExact(DMeta) const noexcept;
+      NOD() constexpr bool IsKeyExact() const noexcept;
+      NOD() bool IsKeyExact(DMeta) const noexcept;
 
       template<CT::Data, CT::Data...>
-      NOD() constexpr bool ValueIs() const noexcept;
-      NOD() constexpr bool ValueIs(DMeta) const noexcept;
+      NOD() constexpr bool IsValue() const noexcept;
+      NOD() bool IsValue(DMeta) const noexcept;
 
       template<CT::Data, CT::Data...>
-      NOD() constexpr bool ValueIsSimilar() const noexcept;
-      NOD() constexpr bool ValueIsSimilar(DMeta) const noexcept;
+      NOD() constexpr bool IsValueSimilar() const noexcept;
+      NOD() bool IsValueSimilar(DMeta) const noexcept;
 
       template<CT::Data, CT::Data...>
-      NOD() constexpr bool ValueIsExact() const noexcept;
-      NOD() constexpr bool ValueIsExact(DMeta) const noexcept;
+      NOD() constexpr bool IsValueExact() const noexcept;
+      NOD() bool IsValueExact(DMeta) const noexcept;
 
    protected:
       template<CT::NotSemantic, CT::NotSemantic>
@@ -214,44 +214,36 @@ namespace Langulus::Anyness
       bool operator == (CT::Map  auto const&) const requires CT::Inner::Comparable<V>;
       bool operator == (CT::Pair auto const&) const requires CT::Inner::Comparable<V>;
 
-      template<CT::NotSemantic K1>
-      requires ::std::equality_comparable_with<K, K1>
+      NOD() Hash GetHash() const;
+
+      template<CT::NotSemantic K1> requires CT::Inner::Comparable<K, K1>
       NOD() bool ContainsKey(K1 const&) const;
 
-      template<CT::NotSemantic V1>
-      requires ::std::equality_comparable_with<V, V1>
+      template<CT::NotSemantic V1> requires CT::Inner::Comparable<V, V1>
       NOD() bool ContainsValue(V1 const&) const;
 
-      template<CT::Pair P>
-      requires ::std::equality_comparable_with<TPair<K, V>, P>
+      template<CT::Pair P> requires CT::Inner::Comparable<TPair<K, V>, P>
       NOD() bool ContainsPair(P const&) const;
 
-      template<CT::NotSemantic K1>
-      requires ::std::equality_comparable_with<K, K1>
+      template<CT::NotSemantic K1> requires CT::Inner::Comparable<K, K1>
       NOD() Index Find(K1 const&) const;
 
-      template<CT::NotSemantic K1>
-      requires ::std::equality_comparable_with<K, K1>
+      template<CT::NotSemantic K1> requires CT::Inner::Comparable<K, K1>
       NOD() Iterator FindIt(K1 const&);
 
-      template<CT::NotSemantic K1>
-      requires ::std::equality_comparable_with<K, K1>
+      template<CT::NotSemantic K1> requires CT::Inner::Comparable<K, K1>
       NOD() ConstIterator FindIt(K1 const&) const;
 
-      template<CT::NotSemantic K1>
-      requires ::std::equality_comparable_with<K, K1>
+      template<CT::NotSemantic K1> requires CT::Inner::Comparable<K, K1>
       NOD() decltype(auto) At(K1 const&);
 
-      template<CT::NotSemantic K1>
-      requires ::std::equality_comparable_with<K, K1>
+      template<CT::NotSemantic K1> requires CT::Inner::Comparable<K, K1>
       NOD() decltype(auto) At(K1 const&) const;
 
-      template<CT::NotSemantic K1>
-      requires ::std::equality_comparable_with<K, K1>
+      template<CT::NotSemantic K1> requires CT::Inner::Comparable<K, K1>
       NOD() decltype(auto) operator[] (K1 const&);
 
-      template<CT::NotSemantic K1>
-      requires ::std::equality_comparable_with<K, K1>
+      template<CT::NotSemantic K1> requires CT::Inner::Comparable<K, K1>
       NOD() decltype(auto) operator[] (K1 const&) const;
 
       ///                                                                     
@@ -266,6 +258,8 @@ namespace Langulus::Anyness
       requires (CT::Inner::MakableFrom<K, K1> and CT::Inner::MakableFrom<V, V1>)
       Count Insert(K1&&, V1&&);
 
+      Count InsertBlock(auto&&, auto&&);
+
       template<class T1, class...TAIL>
       requires CT::Inner::UnfoldMakableFrom<TPair<K, V>, T1, TAIL...>
       Count InsertPair(T1&&, TAIL&&...);
@@ -278,8 +272,7 @@ namespace Langulus::Anyness
       requires CT::Inner::UnfoldMakableFrom<TPair<K, V>, T1>
       TMap& operator >> (T1&&);
 
-      Count InsertBlock(auto&&, auto&&);
-      Count InsertPairBlock(auto&&);
+      //Count InsertPairBlock(auto&&);
 
       TMap& operator += (const TMap&);
 

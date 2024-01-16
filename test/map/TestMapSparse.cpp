@@ -54,8 +54,8 @@ TEMPLATE_TEST_CASE(
       WHEN("Given a default-constructed map") {
          THEN("These properties should be correct") {
             if constexpr (CT::Typed<T>) {
-               REQUIRE(map.template KeyIs<K>());
-               REQUIRE(map.template ValueIs<V>());
+               REQUIRE(map.template IsKey<K>());
+               REQUIRE(map.template IsValue<V>());
                REQUIRE(map.GetKeyType()->template Is<K>());
                REQUIRE(map.GetValueType()->template Is<V>());
             }
@@ -97,8 +97,8 @@ TEMPLATE_TEST_CASE(
             REQUIRE(map.GetKeyType()->template Is<K>());
             REQUIRE(map.IsValueTypeConstrained() == CT::Typed<T>);
             REQUIRE(map.GetValueType()->template Is<V>());
-            REQUIRE(map.template KeyIs<K>());
-            REQUIRE(map.template ValueIs<V>());
+            REQUIRE(map.template IsKey<K>());
+            REQUIRE(map.template IsValue<V>());
             REQUIRE(map.IsAllocated());
             REQUIRE(map.HasAuthority());
             REQUIRE(map.GetCount() == 1);
@@ -146,8 +146,8 @@ TEMPLATE_TEST_CASE(
             REQUIRE(map.GetKeyType()->template Is<K>());
             REQUIRE(map.IsValueTypeConstrained() == CT::Typed<T>);
             REQUIRE(map.GetValueType()->template Is<V>());
-            REQUIRE(map.template KeyIs<K>());
-            REQUIRE(map.template ValueIs<V>());
+            REQUIRE(map.template IsKey<K>());
+            REQUIRE(map.template IsValue<V>());
             REQUIRE(map.IsAllocated());
             REQUIRE(map.HasAuthority());
             REQUIRE(map.GetCount() == 1);
@@ -184,13 +184,13 @@ TEMPLATE_TEST_CASE(
          THEN("These properties should be correct") {
             REQUIRE(map.GetCount() == 5);
             REQUIRE(map.GetKeyType()->template Is<K>());
-            REQUIRE(map.template KeyIs<K>());
+            REQUIRE(map.template IsKey<K>());
             REQUIRE(map.GetValueType()->template Is<V>());
-            REQUIRE(map.template ValueIs<V>());
-            REQUIRE_FALSE(map.template KeyIs<int>());
-            REQUIRE_FALSE(map.template KeyIs<char>());
-            REQUIRE_FALSE(map.template ValueIs<float>());
-            REQUIRE_FALSE(map.template ValueIs<unsigned char>());
+            REQUIRE(map.template IsValue<V>());
+            REQUIRE_FALSE(map.template IsKey<int>());
+            REQUIRE_FALSE(map.template IsKey<char>());
+            REQUIRE_FALSE(map.template IsValue<float>());
+            REQUIRE_FALSE(map.template IsValue<unsigned char>());
             REQUIRE(map.HasAuthority());
             REQUIRE(map.GetUses() == 1);
             for (auto& comparer : darray1)
@@ -244,19 +244,19 @@ TEMPLATE_TEST_CASE(
       map << darray1[4];
 
       auto keyMemory = map.GetRawKeysMemory();
-      auto valueMemory = map.GetRawValuesMemory();
+      auto valueMemory = map.GetRawValsMemory();
 
       WHEN("Given a preinitialized map with 5 elements") {
          THEN("These properties should be correct") {
             REQUIRE(map.GetCount() == 5);
             REQUIRE(map.GetKeyType()->template Is<K>());
-            REQUIRE(map.template KeyIs<K>());
+            REQUIRE(map.template IsKey<K>());
             REQUIRE(map.GetValueType()->template Is<V>());
-            REQUIRE(map.template ValueIs<V>());
-            REQUIRE_FALSE(map.template KeyIs<int>());
-            REQUIRE_FALSE(map.template KeyIs<char>());
-            REQUIRE_FALSE(map.template ValueIs<float>());
-            REQUIRE_FALSE(map.template ValueIs<unsigned char>());
+            REQUIRE(map.template IsValue<V>());
+            REQUIRE_FALSE(map.template IsKey<int>());
+            REQUIRE_FALSE(map.template IsKey<char>());
+            REQUIRE_FALSE(map.template IsValue<float>());
+            REQUIRE_FALSE(map.template IsValue<unsigned char>());
             REQUIRE(map.HasAuthority());
             REQUIRE(map.GetUses() == 1);
             for (auto& comparer : darray1)
@@ -275,12 +275,12 @@ TEMPLATE_TEST_CASE(
             i << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
             if (prevKeys && prevValues) {
                REQUIRE(prevKeys != i.GetRawKeysMemory());
-               REQUIRE(prevValues != i.GetRawValuesMemory());
+               REQUIRE(prevValues != i.GetRawValsMemory());
                REQUIRE(i == *(&i - 1));
             }
 
             prevKeys = i.GetRawKeysMemory();
-            prevValues = i.GetRawValuesMemory();
+            prevValues = i.GetRawValsMemory();
 
             REQUIRE(i.HasAuthority());
             REQUIRE(i.GetUses() == 1);
@@ -301,12 +301,12 @@ TEMPLATE_TEST_CASE(
             i << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
             if (prevKeys && prevValues) {
                REQUIRE(prevKeys != i.GetRawKeysMemory());
-               REQUIRE(prevValues != i.GetRawValuesMemory());
+               REQUIRE(prevValues != i.GetRawValsMemory());
                REQUIRE(i == *(&i - 1));
             }
 
             prevKeys = i.GetRawKeysMemory();
-            prevValues = i.GetRawValuesMemory();
+            prevValues = i.GetRawValsMemory();
 
             REQUIRE(i.HasAuthority());
             REQUIRE(i.GetUses() == 1);
@@ -347,9 +347,9 @@ TEMPLATE_TEST_CASE(
             REQUIRE(map.IsKeyTypeConstrained() == CT::Typed<T>);
             REQUIRE(map.IsValueTypeConstrained() == CT::Typed<T>);
             REQUIRE(map.GetKeyType()->template Is<K>());
-            REQUIRE(map.template KeyIs<K>());
+            REQUIRE(map.template IsKey<K>());
             REQUIRE(map.GetValueType()->template Is<V>());
-            REQUIRE(map.template ValueIs<V>());
+            REQUIRE(map.template IsValue<V>());
             REQUIRE(map.HasAuthority());
             REQUIRE(map.GetUses() == 1);
             REQUIRE(map.GetCount() == 10);
@@ -359,7 +359,7 @@ TEMPLATE_TEST_CASE(
                REQUIRE(map[comparer.mKey] == comparer.mValue);
             #if LANGULUS_FEATURE(MANAGED_MEMORY)
                REQUIRE(map.GetRawKeysMemory() == keyMemory);
-               REQUIRE(map.GetRawValuesMemory() == valueMemory);
+               REQUIRE(map.GetRawValsMemory() == valueMemory);
             #endif
             REQUIRE(map.GetReserved() >= 10);
          }
@@ -457,7 +457,7 @@ TEMPLATE_TEST_CASE(
                REQUIRE(map[comparer.mKey] == comparer.mValue);
             #if LANGULUS_FEATURE(MANAGED_MEMORY)
                REQUIRE(map.GetRawKeysMemory() == keyMemory);
-               REQUIRE(map.GetRawValuesMemory() == valueMemory);
+               REQUIRE(map.GetRawValsMemory() == valueMemory);
             #endif
             REQUIRE(map.GetReserved() >= 10);
          }
@@ -501,7 +501,7 @@ TEMPLATE_TEST_CASE(
             REQUIRE(removed4 == 1);
             REQUIRE(map.GetCount() == 3);
             REQUIRE(map.GetRawKeysMemory() == keyMemory);
-            REQUIRE(map.GetRawValuesMemory() == valueMemory);
+            REQUIRE(map.GetRawValsMemory() == valueMemory);
             REQUIRE(map.GetReserved() >= 5);
             /*REQUIRE(map[darray1[0].mKey] == darray1[0].mValue);
             REQUIRE(map[darray1[1].mKey] != darray1[1].mValue);
@@ -572,7 +572,7 @@ TEMPLATE_TEST_CASE(
             REQUIRE(removed4 == 1);
             REQUIRE(map.GetCount() == 3);
             REQUIRE(map.GetRawKeysMemory() == keyMemory);
-            REQUIRE(map.GetRawValuesMemory() == valueMemory);
+            REQUIRE(map.GetRawValsMemory() == valueMemory);
             REQUIRE(map.GetReserved() >= 5);
             /*REQUIRE(map[darray1[0].mKey] == darray1[0].mValue);
             REQUIRE(map[darray1[1].mKey] != darray1[1].mValue);
@@ -631,7 +631,7 @@ TEMPLATE_TEST_CASE(
                REQUIRE(map[comparer.mKey] == comparer.mValue);
             REQUIRE(map.GetCount() == 5);
             REQUIRE(map.GetRawKeysMemory() == keyMemory);
-            REQUIRE(map.GetRawValuesMemory() == valueMemory);
+            REQUIRE(map.GetRawValsMemory() == valueMemory);
             REQUIRE(map.HasAuthority());
             REQUIRE(map.GetUses() == 1);
             REQUIRE(map.GetReserved() >= 5);
@@ -659,7 +659,7 @@ TEMPLATE_TEST_CASE(
                REQUIRE(map[comparer.mKey] == comparer.mValue);
             REQUIRE(map.GetCount() == 5);
             REQUIRE(map.GetRawKeysMemory() == keyMemory);
-            REQUIRE(map.GetRawValuesMemory() == valueMemory);
+            REQUIRE(map.GetRawValsMemory() == valueMemory);
             REQUIRE(map.HasAuthority());
             REQUIRE(map.GetUses() == 1);
             REQUIRE(map.GetReserved() >= 5);
@@ -701,7 +701,7 @@ TEMPLATE_TEST_CASE(
             REQUIRE(map.GetUses() == 1);
             REQUIRE(map.GetCount() == 5);
             REQUIRE(map.GetRawKeysMemory() == keyMemory);
-            REQUIRE(map.GetRawValuesMemory() == valueMemory);
+            REQUIRE(map.GetRawValsMemory() == valueMemory);
             REQUIRE(map.GetReserved() >= 5);
          }
       }
@@ -714,13 +714,13 @@ TEMPLATE_TEST_CASE(
             REQUIRE(map.IsAllocated());
             REQUIRE(map.GetKeyType()->template Is<K>());
             REQUIRE(map.GetValueType()->template Is<V>());
-            REQUIRE(map.template KeyIs<K>());
-            REQUIRE(map.template ValueIs<V>());
+            REQUIRE(map.template IsKey<K>());
+            REQUIRE(map.template IsValue<V>());
             REQUIRE(map.IsKeyTypeConstrained() == CT::Typed<T>);
             REQUIRE(map.IsValueTypeConstrained() == CT::Typed<T>);
             REQUIRE(!map);
             REQUIRE(map.GetRawKeysMemory() == keyMemory);
-            REQUIRE(map.GetRawValuesMemory() == valueMemory);
+            REQUIRE(map.GetRawValsMemory() == valueMemory);
             REQUIRE(map.HasAuthority());
             REQUIRE(map.GetUses() == 1);
             REQUIRE(map.GetReserved() >= 5);
@@ -735,8 +735,8 @@ TEMPLATE_TEST_CASE(
             REQUIRE_FALSE(map.IsAllocated());
             REQUIRE_FALSE(map.HasAuthority());
             if constexpr (CT::Typed<T>) {
-               REQUIRE(map.template KeyIs<K>());
-               REQUIRE(map.template ValueIs<V>());
+               REQUIRE(map.template IsKey<K>());
+               REQUIRE(map.template IsValue<V>());
                REQUIRE(map.GetKeyType()->template Is<K>());
                REQUIRE(map.GetValueType()->template Is<V>());
             }
@@ -744,7 +744,7 @@ TEMPLATE_TEST_CASE(
             REQUIRE(map.IsValueTypeConstrained() == CT::Typed<T>);
             REQUIRE(!map);
             REQUIRE(map.GetRawKeysMemory() != keyMemory);
-            REQUIRE(map.GetRawValuesMemory() != valueMemory);
+            REQUIRE(map.GetRawValsMemory() != valueMemory);
             REQUIRE(map.GetUses() == 0);
          }
       }
@@ -762,7 +762,7 @@ TEMPLATE_TEST_CASE(
             REQUIRE(copy.GetCount() == map.GetCount());
             REQUIRE(copy.GetCount() == 5);
             REQUIRE(copy.GetRawKeysMemory() == map.GetRawKeysMemory());
-            REQUIRE(copy.GetRawValuesMemory() == map.GetRawValuesMemory());
+            REQUIRE(copy.GetRawValsMemory() == map.GetRawValsMemory());
             for (auto& comparer : darray1)
                REQUIRE(copy[comparer.mKey] == comparer.mValue);
 
@@ -786,7 +786,7 @@ TEMPLATE_TEST_CASE(
             REQUIRE(clone.GetCount() == map.GetCount());
             REQUIRE(clone.GetCount() == 5);
             REQUIRE(clone.GetRawKeysMemory() != map.GetRawKeysMemory());
-            REQUIRE(clone.GetRawValuesMemory() != map.GetRawValuesMemory());
+            REQUIRE(clone.GetRawValsMemory() != map.GetRawValsMemory());
             for (auto& comparer : darray1) {
                if constexpr (CT::Sparse<V>) {
                   REQUIRE(clone[comparer.mKey] != comparer.mValue);
@@ -817,7 +817,7 @@ TEMPLATE_TEST_CASE(
             REQUIRE(moved.GetKeyType()->template Is<K>());
             REQUIRE(moved.GetValueType()->template Is<V>());
             REQUIRE(moved.GetRawKeysMemory() == keyMemory);
-            REQUIRE(moved.GetRawValuesMemory() == valueMemory);
+            REQUIRE(moved.GetRawValsMemory() == valueMemory);
             REQUIRE(moved.IsAllocated());
             REQUIRE(moved.GetCount() == 5);
             REQUIRE(moved.HasAuthority());
@@ -826,7 +826,7 @@ TEMPLATE_TEST_CASE(
                REQUIRE(moved[comparer.mKey] == comparer.mValue);
             REQUIRE_FALSE(movable.IsAllocated());
             REQUIRE(!movable);
-            REQUIRE(movable.GetRawValuesMemory() == nullptr);
+            REQUIRE(movable.GetRawValsMemory() == nullptr);
             REQUIRE(movable.GetCount() == 0);
             REQUIRE(movable.IsValueTypeConstrained() == CT::Typed<T>);
             REQUIRE(movable.IsKeyTypeConstrained() == CT::Typed<T>);

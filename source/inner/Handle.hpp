@@ -74,11 +74,11 @@ namespace Langulus::Anyness
       void Create(const T&, const Allocation* = nullptr) noexcept requires CT::Dense<T>;
       void Create(T&&,      const Allocation* = nullptr) noexcept requires CT::Dense<T>;
 
-      template<template<class> class S, class T> requires CT::Semantic<S<T>>
-      void CreateSemantic(S<T>&&);
+      template<template<class> class S, class T1> requires CT::Semantic<S<T1>>
+      void CreateSemantic(S<T1>&&);
 
-      template<template<class> class S, class T> requires CT::Semantic<S<T>>
-      void AssignSemantic(S<T>&&);
+      template<template<class> class S, class T1> requires CT::Semantic<S<T1>>
+      void AssignSemantic(S<T1>&&);
 
       template<bool RHS_EMBED>
       void Swap(Handle<T, RHS_EMBED>&);
