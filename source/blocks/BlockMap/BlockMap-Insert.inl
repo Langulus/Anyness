@@ -13,7 +13,29 @@
 
 namespace Langulus::Anyness
 {
- 
+
+   template<CT::Map THIS>
+   auto BlockMap::CreateKeyHandle(CT::Semantic auto&& key) {
+      if constexpr (CT::Typed<THIS>) {
+         using K = Conditional<CT::Typed<THIS>
+            , typename THIS::Key
+            , TypeOf<decltype(key)>>;
+         return HandleLocal<K> {key.Forward()};
+      }
+      else return Any {key.Forward()};
+   }
+
+   template<CT::Map THIS>
+   auto BlockMap::CreateValHandle(CT::Semantic auto&& val) {
+      if constexpr (CT::Typed<THIS>) {
+         using V = Conditional<CT::Typed<THIS>
+            , typename THIS::Value
+            , TypeOf<decltype(val)>>;
+         return HandleLocal<V> {val.Forward()};
+      }
+      else return Any {val.Forward()};
+   }
+
    /// Insert a pair, or an array of pairs                                    
    ///   @param item - the argument to unfold and insert, can be semantic     
    ///   @return the number of inserted elements after unfolding              
@@ -523,28 +545,6 @@ namespace Langulus::Anyness
          ++oldInfo;
       }
    }
-
-   template<CT::Map THIS>
-   auto CreateKeyHandle(CT::Semantic auto&& key) {
-      if constexpr (CT::Typed<THIS>) {
-         using K = Conditional<CT::Typed<THIS>
-            , typename THIS::Key
-            , TypeOf<decltype(key)>>;
-         return HandleLocal<K> {key.Forward()};
-      }
-      else return Any {key.Forward()};
-   }
-   
-   template<CT::Map THIS>
-   auto CreateValHandle(CT::Semantic auto&& val) {
-      if constexpr (CT::Typed<THIS>) {
-         using V = Conditional<CT::Typed<THIS>
-            , typename THIS::Value
-            , TypeOf<decltype(val)>>;
-         return HandleLocal<V> {val.Forward()};
-      }
-      else return Any {val.Forward()};
-   }
    
    /// Inner insertion function                                               
    ///   @attention assumes that keys and values are constructible with the   
@@ -570,8 +570,7 @@ namespace Langulus::Anyness
          const auto index = psl - GetInfo();
 
          if constexpr (CHECK_FOR_MATCH) {
-            decltype(auto) candidate = GetKeyRef<THIS>(index);
-            if (keyswapper == candidate) {
+            if (keyswapper == GetKeyRef<THIS>(index)) {
                // Neat, the key already exists - just set value and go  
                GetValHandle<THIS>(index).AssignSemantic(Abandon(valswapper));
                return index;

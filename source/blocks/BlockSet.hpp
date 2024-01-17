@@ -306,6 +306,9 @@ namespace Langulus::Anyness
       Count InsertBlock(T&&);
 
    protected:
+      template<CT::Set THIS>
+      auto CreateValHandle(CT::Semantic auto&&);
+
       template<CT::Set>
       NOD() Size RequestKeyAndInfoSize(Count, Offset&) const IF_UNSAFE(noexcept);
 

@@ -52,6 +52,13 @@ namespace Langulus::Anyness
       return GetValues<THIS>().GetStride();
    }
 
+   /// Get the state of the memory                                            
+   ///   @return the state of the value memory                                
+   LANGULUS(INLINED)
+   constexpr DataState BlockSet::GetState() const noexcept {
+      return mKeys.mState;
+   }
+
    /// Get the type of the set                                                
    template<CT::Set THIS> LANGULUS(INLINED)
    DMeta BlockSet::GetType() const noexcept {

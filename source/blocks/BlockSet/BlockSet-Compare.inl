@@ -19,7 +19,6 @@ namespace Langulus::Anyness
    template<CT::Set THIS>
    bool BlockSet::operator == (const CT::NotSemantic auto& rhs) const {
       using OTHER = Deref<decltype(rhs)>;
-      using TYPED = Conditional<CT::Typed<THIS>, THIS, OTHER>;
 
       if constexpr (CT::Set<OTHER>) {
          // Compare against another set of any kind                     
@@ -28,22 +27,22 @@ namespace Langulus::Anyness
             return false;
 
          // If reached, then both sets contain similar types of data    
+         using TYPED = Conditional<CT::Typed<THIS>, THIS, OTHER>;
          auto info = GetInfo();
          const auto infoEnd = GetInfoEnd();
          while (info != infoEnd) {
             if (*info) {
                // Compare each valid entry...                           
                const auto index = info - GetInfo();
-
                if constexpr (CT::Typed<TYPED>) {
                   // ...with known types, if any of the sets are typed  
-                  if (rhs.template FindInner<TYPED>(GetRaw<TYPED>(index))
+                  if (rhs.template FindInner<TYPED>(GetRef<TYPED>(index))
                   == InvalidOffset)
                      return false;
                }
                else {
                   // ...via rtti, since all sets are type-erased        
-                  if (rhs.template FindBlockInner<TYPED>(GetRaw<TYPED>(index))
+                  if (rhs.template FindBlockInner<TYPED>(GetRef<TYPED>(index))
                   == InvalidOffset)
                      return false;
                }

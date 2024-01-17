@@ -14,6 +14,17 @@
 namespace Langulus::Anyness
 {
 
+   template<CT::Set THIS>
+   auto BlockSet::CreateValHandle(CT::Semantic auto&& val) {
+      if constexpr (CT::Typed<THIS>) {
+         using V = Conditional<CT::Typed<THIS>
+            , TypeOf<THIS>
+            , TypeOf<decltype(val)>>;
+         return HandleLocal<V> {val.Forward()};
+      }
+      else return Any {val.Forward()};
+   }
+
    /// Insert an element, or an array of elements                             
    ///   @param item - the argument to unfold and insert, can be semantic     
    ///   @return the number of inserted elements after unfolding              
@@ -114,7 +125,7 @@ namespace Langulus::Anyness
 
                Reserve(GetCount() + DesemCast(item).GetCount());
                for (auto& key : DesemCast(item)) {
-                  InsertInnerUnknown<THIS, true>(
+                  InsertBlockInner<THIS, true>(
                      GetBucketUnknown(GetReserved() - 1, key),
                      S::Nest(key)
                   );
@@ -173,7 +184,7 @@ namespace Langulus::Anyness
       else {
          // Merging with a type-erased set                              
          for (Block it : static_cast<const BlockSet&>(DesemCast(item))) {
-            InsertInnerUnknown<THIS, true>(
+            InsertBlockInner<THIS, true>(
                GetBucketUnknown(GetReserved() - 1, it),
                S::Nest(it)
             );
@@ -261,7 +272,7 @@ namespace Langulus::Anyness
                   InsertInner<THIS, false>(newBucket, Abandon(keyswap));
                }
                else {
-                  Block keyswap {GetState(), GetType(), 1, nullptr, nullptr};
+                  Block keyswap {GetState(), GetType(), 1};
                   keyswap.AllocateFresh<Any>(keyswap.RequestSize<Any>(1));
                   keyswap.CreateSemantic(Abandon(oldKey));
 
@@ -316,16 +327,8 @@ namespace Langulus::Anyness
                // Empty spot found, so move element there               
                auto key   = GetHandle<THIS>(oldIndex);
                auto tokey = GetHandle<THIS>(to);
-
-               if constexpr (CT::Typed<THIS>) {
-                  tokey.New(Abandon(key));
-                  key.Destroy();
-               }
-               else {
-                  tokey.CallSemanticConstructors(1, Abandon(key));
-                  key.CallDestructors();
-               }
-
+               tokey.CreateSemantic(Abandon(key));
+               key.Destroy();
                mInfo[to] = attempt;
                *oldInfo = 0;
             }
@@ -343,8 +346,7 @@ namespace Langulus::Anyness
    template<CT::Set THIS, bool CHECK_FOR_MATCH, template<class> class S, CT::Data T>
    requires CT::Semantic<S<T>>
    Offset BlockSet::InsertInner(const Offset start, S<T>&& key) {
-      using K = Conditional<CT::Handle<T>, TypeOf<T>, T>;
-      HandleLocal<K> keyswapper {key.Forward()};
+      auto keyswapper = CreateValHandle<THIS>(key.Forward());
 
       // Get the starting index based on the key hash                   
       auto psl = GetInfo() + start;
@@ -355,8 +357,7 @@ namespace Langulus::Anyness
          const auto index = psl - GetInfo();
 
          if constexpr (CHECK_FOR_MATCH) {
-            const auto& candidate = GetRaw<THIS>(index);
-            if (keyswapper.Compare(candidate)) {
+            if (keyswapper == GetRef<THIS>(index)) {
                // Neat, the value already exists - just return          
                return index;
             }
@@ -383,7 +384,7 @@ namespace Langulus::Anyness
       // Might not seem like it, but we gave a guarantee, that this is  
       // eventually reached, unless key exists and returns early        
       const auto index = psl - GetInfo();
-      GetHandle<THIS>(index).New(Abandon(keyswapper));
+      GetHandle<THIS>(index).CreateSemantic(Abandon(keyswapper));
       if (insertedAt == mKeys.mReserved)
          insertedAt = index;
 
@@ -408,8 +409,7 @@ namespace Langulus::Anyness
       while (*psl) {
          const auto index = psl - GetInfo();
          if constexpr (CHECK_FOR_MATCH) {
-            const auto candidate = GetHandle<THIS>(index);
-            if (candidate == *key) {
+            if (GetHandle<THIS>(index) == *key) {
                // Neat, the key already exists - just return            
                return index;
             }
@@ -442,7 +442,7 @@ namespace Langulus::Anyness
          insertedAt = index;
 
       if constexpr (S<Block>::Move) {
-         key->CallDestructors();
+         key->Destroy();
          key->mCount = 0;
       }
 

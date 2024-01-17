@@ -427,6 +427,11 @@ namespace Langulus::Anyness
       Count InsertPair(T1&&, TAIL&&...);
 
    protected:
+      template<CT::Map THIS>
+      auto CreateKeyHandle(CT::Semantic auto&&);
+      template<CT::Map THIS>
+      auto CreateValHandle(CT::Semantic auto&&);
+
       template<CT::Map>
       NOD() Size RequestKeyAndInfoSize(Count, Offset&) const IF_UNSAFE(noexcept);
       NOD() Size RequestValuesSize(Count) const IF_UNSAFE(noexcept);
@@ -512,8 +517,8 @@ namespace Langulus::Anyness
       LANGULUS(ABSTRACT) false;
       LANGULUS(TYPED)    Pair;
 
-      const KA mKey;
-      const VA mValue;
+      KA mKey;
+      VA mValue;
 
    protected:
       friend struct BlockMap;

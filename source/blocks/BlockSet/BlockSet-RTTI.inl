@@ -102,7 +102,7 @@ namespace Langulus::Anyness
       }
       else {
          // Dynamic type check                                          
-         return GetValues<THIS>().IsSimilar(other.GetKeyType());
+         return GetValues<THIS>().IsSimilar(other.GetType());
       }
    }
 

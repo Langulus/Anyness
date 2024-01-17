@@ -127,9 +127,9 @@ namespace Langulus::Anyness
       using Base::end;
 
       template<bool REVERSE = false>
-      Count ForEach(auto&&) const;
+      Count ForEach(auto&&...) const;
       template<bool REVERSE = false>
-      Count ForEach(auto&&);
+      Count ForEach(auto&&...);
 
       template<bool REVERSE = false>
       Count ForEachElement(auto&&) const;

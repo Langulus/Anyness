@@ -27,16 +27,19 @@ namespace Langulus::Anyness
    Count BlockSet::ForEachInner(auto&& f) const
    noexcept(NoexceptIterator<decltype(f)>) {
       constexpr auto NOE = NoexceptIterator<decltype(f)>;
+      auto& keys = GetValues<THIS>();
+      using KEYS = Conditional<CT::Mutable<THIS>,
+         Decvq<Deref<decltype(keys)>>,
+         Deref<decltype(keys)>>;
 
-      if ((CT::Deep<Decay<A>> and mKeys.IsDeep())
-      or (not CT::Deep<Decay<A>> and mKeys.CastsTo<A>())) {
+      if ((CT::Deep<Decay<A>> and keys.IsDeep())
+      or (not CT::Deep<Decay<A>> and keys.template CastsTo<A>())) {
          Count index = 0;
          Count executions = 0;
          if (mKeys.mType->mIsSparse) {
             // Iterate using pointers of A                              
             using DA = Conditional<CT::Mutable<THIS>, Decay<A>*, const Decay<A>*>;
-            mKeys.IterateInner<THIS, R, DA, REVERSE>(
-               mKeys.mReserved,
+            mKeys.IterateInner<KEYS, R, DA, REVERSE>(mKeys.mReserved,
                [&](DA element) noexcept(NOE) -> R {
                   if (not mInfo[index++]) {
                      if constexpr (CT::Bool<R>)
@@ -54,8 +57,7 @@ namespace Langulus::Anyness
          else {
             // Iterate using references of A                            
             using DA = Conditional<CT::Mutable<THIS>, Decay<A>&, const Decay<A>&>;
-            mKeys.IterateInner<THIS, R, DA, REVERSE>(
-               mKeys.mReserved,
+            mKeys.IterateInner<KEYS, R, DA, REVERSE>(mKeys.mReserved,
                [&](DA element) noexcept(NOE) -> R {
                   if (not mInfo[index++]) {
                      if constexpr (CT::Bool<R>)
@@ -73,7 +75,8 @@ namespace Langulus::Anyness
 
          return executions;
       }
-      else return 0;
+      
+      return 0;
    }
          
    /// Iterate all keys inside the set, and perform f() on them               

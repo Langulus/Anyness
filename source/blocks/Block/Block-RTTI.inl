@@ -216,7 +216,7 @@ namespace Langulus::Anyness
    /// No real conversion is performed, only pointer arithmetic               
    ///   @tparam T - the type of data to try interpreting as                  
    ///   @return a block representing this block, interpreted as the pattern  
-   template<CT::Block THIS, CT::Data T> LANGULUS(INLINED)
+   template<CT::Data T, CT::Block THIS> LANGULUS(INLINED)
    TAny<T> Block::ReinterpretAs() const {
       static_assert(CT::Dense<T>, "T must be dense");
       return ReinterpretAs(Block::From<T>());
