@@ -124,7 +124,7 @@ namespace Langulus::Anyness
             (key++).Destroy();
          }
          else {
-            lastkey.CreateSemantic(1, Abandon(key));
+            lastkey.CreateSemantic(Abandon(key));
             key.Destroy();
             key.Next();
          }

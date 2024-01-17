@@ -23,6 +23,7 @@ namespace Langulus::Anyness
       static constexpr char Separator = '/';
 
       using Text::Text;
+      using Text::operator +=;
 
       Path(const Text&);
       Path(Text&&);

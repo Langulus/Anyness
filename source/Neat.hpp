@@ -116,7 +116,7 @@ namespace Langulus::Anyness
       NOD() explicit operator bool() const noexcept;
 
       // Intentionally left undefined                                   
-      template<CT::Text T>
+      template<CT::TextBased T>
       NOD() T SerializeAs() const;
 
       template<CT::Trait>

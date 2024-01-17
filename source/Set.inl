@@ -194,6 +194,60 @@ namespace Langulus::Anyness
       return BlockSet::ForEachDeep<REVERSE, Set>(
          Forward<Deref<decltype(f)>>(f)...);
    }
+   
+   /// Check if this value type is similar to one of the listed types,        
+   /// ignoring density and cv-qualifiers                                     
+   ///   @tparam T1, TN... - the types to compare against                     
+   ///   @return true if value type is similar to at least one of the types   
+   TEMPLATE() template<CT::Data T1, CT::Data...TN> LANGULUS(INLINED)
+   constexpr bool TABLE()::Is() const noexcept {
+      return BlockSet::Is<Set, T1, TN...>();
+   }
+   
+   /// Check if value type loosely matches a given type, ignoring             
+   /// density and cv-qualifiers                                              
+   ///   @param meta - the type to check for                                  
+   ///   @return true if this set contains similar value data                 
+   TEMPLATE() LANGULUS(INLINED)
+   bool TABLE()::Is(DMeta meta) const noexcept {
+      return BlockSet::Is<Set>(meta);
+   }
+
+   /// Check if value type is similar to one of the listed types,             
+   /// ignoring cv-qualifiers only                                            
+   ///   @tparam T1, TN... - the types to compare against                     
+   ///   @return true if value type is similar to at least one of the types   
+   TEMPLATE() template<CT::Data T1, CT::Data...TN> LANGULUS(INLINED)
+   constexpr bool TABLE()::IsSimilar() const noexcept {
+      return BlockSet::IsSimilar<Set, T1, TN...>();
+   }
+   
+   /// Check if value type loosely matches a given type, ignoring             
+   /// cv-qualifiers only                                                     
+   ///   @param meta - the type to check for                                  
+   ///   @return true if this set contains similar value data                 
+   TEMPLATE() LANGULUS(INLINED)
+   bool TABLE()::IsSimilar(DMeta meta) const noexcept {
+      return BlockSet::IsSimilar<Set>(meta);
+   }
+
+   /// Check if value type is exactly as one of the listed types,             
+   /// including by density and cv-qualifiers                                 
+   ///   @tparam T1, TN... - the types to compare against                     
+   ///   @return true if value type exactly matches at least one type         
+   TEMPLATE() template<CT::Data T1, CT::Data...TN> LANGULUS(INLINED)
+   constexpr bool TABLE()::IsExact() const noexcept {
+      return BlockSet::IsExact<Set, T1, TN...>();
+   }
+   
+   /// Check if value type is exactly the provided type,                      
+   /// including the density and cv-qualifiers                                
+   ///   @param type - the type to match                                      
+   ///   @return true if this set contains this exact value data              
+   TEMPLATE() LANGULUS(INLINED)
+   bool TABLE()::IsExact(DMeta meta) const noexcept {
+      return BlockSet::IsExact<Set>(meta);
+   }
 
 } // namespace Langulus::Anyness
 

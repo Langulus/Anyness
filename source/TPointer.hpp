@@ -34,8 +34,6 @@ namespace Langulus::Anyness
       void ResetInner();
 
    public:
-      LANGULUS(NULLIFIABLE) true;
-
       ///                                                                     
       ///   Construction                                                      
       ///                                                                     

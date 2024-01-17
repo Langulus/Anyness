@@ -216,53 +216,59 @@ namespace Langulus::Anyness
    DMeta TABLE()::GetType() const {
       return BlockSet::GetType<TSet>();
    }
-
-   /// Check if value origin type matches any of the list                     
-   ///   @tparam T1, TN... - the list of types to compare against             
-   ///   @return true if value type matches at least one of the others        
-   TEMPLATE() template<CT::Data T1, CT::Data... TN> LANGULUS(INLINED)
+   
+   /// Check if this value type is similar to one of the listed types,        
+   /// ignoring density and cv-qualifiers                                     
+   ///   @tparam T1, TN... - the types to compare against                     
+   ///   @return true if value type is similar to at least one of the types   
+   TEMPLATE() template<CT::Data T1, CT::Data...TN> LANGULUS(INLINED)
    constexpr bool TABLE()::Is() const noexcept {
-      return CT::SameAsOneOf<T, T1, TN...>;
+      return BlockSet::Is<TSet, T1, TN...>();
    }
-
-   /// Check if value origin type matches another                             
-   ///   @param value - the value type to compare against                     
-   ///   @return true if value matches the contained key origin type          
+   
+   /// Check if value type loosely matches a given type, ignoring             
+   /// density and cv-qualifiers                                              
+   ///   @param meta - the type to check for                                  
+   ///   @return true if this set contains similar value data                 
    TEMPLATE() LANGULUS(INLINED)
-   bool TABLE()::Is(DMeta value) const noexcept {
-      return GetType()->Is(value);
+   bool TABLE()::Is(DMeta meta) const noexcept {
+      return BlockSet::Is<TSet>(meta);
    }
 
-   /// Check if cv-unqualified value type matches any of the list             
-   ///   @tparam T1, TN... - the list of types to compare against             
-   ///   @return true if value type matches at least one of the others        
-   TEMPLATE() template<CT::Data T1, CT::Data... TN> LANGULUS(INLINED)
+   /// Check if value type is similar to one of the listed types,             
+   /// ignoring cv-qualifiers only                                            
+   ///   @tparam T1, TN... - the types to compare against                     
+   ///   @return true if value type is similar to at least one of the types   
+   TEMPLATE() template<CT::Data T1, CT::Data...TN> LANGULUS(INLINED)
    constexpr bool TABLE()::IsSimilar() const noexcept {
-      return CT::SimilarAsOneOf<T, T1, TN...>;
+      return BlockSet::IsSimilar<TSet, T1, TN...>();
    }
-
-   /// Check if cv-unqualified value type matches another                     
-   ///   @param value - the value type to compare against                     
-   ///   @return true if value matches the contained key origin type          
+   
+   /// Check if value type loosely matches a given type, ignoring             
+   /// cv-qualifiers only                                                     
+   ///   @param meta - the type to check for                                  
+   ///   @return true if this set contains similar value data                 
    TEMPLATE() LANGULUS(INLINED)
-   bool TABLE()::IsSimilar(DMeta value) const noexcept {
-      return GetType()->IsSimilar(value);
+   bool TABLE()::IsSimilar(DMeta meta) const noexcept {
+      return BlockSet::IsSimilar<TSet>(meta);
    }
 
-   /// Check if value type exactly matches any of the list                    
-   ///   @tparam T1, TN... - the list of types to compare against             
-   ///   @return true if value type matches at least one of the others        
-   TEMPLATE() template<CT::Data T1, CT::Data... TN> LANGULUS(INLINED)
+   /// Check if value type is exactly as one of the listed types,             
+   /// including by density and cv-qualifiers                                 
+   ///   @tparam T1, TN... - the types to compare against                     
+   ///   @return true if value type exactly matches at least one type         
+   TEMPLATE() template<CT::Data T1, CT::Data...TN> LANGULUS(INLINED)
    constexpr bool TABLE()::IsExact() const noexcept {
-      return CT::ExactAsOneOf<T, T1, TN...>;
+      return BlockSet::IsExact<TSet, T1, TN...>();
    }
-
-   /// Check if value type exactly matches another                            
-   ///   @param value - the value type to compare against                     
-   ///   @return true if value matches the contained key origin type          
+   
+   /// Check if value type is exactly the provided type,                      
+   /// including the density and cv-qualifiers                                
+   ///   @param type - the type to match                                      
+   ///   @return true if this set contains this exact value data              
    TEMPLATE() LANGULUS(INLINED)
-   bool TABLE()::IsExact(DMeta value) const noexcept {
-      return GetType()->IsExact(value);
+   bool TABLE()::IsExact(DMeta meta) const noexcept {
+      return BlockSet::IsExact<TSet>(meta);
    }
 
    /// Reserves space for the specified number of pairs                       

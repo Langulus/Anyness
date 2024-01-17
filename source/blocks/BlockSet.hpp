@@ -159,6 +159,11 @@ namespace Langulus::Anyness
       template<CT::Set>
       NOD() decltype(auto) Get(CT::Index auto) const;
 
+      template<CT::Set = UnorderedSet>
+      NOD() decltype(auto) operator[] (CT::Index auto);
+      template<CT::Set = UnorderedSet>
+      NOD() decltype(auto) operator[] (CT::Index auto) const;
+
    protected:
       template<CT::Set, CT::Index INDEX>
       NOD() Offset SimplifyIndex(INDEX) const
