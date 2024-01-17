@@ -444,53 +444,54 @@ namespace Langulus::Anyness
       return BlockSet::last<TSet>();
    }
 
-   /// Iterate all keys inside the map, and perform f() on them               
+   /// Iterate keys inside the map, and perform a set of functions on them    
+   /// depending on the contained type                                        
    /// You can break the loop, by returning false inside f()                  
-   ///   @param f - the function to call for each key block                   
+   ///   @param f - the functions to call for each key block                  
    ///   @return the number of successful f() executions                      
-   /*TEMPLATE() template<class F>
-   Count TABLE()::ForEachElement(F&& f) const {
-      using A = ArgumentOf<F>;
-      using R = ReturnOf<F>;
-      static_assert(CT::Block<A>, "Function argument must be a block type");
-
-      Offset i {};
-      if constexpr (not CT::Void<R>) {
-         return GetValues().ForEachElement([&](const Block& element) {
-            return mInfo[i++] ? f(element) : Flow::Continue;
-         });
-      }
-      else {
-         return GetValues().ForEachElement([&](const Block& element) {
-            if (mInfo[i++])
-               f(element);
-         });
-      }
+   TEMPLATE() template<bool REVERSE> LANGULUS(INLINED)
+   Count TABLE()::ForEach(auto&&...f) const {
+      return BlockSet::ForEach<REVERSE, const TSet>(
+         Forward<Deref<decltype(f)>>(f)...);
    }
 
-   /// Iterate all keys inside the map, and perform f() on them (mutable)     
+   TEMPLATE() template<bool REVERSE> LANGULUS(INLINED)
+   Count TABLE()::ForEach(auto&&...f) {
+      return BlockSet::ForEach<REVERSE, TSet>(
+         Forward<Deref<decltype(f)>>(f)...);
+   }
+
+   /// Iterate all keys inside the set, and perform f() on them               
    /// You can break the loop, by returning false inside f()                  
    ///   @param f - the function to call for each key block                   
    ///   @return the number of successful f() executions                      
-   TEMPLATE() template<class F>
-   Count TABLE()::ForEachElement(F&& f) {
-      using A = ArgumentOf<F>;
-      using R = ReturnOf<F>;
-      static_assert(CT::Block<A>, "Function argument must be a block type");
+   TEMPLATE() template<bool REVERSE> LANGULUS(INLINED)
+   Count TABLE()::ForEachElement(auto&& f) const {
+      return BlockSet::ForEachElement<REVERSE, const TSet>(
+         Forward<Deref<decltype(f)>>(f));
+   }
 
-      Offset i {};
-      if constexpr (not CT::Void<R>) {
-         return GetValues().ForEachElement([&](const Block& element) {
-            return mInfo[i++] ? f(element) : Flow::Continue;
-         });
-      }
-      else {
-         return GetValues().ForEachElement([&](const Block& element) {
-            if (mInfo[i++])
-               f(element);
-         });
-      }
-   }*/
+   TEMPLATE() template<bool REVERSE> LANGULUS(INLINED)
+   Count TABLE()::ForEachElement(auto&& f) {
+      return BlockSet::ForEachElement<REVERSE, TSet>(
+         Forward<Deref<decltype(f)>>(f));
+   }
+
+   /// Iterate each subblock of keys inside the set, and perform a set of     
+   /// functions on them                                                      
+   ///   @param f - the functions to call for each key block                  
+   ///   @return the number of successful f() executions                      
+   TEMPLATE() template<bool REVERSE, bool SKIP> LANGULUS(INLINED)
+   Count TABLE()::ForEachDeep(auto&&...f) const {
+      return BlockSet::ForEachDeep<REVERSE, const TSet>(
+         Forward<Deref<decltype(f)>>(f)...);
+   }
+
+   TEMPLATE() template<bool REVERSE, bool SKIP> LANGULUS(INLINED)
+   Count TABLE()::ForEachDeep(auto&&...f) {
+      return BlockSet::ForEachDeep<REVERSE, TSet>(
+         Forward<Deref<decltype(f)>>(f)...);
+   }
 
 } // namespace Langulus::Anyness
 

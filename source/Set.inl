@@ -121,6 +121,79 @@ namespace Langulus::Anyness
       BlockSet::UnfoldInsert<Set>(Forward<decltype(other)>(other));
       return *this;
    }
+   
+   /// Get iterator to first element                                          
+   ///   @return an iterator to the first element, or end if empty            
+   TEMPLATE() LANGULUS(INLINED)
+   typename TABLE()::Iterator TABLE()::begin() noexcept {
+      return BlockSet::begin<Set>();
+   }
+   
+   TEMPLATE() LANGULUS(INLINED)
+   typename TABLE()::ConstIterator TABLE()::begin() const noexcept {
+      return BlockSet::begin<Set>();
+   }
+
+   /// Get iterator to the last element                                       
+   ///   @return an iterator to the last element, or end if empty             
+   TEMPLATE() LANGULUS(INLINED)
+   typename TABLE()::Iterator TABLE()::last() noexcept {
+      return BlockSet::last<Set>();
+   }
+
+   TEMPLATE() LANGULUS(INLINED)
+   typename TABLE()::ConstIterator TABLE()::last() const noexcept {
+      return BlockSet::last<Set>();
+   }
+
+   /// Iterate keys inside the map, and perform a set of functions on them    
+   /// depending on the contained type                                        
+   /// You can break the loop, by returning false inside f()                  
+   ///   @param f - the functions to call for each key block                  
+   ///   @return the number of successful f() executions                      
+   TEMPLATE() template<bool REVERSE> LANGULUS(INLINED)
+   Count TABLE()::ForEach(auto&&...f) const {
+      return BlockSet::ForEach<REVERSE, const Set>(
+         Forward<Deref<decltype(f)>>(f)...);
+   }
+
+   TEMPLATE() template<bool REVERSE> LANGULUS(INLINED)
+   Count TABLE()::ForEach(auto&&...f) {
+      return BlockSet::ForEach<REVERSE, Set>(
+         Forward<Deref<decltype(f)>>(f)...);
+   }
+
+   /// Iterate all keys inside the set, and perform f() on them               
+   /// You can break the loop, by returning false inside f()                  
+   ///   @param f - the function to call for each key block                   
+   ///   @return the number of successful f() executions                      
+   TEMPLATE() template<bool REVERSE> LANGULUS(INLINED)
+   Count TABLE()::ForEachElement(auto&& f) const {
+      return BlockSet::ForEachElement<REVERSE, const Set>(
+         Forward<Deref<decltype(f)>>(f));
+   }
+
+   TEMPLATE() template<bool REVERSE> LANGULUS(INLINED)
+   Count TABLE()::ForEachElement(auto&& f) {
+      return BlockSet::ForEachElement<REVERSE, Set>(
+         Forward<Deref<decltype(f)>>(f));
+   }
+
+   /// Iterate each subblock of keys inside the set, and perform a set of     
+   /// functions on them                                                      
+   ///   @param f - the functions to call for each key block                  
+   ///   @return the number of successful f() executions                      
+   TEMPLATE() template<bool REVERSE, bool SKIP> LANGULUS(INLINED)
+   Count TABLE()::ForEachDeep(auto&&...f) const {
+      return BlockSet::ForEachDeep<REVERSE, const Set>(
+         Forward<Deref<decltype(f)>>(f)...);
+   }
+
+   TEMPLATE() template<bool REVERSE, bool SKIP> LANGULUS(INLINED)
+   Count TABLE()::ForEachDeep(auto&&...f) {
+      return BlockSet::ForEachDeep<REVERSE, Set>(
+         Forward<Deref<decltype(f)>>(f)...);
+   }
 
 } // namespace Langulus::Anyness
 

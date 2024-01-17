@@ -544,9 +544,9 @@ namespace Langulus::Anyness
       template<CT::Data, bool BINARY_COMPATIBLE = false, CT::Block = Any>
       NOD() bool CastsTo(Count) const;
 
-      template<CT::Block>
+      template<CT::Block = Any>
       NOD() auto    ReinterpretAs(const CT::Block auto&) const;
-      template<CT::Block, CT::Data T>
+      template<CT::Data T, CT::Block = Any>
       NOD() TAny<T> ReinterpretAs() const;
 
       template<CT::Block = Any>

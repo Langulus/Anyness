@@ -126,13 +126,13 @@ namespace Langulus::Anyness
                key.Destroy();
             }
             else {
-               InsertInnerUnknown<THIS, false>(
+               InsertBlockInner<THIS, false>(
                   GetBucketUnknown(hashmask, key),
                   Abandon(key)
                );
 
                if (key)
-                  key.CallUnknownDestructors();
+                  key.Destroy();
                else
                   key.mCount = 1;
             }

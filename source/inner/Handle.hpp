@@ -83,9 +83,10 @@ namespace Langulus::Anyness
       template<bool RHS_EMBED>
       void Swap(Handle<T, RHS_EMBED>&);
 
-      NOD() bool Compare(const T&) const;
-      template<bool RHS_EMBED>
-      NOD() bool Compare(const Handle<T, RHS_EMBED>&) const;
+      template<class T1> requires CT::Inner::Comparable<T, T1>
+      NOD() bool Compare(const T1&) const;
+      template<class T1, bool RHS_EMBED> requires CT::Inner::Comparable<T, T1>
+      NOD() bool Compare(const Handle<T1, RHS_EMBED>&) const;
 
       // Prefix operators                                               
       Handle& operator ++ () noexcept requires Embedded;

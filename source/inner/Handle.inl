@@ -377,16 +377,17 @@ namespace Langulus::Anyness
    /// Compare the contents of the handle with content                        
    ///   @param rhs - data to compare against                                 
    ///   @return true if contents are equal                                   
-   TEMPLATE() LANGULUS(INLINED)
-   bool HAND()::Compare(const T& rhs) const {
+   TEMPLATE() template<class T1> requires CT::Inner::Comparable<T, T1>
+   LANGULUS(INLINED) bool HAND()::Compare(const T1& rhs) const {
       return Get() == rhs;
    }
 
    /// Compare the contents of the handle with another handle                 
    ///   @param rhs - handle to compare against                               
    ///   @return true if contents are equal                                   
-   TEMPLATE() template<bool RHS_EMBED> LANGULUS(INLINED)
-   bool HAND()::Compare(const Handle<T, RHS_EMBED>& rhs) const {
+   TEMPLATE() template<class T1, bool RHS_EMBED>
+   requires CT::Inner::Comparable<T, T1> LANGULUS(INLINED)
+   bool HAND()::Compare(const Handle<T1, RHS_EMBED>& rhs) const {
       return Get() == rhs.Get();
    }
 
