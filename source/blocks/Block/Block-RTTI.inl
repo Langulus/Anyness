@@ -148,7 +148,7 @@ namespace Langulus::Anyness
 
       if (IsEmpty() or IsSparse<THIS>()
       or IsUntyped<THIS>() or pattern.template IsUntyped<RHS>())
-         return {};
+         return RHS {};
 
       if constexpr (CT::Typed<THIS, RHS>) {
          using T1 = TypeOf<THIS>;
@@ -193,7 +193,7 @@ namespace Langulus::Anyness
          // First, compare types and get a common base type if any      
          RTTI::Base common {};
          if (not CompareTypes(pattern, common) or not common.mBinaryCompatible)
-            return {};
+            return RHS {};
 
          // Find how elements fit from one to another                   
          const Size baseBytes = (common.mType->mSize * common.mCount)

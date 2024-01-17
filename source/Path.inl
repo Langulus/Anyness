@@ -8,6 +8,7 @@
 ///                                                                           
 #pragma once
 #include "Path.hpp"
+#include "Text.inl"
 
 
 namespace Langulus::Anyness
@@ -73,7 +74,7 @@ namespace Langulus::Anyness
 
       if (*last() == Separator) {
          if (*rhs.last() == Separator)
-            return *this + rhs.Crop(1, rhs.GetCount() - 1);
+            return *this + rhs.Crop(1);
          else
             return *this + rhs;
       }
@@ -97,7 +98,7 @@ namespace Langulus::Anyness
 
       if (*last() == Separator) {
          if (*rhs.last() == Separator)
-            *this += rhs.Crop(1, rhs.GetCount() - 1);
+            *this += rhs.Crop(1);
          else
             *this += rhs;
       }

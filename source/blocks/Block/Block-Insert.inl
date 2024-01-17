@@ -888,7 +888,7 @@ namespace Langulus::Anyness
          // at compile time                                             
          using T = TypeOf<THIS>;
          if constexpr (::std::constructible_from<T, A...>) {
-            auto lhs = mthis->GetRaw();
+            auto lhs = mthis->template GetRaw<THIS>();
             const auto lhsEnd = lhs + mCount;
             while (lhs != lhsEnd)
                new (lhs++) T (Forward<A>(arguments)...);
@@ -902,7 +902,7 @@ namespace Langulus::Anyness
             "Block was expected to be typed");
 
          if constexpr (sizeof...(A) == 1) {
-            using F = Deref<FirstOf<A...>>;
+            using F = Decvq<Deref<FirstOf<A...>>>;
 
             if constexpr (CT::Similar<F, Describe>) {
                // We have a descriptor for argument, forward it to the  
@@ -914,12 +914,12 @@ namespace Langulus::Anyness
                // check if compatible, and if so - forward it to the    
                // appropriate reflected semantic constructor, if any    
                using FT = TypeOf<F>;
-               if (mthis->template IsSimilar<FT>())
+               if (IsSimilar<THIS, FT>())
                   Create<TAny<FT>>(Forward<A>(arguments)...);
                else
                   CreateDescribe<THIS>(Forward<A>(arguments)...);
             }
-            else if (mthis->template IsSimilar<F>()) {
+            else if (IsSimilar<THIS, F>()) {
                Create<TAny<F>>(Forward<A>(arguments)...);
             }
             else CreateDescribe<THIS>(Forward<A>(arguments)...);

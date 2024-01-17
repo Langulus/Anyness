@@ -108,7 +108,7 @@ namespace Langulus::Anyness
       void ResetCharge() noexcept;
 
       // Intentionally left undefined                                   
-      template<CT::Text T>
+      template<CT::TextBased T>
       NOD() T SerializeAs() const;
 
       // Intentionally left undefined                                   

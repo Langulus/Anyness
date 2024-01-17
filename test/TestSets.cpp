@@ -96,18 +96,16 @@ TEMPLATE_TEST_CASE(
       T set {};
 
       WHEN("Given a default-constructed map") {
-         THEN("These properties should be correct") {
-            if constexpr (CT::Typed<T>) {
-               REQUIRE(set.template Is<K>());
-               REQUIRE(set.GetType()->template Is<K>());
-            }
-
-            REQUIRE(set.IsTypeConstrained() == CT::Typed<T>);
-            REQUIRE(!set);
-            REQUIRE(set.GetUses() == 0);
-            REQUIRE_FALSE(set.IsAllocated());
-            REQUIRE_FALSE(set.HasAuthority());
+         if constexpr (CT::Typed<T>) {
+            REQUIRE(set.template Is<K>());
+            REQUIRE(set.GetType()->template Is<K>());
          }
+
+         REQUIRE(set.IsTypeConstrained() == CT::Typed<T>);
+         REQUIRE(!set);
+         REQUIRE(set.GetUses() == 0);
+         REQUIRE_FALSE(set.IsAllocated());
+         REQUIRE_FALSE(set.HasAuthority());
 
          #ifdef LANGULUS_STD_BENCHMARK
             BENCHMARK_ADVANCED("Anyness::set::default construction") (timer meter) {
@@ -132,17 +130,15 @@ TEMPLATE_TEST_CASE(
          T movable = element;
          set = ::std::move(movable);
 
-         THEN("Various traits change") {
-            REQUIRE((movable != element) != (CT::Fundamental<K> or CT::Sparse<K>));
-            REQUIRE(set.IsTypeConstrained() == CT::Typed<T>);
-            REQUIRE(set.GetType()->template Is<K>());
-            REQUIRE(set.template Is<K>());
-            REQUIRE(set.IsAllocated());
-            REQUIRE(set.HasAuthority());
-            REQUIRE(set.GetCount() == 1);
-            REQUIRE(set.GetUses() == 1);
-            //REQUIRE(set[0] == element);
-         }
+         REQUIRE((movable != element) != (CT::Fundamental<K> or CT::Sparse<K>));
+         REQUIRE(set.IsTypeConstrained() == CT::Typed<T>);
+         REQUIRE(set.GetType()->template Is<K>());
+         REQUIRE(set.template Is<K>());
+         REQUIRE(set.IsAllocated());
+         REQUIRE(set.HasAuthority());
+         REQUIRE(set.GetCount() == 1);
+         REQUIRE(set.GetUses() == 1);
+         REQUIRE(set[0] == element);
 
          #ifdef LANGULUS_STD_BENCHMARK
             BENCHMARK_ADVANCED("Anyness::TUnorderedSet::operator = (single element copy)") (timer meter) {
@@ -176,16 +172,14 @@ TEMPLATE_TEST_CASE(
       WHEN("Given an element-constructed set") {
          T set {element};
 
-         THEN("These properties should be correct") {
-            REQUIRE(set.IsTypeConstrained() == CT::Typed<T>);
-            REQUIRE(set.GetType()->template Is<K>());
-            REQUIRE(set.template Is<K>());
-            REQUIRE(set.IsAllocated());
-            REQUIRE(set.HasAuthority());
-            REQUIRE(set.GetCount() == 1);
-            REQUIRE(set.GetUses() == 1);
-            REQUIRE(set.Contains(element));
-         }
+         REQUIRE(set.IsTypeConstrained() == CT::Typed<T>);
+         REQUIRE(set.GetType()->template Is<K>());
+         REQUIRE(set.template Is<K>());
+         REQUIRE(set.IsAllocated());
+         REQUIRE(set.HasAuthority());
+         REQUIRE(set.GetCount() == 1);
+         REQUIRE(set.GetUses() == 1);
+         REQUIRE(set.Contains(element));
 
          //TODO benchmark
       }
@@ -203,16 +197,14 @@ TEMPLATE_TEST_CASE(
       WHEN("Given a preinitialized set with 5 elements") {
          T set {darray1};
 
-         THEN("These properties should be correct") {
-            REQUIRE(set.GetCount() == 5);
-            REQUIRE(set.GetType()->template Is<K>());
-            REQUIRE(set.template Is<K>());
-            REQUIRE(set.HasAuthority());
-            REQUIRE(set.GetUses() == 1);
-            for (auto& i : darray1)
-               REQUIRE(set.Contains(i));
-            REQUIRE(set.GetReserved() >= 5);
-         }
+         REQUIRE(set.GetCount() == 5);
+         REQUIRE(set.GetType()->template Is<K>());
+         REQUIRE(set.template Is<K>());
+         REQUIRE(set.HasAuthority());
+         REQUIRE(set.GetUses() == 1);
+         for (auto& i : darray1)
+            REQUIRE(set.Contains(i));
+         REQUIRE(set.GetReserved() >= 5);
 
          //TODO benchmark
       }
@@ -242,16 +234,14 @@ TEMPLATE_TEST_CASE(
       auto memory = set.GetRawMemory();
 
       WHEN("Given a preinitialized set with 5 elements") {
-         THEN("These properties should be correct") {
-            REQUIRE(set.GetCount() == 5);
-            REQUIRE(set.GetType()->template Is<K>());
-            REQUIRE(set.template Is<K>());
-            REQUIRE(set.HasAuthority());
-            REQUIRE(set.GetUses() == 1);
-            for (auto& i : darray1)
-               REQUIRE(set.Contains(i));
-            REQUIRE(set.GetReserved() >= 5);
-         }
+         REQUIRE(set.GetCount() == 5);
+         REQUIRE(set.GetType()->template Is<K>());
+         REQUIRE(set.template Is<K>());
+         REQUIRE(set.HasAuthority());
+         REQUIRE(set.GetUses() == 1);
+         for (auto& i : darray1)
+            REQUIRE(set.Contains(i));
+         REQUIRE(set.GetReserved() >= 5);
       }
 
       WHEN("Create 2048 and then 4096 sets, and initialize them (weird corner case test)") {
@@ -345,24 +335,22 @@ TEMPLATE_TEST_CASE(
 
          set << darray2[4];
 
-         THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
-            REQUIRE(set.IsTypeConstrained() == CT::Typed<T>);
-            REQUIRE(set.GetType()->template Is<K>());
-            REQUIRE(set.template Is<K>());
-            REQUIRE(set.HasAuthority());
-            REQUIRE(set.GetUses() == 1);
-            REQUIRE(set.GetCount() == 10);
-            REQUIRE(set.GetReserved() >= 10);
+         REQUIRE(set.IsTypeConstrained() == CT::Typed<T>);
+         REQUIRE(set.GetType()->template Is<K>());
+         REQUIRE(set.template Is<K>());
+         REQUIRE(set.HasAuthority());
+         REQUIRE(set.GetUses() == 1);
+         REQUIRE(set.GetCount() == 10);
+         REQUIRE(set.GetReserved() >= 10);
 
-            for (auto& i : darray1)
-               REQUIRE(set.Contains(i));
-            for (auto& i : darray2)
-               REQUIRE(set.Contains(i));
+         for (auto& i : darray1)
+            REQUIRE(set.Contains(i));
+         for (auto& i : darray2)
+            REQUIRE(set.Contains(i));
 
-            //#if LANGULUS_FEATURE(MANAGED_MEMORY)
-            //   REQUIRE(set.GetRawMemory() == memory);
-            //#endif
-         }
+         //#if LANGULUS_FEATURE(MANAGED_MEMORY)
+         //   REQUIRE(set.GetRawMemory() == memory);
+         //#endif
 
          #ifdef LANGULUS_STD_BENCHMARK
             BENCHMARK_ADVANCED("Anyness::TUnorderedSet::operator << (5 consecutive copies)") (timer meter) {
@@ -445,22 +433,20 @@ TEMPLATE_TEST_CASE(
             << ::std::move(movableDarray2[3])
             << ::std::move(movableDarray2[4]);
 
-         THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
-            REQUIRE(set.HasAuthority());
-            REQUIRE(set.GetUses() == 1);
-            REQUIRE(set.GetCount() == 10);
-            REQUIRE(set.GetType()->template Is<K>());
-            REQUIRE(set.GetReserved() >= 10);
+         REQUIRE(set.HasAuthority());
+         REQUIRE(set.GetUses() == 1);
+         REQUIRE(set.GetCount() == 10);
+         REQUIRE(set.GetType()->template Is<K>());
+         REQUIRE(set.GetReserved() >= 10);
 
-            for (auto& i : darray1)
-               REQUIRE(set.Contains(i));
-            for (auto& i : darray2)
-               REQUIRE(set.Contains(i));
+         for (auto& i : darray1)
+            REQUIRE(set.Contains(i));
+         for (auto& i : darray2)
+            REQUIRE(set.Contains(i));
 
-            //#if LANGULUS_FEATURE(MANAGED_MEMORY)
-            //   REQUIRE(set.GetRawMemory() == memory);
-            //#endif
-         }
+         //#if LANGULUS_FEATURE(MANAGED_MEMORY)
+         //   REQUIRE(set.GetRawMemory() == memory);
+         //#endif
 
          #ifdef LANGULUS_STD_BENCHMARK
             BENCHMARK_ADVANCED("Anyness::TUnorderedSet::operator << (5 consecutive trivial moves)") (timer meter) {
@@ -493,22 +479,20 @@ TEMPLATE_TEST_CASE(
          const auto removed2 = set.Remove(darray1[1]);
          const auto removed4 = set.Remove(darray1[3]);
 
-         THEN("The size changes but not capacity") {
-            REQUIRE(set.GetType()->template Is<K>());
-            REQUIRE(set.HasAuthority());
-            REQUIRE(set.GetUses() == 1);
-            REQUIRE(removed2 == 1);
-            REQUIRE(removed4 == 1);
-            REQUIRE(set.GetCount() == 3);
-            REQUIRE(set.GetRawMemory() == memory);
-            REQUIRE(set.GetReserved() >= 5);
+         REQUIRE(set.GetType()->template Is<K>());
+         REQUIRE(set.HasAuthority());
+         REQUIRE(set.GetUses() == 1);
+         REQUIRE(removed2 == 1);
+         REQUIRE(removed4 == 1);
+         REQUIRE(set.GetCount() == 3);
+         REQUIRE(set.GetRawMemory() == memory);
+         REQUIRE(set.GetReserved() >= 5);
 
-            REQUIRE(set.Contains(darray1[0]));
-            REQUIRE_FALSE(set.Contains(darray1[1]));
-            REQUIRE(set.Contains(darray1[2]));
-            REQUIRE_FALSE(set.Contains(darray1[3]));
-            REQUIRE(set.Contains(darray1[4]));
-         }
+         REQUIRE(set.Contains(darray1[0]));
+         REQUIRE_FALSE(set.Contains(darray1[1]));
+         REQUIRE(set.Contains(darray1[2]));
+         REQUIRE_FALSE(set.Contains(darray1[3]));
+         REQUIRE(set.Contains(darray1[4]));
 
          #ifdef LANGULUS_STD_BENCHMARK
             BENCHMARK_ADVANCED("Anyness::TUnorderedSet::Remove") (timer meter) {
@@ -551,141 +535,125 @@ TEMPLATE_TEST_CASE(
       WHEN("Removing non-available elements") {
          const auto removed9 = set.Remove(darray2[3]);
 
-         THEN("Nothing should change") {
-            REQUIRE(removed9 == 0);
-            REQUIRE(set.GetCount() == 5);
-            REQUIRE(set.GetRawMemory() == memory);
-            REQUIRE(set.HasAuthority());
-            REQUIRE(set.GetUses() == 1);
-            REQUIRE(set.GetReserved() >= 5);
+         REQUIRE(removed9 == 0);
+         REQUIRE(set.GetCount() == 5);
+         REQUIRE(set.GetRawMemory() == memory);
+         REQUIRE(set.HasAuthority());
+         REQUIRE(set.GetUses() == 1);
+         REQUIRE(set.GetReserved() >= 5);
 
-            for (auto& i : darray1)
-               REQUIRE(set.Contains(i));
-         }
+         for (auto& i : darray1)
+            REQUIRE(set.Contains(i));
       }
 
       WHEN("More capacity is reserved") {
          set.Reserve(20);
 
-         THEN("The capacity changes but not the size, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
-            REQUIRE(set.HasAuthority());
-            REQUIRE(set.GetUses() == 1);
-            REQUIRE(set.GetCount() == 5);
-            REQUIRE(set.GetReserved() >= 20);
+         REQUIRE(set.HasAuthority());
+         REQUIRE(set.GetUses() == 1);
+         REQUIRE(set.GetCount() == 5);
+         REQUIRE(set.GetReserved() >= 20);
 
-            //#if LANGULUS_FEATURE(MANAGED_MEMORY)
-            //   REQUIRE(set.GetRawMemory() == memory);
-            //#endif
-         }
+         //#if LANGULUS_FEATURE(MANAGED_MEMORY)
+         //   REQUIRE(set.GetRawMemory() == memory);
+         //#endif
       }
 
       WHEN("Less capacity is reserved") {
          set.Reserve(2);
 
-         THEN("Capacity and count remain unchanged") {
-            REQUIRE(set.HasAuthority());
-            REQUIRE(set.GetUses() == 1);
-            REQUIRE(set.GetCount() == 5);
-            REQUIRE(set.GetRawMemory() == memory);
-            REQUIRE(set.GetReserved() >= 5);
-         }
+         REQUIRE(set.HasAuthority());
+         REQUIRE(set.GetUses() == 1);
+         REQUIRE(set.GetCount() == 5);
+         REQUIRE(set.GetRawMemory() == memory);
+         REQUIRE(set.GetReserved() >= 5);
       }
 
       WHEN("Set is cleared") {
          set.Clear();
 
-         THEN("Size goes to zero, capacity and types are unchanged") {
-            REQUIRE(set.GetCount() == 0);
-            REQUIRE(set.IsAllocated());
-            REQUIRE(set.GetType()->template Is<K>());
-            REQUIRE(set.template Is<K>());
-            REQUIRE(set.IsTypeConstrained() == CT::Typed<T>);
-            REQUIRE(!set);
-            REQUIRE(set.GetRawMemory() == memory);
-            REQUIRE(set.HasAuthority());
-            REQUIRE(set.GetUses() == 1);
-            REQUIRE(set.GetReserved() >= 5);
-         }
+         REQUIRE(set.GetCount() == 0);
+         REQUIRE(set.IsAllocated());
+         REQUIRE(set.GetType()->template Is<K>());
+         REQUIRE(set.template Is<K>());
+         REQUIRE(set.IsTypeConstrained() == CT::Typed<T>);
+         REQUIRE(!set);
+         REQUIRE(set.GetRawMemory() == memory);
+         REQUIRE(set.HasAuthority());
+         REQUIRE(set.GetUses() == 1);
+         REQUIRE(set.GetReserved() >= 5);
       }
 
       WHEN("Set is reset") {
          set.Reset();
 
-         THEN("Size and capacity goes to zero, types are unchanged if statically optimized") {
-            REQUIRE(set.GetCount() == 0);
-            REQUIRE_FALSE(set.IsAllocated());
-            REQUIRE_FALSE(set.HasAuthority());
-            if constexpr (CT::Typed<T>) {
-               REQUIRE(set.template Is<K>());
-               REQUIRE(set.GetType()->template Is<K>());
-            }
-            REQUIRE(set.IsTypeConstrained() == CT::Typed<T>);
-            REQUIRE(!set);
-            REQUIRE(set.GetRawMemory() != memory);
-            REQUIRE(set.GetUses() == 0);
+         REQUIRE(set.GetCount() == 0);
+         REQUIRE_FALSE(set.IsAllocated());
+         REQUIRE_FALSE(set.HasAuthority());
+         if constexpr (CT::Typed<T>) {
+            REQUIRE(set.template Is<K>());
+            REQUIRE(set.GetType()->template Is<K>());
          }
+         REQUIRE(set.IsTypeConstrained() == CT::Typed<T>);
+         REQUIRE(!set);
+         REQUIRE(set.GetRawMemory() != memory);
+         REQUIRE(set.GetUses() == 0);
       }
 
       WHEN("Set is shallow-copied") {
          T copy = set;
 
-         THEN("The new set should keep the state and refer to original data") {
-            REQUIRE(copy == set);
-            REQUIRE(copy.GetType()->template Is<K>());
-            REQUIRE(copy.IsAllocated());
-            REQUIRE(copy.HasAuthority());
-            REQUIRE(copy.GetUses() == 2);
-            REQUIRE(copy.GetCount() == set.GetCount());
-            REQUIRE(copy.GetCount() == 5);
-            REQUIRE(copy.GetRawMemory() == set.GetRawMemory());
+         REQUIRE(copy == set);
+         REQUIRE(copy.GetType()->template Is<K>());
+         REQUIRE(copy.IsAllocated());
+         REQUIRE(copy.HasAuthority());
+         REQUIRE(copy.GetUses() == 2);
+         REQUIRE(copy.GetCount() == set.GetCount());
+         REQUIRE(copy.GetCount() == 5);
+         REQUIRE(copy.GetRawMemory() == set.GetRawMemory());
 
-            for (auto& comparer : darray1) {
-               REQUIRE(copy.Contains(comparer));
-               REQUIRE(set.Contains(comparer));
-            }
+         for (auto& comparer : darray1) {
+            REQUIRE(copy.Contains(comparer));
+            REQUIRE(set.Contains(comparer));
          }
       }
 
       WHEN("Set is cloned") {
          T clone = Langulus::Clone(set);
 
-         THEN("The new set should keep the state, but refer to new data") {
-            REQUIRE((clone != set) == CT::Sparse<K>);
-            REQUIRE(clone.GetType()->template Is<K>());
-            REQUIRE(clone.IsAllocated());
-            REQUIRE(clone.HasAuthority());
-            REQUIRE(clone.GetUses() == 1);
-            REQUIRE(clone.GetCount() == set.GetCount());
-            REQUIRE(clone.GetCount() == 5);
-            REQUIRE(clone.GetRawMemory() != set.GetRawMemory());
-            REQUIRE((clone != set) == CT::Sparse<K>);
-         }
+         REQUIRE((clone != set) == CT::Sparse<K>);
+         REQUIRE(clone.GetType()->template Is<K>());
+         REQUIRE(clone.IsAllocated());
+         REQUIRE(clone.HasAuthority());
+         REQUIRE(clone.GetUses() == 1);
+         REQUIRE(clone.GetCount() == set.GetCount());
+         REQUIRE(clone.GetCount() == 5);
+         REQUIRE(clone.GetRawMemory() != set.GetRawMemory());
+         REQUIRE((clone != set) == CT::Sparse<K>);
       }
 
       WHEN("Set is move-constructed") {
          T movable = set;
          T moved = ::std::move(movable);
 
-         THEN("The new pack should keep the state and data") {
-            REQUIRE(moved == set);
-            REQUIRE(moved != movable);
-            REQUIRE(moved.GetType()->template Is<K>());
-            REQUIRE(moved.GetRawMemory() == memory);
-            REQUIRE(moved.IsAllocated());
-            REQUIRE(moved.GetCount() == 5);
-            REQUIRE(moved.HasAuthority());
-            REQUIRE(moved.GetUses() == 2);
-            REQUIRE_FALSE(movable.IsAllocated());
-            REQUIRE(!movable);
-            REQUIRE(movable.GetRawMemory() == nullptr);
-            REQUIRE(movable.GetCount() == 0);
-            REQUIRE(movable.IsTypeConstrained() == CT::Typed<T>);
+         REQUIRE(moved == set);
+         REQUIRE(moved != movable);
+         REQUIRE(moved.GetType()->template Is<K>());
+         REQUIRE(moved.GetRawMemory() == memory);
+         REQUIRE(moved.IsAllocated());
+         REQUIRE(moved.GetCount() == 5);
+         REQUIRE(moved.HasAuthority());
+         REQUIRE(moved.GetUses() == 2);
+         REQUIRE_FALSE(movable.IsAllocated());
+         REQUIRE(!movable);
+         REQUIRE(movable.GetRawMemory() == nullptr);
+         REQUIRE(movable.GetCount() == 0);
+         REQUIRE(movable.IsTypeConstrained() == CT::Typed<T>);
 
-            for (auto& comparer : darray1) {
-               REQUIRE(moved.Contains(comparer));
-               REQUIRE(set.Contains(comparer));
-               REQUIRE_FALSE(movable.Contains(comparer));
-            }
+         for (auto& comparer : darray1) {
+            REQUIRE(moved.Contains(comparer));
+            REQUIRE(set.Contains(comparer));
+            REQUIRE_FALSE(movable.Contains(comparer));
          }
       }
 
@@ -697,12 +665,10 @@ TEMPLATE_TEST_CASE(
          T differentSet1;
          differentSet1 << darray1[0] << darray1[0] << darray1[2] << darray1[3] << darray1[4];
 
-         THEN("The comparisons should be adequate") {
-            REQUIRE(set == sameSet);
-            REQUIRE((set != clonedSet) == CT::Sparse<K>);
-            REQUIRE(set == copiedSet);
-            REQUIRE(set != differentSet1);
-         }
+         REQUIRE(set == sameSet);
+         REQUIRE((set != clonedSet) == CT::Sparse<K>);
+         REQUIRE(set == copiedSet);
+         REQUIRE(set != differentSet1);
       }
 
       WHEN("Sets are iterated with ranged-for") {
@@ -763,9 +729,7 @@ TEMPLATE_TEST_CASE(
             ++i;
          }
 
-         THEN("The comparisons should be adequate") {
-            REQUIRE(i == set.GetCount());
-         }
+         REQUIRE(i == set.GetCount());
       }
 
       WHEN("ForEach flat dense key (immutable)") {
@@ -827,10 +791,8 @@ TEMPLATE_TEST_CASE(
             return true;
          });
 
-         THEN("The comparisons should be adequate") {
-            REQUIRE(i == set.GetCount());
-            REQUIRE(i == done);
-         }
+         REQUIRE(i == set.GetCount());
+         REQUIRE(i == done);
       }
    }
 }
@@ -881,20 +843,18 @@ TEMPLATE_TEST_CASE("Set corner cases", "[set]",
          removed += set.Remove(MetaOf<VulkanLight>());
          removed += set.Remove(MetaOf<VulkanLayer>());
 
-         THEN("The set should be correct") {
-            REQUIRE(removed == 6);
-            REQUIRE(set.GetCount() == 4);
-            REQUIRE_FALSE(set.Contains(MetaOf<VulkanLayer>()));
-            REQUIRE_FALSE(set.Contains(MetaOf<VulkanRenderer>()));
-            REQUIRE_FALSE(set.Contains(MetaOf<VulkanCamera>()));
-            REQUIRE_FALSE(set.Contains(MetaOf<Vulkan>()));
-            REQUIRE_FALSE(set.Contains(MetaOf<VulkanLight>()));
-            REQUIRE_FALSE(set.Contains(MetaOf<VulkanRenderable>()));
-            REQUIRE(set.Contains(MetaOf<Platform>()));
-            REQUIRE(set.Contains(MetaOf<Window>()));
-            REQUIRE(set.Contains(MetaOf<Monitor>()));
-            REQUIRE(set.Contains(MetaOf<Cursor>()));
-         }
+         REQUIRE(removed == 6);
+         REQUIRE(set.GetCount() == 4);
+         REQUIRE_FALSE(set.Contains(MetaOf<VulkanLayer>()));
+         REQUIRE_FALSE(set.Contains(MetaOf<VulkanRenderer>()));
+         REQUIRE_FALSE(set.Contains(MetaOf<VulkanCamera>()));
+         REQUIRE_FALSE(set.Contains(MetaOf<Vulkan>()));
+         REQUIRE_FALSE(set.Contains(MetaOf<VulkanLight>()));
+         REQUIRE_FALSE(set.Contains(MetaOf<VulkanRenderable>()));
+         REQUIRE(set.Contains(MetaOf<Platform>()));
+         REQUIRE(set.Contains(MetaOf<Window>()));
+         REQUIRE(set.Contains(MetaOf<Monitor>()));
+         REQUIRE(set.Contains(MetaOf<Cursor>()));
       }
    }
 }

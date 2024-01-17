@@ -172,8 +172,7 @@ namespace Langulus::Anyness
    /// Semantic construction from count-terminated array                      
    ///   @param text - text memory to wrap                                    
    ///   @param count - number of characters inside text                      
-   template<class T> requires (CT::StringPointer<Desem<T>>
-                           or  CT::StringLiteral<Desem<T>>)
+   template<class T> requires CT::String<Desem<T>>
    Text Text::From(T&& text, Count count) {
       return Base::From(Forward<T>(text), count);
    }
@@ -522,30 +521,21 @@ namespace Langulus::Anyness
       return operator == (Text::From(Disown(&rhs), 1));
    }
 
-   /// Compare with a null-terminated string                                  
+   /// Compare with a null-terminated or bounded literal string               
    ///   @param rhs - the string to compare with                              
    ///   @return true if this container contains this exact string            
    LANGULUS(INLINED)
-   bool Text::operator == (const CT::StringPointer auto& rhs) const noexcept {
-      return operator == (Text {Disown(rhs)});
-   }
-
-   /// Compare with a bounded string literal                                  
-   ///   @param rhs - the string to compare with                              
-   ///   @return true if this container contains this exact string            
-   LANGULUS(INLINED)
-   bool Text::operator == (const CT::StringLiteral auto& rhs) const noexcept {
+   bool Text::operator == (const CT::String auto& rhs) const noexcept {
       return operator == (Text {Disown(rhs)});
    }
 
    /// Compare with standard contiguous range statically typed with           
    /// characters. This includes std::string, string_view, span, vector,      
-   /// array, etc. Containers that aren't strings will be strnlen'ed          
+   /// array, etc. Containers that aren't playing by string rules will have   
+   /// their data strnlen'd                                                   
    ///   @param rhs - the string to compare with                              
    ///   @return true if this container contains this exact string            
-   template<class T> requires (CT::StandardContiguousContainer<T>
-                          and  CT::DenseCharacter<TypeOf<T>>)
-   LANGULUS(INLINED) bool Text::operator == (const T& rhs) const noexcept {
+   LANGULUS(INLINED) bool Text::operator == (const CT::StdString auto& rhs) const noexcept {
       return operator == (Text {Disown(rhs)});
    }
 
@@ -559,7 +549,7 @@ namespace Langulus::Anyness
    /// Concatenate two text containers                                        
    ///   @param rhs - right hand side                                         
    ///   @return the concatenated text container                              
-   template<class T> requires CT::Text<Desem<T>> LANGULUS(INLINED)
+   /*template<class T> requires CT::Text<Desem<T>> LANGULUS(INLINED)
    Text Text::operator + (T&& rhs) const {
       using S = SemanticOf<T>;
       using B = TypeOf<S>;
@@ -606,7 +596,7 @@ namespace Langulus::Anyness
                           and  CT::DenseCharacter<TypeOf<T>>)
    LANGULUS(INLINED) Text operator + (T&& lhs, const Text& rhs) {
       return Text {Disown(lhs)} + rhs;
-   }
+   }*/
 
    /// Concatenate (destructively) text containers                            
    ///   @param rhs - right hand side                                         
@@ -615,22 +605,27 @@ namespace Langulus::Anyness
    Text& Text::operator += (T&& rhs) {
       using S = SemanticOf<T>;
       using B = TypeOf<S>;
-      if constexpr (CT::Typed<B>) {
-         if constexpr (CT::Similar<Letter, TypeOf<B>>) {
-            // We can concat directly                                   
+
+      if constexpr (CT::Block<T>) {
+         if constexpr (CT::Typed<B>) {
+            if constexpr (CT::Similar<Letter, TypeOf<B>>) {
+               // We can concat directly                                
+               Block::InsertBlock<Text, void>(IndexBack, S::Nest(rhs));
+            }
+            else if constexpr (CT::DenseCharacter<TypeOf<B>>) {
+               // We're concatenating with different type of characters 
+               // - do UTF conversions here                             
+               TODO();
+            }
+            else LANGULUS_ERROR("Can't concatenate with this container");
+         }
+         else {
+            // Type-erased concat                                       
             Block::InsertBlock<Text, void>(IndexBack, S::Nest(rhs));
          }
-         else if constexpr (CT::DenseCharacter<TypeOf<B>>) {
-            // We're concatenating with different type of characters -  
-            // do UTF conversions here                                  
-            TODO();
-         }
-         else LANGULUS_ERROR("Can't concatenate with this container");
       }
-      else {
-         // Type-erased concat                                          
-         Block::InsertBlock<Text, void>(IndexBack, S::Nest(rhs));
-      }
+      else TODO();
+
       return *this;
    }
 

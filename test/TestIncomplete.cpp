@@ -25,6 +25,13 @@ using UnitMap = TUnorderedMap<DMeta, TAny<Unit*>>;
 using TraitMap = TUnorderedMap<TMeta, TAny<Trait>>;
 
 struct Thing final : Resolvable {
+   static_assert(CT::Complete<Resolvable>);
+   static_assert(CT::Complete<TOwned<Thing*>>);
+   static_assert(CT::Complete<Ptr<Thing>>);
+   static_assert(CT::Complete<TAny<Thing*>>);
+   static_assert(CT::Complete<UnitMap>);
+   static_assert(CT::Complete<TraitMap>);
+
    LANGULUS(ABSTRACT) false;
    LANGULUS(PRODUCER) Thing;
    LANGULUS(UNINSERTABLE) false;

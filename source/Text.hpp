@@ -13,27 +13,34 @@
 
 namespace Langulus::CT
 {
-   namespace Inner
-   {
-      template<class T>
-      concept Text = T::CTTI_TextTrait and CT::Block<T>;
-   }
+   
+   /// Concept for any possible standard library representation of a string   
+   /// This includes not only std::string, but also any contiguous range      
+   /// that's filled with dense characters                                    
+   template<class...T>
+   concept StdString = CT::StdContiguousContainer<T...>
+       and CT::DenseCharacter<TypeOf<T>...>;
 
    /// Concept for differentiating managed text types                         
    /// Text containers are always binary compatible to Block                  
    template<class...T>
-   concept Text = (Inner::Text<Decay<T>> and ...);
+   concept TextBased = ((Decay<T>::CTTI_TextTrait and CT::Block<T>) and ...);
 
+   /// Concept for differentiating any form of text                           
    template<class...T>
-   concept NotText = not Text<T...>;
+   concept Text = ((TextBased<T>
+        or CT::String<T>
+        or CT::DenseCharacter<T>
+        or CT::StdString<T>
+      ) and ...);
 
    /// Low level concept for checking if a type is stringifiable by libfmt    
-   /// Notice that Blocks are omitted here, to avoid ambiguities              
+   /// Notice that any CT::Text are omitted here, to avoid ambiguities        
    /// Any higher order conversion from containers to Text is achieved by     
    /// defining an explicit/implicit cast operator to Text, using the         
    /// CT::Stringifiable and CT::Debuggable concepts instead                  
    template<class...T>
-   concept Formattable = not Block<T...>
+   concept Formattable = not Text<T...> 
        and (::fmt::is_formattable<T>::value and ...);
 
 } // namespace Langulus::CT
@@ -69,22 +76,26 @@ namespace Langulus::Anyness
       template<class T> requires CT::Block<Desem<T>>
       Text(T&&);
 
-      template<CT::Semantic T> requires CT::StringPointer<TypeOf<T>>
+      template<class T> requires CT::String<Desem<T>>
       Text(T&&);
 
-      template<CT::Semantic T> requires CT::StringLiteral<TypeOf<T>>
+      template<class T> requires CT::DenseCharacter<Desem<T>>
+      Text(T&&);
+
+      template<class T> requires CT::StdString<Desem<T>>
       Text(T&&);
 
       template<class...T>
-      requires (sizeof...(T) > 1 and (
-         (CT::Inner::Text<T> or CT::Formattable<T>) and ...))
+      requires(sizeof...(T) > 1 and ((CT::Text<T> or CT::Formattable<T>) and ...))
       Text(T&&...);
 
       /// By extending libfmt via formatters, we also extend Text capabilities
-      Text(CT::Formattable auto&&);
+      /// Notice, that StringPointer and StringLiteral are handled separately 
+      /// in order to make those implicit. This one is explicit, to avoid     
+      /// ambiguities                                                         
+      explicit Text(CT::Formattable auto&&);
 
-      template<class T> requires (CT::StringPointer<Desem<T>>
-                              or  CT::StringLiteral<Desem<T>>)
+      template<class T> requires CT::String<Desem<T>>
       static Text From(T&&, Count);
 
       ///                                                                     
@@ -97,7 +108,7 @@ namespace Langulus::Anyness
       Text& operator = (T&&);
 
       /// By extending libfmt via formatters, we also extend Text capabilities
-      Text& operator = (CT::Formattable auto&&);
+      //Text& operator = (CT::Formattable auto&&);
 
       ///                                                                     
       ///   Capsulation                                                       
@@ -120,11 +131,8 @@ namespace Langulus::Anyness
       ///                                                                     
       bool operator == (const CT::Block auto&) const noexcept;
       bool operator == (const CT::DenseCharacter auto&) const noexcept;
-      bool operator == (const CT::StringPointer auto&) const noexcept;
-      bool operator == (const CT::StringLiteral auto&) const noexcept;
-      template<class T> requires (CT::StandardContiguousContainer<T>
-                             and  CT::DenseCharacter<TypeOf<T>>)
-      bool operator == (const T&) const noexcept;
+      bool operator == (const CT::String auto&) const noexcept;
+      bool operator == (const CT::StdString auto&) const noexcept;
       bool operator == (::std::nullptr_t) const noexcept;
 
       ///                                                                     
@@ -143,11 +151,11 @@ namespace Langulus::Anyness
       ///                                                                     
       template<class T> requires CT::Text<Desem<T>>
       NOD() Text operator + (T&&) const;
-      NOD() Text operator + (CT::Formattable auto&&) const;
+      //NOD() Text operator + (CT::Formattable auto&&) const;
 
       template<class T> requires CT::Text<Desem<T>>
       Text& operator += (T&&);
-      Text& operator += (CT::Formattable auto&&);
+      //Text& operator += (CT::Formattable auto&&);
 
       ///                                                                     
       ///   Services                                                          
@@ -171,12 +179,6 @@ namespace Langulus::Anyness
       template<::std::size_t...N>
       static constexpr auto CheckPattern(const Token&, ::std::index_sequence<N...>);
    };
-
-
-   ///                                                                        
-   /// Free standing catenators                                               
-   ///                                                                        
-   Text operator + (CT::Formattable auto&&, const Text&);
 
 
    /// Text container specialized for logging                                 
@@ -240,7 +242,7 @@ namespace fmt
    /// Extend FMT to be capable of logging anything that is derived from      
    /// Anyness::Text. Constness of T doesn't matter.                          
    ///                                                                        
-   template<Langulus::CT::Text T>
+   template<Langulus::CT::TextBased T>
    struct formatter<T> {
       template<class CONTEXT>
       constexpr auto parse(CONTEXT& ctx) {
