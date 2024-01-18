@@ -790,7 +790,7 @@ namespace Langulus::Anyness
       ///                                                                     
       // Intentionally undefined, because it requires Langulus::Flow    
       // and relies on Verbs::Interpret                                 
-      template<bool ENSCOPE = true, CT::Block TO, CT::Block TO_ORIGINAL = TO, CT::Block THIS>
+      template<bool ENSCOPE = true, CT::Block TO, CT::Block TO_ORIGINAL = TO, CT::Block THIS = Any>
       NOD() Count Serialize(TO&) const;
 
       ///                                                                     

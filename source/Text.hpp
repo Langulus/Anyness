@@ -8,6 +8,7 @@
 ///                                                                           
 #pragma once
 #include "Bytes.hpp"
+#include <Logger/Logger.hpp> // Logger has some core fmt::formatters defined  
 #include <string>
 
 
@@ -27,6 +28,10 @@ namespace Langulus::CT
    concept TextBased = ((Decay<T>::CTTI_TextTrait and CT::Block<T>) and ...);
 
    /// Concept for differentiating any form of text                           
+   /// This includes: Text containers; any contiguous standard containers,    
+   /// that are statically typed and filled with characters; dense character  
+   /// types; null-terminated (and unsafe) c-strings; string literals (aka    
+   /// bounded character arrays)                                              
    template<class...T>
    concept Text = ((TextBased<T>
         or CT::String<T>
@@ -34,27 +39,51 @@ namespace Langulus::CT
         or CT::StdString<T>
       ) and ...);
 
-   /// Low level concept for checking if a type is stringifiable by libfmt    
-   /// Notice that any CT::Text are omitted here, to avoid ambiguities        
-   /// Any higher order conversion from containers to Text is achieved by     
-   /// defining an explicit/implicit cast operator to Text, using the         
-   /// CT::Stringifiable and CT::Debuggable concepts instead                  
+   namespace Inner
+   {
+
+      /// Low level concept for checking if a type is stringifiable by {fmt}  
+      /// Notice that any CT::Text are omitted here, to avoid ambiguities     
+      template<class...T>
+      concept ExplicitlyFormattable = not Text<T...> and not Semantic<T...>
+          and (::fmt::is_formattable<Deref<T>>::value and ...);
+   
+      /// Same as above, but also includes CT::Text                           
+      template<class...T>
+      concept ImplicitlyFormattable = ((Text<T>
+           or ExplicitlyFormattable<T>) and ...);
+   
+      /// This is the higher level concept, for checking if something can be  
+      /// converted to Text container                                         
+      template<class T>
+      concept Stringifiable = 
+            requires (T& a) { a.operator ::Langulus::Anyness::Text(); }
+         or requires (T& a) { ::Langulus::Anyness::Text {a}; };
+
+   } // namespace Langulus::CT::Inner
+
+   /// A stringifiable type is one that has either an implicit or explicit    
+   /// cast operator to Text type, or can be used to explicitly initialize a  
+   /// Text container                                                         
    template<class...T>
-   concept Formattable = not Text<T...> 
-       and (::fmt::is_formattable<T>::value and ...);
+   concept Stringifiable = (Inner::Stringifiable<T> and ...);
 
 } // namespace Langulus::CT
+
 
 namespace Langulus::Anyness
 {
 
    ///                                                                        
-   ///   Count-terminated UTF8 text container                                 
+   ///   Count-terminated UTF text container                                  
    ///                                                                        
    ///   This is a general purpose text container. It can contain serialized  
-   /// data, but converting to it doesn't necessarily mean data will be       
-   /// serialized. Consider it a general day to day speech container, that    
-   /// may or may not be formal.                                              
+   /// data, but converting to it is a one way process. While serialization   
+   /// aims at being isomorphic, converting to Text aims at readability only. 
+   /// Consider it a general day to day speech container, that may or may not 
+   /// be formal                                                              
+   ///   If you want to serialize your data in a readable format, convert to  
+   /// Flow::Code, or other isomorphic representations                        
    ///                                                                        
    struct Text : TAny<Letter> {
       using Base = TAny<Letter>;
@@ -85,15 +114,11 @@ namespace Langulus::Anyness
       template<class T> requires CT::StdString<Desem<T>>
       Text(T&&);
 
-      template<class...T>
-      requires(sizeof...(T) > 1 and ((CT::Text<T> or CT::Formattable<T>) and ...))
-      Text(T&&...);
+      explicit Text(const CT::Inner::ExplicitlyFormattable auto&);
 
-      /// By extending libfmt via formatters, we also extend Text capabilities
-      /// Notice, that StringPointer and StringLiteral are handled separately 
-      /// in order to make those implicit. This one is explicit, to avoid     
-      /// ambiguities                                                         
-      explicit Text(CT::Formattable auto&&);
+      template<class T1, class T2, class...TN>
+      requires CT::Inner::ImplicitlyFormattable<T1, T2, TN...>
+      Text(T1&&, T2&&, TN&&...);
 
       template<class T> requires CT::String<Desem<T>>
       static Text From(T&&, Count);
@@ -141,6 +166,10 @@ namespace Langulus::Anyness
       Text Extend(Count);
       NOD() Text Terminate() const;
 
+   protected:
+      void UnfoldInsert(auto&&);
+
+   public:
       ///                                                                     
       ///   Removal                                                           
       ///                                                                     
@@ -180,53 +209,7 @@ namespace Langulus::Anyness
       static constexpr auto CheckPattern(const Token&, ::std::index_sequence<N...>);
    };
 
-
-   /// Text container specialized for logging                                 
-   /// Serializing to text might produce a lot of unncessesary text, so this  
-   /// differentiation is quite handy                                         
-   struct Debug : Text {
-      LANGULUS_BASES(Text);
-      LANGULUS(FILES) "";
-
-      using Text::Text;
-      using Text::operator ==;
-
-      Debug(const Text&);
-      Debug(Text&&);
-   };
-
 } // namespace Langulus::Anyness
-
-namespace Langulus::CT
-{
-   namespace Inner
-   {
-
-      template<class T>
-      concept Stringifiable = /*not Text<T> and not StandardContiguousContainer<T> and*/ (
-         requires (T& a) { a.operator ::Langulus::Anyness::Text(); }
-      );
-
-      template<class T>
-      concept Debuggable = /*not Text<T> and not StandardContiguousContainer<T> and*/ (
-         requires (T& a) { a.operator ::Langulus::Anyness::Debug(); }
-      );
-
-   } // namespace Langulus::CT::Inner
-
-   /// A stringifiable type is one that has either an implicit or explicit    
-   /// cast operator to Text type. Reverse conversion through                 
-   /// constructors is avoided to mitigate ambiguity problems.                
-   template<class...T>
-   concept Stringifiable = (Inner::Stringifiable<T> and ...);
-
-   /// A debuggable type is one that has either an implicit or explicit       
-   /// cast operator to Debug type. Reverse conversion through                
-   /// constructors is avoided to mitigate ambiguity problems.                
-   template<class...T>
-   concept Debuggable = ((Inner::Stringifiable<T> or Inner::Debuggable<T>) and ...);
-
-} // namespace Langulus::CT
 
 namespace Langulus
 {
@@ -249,56 +232,45 @@ namespace fmt
          return ctx.begin();
       }
 
-      template<class CONTEXT>
-      LANGULUS(INLINED)
+      template<class CONTEXT> LANGULUS(INLINED)
       auto format(const T& element, CONTEXT& ctx) {
          using namespace Langulus;
          static_assert(CT::Complete<T>, "T isn't complete");
+         auto& me = const_cast<T&>(element);
 
-         auto asText = const_cast<T&>(element).operator Token();
-         return fmt::format_to(ctx.out(), "{}", asText);
+         auto token = me.operator Token();
+         return fmt::format_to(ctx.out(), "{}", token);
       }
    };
 
-
    ///                                                                        
-   /// Extend FMT to be capable of logging anything that is statically        
-   /// convertible to a Token/Debug/Text string by an explicit or implicit    
-   /// conversion operator. It doesn't apply to these typed directly.         
-   /// Constness of T doesn't matter.                                         
+   /// Extend FMT to be capable of logging anything that is convertible to    
+   /// Anyness::Text. Constness of T doesn't matter.                          
    ///                                                                        
-   template<Langulus::CT::Debuggable T>
+   /*template<Langulus::CT::Stringifiable T>
    struct formatter<T> {
       template<class CONTEXT>
       constexpr auto parse(CONTEXT& ctx) {
          return ctx.begin();
       }
 
-      template<class CONTEXT>
-      LANGULUS(INLINED)
+      template<class CONTEXT> LANGULUS(INLINED)
       auto format(const T& element, CONTEXT& ctx) {
          using namespace Langulus;
          static_assert(CT::Complete<T>, "T isn't complete");
+         auto& me = const_cast<T&>(element);
 
-         if constexpr (requires (T& a) {
-            a.operator Anyness::Debug();
-         }) {
-            // Convert to a debug string if possible                    
-            auto asText = const_cast<T&>(element)
-               .operator Anyness::Debug();
-            return fmt::format_to(ctx.out(), "{}",
-               static_cast<Logger::TextView>(asText));
-         }
-         else if constexpr (requires (T& a) {
-            a.operator Anyness::Text();
-         }) {
-            // Convert to text as a fallback                            
-            auto asText = const_cast<T&>(element)
-               .operator Anyness::Text();
-            return fmt::format_to(ctx.out(), "{}",
-               static_cast<Logger::TextView>(asText));
-         }
+         Anyness::Text asText;
+         if constexpr (requires { me.operator Anyness::Text(); })
+            asText = Anyness::Text {me};
+         else if constexpr (requires { Anyness::Text {me}; })
+            asText = Anyness::Text {me};
+         else
+            LANGULUS_ERROR("Unhandled conversion route");
+
+         auto token = asText.operator Token();
+         return fmt::format_to(ctx.out(), "{}", token);
       }
-   };
+   };*/
 
 } // namespace fmt

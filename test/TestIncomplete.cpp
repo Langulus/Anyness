@@ -39,7 +39,7 @@ struct Thing final : Resolvable {
 
    Thing();
 
-   TOwned<Thing*> mOwned;
+   //TOwned<Thing*> mOwned;
    Ptr<Thing> mOwner;
    TAny<Thing*> mChildren;
    UnitMap mUnits;
