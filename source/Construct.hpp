@@ -112,7 +112,7 @@ namespace Langulus::Anyness
       NOD() T SerializeAs() const;
 
       // Intentionally left undefined                                   
-      NOD() explicit operator Debug() const;
+      NOD() explicit operator Text() const;
 
       Construct& operator << (auto&&);
       Construct& operator <<= (auto&&);

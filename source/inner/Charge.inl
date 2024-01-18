@@ -104,27 +104,19 @@ namespace Langulus::Anyness
    }
 
    /// Serialize charge as text                                               
-   inline Charge::operator Debug() const {
-      Debug text;
-      if (mMass != Charge::DefaultMass) {
-         text += " *";
-         text += Text {mMass};
-      }
+   inline Charge::operator Text() const {
+      Text text;
+      if (mMass != Charge::DefaultMass)
+         text += Text {" *", mMass};
 
-      if (mRate != Charge::DefaultRate) {
-         text += " ^";
-         text += Text {mRate};
-      }
+      if (mRate != Charge::DefaultRate)
+         text += Text {" ^", mRate};
 
-      if (mTime != Charge::DefaultTime) {
-         text += " @";
-         text += Text {mTime};
-      }
+      if (mTime != Charge::DefaultTime)
+         text += Text {" @", mTime};
 
-      if (mPriority != Charge::DefaultPriority) {
-         text += " !";
-         text += Text {mPriority};
-      }
+      if (mPriority != Charge::DefaultPriority)
+         text += Text {" !", mPriority};
 
       return text;
    }

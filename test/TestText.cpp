@@ -14,19 +14,19 @@
 
 /// A type that is reflected, as convertible to Debug                         
 struct Stringifiable {
-   LANGULUS_CONVERSIONS(Debug);
+   LANGULUS_CONVERSIONS(Text);
    
-   explicit operator Debug() {
-      return "Stringifiable converted to Debug";
+   explicit operator Text() {
+      return "Stringifiable converted to Text";
    }
 };
 
 /// A type that is reflected, as convertible to Debug                         
 struct StringifiableConst {
-   LANGULUS_CONVERSIONS(Debug);
+   LANGULUS_CONVERSIONS(Text);
    
-   explicit operator Debug() const {
-      return "Stringifiable converted to Debug";
+   explicit operator Text() const {
+      return "Stringifiable converted to Text";
    }
 };
 
@@ -67,7 +67,7 @@ void CheckState_Abandoned(const Text&);
 ///      - semantic-initialized from sparse element, count-terminated         
 
 TEMPLATE_TEST_CASE("Testing text containers", "[text]",
-   Text, Debug, Path
+   Text, Path
 ) {
    IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
 
@@ -362,19 +362,6 @@ TEMPLATE_TEST_CASE("Unsigned number stringification", "[text]",
       delete text;
    }
 
-   WHEN("Constructed Debug with a number") {
-      Debug* text = new Debug {TestType{66}};
-
-      REQUIRE((*text).GetCount() == 2);
-      REQUIRE((*text).GetReserved() >= 2);
-      REQUIRE((*text).template Is<Letter>());
-      REQUIRE((*text).GetRaw());
-      REQUIRE((*text).HasAuthority());
-      REQUIRE((*text) == "66");
-
-      delete text;
-   }
-
    WHEN("Constructed Path with a number") {
       Path* text = new Path {TestType{66}};
 
@@ -403,19 +390,6 @@ TEMPLATE_TEST_CASE("Signed number stringification", "[text]", int8_t, int16_t, i
       delete text;
    }
 
-   WHEN("Constructed Debug with a number") {
-      Debug* text = new Debug {TestType{-66}};
-
-      REQUIRE((*text).GetCount() == 3);
-      REQUIRE((*text).GetReserved() >= 3);
-      REQUIRE((*text).template Is<Letter>());
-      REQUIRE((*text).GetRaw());
-      REQUIRE((*text).HasAuthority());
-      REQUIRE((*text) == "-66");
-
-      delete text;
-   }
-
    WHEN("Constructed Path with a number") {
       Path* text = new Path {TestType{-66}};
 
@@ -430,7 +404,7 @@ TEMPLATE_TEST_CASE("Signed number stringification", "[text]", int8_t, int16_t, i
    }
 }
 
-TEMPLATE_TEST_CASE("Logging text containers", "[text]", Text, Debug, Path) {
+TEMPLATE_TEST_CASE("Logging text containers", "[text]", Text, Path) {
    TestType text {"some text"};
 
    Logger::Info() << "You should see " << text;
@@ -439,15 +413,15 @@ TEMPLATE_TEST_CASE("Logging text containers", "[text]", Text, Debug, Path) {
 
 TEMPLATE_TEST_CASE("Reflected coverters to text", "[text]", Stringifiable, StringifiableConst) {
    GIVEN("A stringifiable type") {
-      const auto debugMeta = MetaOf<Debug>();
+      const auto debugMeta = MetaOf<Text>();
       const auto meta = MetaOf<TestType>();
       TestType instance;
 
       WHEN("Converted") {
          // Calling static_cast<Debug> here doesn't work, because of MSVC bug
-         const Debug staticallyConverted = instance.operator Debug();
+         const auto staticallyConverted = instance.operator Text();
          
-         Debug rttiConverted;
+         Text rttiConverted;
          meta->mConverters.at(debugMeta).mFunction(&instance, &rttiConverted);
 
          REQUIRE(staticallyConverted == rttiConverted);
@@ -457,12 +431,8 @@ TEMPLATE_TEST_CASE("Reflected coverters to text", "[text]", Stringifiable, Strin
 }
 
 TEMPLATE_TEST_CASE("Text container interoperability", "[text]",
-   (TypePair<Text, Debug>),
-   (TypePair<Debug, Text>),
    (TypePair<Path, Text>),
-   (TypePair<Text, Path>),
-   (TypePair<Debug, Path>),
-   (TypePair<Path, Debug>)
+   (TypePair<Text, Path>)
 ) {
    using LHS = typename TestType::LHS;
    using RHS = typename TestType::RHS;

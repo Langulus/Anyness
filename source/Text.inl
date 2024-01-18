@@ -169,6 +169,28 @@ namespace Langulus::Anyness
       else LANGULUS_ERROR("Unsupported number type");
    }*/
 
+   /// By extending {fmt} via formatters, we also extend Text capabilities    
+   /// Notice, that StringPointer and StringLiteral are handled separately    
+   /// in order to make those implicit. This one is explicit, to avoid        
+   /// ambiguities                                                            
+   ///   @param arg - the data to convert to Text                             
+   Text::Text(const CT::Inner::ExplicitlyFormattable auto& arg) {
+      const auto size = fmt::formatted_size("{}", arg);
+      Block::AllocateFresh<Text>(Block::RequestSize<Text>(size));
+      fmt::format_to_n(GetRaw(), size, "{}", arg);
+      mCount = size;
+   }
+
+   /// Compose text by an arbitrary amount of formattable arguments           
+   ///   @param ...args - the arguments                                       
+   template<class T1, class T2, class...TN>
+   requires CT::Inner::ImplicitlyFormattable<T1, T2, TN...>
+   Text::Text(T1&& t1, T2&& t2, TN&&...tn) {
+      UnfoldInsert(Forward<T1>(t1));
+      UnfoldInsert(Forward<T2>(t2));
+      ((UnfoldInsert(Forward<TN>(tn))), ...);
+   }
+
    /// Semantic construction from count-terminated array                      
    ///   @param text - text memory to wrap                                    
    ///   @param count - number of characters inside text                      
@@ -345,7 +367,7 @@ namespace Langulus::Anyness
       // turns out to be \0 due to memory junk).                        
       // So, when MEMORY_STATISTICS is enabled we sacrifice performance 
       // for memory consistency. Generally, MEMORY_STATISTICS           
-      // sacrifices performance anyways.                                
+      // sacrifices performance anyways                                 
       #if not LANGULUS_FEATURE(MEMORY_STATISTICS)
          if (mReserved > mCount and GetRaw()[mCount] == '\0')
             return *this;
@@ -388,7 +410,6 @@ namespace Langulus::Anyness
          result.mType = mType;
          result.AllocateFresh<Text>(request);
          result.mCount = mCount;
-         //result.mReserved = request.mElementCount;
          CopyMemory(result.mRaw, mRaw, mCount);
          result.GetRaw<Text>()[mCount] = '\0';
          return Abandon(result);
@@ -472,6 +493,23 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    Text Text::Extend(const Count count) {
       return Block::Extend<Text>(count);
+   }
+
+   /// Insert text, or element convertible to text                            
+   ///   @param what - the text container/convertible element                 
+   void Text::UnfoldInsert(auto&& what) {
+      using T = Deref<decltype(what)>;
+      if constexpr (CT::TextBased<T>) {
+         Block::AllocateMore<Text>(mCount + what.mCount);
+         CopyMemory(GetRaw() + mCount, what.GetRaw());
+         mCount += what.mCount;
+      }
+      else {
+         const auto size = fmt::formatted_size("{}", what);
+         Block::AllocateMore<Text>(mCount + size);
+         fmt::format_to_n(GetRaw() + mCount, size, "{}", what);
+         mCount += size;
+      }
    }
 
    /// Hash the text                                                          
@@ -689,20 +727,6 @@ namespace Langulus::Anyness
    constexpr auto Text::TemplateCheck(const Token& f, ARGS&&...) {
       return CheckPattern(f, ::std::make_index_sequence<sizeof...(ARGS)> {});
    }
-
-
-
-   /// Construct by copying a text container                                  
-   ///   @param other - the container to copy                                 
-   LANGULUS(INLINED)
-   Debug::Debug(const Text& other)
-      : Text {other} {}
-
-   /// Construct by moving a text container                                   
-   ///   @param other - the container to copy                                 
-   LANGULUS(INLINED)
-   Debug::Debug(Text&& other)
-      : Text {Forward<Text>(other)} {}
 
 } // namespace Langulus::Anyness
 
