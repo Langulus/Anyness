@@ -62,8 +62,6 @@ namespace Langulus::Anyness
       T mValue;
 
    public:
-      LANGULUS(UNALLOCATABLE) true;
-      LANGULUS(UNINSERTABLE) true;
       LANGULUS(NULLIFIABLE) CT::Inner::Nullifiable<T>;
       LANGULUS(POD) not CT::Sparse<T> and CT::Inner::POD<T>;
       LANGULUS(ABSTRACT) false;

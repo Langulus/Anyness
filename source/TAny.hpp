@@ -361,14 +361,9 @@ namespace Langulus::Anyness
       using Any::WrapAs;
       using Any::SetType;
       using Any::MakeTypeConstrained;
-      using Any::SmartPush;
       using Any::GetResolved;
       using Any::GetDense;
       using Any::GetBlockDeep;
-      //using Any::GetElementDeep;
-      //using Any::GetElement;
-      //using Any::GetElementResolved;
-      //using Any::GetElementDense;
    };
 
 } // namespace Langulus::Anyness
