@@ -667,20 +667,36 @@ namespace Langulus::Anyness
       return *this;
    }
 
+   /// Generate hexadecimal string from a given value                         
+   ///   @param format - the template string                                  
+   ///   @param args... - the arguments                                       
+   ///   @return the instantiated template                                    
+   Text Text::Hex(const auto& from) {
+      Text result;
+      result.AllocateFresh<Text>(result.RequestSize<Text>(sizeof(from) * 2));
+      auto from_bytes = reinterpret_cast<const std::byte*>(&from);
+      auto to_bytes = result.GetRaw();
+      for (int i = 0; i < sizeof(from); ++i)
+         fmt::format_to_n(to_bytes + i * 2, 2, "{:X}", from_bytes[i]);
+      result.mCount = sizeof(from) * 2;
+      return result;
+   }
+
    /// Fill template arguments using libfmt                                   
    /// If you get a constexpr error in this function, use TemplateRt instead  
    ///   @param format - the template string                                  
    ///   @param args... - the arguments                                       
    ///   @return the instantiated template                                    
-   template<class... ARGS>
+   template<class...ARGS>
    Text Text::Template(const Token& format, ARGS&&...args) {
       const auto size = fmt::formatted_size(format, Forward<ARGS>(args)...);
       Text result;
-      result.Reserve(size);
+      result.AllocateFresh<Text>(result.RequestSize<Text>(size));
       fmt::format_to_n(
          result.GetRaw(), size, format,
          Forward<ARGS>(args)...
       );
+      result.mCount = size;
       return Abandon(result);
    }
    
@@ -689,7 +705,7 @@ namespace Langulus::Anyness
    ///   @param format - the template string                                  
    ///   @param args... - the arguments                                       
    ///   @return the instantiated template                                    
-   template<class... ARGS>
+   template<class...ARGS>
    Text Text::TemplateRt(const Token& format, ARGS&&...args) {
       const auto size = fmt::formatted_size(
          fmt::runtime(format),
@@ -697,12 +713,13 @@ namespace Langulus::Anyness
       );
 
       Text result;
-      result.Reserve(size);
+      result.AllocateFresh<Text>(result.RequestSize<Text>(size));
       fmt::format_to_n(
          result.GetRaw(), size,
          fmt::runtime(format),
          Forward<ARGS>(args)...
       );
+      result.mCount = size;
       return Abandon(result);
    }
 
@@ -722,7 +739,7 @@ namespace Langulus::Anyness
    ///   @tparam ...ARGS - arguments for the template                         
    ///   @param format - the template string                                  
    ///   @param args... - the arguments                                       
-   template<class... ARGS>
+   template<class...ARGS>
    LANGULUS(INLINED)
    constexpr auto Text::TemplateCheck(const Token& f, ARGS&&...) {
       return CheckPattern(f, ::std::make_index_sequence<sizeof...(ARGS)> {});

@@ -786,12 +786,18 @@ namespace Langulus::Anyness
       Size Decrypt(Block&, const ::std::size_t*, Count) const;
 
       ///                                                                     
+      ///   Conversion                                                        
+      ///                                                                     
+      template<CT::Block = Any>
+      NOD() Count ConvertTo(CT::Block auto&) const;
+
+      ///                                                                     
       ///   Serialization                                                     
       ///                                                                     
       // Intentionally undefined, because it requires Langulus::Flow    
       // and relies on Verbs::Interpret                                 
-      template<bool ENSCOPE = true, CT::Block TO, CT::Block TO_ORIGINAL = TO, CT::Block THIS = Any>
-      NOD() Count Serialize(TO&) const;
+      //template<bool ENSCOPE = true, CT::Block TO, CT::Block TO_ORIGINAL = TO, CT::Block THIS = Any>
+      //NOD() Count Serialize(TO&) const;
 
       ///                                                                     
       ///   Flow                                                              

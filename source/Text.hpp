@@ -44,13 +44,13 @@ namespace Langulus::CT
 
       /// Low level concept for checking if a type is stringifiable by {fmt}  
       /// Notice that any CT::Text are omitted here, to avoid ambiguities     
-      template<class...T>
+      /*template<class...T>
       concept ExplicitlyFormattable = not Text<T...> and not Semantic<T...>
-          and (::fmt::is_formattable<Deref<T>>::value and ...);
+          and (::fmt::is_formattable<Deref<T>>::value and ...);*/
    
       /// Same as above, but also includes CT::Text                           
       template<class...T>
-      concept ImplicitlyFormattable = ((Text<T>
+      concept Formattable = ((Text<T>
            or ExplicitlyFormattable<T>) and ...);
    
       /// This is the higher level concept, for checking if something can be  
@@ -81,7 +81,8 @@ namespace Langulus::Anyness
    /// data, but converting to it is a one way process. While serialization   
    /// aims at being isomorphic, converting to Text aims at readability only. 
    /// Consider it a general day to day speech container, that may or may not 
-   /// be formal                                                              
+   /// be formal. The container leverages {fmt} library, and can be extended  
+   /// using fmt::formatter specializations                                   
    ///   If you want to serialize your data in a readable format, convert to  
    /// Flow::Code, or other isomorphic representations                        
    ///                                                                        
@@ -91,7 +92,7 @@ namespace Langulus::Anyness
 
       LANGULUS(DEEP) false;
       LANGULUS(POD) false;
-      LANGULUS_BASES(A::Text, TAny<Letter>);
+      LANGULUS_BASES(A::Text, Base);
       LANGULUS(FILES) "txt";
 
       ///                                                                     
@@ -114,10 +115,10 @@ namespace Langulus::Anyness
       template<class T> requires CT::StdString<Desem<T>>
       Text(T&&);
 
-      explicit Text(const CT::Inner::ExplicitlyFormattable auto&);
+      //explicit Text(const CT::Inner::ExplicitlyFormattable auto&);
 
       template<class T1, class T2, class...TN>
-      requires CT::Inner::ImplicitlyFormattable<T1, T2, TN...>
+      requires CT::Stringifiable<T1, T2, TN...>
       Text(T1&&, T2&&, TN&&...);
 
       template<class T> requires CT::String<Desem<T>>
@@ -197,6 +198,7 @@ namespace Langulus::Anyness
          NOD() TAny<char32_t> Widen32() const;
       #endif
 
+      NOD() static Text Hex(const auto&);
       template<class...ARGS>
       NOD() static Text Template(const Token&, ARGS&&...);
       template<class...ARGS>
