@@ -7,5 +7,5 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #pragma once
-#include "../../source/Any.inl"
-#include "../../source/Neat.inl"
+#include "../../source/many/Any.inl"
+#include "../../source/many/Neat.inl"

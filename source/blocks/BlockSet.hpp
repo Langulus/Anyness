@@ -7,7 +7,7 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #pragma once
-#include "../TAny.hpp"
+#include "../many/TAny.hpp"
 
 
 namespace Langulus
@@ -154,13 +154,9 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Indexing                                                          
       ///                                                                     
-      template<CT::Set>
-      NOD() decltype(auto) Get(CT::Index auto);
-      template<CT::Set>
+      template<CT::Set = UnorderedSet>
       NOD() decltype(auto) Get(CT::Index auto) const;
 
-      template<CT::Set = UnorderedSet>
-      NOD() decltype(auto) operator[] (CT::Index auto);
       template<CT::Set = UnorderedSet>
       NOD() decltype(auto) operator[] (CT::Index auto) const;
 

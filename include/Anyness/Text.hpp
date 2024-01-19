@@ -7,4 +7,4 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #pragma once
-#include "../../source/Text.inl"
+#include "../../source/text/Text.inl"
