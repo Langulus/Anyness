@@ -7,10 +7,10 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #pragma once
-#include "../inner/DataState.hpp"
-#include "../inner/Compare.hpp"
-#include "../inner/Index.hpp"
-#include "../inner/Iterator.hpp"
+#include "../DataState.hpp"
+#include "../Compare.hpp"
+#include "../Index.hpp"
+#include "../Iterator.hpp"
 
 
 namespace Langulus
@@ -74,42 +74,34 @@ namespace Langulus
 
    namespace CT
    {
-      namespace Inner
-      {
-         template<class T>
-         concept Iteratable = requires (T a) {
-            {a.begin()} -> Data;
-            {a.end()} -> Data;
-         };
 
-         template<class T>
-         concept IteratableInReverse = requires (T a) {
-            {a.rbegin()} -> Data;
-            {a.rend()} -> Data;
-         };
-      }
-
-      template<class... T>
+      template<class...T>
       concept Handle = (DerivedFrom<T, A::Handle> and ...);
 
-      template<class... T>
+      template<class...T>
       concept NotHandle = not Handle<T...>;
 
-      template<class... T>
-      concept Iteratable = (Inner::Iteratable<T> and ...);
+      template<class...T>
+      concept Iteratable = requires (T...a) {
+         {(a.begin(), ...)} -> Data;
+         {(a.end(),   ...)} -> Data;
+      };
 
-      template<class... T>
-      concept IteratableInReverse = (Inner::IteratableInReverse<T> and ...);
+      template<class...T>
+      concept IteratableInReverse = requires (T...a) {
+         {(a.rbegin(), ...)} -> Data;
+         {(a.rend(),   ...)} -> Data;
+      };
 
       /// Any origin type that inherits A::Block                              
-      template<class... T>
+      template<class...T>
       concept BlockBased = (DerivedFrom<T, A::Block> and ...);
 
       /// A reflected block type is any type that is BlockBased, and is       
       /// binary compatible to a Block - this is a mandatory requirement for  
       /// any CT::Deep type                                                   
       /// Keep in mind, that sparse types are never considered Block!         
-      template<class... T>
+      template<class...T>
       concept Block = BlockBased<T...>
           and ((sizeof(T) == sizeof(A::Block)) and ...);
 
@@ -120,33 +112,39 @@ namespace Langulus
       /// executed in each of their elements/members, instead on the type     
       /// itself. Use LANGULUS(DEEP) macro as member to tag deep types        
       /// Keep in mind, that sparse types are never considered Deep!          
-      template<class... T>
+      template<class...T>
       concept Deep = ((Block<T> and Decay<T>::CTTI_Deep) and ...);
 
       /// Check if Ts can be deepened 'WITH' the provided type                
-      template<class WITH, class... T>
+      template<class WITH, class...T>
       concept CanBeDeepened = Deep<T...> and not CT::Void<WITH>
           and ((not CT::Typed<T> or CT::Similar<WITH, TypeOf<T>>) and ...);
 
       /// Type that is not deep, see CT::Deep                                 
-      template<class... T>
+      template<class...T>
       concept Flat = ((not Deep<T>) and ...);
 
       /// Check if origin of T(s) are Neat(s)                                 
-      template<class... T>
+      template<class...T>
       concept Neat = ((Exact<Decay<T>, Anyness::Neat>) and ...);
 
       /// Check if origin of T(s) aren't Neat(s)                              
-      template<class... T>
+      template<class...T>
       concept Messy = not Neat<T...>;
 
       /// Check if origin of T(s) are Construct(s)                            
-      template<class... T>
+      template<class...T>
       concept Construct = ((Exact<Decay<T>, Anyness::Construct>) and ...);
 
       /// Check if origin of T(s) aren't Construct(s)                         
-      template<class... T>
+      template<class...T>
       concept NotConstruct = not Construct<T...>;
+
+      /// A serializer is any Block type, that has an inner type called       
+      /// SerializationRules, which holds settings on how data is assembled   
+      template<class...T>
+      concept Serial = Block<T...> and ((requires {
+         typename T::SerializationRules; }) and ...);
 
    } // namespace Langulus::CT
 
@@ -357,8 +355,10 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Indexing                                                          
       ///                                                                     
-      NOD() Block operator[] (CT::Index auto);
-      NOD() Block operator[] (CT::Index auto) const;
+      template<CT::Block = Any>
+      NOD() decltype(auto) operator[] (CT::Index auto);
+      template<CT::Block = Any>
+      NOD() decltype(auto) operator[] (CT::Index auto) const;
 
       template<CT::Data> NOD() IF_UNSAFE(constexpr)
       decltype(auto) Get(Offset = 0, Offset = 0) IF_UNSAFE(noexcept);
@@ -379,6 +379,11 @@ namespace Langulus::Anyness
       NOD() LANGULUS(INLINED) decltype(auto) As() const {
          return As<T>(0);
       }
+
+      template<CT::Block = Any>
+      decltype(auto) Last();
+      template<CT::Block = Any>
+      decltype(auto) Last() const;
 
       // Intentionally undefined, because it requires Langulus::Flow    
       // and relies on Verbs::Interpret                                 
@@ -468,7 +473,7 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Iteration                                                         
       ///                                                                     
-      template<class BLOCK>
+      template<class>
       struct Iterator;
 
       template<CT::Block BLOCK = Any>
@@ -791,13 +796,14 @@ namespace Langulus::Anyness
       template<CT::Block = Any>
       NOD() Count ConvertTo(CT::Block auto&) const;
 
-      ///                                                                     
-      ///   Serialization                                                     
-      ///                                                                     
-      // Intentionally undefined, because it requires Langulus::Flow    
-      // and relies on Verbs::Interpret                                 
-      //template<bool ENSCOPE = true, CT::Block TO, CT::Block TO_ORIGINAL = TO, CT::Block THIS = Any>
-      //NOD() Count Serialize(TO&) const;
+      template<CT::Block TO, CT::Block = Any>
+      NOD() TO ConvertTo() const;
+
+      template<CT::Block = Any>
+      NOD() Count Serialize(CT::Serial auto&) const;
+
+      template<CT::Serial TO, CT::Block = Any>
+      NOD() TO Serialize() const;
 
       ///                                                                     
       ///   Flow                                                              
@@ -905,7 +911,7 @@ namespace Langulus::Anyness
    ///                                                                        
    template<class BLOCK>
    struct Block::Iterator : A::Iterator {
-      static_assert(CT::Block<BLOCK>, "BLOCK must be a CT::Block type");
+      static_assert(CT::Block<BLOCK>, "BLOCK must be Block type");
       static constexpr bool Mutable = CT::Mutable<BLOCK>;
 
       using Type = Conditional<CT::Typed<BLOCK>

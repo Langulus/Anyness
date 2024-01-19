@@ -8,8 +8,8 @@
 ///                                                                           
 #pragma once
 #include "../Block.hpp"
-#include "../../inner/Handle.hpp"
-#include "../../inner/Index.inl"
+#include "../../one/Handle.hpp"
+#include "../../Index.inl"
 
 
 namespace Langulus::Anyness
@@ -52,19 +52,25 @@ namespace Langulus::Anyness
       return const_cast<Block*>(this)->At(byte_offset);
    }
 
-   /// Access element at a specific index, and wrap it in a mutable Block     
+   /// Access element at a specific index                                     
    ///   @param idx - the index                                               
-   ///   @return mutable type-erased element, wrapped in a Block              
-   LANGULUS(INLINED)
-   Block Block::operator[] (CT::Index auto idx) {
-      const auto index = SimplifyIndex<Any>(idx);
-      return GetElement(index);
+   ///   @return the element (or block, if THIS is type-erased)               
+   template<CT::Block THIS> LANGULUS(INLINED)
+   decltype(auto) Block::operator[] (CT::Index auto idx) {
+      const auto index = SimplifyIndex<THIS>(idx);
+      if constexpr (CT::Typed<THIS>)
+         return GetRaw<THIS>()[index];
+      else
+         return GetElement(index);
    }
 
-   LANGULUS(INLINED)
-   Block Block::operator[] (CT::Index auto idx) const {
-      const auto index = SimplifyIndex<Any>(idx);
-      return GetElement(index);
+   template<CT::Block THIS> LANGULUS(INLINED)
+   decltype(auto) Block::operator[] (CT::Index auto idx) const {
+      const auto index = SimplifyIndex<THIS>(idx);
+      if constexpr (CT::Typed<THIS>)
+         return GetRaw<THIS>()[index];
+      else
+         return GetElement(index);
    }
    
    /// Get an element pointer or reference with a given index                 
@@ -664,5 +670,28 @@ namespace Langulus::Anyness
          return index;
       }
    }
+   
+   /// Access last element                                                    
+   ///   @return a mutable reference to the last element                      
+   template<CT::Block THIS> LANGULUS(INLINED)
+   decltype(auto) Block::Last() {
+      if (IsEmpty())
+         LANGULUS_OOPS(Access, "Unable to access last element of empty block");
 
+      if constexpr (CT::Typed<THIS>)
+         return GetRaw<THIS>()[mCount - 1];
+      else
+         return GetElement(mCount - 1);
+   }
+
+   template<CT::Block THIS> LANGULUS(INLINED)
+   decltype(auto) Block::Last() const {
+      if (IsEmpty())
+         LANGULUS_OOPS(Access, "Unable to access last element of empty block");
+
+      if constexpr (CT::Typed<THIS>)
+         return GetRaw<THIS>()[mCount - 1];
+      else
+         return GetElement(mCount - 1);
+   }
 } // namespace Langulus::Anyness

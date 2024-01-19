@@ -7,7 +7,7 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #pragma once
-#include "inner/Config.hpp"
+#include "Config.hpp"
 
 
 namespace Langulus::Anyness
@@ -16,9 +16,9 @@ namespace Langulus::Anyness
    ///                                                                        
    ///   A tiny class used as base to referenced types                        
    ///                                                                        
-   /// Provides the interface to be considered CT::Referencable               
+   ///   Provides the interface to be considered CT::Referencable             
    /// The destructor of this type guarantees, that after destruction, the    
-   /// member mReferences is zeroed.                                          
+   /// member mReferences is zeroed                                           
    ///                                                                        
    class LANGULUS_API(ANYNESS) Referenced {
       mutable Count mReferences = 1;
