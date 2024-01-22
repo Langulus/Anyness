@@ -1,538 +1,354 @@
 ///                                                                           
-/// Langulus::Flow                                                            
-/// Copyright (c) 2017 Dimo Markov <team@langulus.com>                        
+/// Langulus::Anyness                                                         
+/// Copyright (c) 2012 Dimo Markov <team@langulus.com>                        
 /// Part of the Langulus framework, see https://langulus.com                  
 ///                                                                           
 /// Distributed under GNU General Public License v3+                          
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #pragma once
-#include "TFactory.hpp"
+#include "THive.hpp"
 
-#define TEMPLATE()   template<class T, FactoryUsage USAGE>
-#define FACTORY()    TFactory<T, USAGE>
+#define TEMPLATE()   template<CT::Data T>
+#define TME()        THive<T>
 
 
-namespace Langulus::Flow
+namespace Langulus::Anyness
 {
 
-   /// Move a produced item                                                   
-   ///   @param other - the item to move                                      
-   template<class T> LANGULUS(INLINED)
-   ProducedFrom<T>::ProducedFrom(ProducedFrom&& other)
-      : ProducedFrom {Move(other)} {}
+   /// Cell construction                                                      
+   ///   @param args... - arguments to forward to T's constructor             
+   TEMPLATE() template<class...A> requires ::std::constructible_from<T, A...>
+   LANGULUS(INLINED) TME()::Cell::Cell(A&&...args)
+      : mData {Forward<A>(args)...} {}
 
-   /// Semantic construction                                                  
-   ///   @param other - semantic and element to initialize with               
-   template<class T> template<template<class> class S>
-   requires CT::Semantic<S<Neat>> LANGULUS(INLINED)
-   ProducedFrom<T>::ProducedFrom(S<ProducedFrom<T>>&& other)
-      // mProducer intentionally not overwritten                        
-      : mDescriptor {S<Neat> {other->mDescriptor}} {}
-
-   /// Construct a produced item                                              
-   ///   @param producer - the item's producer                                
-   ///   @param neat - the item's neat descriptor                             
-   template<class T> LANGULUS(INLINED)
-   ProducedFrom<T>::ProducedFrom(T* producer, const Neat& neat)
-      : mDescriptor {neat}
-      , mProducer {producer} {
-      LANGULUS_ASSUME(DevAssumes, producer, "Invalid producer");
-      // Remove parents, as they're ignored on hashing and comparison   
-      // - they can create circular dependencies, that we best avoid    
-      mDescriptor.RemoveTrait<Traits::Parent, true>();
-   }
-
-   /// Get the normalized descriptor of the produced item                     
-   ///   @return the normalized descriptor                                    
-   template<class T> LANGULUS(INLINED)
-   const Neat& ProducedFrom<T>::GetNeat() const noexcept {
-      return mDescriptor;
-   }
-
-   /// Get the hash of the normalized descriptor (cached and efficient)       
-   ///   @return the hash                                                     
-   template<class T> LANGULUS(INLINED)
-   Hash ProducedFrom<T>::GetHash() const noexcept {
-      return mDescriptor.GetHash();
-   }
-
-   /// Return the producer of the item (a.k.a. the owner of the factory)      
-   ///   @return a pointer to the producer instance                           
-   template<class T> LANGULUS(INLINED)
-   T* ProducedFrom<T>::GetProducer() const noexcept {
-      return mProducer;
-   }
-
-
-   /// Constructor for descriptor-constructible element                       
-   ///   @param factory - the factory who owns the T instance                 
-   ///   @param neat - element descriptor, used to construct the element      
+   /// Hive destructor                                                        
    TEMPLATE() LANGULUS(INLINED)
-   FACTORY()::Element::Element(TFactory* factory, const Neat& neat)
-      : mFactory {factory}
-      , mData {factory->mFactoryOwner, neat} {}
-
-   /// Semantic construction                                                  
-   ///   @param other - semantic and element to initialize with               
-   TEMPLATE() template<template<class> class S>
-   requires CT::SemanticMakableAlt<S<T>> LANGULUS(INLINED)
-   FACTORY()::Element::Element(S<Element>&& other)
-      : mFactory {other->mFactory}
-      , mData {S<T> {other->mData}} {}
-
-
-   /// Construction of a factory                                              
-   ///   @param owner - the factory owner                                     
-   TEMPLATE() LANGULUS(INLINED)
-   FACTORY()::TFactory(Producer* owner)
-      : mFactoryOwner {owner} {}
-
-   /// Factory destructor                                                     
-   /// Checks if all elements are referenced exactly once before destruction  
-   /// if safe mode is enabled                                                
-   TEMPLATE() LANGULUS(INLINED)
-   FACTORY()::~TFactory() {
+   TME()::~THive() {
       Reset();
    }
 
-   /// Move-assignment remaps all elements to the new instance owner          
-   ///   @attention notice how mFactoryOwner never changes on both sides      
-   ///   @param other - the factory to move                                   
+   /// Shallow copy assignment                                                
+   ///   @param other - the hive to copy                                      
    TEMPLATE() LANGULUS(INLINED)
-   FACTORY()& FACTORY()::operator = (TFactory&& other) noexcept {
-      mData = Move(other.mData);
-      mHashmap = Move(other.mHashmap);
-      mReusable = other.mReusable;
-      mCount = other.mCount;
-      other.mCount = 0;
-      other.mReusable = nullptr;
-      for (auto& item : mData)
-         item.mFactory = this;
+   TME()& TME()::operator = (const THive& other) {
+      return operator = (Copy(other));
+   }
+
+   /// Move assignment                                                        
+   ///   @param other - the hive to move                                      
+   TEMPLATE() LANGULUS(INLINED)
+   TME()& TME()::operator = (THive&& other) {
+      return operator = (Move(other));
+   }
+
+   /// Semantic assignment                                                    
+   ///   @param other - the have to assign                                    
+   TEMPLATE() template<template<class> class S>
+   requires CT::Semantic<S<THive<T>>> LANGULUS(INLINED)
+   TME()& TME()::operator = (S<THive>&& other) {
+      mFrames = S<THive>::Nest(other->mFrames);
+      mReusable = other->mReusable;
+      mCount = other->mCount;
+
+      if constexpr (S<THive>::Move and S<THive>::Keep) {
+         other.mCount = 0;
+         other.mReusable = nullptr;
+      }
       return *this;
    }
 
    /// Reset the factory                                                      
    TEMPLATE() LANGULUS(INLINED)
-   void FACTORY()::Reset() {
-      if (not mData.IsAllocated())
-         return;
-
-      mHashmap.Reset();
-
-      // Destroy only elements that have a single reference             
-      // Some of the elements might be used in other modules, and their 
-      // destruction, as well as the destruction of the mData.mEntry    
-      // will commence automatically after their use have ceased        
-      auto raw = mData.GetRaw();
-      const auto rawEnd = mData.GetRawEnd();
-
-      while (raw != rawEnd) {
-         if (raw->mData.GetReferences() > 1) {
-            // The element is probably used from another module         
-            // This is not an error, we do not destroy the element      
-            // We make sure, that this factory no longer owns it        
-            Logger::Warning("Unable to destroy ", raw->mData, ", it has ",
-               raw->mData.GetReferences(), " uses instead of 1");
-            raw->mData.Free();
-         }
-         else {
-            // Destroy the element, here was its last use               
-            raw->~Element();
-         }
-
-         ++raw;
-      }
-
-      // Make sure no more destructors are called upon Any::Reset()     
-      static_cast<Block&>(mData).mCount = 0;
-      mData.Reset();
-      mReusable = nullptr;
-      mCount = 0;
-   }
-
-   /// Reset the factory                                                      
-   TEMPLATE() LANGULUS(INLINED)
-   bool FACTORY()::IsEmpty() const noexcept {
+   bool TME()::IsEmpty() const noexcept {
       return mCount == 0;
    }
 
    /// Explicit bool cast operator, for use in if statements                  
    ///   @return true if block contains at least one valid element            
    TEMPLATE() LANGULUS(INLINED)
-   constexpr FACTORY()::operator bool() const noexcept {
+   constexpr TME()::operator bool() const noexcept {
       return not IsEmpty();
    }
 
-#if LANGULUS(SAFE)
-   /// Dump the factory to the log                                            
-   TEMPLATE()
-   void FACTORY()::Dump() const {
-      const auto scope = Logger::Special("--------- FACTORY DUMP FOR ", 
-         MetaOf<FACTORY()>(), " (", mData.GetUses(), " references): ",
-         Logger::Tabs {}
-      );
-
-      Count counter {};
-      auto raw = mData.GetRaw();
-      const auto rawEnd = mData.GetRawEnd();
-      while (raw != rawEnd) {
-         if (not raw->mData.GetReferences())
-            continue;
-
-         Logger::Info(counter, "] ", raw->mData,
-            ", ", raw->mData.GetReferences(), " references");
-         ++raw;
-      }
-   }
-#endif
-
-   /// Find an element with the provided hash and descriptor                  
-   ///   @param descriptor - the normalized descriptor for the element        
-   ///   @return the found element, or nullptr if not found                   
+   /// Returns a valid pointer to the frame that owns the memory pointer, if  
+   /// that memory pointer is at all owned by this hive                       
+   ///   @param ptr - the pointer to check                                    
+   ///   @return nullptr if not found, or a pointer to the owning frame       
    TEMPLATE() LANGULUS(INLINED)
-   typename FACTORY()::Element* FACTORY()::Find(const Neat& descriptor) const {
-      const auto hash = descriptor.GetHash();
-      const auto found = mHashmap.Find(hash);
-      if (found) {
-         for (auto candidate : mHashmap.GetValue(found)) {
-            if (candidate->mData.GetNeat() != descriptor)
-               continue;
-
-            // Found                                                    
-            return candidate;
-         }
-      }
-      
-      // Not found                                                      
+   const typename TME()::Frame* TME()::Owns(const void* ptr) const noexcept {
+      for (auto& frame : mFrames)
+         if (frame.Owns(ptr))
+            return &frame;
       return nullptr;
    }
 
-   /// Create/Destroy element(s) inside the factory                           
-   ///   @param verb - the creation verb                                      
-   TEMPLATE()
-   void FACTORY()::Create(Verb& verb) {
-      verb.ForEachDeep(
-         [&](const Construct& construct) {
-            // For each construct...                                    
-            if (not MetaOf<T>()->CastsTo(construct.GetType()))
-               return;
-            
-            auto count = static_cast<int>(
-               ::std::floor(construct.GetCharge().mMass * verb.GetMass())
-            );
-
-            try { CreateInner(verb, count, construct.GetDescriptor()); }
-            catch (const Exception& e) {
-               Logger::Error(
-                  "Unable to ", MetaOf<FACTORY()>(), "::Create `", Logger::Push,
-                  Logger::DarkYellow, construct.GetType(), Logger::Pop, '`'
-               );
-               Logger::Error("Due to exception: ", e);
-               return;
-            }
-         },
-         [&](const DMeta& type) {
-            // For each type...                                         
-            if (not type or not MetaOf<T>()->CastsTo(type))
-               return;
-
-            auto count = static_cast<int>(
-               ::std::floor(verb.GetMass())
-            );
-
-            try { CreateInner(verb, count); }
-            catch (const Exception& e) {
-               Logger::Error(
-                  "Unable to ", MetaOf<FACTORY()>(), "::Create `", Logger::Push,
-                  Logger::DarkYellow, type, Logger::Pop, '`'
-               );
-               Logger::Error("Due to exception: ", e);
-               return;
-            }
-         }
-      );
+   /// Get the type of the contained data                                     
+   ///   @return the meta data                                                
+   TEMPLATE() LANGULUS(INLINED)
+   DMeta TME()::GetType() const noexcept {
+      return MetaDataOf<T>();
    }
 
-   /// Inner creation/destruction verb                                        
-   ///   @param verb - [in/out] the creation/destruction verb                 
-   ///   @param count - the number of items to create (or destroy if negative)
-   ///   @param neat - element descriptor                                     
-   TEMPLATE()
-   void FACTORY()::CreateInner(Verb& verb, int count, const Neat& neat) {
-      if (count > 0) {
-         // Produce amount of compatible constructs                     
-         if constexpr (IsUnique) {
-            // Check if descriptor matches any of the available         
-            const auto found = Find(neat);
-            if (found) {
-               // The unique construct was found, just return it.       
-               // Mass will be ignored, it makes no sense to            
-               // create multiple instances if unique                   
-               verb << &found->mData;
-               return;
-            }
-
-            // If reached, nothing was found                            
-            // Produce exactly one element with this descriptor         
-            // Mass will be ignored, it makes no sense to create        
-            // multiple instances if unique                             
-            verb << Produce(neat);
-         }
-         else {
-            // Satisfy the required count                               
-            while (count >= 1) {
-               auto produced = Produce(neat);
-               verb << produced;
-               --count;
-            }
-         }
-      }
-      else if (count < 0) {
-         // Destroy amount of compatible constructs                     
-         if constexpr (IsUnique) {
-            // Check if descriptor matches any of the available         
-            const auto found = Find(neat);
-            if (found) {
-               // The unique construct was found, destroy it            
-               // Mass is ignored, there should be exactly one          
-               Destroy(found);
-               return;
-            }
-         }
-         else {
-            // Destroy the required amount of matching items            
-            do {
-               const auto found = Find(neat);
-               if (not found)
-                  break;
-
-               Destroy(found);
-               ++count;
-            }
-            while (count < 0);
-         }
-
-         verb.Done();
-      }
+   /// Get the number of initialized cells                                    
+   ///   @return the number of valid entries                                  
+   TEMPLATE() LANGULUS(INLINED)
+   Count TME()::GetCount() const noexcept {
+      return mCount;
    }
-
-   /// Select/Deselect element(s) inside the factory                          
-   ///   @param verb - the selection verb                                     
-   TEMPLATE()
-   void FACTORY()::Select(Verb& verb) {
-      // For each construct or meta compatible with the factory         
-      verb.ForEachDeep(
-         [&](const Construct& construct) {
-            // For each construct...                                    
-            if (not MetaDataOf<T>()->CastsTo(construct.GetType()))
-               return;
-
-            TODO();
-         },
-         [&](const DMeta& type) {
-            // For each type...                                         
-            if (not type or not MetaDataOf<T>()->CastsTo(type))
-               return;
-
-            TODO();
-         }
-      );
-   }
-
-   /// Produce a single T with the given descriptor                           
-   ///   @param neat - element descriptor                                     
-   ///   @return the produced instance                                        
-   TEMPLATE()
-   T* FACTORY()::Produce(const Neat& neat) {
-      Element* result;
-
-      if (mReusable) {
-         // Reuse a slot                                                
-         const auto memory = mReusable;
-         mReusable = mReusable->mNextFreeElement;
-         result = new (memory) Element {this, neat};
-      }
-      else {
-         // Add new slot                                                
-         mData.template Emplace<false>(IndexBack, this, neat);
-         result = &mData.Last();
-      }
-
-      // Register new entry in the hashmap, for fast indexing           
-      const auto hash = result->mData.GetHash();
-      const auto found = mHashmap.FindIt(hash);
-      if (found)
-         *found.mValue << result;
-      else
-         mHashmap.Insert(hash, result);
-
-      ++mCount;
-      return &result->mData;
-   }
-
-   /// Destroys an element inside factory                                     
-   ///   @attention assumes item is a valid pointer, owned by the factory     
-   ///   @attention item pointer is no longer valid after this call           
-   ///   @param item - element to destroy                                     
-   TEMPLATE()
-   void FACTORY()::Destroy(Element* item) {
-      LANGULUS_ASSUME(DevAssumes, item,
-         "Pointer is not valid");
-      LANGULUS_ASSUME(DevAssumes, mData.Owns(item),
-         "Pointer is not owned by factory");
-
-      // Remove from hashmap                                            
-      const auto hash = item->mData.GetHash();
-      auto& list = mHashmap[hash];
-      list.Remove(item);
-      if (not list)
-         mHashmap.RemoveKey(hash);
-
-      // Destroy the element                                            
-      item->~Element();
-      item->mNextFreeElement = mReusable;
-      mReusable = item;
-      --mCount;
-   }
-
-
-   ///                                                                        
-   ///   Iteration                                                            
-   ///                                                                        
 
    /// Get iterator to first element                                          
    ///   @return an iterator to the first element, or end if empty            
    TEMPLATE() LANGULUS(INLINED)
-   typename FACTORY()::Iterator FACTORY()::begin() noexcept {
+   constexpr typename THive<T>::template Iterator<THive<T>> THive<T>::begin() noexcept {
       if (IsEmpty())
          return end();
 
-      // Seek first valid slot, or hit sentinel at the end              
-      auto raw = mData.GetRaw();
-      const auto rawEnd = mData.GetRawEnd();
-      while (raw != rawEnd and 0 == raw->mData.GetReferences())
-         ++raw;
+      auto& firstFrame = mFrames[0];
+      auto cell = firstFrame.GetRaw();
+      const auto cellEnd = cell + firstFrame.GetReserved();
+      while (cell->mNextFreeCell and cell < cellEnd)
+         ++cell;
 
-      return {raw, rawEnd};
+      return {
+         cell,
+         cellEnd,
+         &firstFrame,
+         &firstFrame + mFrames.GetCount()
+      };
    }
 
    TEMPLATE() LANGULUS(INLINED)
-   typename FACTORY()::ConstIterator FACTORY()::begin() const noexcept {
-      return const_cast<FACTORY()*>(this)->begin();
-   }
-
-   /// Get iterator to end                                                    
-   ///   @return an iterator to the end element                               
-   TEMPLATE() LANGULUS(INLINED)
-   typename FACTORY()::Iterator FACTORY()::end() noexcept {
-      const auto ender = mData.GetRawEnd();
-      return {ender, ender};
-   }
-
-   TEMPLATE() LANGULUS(INLINED)
-   typename FACTORY()::ConstIterator FACTORY()::end() const noexcept {
-      return const_cast<FACTORY()*>(this)->end();
+   constexpr typename THive<T>::template Iterator<const THive<T>> THive<T>::begin() const noexcept {
+      return const_cast<THive*>(this)->begin();
    }
 
    /// Get iterator to the last element                                       
    ///   @return an iterator to the last element, or end if empty             
    TEMPLATE() LANGULUS(INLINED)
-   typename FACTORY()::Iterator FACTORY()::last() noexcept {
+   constexpr typename THive<T>::template Iterator<THive<T>> THive<T>::last() noexcept {
       if (IsEmpty())
          return end();
 
-      // Seek first valid slot, or hit sentinel at the end              
-      auto raw = mData.GetRawEnd() - 1;
-      const auto rawEnd = mData.GetRaw() - 1;
-      while (raw != rawEnd and 0 == raw->mData.GetReferences())
-         --raw;
+      auto& lastFrame = mFrames.Last();
+      auto cell = lastFrame.GetRaw() + (lastFrame.GetReserved() - 1);
+      const auto cellEnd = lastFrame.GetRaw();
+      while (cell->mNextFreeCell and cell >= cellEnd)
+         --cell;
 
-      return {raw != rawEnd ? raw : mData.GetRawEnd()};
+      return {
+         cell,
+         cell + lastFrame.GetReserved(),
+         &lastFrame,
+         &lastFrame + 1
+      };
    }
 
    TEMPLATE() LANGULUS(INLINED)
-   typename FACTORY()::ConstIterator FACTORY()::last() const noexcept {
-      return const_cast<FACTORY()*>(this)->last();
+   constexpr typename THive<T>::template Iterator<const THive<T>> THive<T>::last() const noexcept {
+      return const_cast<THive*>(this)->last();
+   }
+
+   /// Emplace a new unstance inside the hive                                 
+   ///   @param args... - arguments to forward to T's constructor             
+   ///   @return a pointer to the newly constructed instance of T             
+   TEMPLATE()
+   template<class...A> requires ::std::constructible_from<T, A...>
+   T* THive<T>::New(A&&...args) {
+      return &(NewInner(Forward<A>(args)...)->mData);
+   }
+
+   /// Emplace a new unstance inside the hive                                 
+   ///   @param args... - arguments to forward to T's constructor             
+   ///   @return a pointer to the newly constructed instance of T             
+   TEMPLATE()
+   template<class...A> requires ::std::constructible_from<T, A...>
+   typename THive<T>::Cell* THive<T>::NewInner(A&&...args) {
+      Cell* result;
+
+      if (mReusable) {
+         // Reuse a slot                                                
+         const auto memory = mReusable;
+         mReusable = mReusable->mNextFreeCell;
+         result = new (memory) Cell {Forward<A>(args)...};
+
+         // Make sure that the mReusable is inside limits, as it may    
+         // go out of bounds in edge cases                              
+         if (not Owns(mReusable))
+            mReusable = nullptr;
+      }
+      else {
+         // Add new frame                                               
+         const auto nextReserved = not mFrames.IsEmpty()
+            ? mFrames.Last().GetReserved() * 2
+            : DefaultFrameSize;
+
+         mFrames.New(1);
+         mFrames.Last().Reserve(nextReserved);
+
+         // Use first cell to initialize our object                     
+         result = new (mFrames.Last().GetRaw()) Cell {Forward<A>(args)...};
+
+         // Pass through all new unused cells, and set their markers    
+         mReusable = mFrames.Last().GetRaw() + 1;
+         for (auto cell = mReusable; cell < mFrames.Last().GetRawEnd(); ++cell)
+            cell->mNextFreeCell = cell + 1;
+      }
+
+      ++mCount;
+      return result;
+   }
+
+   /// Destroys a valid cell from the hive                                    
+   ///   @attention item pointer is no longer valid after this call           
+   ///   @attention assumes that Cell is initialized                          
+   ///   @attention assumes that Cell is owned by the hive                    
+   ///   @param cell - cell to destroy                                        
+   TEMPLATE()
+   void THive<T>::Destroy(Cell* cell) {
+      LANGULUS_ASSUME(DevAssumes, cell,
+         "Pointer is not valid");
+      LANGULUS_ASSUME(DevAssumes, Owns(cell),
+         "Pointer is not valid");
+      LANGULUS_ASSUME(DevAssumes, not cell->mNextFreeCell,
+         "Cell is not initialized");
+
+      // Destroy the cell, if owned by this hive                        
+      cell->~Cell();
+      cell->mNextFreeCell = mReusable;
+      mReusable = cell;
+      --mCount;
+   }
+   
+   /// Reset the factory                                                      
+   TEMPLATE() LANGULUS(INLINED)
+   void TME()::Reset() {
+      for (auto& frame : mFrames) {
+         // Destroy only valid cells in frames, that have exactly one   
+         // reference of use                                            
+         if (frame.GetUses() != 1) {
+            // Frame is still in use, we can't destroy anything in it   
+            // Just dereference it                                      
+            frame.Reset();
+            continue;
+         }
+
+         auto raw = frame.GetRaw();
+         const auto rawEnd = frame.GetRawEnd();
+         while (raw != rawEnd) {
+            if (not raw->mNextFreeCell)
+               raw->~Cell();
+            ++raw;
+         }
+
+         // Make sure no more destructors are called on destruction     
+         static_cast<Frame&>(frame).mCount = 0;
+      }
+
+      mFrames.Reset();
+      mReusable = nullptr;
+      mCount = 0;
    }
 
 
-   #define ITERATOR()   TFactory<T, USAGE>::template TIterator<MUTABLE>
-   #define FACTORY_IT() FACTORY()::TIterator<MUTABLE>
 
-   ///                                                                        
-   ///   TFactory iterator                                                    
-   ///                                                                        
+
 
    /// Construct an iterator                                                  
-   ///   @param element - the current element                                 
-   ///   @param sentinel - the sentinel (equivalent to factory::end())        
-   TEMPLATE() template<bool MUTABLE> LANGULUS(INLINED)
-   FACTORY_IT()::TIterator(const Element* element, const Element* sentinel) noexcept
-      : mElement {element}
-      , mSentinel {sentinel} {}
+   ///   @param start - the current iterator position                         
+   ///   @param end - the ending marker                                       
+   TEMPLATE() template<CT::Hive HIVE> LANGULUS(INLINED)
+   constexpr THive<T>::Iterator<HIVE>::Iterator(Cell* start, Cell const* end, Frame* startf, Frame const* endf) noexcept
+      : mCell {start}
+      , mCellEnd {end}
+      , mFrame {start}
+      , mFrameEnd {end} {}
+
+   /// Construct an end iterator                                              
+   TEMPLATE() template<CT::Hive HIVE> LANGULUS(INLINED)
+   constexpr THive<T>::Iterator<HIVE>::Iterator(const A::IteratorEnd&) noexcept
+      : mCell {nullptr}
+      , mCellEnd {nullptr}
+      , mFrame {nullptr}
+      , mFrameEnd {nullptr} {}
+
+   /// Compare two iterators                                                  
+   ///   @param rhs - the other iterator                                      
+   ///   @return true if iterators point to the same element                  
+   TEMPLATE() template<CT::Hive HIVE> LANGULUS(INLINED)
+   constexpr bool THive<T>::Iterator<HIVE>::operator == (const Iterator& rhs) const noexcept {
+      return mCell == rhs.mCell;
+   }
+
+   /// Compare iterator with an end marker                                    
+   ///   @param rhs - the end iterator                                        
+   ///   @return true element is at or beyond the end marker                  
+   TEMPLATE() template<CT::Hive HIVE> LANGULUS(INLINED)
+   constexpr bool THive<T>::Iterator<HIVE>::operator == (const A::IteratorEnd&) const noexcept {
+      return mCell >= mFrameEnd->GetRawEnd();
+   }
+   
+   /// Iterator access operator                                               
+   ///   @return a reference to the element at the current iterator position  
+   TEMPLATE() template<CT::Hive HIVE> LANGULUS(INLINED)
+   constexpr decltype(auto) THive<T>::Iterator<HIVE>::operator * () const noexcept {
+      return *mCell;
+   }
+
+   /// Iterator access operator                                               
+   ///   @return a reference to the element at the current iterator position  
+   TEMPLATE() template<CT::Hive HIVE> LANGULUS(INLINED)
+   constexpr decltype(auto) THive<T>::Iterator<HIVE>::operator -> () const noexcept {
+      return *mCell;
+   }
 
    /// Prefix increment operator                                              
    ///   @attention assumes iterator points to a valid element                
    ///   @return the modified iterator                                        
-   TEMPLATE() template<bool MUTABLE> LANGULUS(INLINED)
-   typename ITERATOR()& FACTORY_IT()::operator ++ () noexcept {
-      ++mElement;
-      // Skip all invalid entries, until a valid one/sentinel is hit    
-      while (mElement != mSentinel and 0 == mElement->mData.GetReferences())
-         ++mElement;
+   TEMPLATE() template<CT::Hive HIVE> LANGULUS(INLINED)
+   constexpr THive<T>::Iterator<HIVE>& THive<T>::Iterator<HIVE>::operator ++ () noexcept {
+      ++mCell;
+
+      // Skip uninitialized cells                                       
+      while (mCell->mNextFreeCell and mCell < mCellEnd)
+         ++mCell;
+
+      if (mCell >= mCellEnd) {
+         // If end of frame was reached, move to the next frame         
+         ++mFrame;
+
+         if (mFrame < mFrameEnd) {
+            mCell = mFrame->GetRaw();
+            mCellEnd = mCell + mFrame->GetReserved();
+         }
+      }
+
       return *this;
    }
 
    /// Suffix increment operator                                              
    ///   @attention assumes iterator points to a valid element                
    ///   @return the previous value of the iterator                           
-   TEMPLATE() template<bool MUTABLE> LANGULUS(INLINED)
-   typename ITERATOR() FACTORY_IT()::operator ++ (int) noexcept {
+   TEMPLATE() template<CT::Hive HIVE> LANGULUS(INLINED)
+   constexpr THive<T>::Iterator<HIVE> THive<T>::Iterator<HIVE>::operator ++ (int) noexcept {
       const auto backup = *this;
       operator ++ ();
       return backup;
    }
 
-   /// Compare iterators                                                      
-   ///   @param rhs - the other iterator                                      
-   ///   @return true if entries match                                        
-   TEMPLATE() template<bool MUTABLE> LANGULUS(INLINED)
-   bool FACTORY_IT()::operator == (const TIterator& rhs) const noexcept {
-      return mElement == rhs.mElement;
-   }
-      
-   /// Iterator access operator                                               
-   ///   @return a reference to the element at the current iterator position  
-   TEMPLATE() template<bool MUTABLE> LANGULUS(INLINED)
-   T& FACTORY_IT()::operator * () const noexcept requires (MUTABLE) {
-      return const_cast<T&>(mElement->mData);
+   /// Check if iterator is valid                                             
+   TEMPLATE() template<CT::Hive HIVE> LANGULUS(INLINED)
+   constexpr THive<T>::Iterator<HIVE>::operator bool() const noexcept {
+      return *this != A::IteratorEnd {};
    }
 
-   /// Iterator access operator                                               
-   ///   @return a reference to the element at the current iterator position  
-   TEMPLATE() template<bool MUTABLE> LANGULUS(INLINED)
-   const T& FACTORY_IT()::operator * () const noexcept requires (!MUTABLE) {
-      return mElement->mData;
-   }
-
-   /// Iterator access operator                                               
-   ///   @return a reference to the element at the current iterator position  
-   TEMPLATE() template<bool MUTABLE> LANGULUS(INLINED)
-   T& FACTORY_IT()::operator -> () const noexcept requires (MUTABLE) {
-      return const_cast<T&>(mElement->mData);
-   }
-
-   /// Iterator access operator                                               
-   ///   @return a reference to the element at the current iterator position  
-   TEMPLATE() template<bool MUTABLE> LANGULUS(INLINED)
-   const T& FACTORY_IT()::operator -> () const noexcept requires (!MUTABLE) {
-      return mElement->mData;
+   /// Implicitly convert to a constant iterator                              
+   TEMPLATE() template<CT::Hive HIVE> LANGULUS(INLINED)
+   constexpr THive<T>::Iterator<HIVE>::operator Iterator<const HIVE>() const noexcept requires Mutable {
+      return {mCell, mCellEnd, mFrame, mFrameEnd};
    }
 
 } // namespace Langulus::Flow
 
 #undef TEMPLATE
-#undef ITERATOR
-#undef FACTORY
-#undef FACTORY_IT
+#undef TME

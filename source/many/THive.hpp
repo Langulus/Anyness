@@ -50,22 +50,22 @@ namespace Langulus::Anyness
       LANGULUS(TYPED) T;
       LANGULUS(ABSTRACT) false;
 
+      static constexpr Count DefaultFrameSize = 8;
+
    protected: IF_LANGULUS_TESTING(public:)
       class Cell;
-      using Frame = TAny<Cell>
+      using Frame = TAny<Cell>;
 
       // Elements are allocated here in frames                          
       // If resizing one frame of cells requires memory to move, then   
       // another frame will be added to the sequence, guaranteeing      
       // that memory underneath any cells never moves                   
-      TAny<Frame> mData;
+      TAny<Frame> mFrames;
       // The start of the reusable chain, in the first frame that has   
       // a free cell                                                    
       Cell* mReusable {};
       // Number of initialized elements across all frames               
-      Count mCount {};
-      // Number of reserved elements across all frames                  
-      Count mReserved {};
+      Count mCount = 0;
 
    public:
       ///                                                                     
@@ -74,32 +74,64 @@ namespace Langulus::Anyness
       constexpr THive() noexcept = default;
       THive(const THive&);
       THive(THive&&);
+
       template<template<class> class S> requires CT::Semantic<S<THive>>
       THive(S<THive>&&);
+
       ~THive();
 
-   public:
-      void Reset();
+      ///                                                                     
+      ///   Assignment                                                        
+      ///                                                                     
+      THive& operator = (const THive&);
+      THive& operator = (THive&&);
 
+      template<template<class> class S> requires CT::Semantic<S<THive>>
+      THive& operator = (S<THive>&&);
+
+      ///                                                                     
+      ///   Capsulation                                                       
+      ///                                                                     
+      NOD() const Frame* Owns(const void*) const noexcept;
+      NOD() DMeta GetType() const noexcept;
+      NOD() Count GetCount() const noexcept;
       NOD() bool IsEmpty() const noexcept;
       NOD() constexpr explicit operator bool() const noexcept;
 
       ///                                                                     
       ///   Iteration                                                         
       ///                                                                     
-      template<CT::Hive>
+      template<class>
       struct Iterator;
 
-      NOD() constexpr Iterator<THive> begin() noexcept;
-      NOD() constexpr Iterator<const THive> begin() const noexcept;
+      NOD() constexpr Iterator<THive>       begin() noexcept;
+      NOD() constexpr Iterator<THive const> begin() const noexcept;
 
-      NOD() constexpr Iterator<THive> last() noexcept;
-      NOD() constexpr Iterator<const THive> last() const noexcept;
+      NOD() constexpr Iterator<THive>       last() noexcept;
+      NOD() constexpr Iterator<THive const> last() const noexcept;
 
       constexpr A::IteratorEnd end() const noexcept { return {}; }
 
       template<bool REVERSE = false>
       Count ForEach(auto&&...) const;
+
+      ///                                                                     
+      ///   Insertion                                                         
+      ///                                                                     
+      template<class...A> requires ::std::constructible_from<T, A...>
+      T* New(A&&...);
+
+   protected:
+      template<class...A> requires ::std::constructible_from<T, A...>
+      Cell* NewInner(A&&...);
+
+   public:
+      ///                                                                     
+      ///   Removal                                                           
+      ///                                                                     
+      void Destroy(Cell*);
+
+      void Reset();
    };
 
 
@@ -111,30 +143,37 @@ namespace Langulus::Anyness
    ///                                                                        
    template<CT::Data T>
    class THive<T>::Cell {
+   IF_LANGULUS_TESTING(public:)
       friend class THive<T>;
 
       // If zero, then this cell is in use, and mData is valid          
       // If not zero, then it points to the next free cell              
+      // @attention this may point beyond frame's reserved memory, if   
+      // cell is the last one                                           
       Cell* mNextFreeCell {};
 
       // Data reserved for T's instance                                 
       T mData;
 
       /// Only THive is capable of creating and destroying these cells        
-      Element() = delete;
+      Cell() = delete;
 
-      template<template<class> class S>
-      requires CT::SemanticMakableAlt<S<T>>
-      Element(S<T>&&);
+      template<class...A> requires ::std::constructible_from<T, A...>
+      Cell(A&&...);
+
+      /// @attention after a cell is destroyed, its mNextFreeCell must be     
+      /// set to the next free cell, as this informs iterators, that the cell 
+      /// isn't initialized                                                   
+      ~Cell() = default;
    };
 
 
    ///                                                                        
    ///   Hive iterator                                                        
    ///                                                                        
-   template<CT::Data T>
-   template<CT::Hive HIVE>
+   template<CT::Data T> template<class HIVE>
    struct THive<T>::Iterator {
+      static_assert(CT::Hive<HIVE>, "HIVE must be a CT::Hive type");
       static constexpr bool Mutable = CT::Mutable<HIVE>;
 
       LANGULUS(ABSTRACT) false;
@@ -143,12 +182,17 @@ namespace Langulus::Anyness
    protected:
       friend class THive<T>;
 
-      // Current iterator position pointer                              
-      Cell* mValue;
-      // Iterator position which is considered the 'end' iterator       
-      Cell const* mEnd;
+      // Current iterator position pointer inside current frame         
+      Cell* mCell;
+      // Iterator position which is considered the 'end' frame iterator 
+      Cell const* mCellEnd;
 
-      constexpr Iterator(Cell*, Cell const*) noexcept;
+      // Current frame                                                  
+      Frame* mFrame;
+      // The frame that is considered end of frames                     
+      Frame const* mFrameEnd;
+
+      constexpr Iterator(Cell*, Cell const*, Frame*, Frame const*) noexcept;
 
    public:
       Iterator() noexcept = delete;

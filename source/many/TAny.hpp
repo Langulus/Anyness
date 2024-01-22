@@ -215,8 +215,10 @@ namespace Langulus::Anyness
       template<CT::Data, bool BINARY_COMPATIBLE = false>
       NOD() bool CastsTo(Count) const;
 
-      NOD() auto    ReinterpretAs(const CT::Block auto&) const;
-      NOD() TAny<T> ReinterpretAs() const;
+      template<CT::Block B>
+      NOD() B ReinterpretAs(const B&) const;
+      template<CT::Data T1>
+      NOD() TAny<T1> ReinterpretAs() const;
 
       NOD() Block GetMember(const RTTI::Member&, CT::Index auto);
       NOD() Block GetMember(const RTTI::Member&, CT::Index auto) const;
