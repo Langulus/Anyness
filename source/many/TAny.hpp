@@ -19,16 +19,18 @@ namespace Langulus::CT
    concept DeepMakable = Inner::UnfoldMakableFrom<T, A...>
         or (sizeof...(A) == 1
            and Block<Desem<FirstOf<A...>>>
-           and Inner::SemanticMakableAlt<
-               typename SemanticOf<FirstOf<A...>>::template As<T>>
+           and (SemanticOf<FirstOf<A...>>::Shallow
+            or Inner::SemanticMakableAlt<
+               typename SemanticOf<FirstOf<A...>>::template As<T>>)
         );
 
    /// Concept for recognizing argument, with which a statically typed        
    /// container can be assigned                                              
    template<class T, class A>
    concept DeepAssignable = Inner::UnfoldMakableFrom<T, A>
-        or (Block<Desem<A>> and Inner::SemanticAssignableAlt<
-           typename SemanticOf<A>::template As<T>>);
+        or (Block<Desem<A>> and (SemanticOf<A>::Shallow
+           or Inner::SemanticAssignableAlt<
+            typename SemanticOf<A>::template As<T>>));
 
 } // namespace Langulus::CT
 
@@ -227,7 +229,9 @@ namespace Langulus::Anyness
       ///   Comparison                                                        
       ///                                                                     
       template<CT::NotSemantic T1>
-      requires (CT::Block<T1> or CT::Inner::Comparable<T, T1>)
+      requires (CT::UntypedBlock<T1>
+            or (CT::TypedBlock<T1> and CT::Inner::Comparable<T, TypeOf<T1>>)
+            or CT::Inner::Comparable<T, T1>)
       bool operator == (const T1&) const;
 
       template<bool RESOLVE = true>
@@ -281,10 +285,6 @@ namespace Langulus::Anyness
       requires CT::Block<Desem<T1>>
       Count InsertBlock(CT::Index auto, T1&&);
 
-      template<bool MOVE_ASIDE = true, class...A>
-      requires ::std::constructible_from<T, A...>
-      Conditional<CT::Sparse<T>, T, T&> Emplace(CT::Index auto, A&&...);
-
       template<bool MOVE_ASIDE = true, class T1, class...TAIL>
       requires CT::Inner::UnfoldMakableFrom<T, T1, TAIL...>
       Count Merge(CT::Index auto, T1&&, TAIL&&...);
@@ -293,6 +293,10 @@ namespace Langulus::Anyness
       requires CT::Block<Desem<T1>>
       Count MergeBlock(CT::Index auto, T1&&);
    
+      template<bool MOVE_ASIDE = true, class...A>
+      requires ::std::constructible_from<T, A...>
+      Conditional<CT::Sparse<T>, T, T&> Emplace(CT::Index auto, A&&...);
+
       template<class...A>
       requires ::std::constructible_from<T, A...>
       Count New(Count, A&&...);

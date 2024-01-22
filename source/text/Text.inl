@@ -34,7 +34,7 @@ namespace Langulus::Anyness
       : Text {Move(other)} { }
 
    /// Private constructor from Block                                         
-   ///   @attention assumes that block is properly strlen-ed                  
+   ///   @attention assumes that block is properly strlen-ed, if not TextBased
    ///   @param other - the block to initialize with                          
    LANGULUS(INLINED)
    Text::Text(Block&& other)
@@ -44,7 +44,7 @@ namespace Langulus::Anyness
    ///   @param other - the text container to use semantically                
    template<class T> requires CT::TextBased<Desem<T>> LANGULUS(INLINED)
    Text::Text(T&& other)
-      : Base {Forward<T>(other)} {
+      : Base {Forward<Base>(other)} {
       /*if constexpr (not CT::Text<Desem<T>>) {
          // Only Text container is guaranteed to be properly terminated 
          mCount = strnlen(GetRaw(), mCount);
@@ -53,27 +53,10 @@ namespace Langulus::Anyness
 
    /// Construct from single character                                        
    ///   @param other - the character to copy                                 
-   /*template<class T> requires CT::DenseCharacter<Desem<T>> LANGULUS(INLINED)
+   template<class T> requires CT::DenseCharacter<Desem<T>> LANGULUS(INLINED)
    Text::Text(T&& other) {
       AllocateFresh<Text>(RequestSize<Text>(1));
       (*this)[0] = DesemCast(other);
-   }
-
-   /// Construct from a char*                                                 
-   ///   @attention assumes that the character sequence is null-terminated    
-   ///   @param other - the string and semantic                               
-   template<class T> requires CT::StringPointer<Desem<T>> LANGULUS(INLINED)
-   Text::Text(T&& other) {
-      using S = SemanticOf<T>;
-      const Count count = DesemCast(other)
-         ? ::std::strlen(DesemCast(other)) : 0;
-
-      if (not count)
-         return;
-
-      SetMemory(DataState::Constrained, mType, count, DesemCast(other));
-      if constexpr (S::Move or S::Keep)
-         TakeAuthority<Text>();
    }
 
    /// Construct from a bounded character array                               
@@ -81,11 +64,19 @@ namespace Langulus::Anyness
    ///      - this is usually guaranteed for string literals, but its left    
    ///        to an assumption, as the user can reinterpret_cast as array     
    ///   @param other - the string and semantic                               
-   template<class T> requires CT::StringLiteral<Desem<T>> LANGULUS(INLINED)
+   template<class T> requires CT::String<Desem<T>> LANGULUS(INLINED)
    Text::Text(T&& other) {
       using S = SemanticOf<T>;
-      const Count count = DesemCast(other)
-         ? strnlen(DesemCast(other), ExtentOf<Desem<T>>) : 0;
+      Count count;
+
+      if constexpr (CT::StringLiteral<Desem<T>>) {
+         count = DesemCast(other)
+            ? strnlen(DesemCast(other), ExtentOf<Desem<T>>) : 0;
+      }
+      else {
+         count = DesemCast(other)
+            ? ::std::strlen(DesemCast(other)) : 0;
+      }
 
       if (not count)
          return;
@@ -97,10 +88,10 @@ namespace Langulus::Anyness
 
    /// Construct from any standard contiguous range statically typed with     
    /// characters. This includes std::string, string_view, span, vector,      
-   /// array, etc. Containers that aren't strings will be strnlen'ed          
+   /// array, etc.                                                            
+   ///   @attention containers that aren't strings will be strnlen'ed         
    ///   @param other - the string and semantic                               
-   template<class T> requires (CT::StandardContiguousContainer<Desem<T>>
-                          and  CT::DenseCharacter<TypeOf<Desem<T>>>)
+   template<class T> requires CT::StdString<Desem<T>>
    LANGULUS(INLINED) Text::Text(T&& other) {
       using S = SemanticOf<T>;
       if (DesemCast(other).empty())
@@ -118,7 +109,13 @@ namespace Langulus::Anyness
       );
       if constexpr (S::Move or S::Keep)
          TakeAuthority<Text>();
-   }*/
+   }
+   
+   /// Stringify meta                                                         
+   ///   @param meta - the definition to stringify                            
+   LANGULUS(INLINED)
+   Text::Text(const CT::Meta auto& meta)
+      : Text {meta.GetToken()} {}
 
    /// Stringify a Langulus::Exception                                        
    ///   @param from - the exception to stringify                             
@@ -134,12 +131,6 @@ namespace Langulus::Anyness
          (*this) = Disown(from.GetName());
       #endif
    }
-   
-   /// Stringify meta                                                         
-   ///   @param meta - the definition to stringify                            
-   LANGULUS(INLINED)
-   Text::Text(const CT::Meta auto& meta)
-      : Text {meta.GetToken()} {}
 
    /// Convert a number type to text                                          
    ///   @param number - the number to stringify                              
@@ -171,22 +162,10 @@ namespace Langulus::Anyness
          LANGULUS_ASSERT(errorCode == ::std::errc(), Convert,
             "std::to_chars failure");
 
-         (*this) += Text::From(temp, static_cast<Count>(lastChar - temp));
+         (*this) = Text::From(temp, static_cast<Count>(lastChar - temp));
       }
       else LANGULUS_ERROR("Unsupported number type");
    }
-
-   /// By extending {fmt} via formatters, we also extend Text capabilities    
-   /// Notice, that StringPointer and StringLiteral are handled separately    
-   /// in order to make those implicit. This one is explicit, to avoid        
-   /// ambiguities                                                            
-   ///   @param arg - the data to convert to Text                             
-   /*Text::Text(const CT::Inner::ExplicitlyFormattable auto& arg) {
-      const auto size = fmt::formatted_size("{}", arg);
-      Block::AllocateFresh<Text>(Block::RequestSize<Text>(size));
-      fmt::format_to_n(GetRaw(), size, "{}", arg);
-      mCount = size;
-   }*/
 
    /// Compose text by an arbitrary amount of formattable arguments           
    ///   @param ...args - the arguments                                       
@@ -224,7 +203,7 @@ namespace Langulus::Anyness
    
    /// Assign a block of any kind                                             
    ///   @param rhs - the block to assign                                     
-   template<class T> requires CT::Text<Desem<T>> LANGULUS(INLINED)
+   template<class T> requires CT::TextBased<Desem<T>> LANGULUS(INLINED)
    Text& Text::operator = (T&& rhs) {
       Base::operator = (Forward<T>(rhs));
 
@@ -594,64 +573,44 @@ namespace Langulus::Anyness
    /// Concatenate two text containers                                        
    ///   @param rhs - right hand side                                         
    ///   @return the concatenated text container                              
-   /*template<class T> requires CT::Text<Desem<T>> LANGULUS(INLINED)
+   template<class T> requires CT::Stringifiable<Desem<T>> LANGULUS(INLINED)
    Text Text::operator + (T&& rhs) const {
       using S = SemanticOf<T>;
       using B = TypeOf<S>;
-      if constexpr (CT::Typed<B>) {
-         if constexpr (CT::Similar<Letter, TypeOf<B>>) {
-            // We can concat directly                                   
+
+      if constexpr (CT::Block<B>) {
+         if constexpr (CT::Typed<B>) {
+            if constexpr (CT::Similar<Letter, TypeOf<B>>) {
+               // We can concat directly                                
+               return Block::ConcatBlock<Text>(S::Nest(rhs));
+            }
+            else if constexpr (CT::DenseCharacter<TypeOf<B>>) {
+               // We're concatenating with different type of characters 
+               // - do UTF conversions here                             
+               TODO();
+            }
+            else LANGULUS_ERROR("Can't concatenate with this container");
+         }
+         else {
+            // Type-erased concat                                       
             return Block::ConcatBlock<Text>(S::Nest(rhs));
          }
-         else if constexpr (CT::DenseCharacter<TypeOf<B>>) {
-            // We're concatenating with different type of characters -  
-            // do UTF conversions here                                  
-            TODO();
-         }
-         else LANGULUS_ERROR("Can't concatenate with this container");
       }
       else {
-         // Type-erased concat                                          
-         return Block::ConcatBlock<Text>(S::Nest(rhs));
+         // RHS isn't Block, try to convert it to Text, and nest        
+         return operator + (static_cast<Text>(DesemCast(rhs)));
       }
    }
-
-   /// Concatenate with stuff to the left                                     
-   ///   @param rhs - right hand side                                         
-   ///   @return the concatenated text container                              
-   template<class T> requires CT::DenseCharacter<Desem<T>>
-   LANGULUS(INLINED) Text operator + (T&& lhs, const Text& rhs) {
-      if constexpr (CT::Semantic<T>)
-         return Text::From(Disown(&*lhs), 1) + rhs;
-      else
-         return Text::From(Disown(&lhs), 1) + rhs;
-   }
-
-   template<class T> requires CT::StringPointer<Desem<T>>
-   LANGULUS(INLINED) Text operator + (T&& lhs, const Text& rhs) {
-      return Text {Disown(lhs)} + rhs;
-   }
-
-   template<class T> requires CT::StringLiteral<Desem<T>>
-   LANGULUS(INLINED) Text operator + (T&& lhs, const Text& rhs) {
-      return Text {Disown(lhs)} + rhs;
-   }
-
-   template<class T> requires (CT::StandardContiguousContainer<T>
-                          and  CT::DenseCharacter<TypeOf<T>>)
-   LANGULUS(INLINED) Text operator + (T&& lhs, const Text& rhs) {
-      return Text {Disown(lhs)} + rhs;
-   }*/
 
    /// Concatenate (destructively) text containers                            
    ///   @param rhs - right hand side                                         
    ///   @return a reference to this container                                
-   template<class T> requires CT::Text<Desem<T>>
+   template<class T> requires CT::Stringifiable<Desem<T>>
    Text& Text::operator += (T&& rhs) {
       using S = SemanticOf<T>;
       using B = TypeOf<S>;
 
-      if constexpr (CT::Block<T>) {
+      if constexpr (CT::Block<B>) {
          if constexpr (CT::Typed<B>) {
             if constexpr (CT::Similar<Letter, TypeOf<B>>) {
                // We can concat directly                                
@@ -669,7 +628,10 @@ namespace Langulus::Anyness
             Block::InsertBlock<Text, void>(IndexBack, S::Nest(rhs));
          }
       }
-      else TODO();
+      else {
+         // RHS isn't Block, try to convert it to Text, and nest        
+         return operator += (static_cast<Text>(DesemCast(rhs)));
+      }
 
       return *this;
    }

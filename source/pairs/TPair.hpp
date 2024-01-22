@@ -16,16 +16,22 @@ namespace Langulus::CT
    /// Concept for recognizing arguments, with which a statically typed       
    /// pair can be constructed                                                
    template<class K, class V, class A>
-   concept PairMakable = Pair<Desem<A>>
+   concept PairMakable = Pair<Desem<A>> and not Reference<K, V>
        and Inner::SemanticMakableAlt<typename SemanticOf<A>::template As<K>>
        and Inner::SemanticMakableAlt<typename SemanticOf<A>::template As<V>>;
 
    /// Concept for recognizing argument, with which a statically typed        
    /// pair can be assigned                                                   
    template<class K, class V, class A>
-   concept PairAssignable = Pair<Desem<A>>
+   concept PairAssignable = Pair<Desem<A>> and not Reference<K, V>
        and Inner::SemanticAssignableAlt<typename SemanticOf<A>::template As<K>>
        and Inner::SemanticAssignableAlt<typename SemanticOf<A>::template As<V>>;
+
+   /// Concept for recognizing argument, against which a pair can be compared 
+   template<class K, class V, class A>
+   concept PairComparable = Pair<A>
+       and Inner::Comparable<K, typename A::Key>
+       and Inner::Comparable<V, typename A::Value>;
 
 } // namespace Langulus::CT
 
@@ -57,9 +63,11 @@ namespace Langulus::Anyness
       TPair(P&&);
 
       template<class K1, class V1>
-      requires ((CT::Inner::MakableFrom<K, K1> and CT::Inner::MakableFrom<V, V1>)
-            or CT::Reference<K, V, K1, V1>)
+      requires (CT::Inner::MakableFrom<K, K1> and CT::Inner::MakableFrom<V, V1>
+           and not CT::Reference<K, V>)
       TPair(K1&&, V1&&);
+
+      TPair(K&&, V&&) noexcept requires CT::Reference<K, V>;
 
       TPair& operator = (TPair const&) = default;
       TPair& operator = (TPair&&) = default;
@@ -69,17 +77,18 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Capsulation                                                       
       ///                                                                     
-      NOD() Hash  GetHash() const;
+      NOD() Hash  GetHash() const requires CT::Hashable<K, V>;
       NOD() DMeta GetKeyType() const noexcept;
       NOD() DMeta GetValueType() const noexcept;
 
       ///                                                                     
       ///   Comparison                                                        
       ///                                                                     
-      bool operator == (CT::Pair auto const&) const;
+      template<class P> requires CT::PairComparable<K, V, P>
+      bool operator == (const P&) const;
 
       operator TPair<const Deref<K>&, const Deref<V>&>() const noexcept
-      requires (::std::is_reference_v<K> and ::std::is_reference_v<V>);
+      requires CT::Reference<K, V>;
    };
 
 } // namespace Langulus::Anyness

@@ -344,7 +344,7 @@ namespace Langulus::Anyness
    ///      deep with provided type - use void to disable                     
    ///   @tparam MOVE_ASIDE - true to allocate more elements, and move any    
    ///      elements at index to the right, in order to fit the insertion     
-   ///   @param index - the index at which to insert                          
+   ///   @param idx - the index at which to insert                            
    ///   @param t1 - the first item to insert                                 
    ///   @param tail... - the rest of items to insert (optional)              
    ///   @return number of inserted elements                                  

@@ -204,15 +204,15 @@ namespace Langulus::Anyness
       return GetCountElementsDeep(GetKeys<THIS>());
    }
 
-   /// Get the number of deep key containers                                  
-   ///   @return the number of deep key containers                            
+   /// Get the number of deep value containers                                
+   ///   @return the number of deep value containers                          
    template<CT::Map THIS> LANGULUS(INLINED)
    Count BlockMap::GetValueCountDeep() const noexcept {
       return GetCountDeep(GetVals<THIS>());
    }
 
-   /// Get the number of deep key containers                                  
-   ///   @return the number of deep key containers                            
+   /// Get the number of deep value containers                                
+   ///   @return the number of deep value containers                          
    template<CT::Map THIS> LANGULUS(INLINED)
    Count BlockMap::GetValueCountElementsDeep() const noexcept {
       return GetCountElementsDeep(GetVals<THIS>());
@@ -296,10 +296,10 @@ namespace Langulus::Anyness
          return true;
 
       bool missing = false;
-      ForEachKeyDeep<THIS>([&](const Block& key) {
+      ForEachKeyDeep<false, false, THIS>([&](const Block& key) {
          return not (missing = key.IsMissing());
       });
-      ForEachValueDeep<THIS>([&](const Block& val) {
+      ForEachValueDeep<false, false, THIS>([&](const Block& val) {
          return not (missing = val.IsMissing());
       });
       return missing;

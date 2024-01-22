@@ -704,6 +704,52 @@ namespace Langulus::Anyness
          index, Forward<T1>(t1), Forward<TAIL>(tail)...);
    }
 
+   /// Insert all elements of a block at an index, semantically or not        
+   ///   @tparam FORCE - insert even if types mismatch, by making this block  
+   ///      deep with provided type - use void to disable                     
+   ///   @tparam MOVE_ASIDE - true to allocate more elements, and move any    
+   ///      elements at index to the right, in order to fit the insertion     
+   ///   @param index - index to insert thems at                              
+   ///   @param other - the block to insert                                   
+   ///   @return the number of inserted elements                              
+   TEMPLATE() template<class FORCE, bool MOVE_ASIDE, class T1>
+   requires CT::Block<Desem<T1>> LANGULUS(INLINED)
+   Count TAny<T>::InsertBlock(CT::Index auto index, T1&& other) {
+      return Block::InsertBlock<TAny, FORCE, MOVE_ASIDE>(
+         index, Forward<T1>(other));
+   }
+
+   /// Merge elements                                                         
+   /// Element will be pushed only if not found in block                      
+   ///   @tparam MOVE_ASIDE - true to allocate more elements, and move any    
+   ///      elements at index to the right, in order to fit the insertion     
+   ///   @param index - the index at which to insert                          
+   ///   @param t1 - the first item to insert                                 
+   ///   @param tail... - the rest of items to insert (optional)              
+   ///   @return the number of inserted items                                 
+   TEMPLATE() template<bool MOVE_ASIDE, class T1, class...TAIL>
+   requires CT::Inner::UnfoldMakableFrom<T, T1, TAIL...> LANGULUS(INLINED)
+   Count TAny<T>::Merge(CT::Index auto index, T1&& t1, TAIL&&...tail) {
+      return Block::Merge<TAny, Any, MOVE_ASIDE>(
+         index, Forward<T1>(t1), Forward<TAIL>(tail)...);
+   }
+
+   /// Search for a sequence of elements, and if not found, semantically      
+   /// insert it                                                              
+   ///   @tparam FORCE - insert even if types mismatch, by making this block  
+   ///      deep with provided type - use void to disable                     
+   ///   @tparam MOVE_ASIDE - true to allocate more elements, and move any    
+   ///      elements at index to the right, in order to fit the insertion     
+   ///   @param index - index to insert at                                    
+   ///   @param other - the block to search for, and eventually insert        
+   ///   @return the number of inserted elements                              
+   TEMPLATE() template<class FORCE, bool MOVE_ASIDE, class T1>
+   requires CT::Block<Desem<T1>> LANGULUS(INLINED)
+   Count TAny<T>::MergeBlock(CT::Index auto index, T1&& other) {
+      return Block::MergeBlock<TAny, FORCE, MOVE_ASIDE>(
+         index, Forward<T1>(other));
+   }
+
    /// Emplace a single item at the given index, forwarding all arguments     
    /// to its constructor                                                     
    ///   @tparam MOVE_ASIDE - true to allocate more elements, and move any    
@@ -758,25 +804,6 @@ namespace Langulus::Anyness
    TAny<T>& TAny<T>::operator >> (T1&& rhs) {
       Insert(IndexFront, Forward<T1>(rhs));
       return *this;
-   }
-
-   /// Merge elements                                                         
-   /// Element will be pushed only if not found in block                      
-   ///   @tparam MOVE_ASIDE - true to allocate more elements, and move any    
-   ///      elements at index to the right, in order to fit the insertion     
-   ///   @param index - the index at which to insert                          
-   ///   @param t1 - the first item to insert                                 
-   ///   @param tail... - the rest of items to insert (optional)              
-   ///   @return the number of inserted items                                 
-   TEMPLATE() template<bool MOVE_ASIDE, class T1, class...TAIL>
-   requires CT::Inner::UnfoldMakableFrom<T, T1, TAIL...> LANGULUS(INLINED)
-   Count TAny<T>::Merge(CT::Index auto index, T1&& t1, TAIL&&...tail) {
-      Count inserted = 0;
-      inserted   += UnfoldMerge<TAny, Any, MOVE_ASIDE>(
-         index, Forward<T1>(t1));
-      ((inserted += UnfoldMerge<TAny, Any, MOVE_ASIDE>(
-         index + inserted, Forward<TAIL>(tail))), ...);
-      return inserted;
    }
 
    /// Merge an element at the back of the container                          
@@ -993,7 +1020,9 @@ namespace Langulus::Anyness
    ///   @param other - the block to compare with                             
    ///   @return true if both containers are identical                        
    TEMPLATE() template<CT::NotSemantic T1>
-   requires (CT::Block<T1> or CT::Inner::Comparable<T, T1>) LANGULUS(INLINED)
+   requires (CT::UntypedBlock<T1>
+      or (CT::TypedBlock<T1> and CT::Inner::Comparable<T, TypeOf<T1>>)
+      or CT::Inner::Comparable<T, T1>) LANGULUS(INLINED)
    bool TAny<T>::operator == (const T1& other) const {
       return Block::operator == <TAny> (other);
    }
@@ -1085,4 +1114,3 @@ namespace Langulus::Anyness
 } // namespace Langulus::Anyness
 
 #undef TEMPLATE
-#undef KNOWNPOINTER

@@ -111,9 +111,17 @@ namespace Langulus::Anyness
       LANGULUS_BASES(A::Text, Base);
       LANGULUS(FILES) "txt";
 
-      /// The presence of this structure makes Text a serializer interface    
+      /// The presence of this structure makes Text a serializer              
       struct SerializationRules {
-
+         // Text serializer can be lossy to omit unnecessary details,   
+         // and you can configure how many elements to show             
+         #ifdef LANGULUS_MAX_DEBUGGABLE_ELEMENTS
+            static constexpr Count MaxIterations
+               = LANGULUS_MAX_DEBUGGABLE_ELEMENTS;
+         #else
+            static constexpr Count MaxIterations
+               = LANGULUS(DEBUG) or LANGULUS(SAFE) ? 32 : 8;
+         #endif
       };
 
       ///                                                                     
@@ -159,11 +167,8 @@ namespace Langulus::Anyness
       Text& operator = (const Text&);
       Text& operator = (Text&&) noexcept;
 
-      template<class T> requires CT::Text<Desem<T>>
+      template<class T> requires CT::TextBased<Desem<T>>
       Text& operator = (T&&);
-
-      /// By extending libfmt via formatters, we also extend Text capabilities
-      //Text& operator = (CT::Formattable auto&&);
 
       ///                                                                     
       ///   Capsulation                                                       
@@ -208,13 +213,11 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Concatenation                                                     
       ///                                                                     
-      template<class T> requires CT::Text<Desem<T>>
+      template<class T> requires CT::Stringifiable<Desem<T>>
       NOD() Text operator + (T&&) const;
-      //NOD() Text operator + (CT::Formattable auto&&) const;
 
-      template<class T> requires CT::Text<Desem<T>>
+      template<class T> requires CT::Stringifiable<Desem<T>>
       Text& operator += (T&&);
-      //Text& operator += (CT::Formattable auto&&);
 
       ///                                                                     
       ///   Services                                                          
