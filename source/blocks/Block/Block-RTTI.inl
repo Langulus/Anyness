@@ -142,22 +142,20 @@ namespace Langulus::Anyness
    /// No real conversion is performed, only pointer arithmetic               
    ///   @param pattern - the type of data to try interpreting as             
    ///   @return a block representing this block, interpreted as the pattern  
-   template<CT::Block THIS> LANGULUS(INLINED)
-   auto Block::ReinterpretAs(const CT::Block auto& pattern) const {
-      using RHS = Deref<decltype(pattern)>;
-
+   template<CT::Block THIS, CT::Block B> LANGULUS(INLINED)
+   B Block::ReinterpretAs(const B& pattern) const {
       if (IsEmpty() or IsSparse<THIS>()
-      or IsUntyped<THIS>() or pattern.template IsUntyped<RHS>())
-         return RHS {};
+      or IsUntyped<THIS>() or pattern.template IsUntyped<B>())
+         return B {};
 
-      if constexpr (CT::Typed<THIS, RHS>) {
+      if constexpr (CT::Typed<THIS, B>) {
          using T1 = TypeOf<THIS>;
-         using T2 = TypeOf<RHS>;
+         using T2 = TypeOf<B>;
 
          // Both containers are statically typed                        
          if constexpr (CT::BinaryCompatible<T1, T2>) {
             // 1:1 view for binary compatible types                     
-            return RHS {Disown(Block{
+            return B {Disown(Block{
                pattern.GetState() + DataState::Static,
                pattern.GetType(), mCount,
                mRaw, mEntry
@@ -167,7 +165,7 @@ namespace Langulus::Anyness
             if constexpr (sizeof(T1) >= sizeof(T2)
                      and (sizeof(T1) %  sizeof(T2)) == 0) {
                // Larger view for binary compatible types               
-               return RHS {Disown(Block{
+               return B {Disown(Block{
                   pattern.GetState() + DataState::Static,
                   pattern.GetType(), mCount * (sizeof(T1) / sizeof(T2)),
                   mRaw, mEntry
@@ -176,7 +174,7 @@ namespace Langulus::Anyness
             else if constexpr (sizeof(T1) <= sizeof(T2)
                           and (sizeof(T2) %  sizeof(T1)) == 0) {
                // Smaller view for binary compatible types              
-               return RHS {Disown(Block{
+               return B {Disown(Block{
                   pattern.GetState() + DataState::Static,
                   pattern.GetType(), mCount / (sizeof(T2) / sizeof(T1)),
                   mRaw, mEntry
@@ -193,7 +191,7 @@ namespace Langulus::Anyness
          // First, compare types and get a common base type if any      
          RTTI::Base common {};
          if (not CompareTypes(pattern, common) or not common.mBinaryCompatible)
-            return RHS {};
+            return B {};
 
          // Find how elements fit from one to another                   
          const Size baseBytes = (common.mType->mSize * common.mCount)
@@ -202,7 +200,7 @@ namespace Langulus::Anyness
             ? baseBytes : (baseBytes / pattern.mCount) * pattern.mCount;
 
          // Create a static view of the desired type                    
-         return RHS {Disown(Block{
+         return B {Disown(Block{
             pattern.mState + DataState::Static,
             pattern.mType, resultSize,
             mRaw, mEntry
@@ -210,16 +208,10 @@ namespace Langulus::Anyness
       }
    }
 
-   /// Reinterpret contents of this Block as the type and state of another    
-   /// You can interpret Vec4 as float[4] for example, or any other such      
-   /// reinterpretation, as long as data remains tightly packed and aligned   
-   /// No real conversion is performed, only pointer arithmetic               
-   ///   @tparam T - the type of data to try interpreting as                  
-   ///   @return a block representing this block, interpreted as the pattern  
    template<CT::Data T, CT::Block THIS> LANGULUS(INLINED)
    TAny<T> Block::ReinterpretAs() const {
       static_assert(CT::Dense<T>, "T must be dense");
-      return ReinterpretAs(Block::From<T>());
+      return ReinterpretAs<THIS>(Block::From<T>());
    }
 
    /// Get the memory block corresponding to a local member variable          

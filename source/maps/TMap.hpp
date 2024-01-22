@@ -8,7 +8,7 @@
 ///                                                                           
 #pragma once
 #include "Map.hpp"
-#include "TPair.hpp"
+#include "../pairs/TPair.hpp"
 
 
 namespace Langulus::CT

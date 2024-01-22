@@ -251,50 +251,7 @@ namespace Langulus::Anyness
    constexpr void TAny<T>::ResetState() noexcept {
       Block::ResetState<TAny>();
    }
-
-   /// Check if contained data can be interpreted as a given type             
-   /// Beware, direction matters (this is the inverse of CanFit)              
-   ///   @param type - the type check if current type interprets to           
-   ///   @return true if able to interpret current type to 'type'             
-   TEMPLATE() template<bool BINARY_COMPATIBLE> LANGULUS(INLINED)
-   bool TAny<T>::CastsToMeta(DMeta type) const {
-      return Block::CastsToMeta<BINARY_COMPATIBLE>(type);
-   }
-
-   /// Check if contained data can be interpreted as a given count of type    
-   /// For example: a Vec4 can interpret as float[4]                          
-   /// Beware, direction matters (this is the inverse of CanFit)              
-   ///   @param type - the type check if current type interprets to           
-   ///   @param count - the number of elements to interpret as                
-   ///   @return true if able to interpret current type to 'type'             
-   TEMPLATE() template<bool BINARY_COMPATIBLE> LANGULUS(INLINED)
-   bool TAny<T>::CastsToMeta(DMeta type, const Count count) const {
-      return Block::CastsToMeta<BINARY_COMPATIBLE>(type, count);
-   }
    
-   /// Check if this container's data can be represented as type T            
-   /// with nothing more than pointer arithmetic                              
-   ///   @tparam ALT_T - the type to compare against                          
-   ///   @tparam BINARY_COMPATIBLE - do we require for the type to be         
-   ///      binary compatible with this container's type                      
-   ///   @return true if contained data is reinterpretable as T               
-   TEMPLATE() template<CT::Data ALT_T, bool BINARY_COMPATIBLE> LANGULUS(INLINED)
-   bool TAny<T>::CastsTo() const {
-      return Block::CastsTo<ALT_T, BINARY_COMPATIBLE>();
-   }
-
-   /// Check if this container's data can be represented as a specific number 
-   /// of elements of type T, with nothing more than pointer arithmetic       
-   ///   @tparam ALT_T - the type to compare against                          
-   ///   @tparam BINARY_COMPATIBLE - do we require for the type to be         
-   ///      binary compatible with this container's type                      
-   ///   @param count - the number of elements of T                           
-   ///   @return true if contained data is reinterpretable as T               
-   TEMPLATE() template<CT::Data ALT_T, bool BINARY_COMPATIBLE> LANGULUS(INLINED)
-   bool TAny<T>::CastsTo(const Count count) const {
-      return Block::CastsTo<ALT_T, BINARY_COMPATIBLE>(count);
-   }
-
    /// Check if type origin is the same as one of the provided types          
    ///   @attention ignores sparsity and cv-qualifiers                        
    ///   @tparam T1, TN... - the types to compare against                     
@@ -345,6 +302,80 @@ namespace Langulus::Anyness
    TEMPLATE() LANGULUS(INLINED)
    bool TAny<T>::IsExact(DMeta type) const noexcept {
       return Block::IsExact<TAny>(type);
+   }
+
+   /// Check if contained data can be interpreted as a given type             
+   /// Beware, direction matters (this is the inverse of CanFit)              
+   ///   @param type - the type check if current type interprets to           
+   ///   @return true if able to interpret current type to 'type'             
+   TEMPLATE() template<bool BINARY_COMPATIBLE> LANGULUS(INLINED)
+   bool TAny<T>::CastsToMeta(DMeta type) const {
+      return Block::CastsToMeta<BINARY_COMPATIBLE>(type);
+   }
+
+   /// Check if contained data can be interpreted as a given count of type    
+   /// For example: a Vec4 can interpret as float[4]                          
+   /// Beware, direction matters (this is the inverse of CanFit)              
+   ///   @param type - the type check if current type interprets to           
+   ///   @param count - the number of elements to interpret as                
+   ///   @return true if able to interpret current type to 'type'             
+   TEMPLATE() template<bool BINARY_COMPATIBLE> LANGULUS(INLINED)
+   bool TAny<T>::CastsToMeta(DMeta type, const Count count) const {
+      return Block::CastsToMeta<BINARY_COMPATIBLE>(type, count);
+   }
+   
+   /// Check if this container's data can be represented as type T            
+   /// with nothing more than pointer arithmetic                              
+   ///   @tparam ALT_T - the type to compare against                          
+   ///   @tparam BINARY_COMPATIBLE - do we require for the type to be         
+   ///      binary compatible with this container's type                      
+   ///   @return true if contained data is reinterpretable as T               
+   TEMPLATE() template<CT::Data ALT_T, bool BINARY_COMPATIBLE> LANGULUS(INLINED)
+   bool TAny<T>::CastsTo() const {
+      return Block::CastsTo<ALT_T, BINARY_COMPATIBLE>();
+   }
+
+   /// Check if this container's data can be represented as a specific number 
+   /// of elements of type T, with nothing more than pointer arithmetic       
+   ///   @tparam ALT_T - the type to compare against                          
+   ///   @tparam BINARY_COMPATIBLE - do we require for the type to be         
+   ///      binary compatible with this container's type                      
+   ///   @param count - the number of elements of T                           
+   ///   @return true if contained data is reinterpretable as T               
+   TEMPLATE() template<CT::Data ALT_T, bool BINARY_COMPATIBLE> LANGULUS(INLINED)
+   bool TAny<T>::CastsTo(const Count count) const {
+      return Block::CastsTo<ALT_T, BINARY_COMPATIBLE>(count);
+   }
+
+   /// Reinterpret contents of this Block as the type and state of another    
+   /// You can interpret Vec4 as float[4] for example, or any other such      
+   /// reinterpretation, as long as data remains tightly packed and aligned   
+   /// No real conversion is performed, only pointer arithmetic               
+   ///   @param pattern - the type of data to try interpreting as             
+   ///   @return a block representing this block, interpreted as the pattern  
+   TEMPLATE() template<CT::Block B> LANGULUS(INLINED)
+   B TAny<T>::ReinterpretAs(const B& rhs) const {
+      return Block::ReinterpretAs<TAny, B>(rhs);
+   }
+
+   TEMPLATE() template<CT::Data T1> LANGULUS(INLINED)
+   TAny<T1> TAny<T>::ReinterpretAs() const {
+      return Block::ReinterpretAs<T1, TAny>();
+   }
+
+   /// Get the memory block corresponding to a local member variable          
+   ///   @attention assumes block is not empty                                
+   ///   @param member - the member to get                                    
+   ///   @param idx - the element to get member from                          
+   ///   @return a static memory block                                        
+   TEMPLATE() LANGULUS(INLINED)
+   Block TAny<T>::GetMember(const RTTI::Member& member, CT::Index auto idx) {
+      return Block::GetMember<TAny>(member, idx);
+   }
+
+   TEMPLATE() LANGULUS(INLINED)
+   Block TAny<T>::GetMember(const RTTI::Member& member, CT::Index auto idx) const {
+      return Block::GetMember<TAny>(member, idx);
    }
 
    /// Allocate 'count' elements and fill the container with zeroes           
