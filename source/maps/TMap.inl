@@ -129,6 +129,24 @@ namespace Langulus::Anyness
       return *this;
    }
 
+   /// Get the key meta data                                                  
+   /// Also implicitly initializes the internal key type                      
+   ///   @attention this shouldn't be called on static initialization time    
+   ///   @return the meta definition of the key type                          
+   TEMPLATE() LANGULUS(INLINED)
+   DMeta TABLE()::GetKeyType() const noexcept {
+      return BlockMap::GetKeyType<TMap>();
+   }
+
+   /// Get the value meta data                                                
+   /// Also implicitly initializes the internal key type                      
+   ///   @attention this shouldn't be called on static initialization time    
+   ///   @return the meta definition of the value type                        
+   TEMPLATE() LANGULUS(INLINED)
+   DMeta TABLE()::GetValueType() const noexcept {
+      return BlockMap::GetValueType<TMap>();
+   }
+
    /// Templated tables are always typed                                      
    ///   @return false                                                        
    TEMPLATE() LANGULUS(INLINED)
@@ -160,13 +178,13 @@ namespace Langulus::Anyness
    /// Check if key type is deep                                              
    TEMPLATE() LANGULUS(INLINED)
    constexpr bool TABLE()::IsKeyDeep() const noexcept {
-      return CT::Deep<K>;
+      return BlockMap::IsKeyDeep<TMap>();
    }
    
    /// Check if value type is deep                                            
    TEMPLATE() LANGULUS(INLINED)
    constexpr bool TABLE()::IsValueDeep() const noexcept {
-      return CT::Deep<V>;
+      return BlockMap::IsValueDeep<TMap>();
    }
 
    /// Check if the key type is a pointer                                     
@@ -207,22 +225,39 @@ namespace Langulus::Anyness
       return sizeof(V); 
    }
 
-   /// Get the key meta data                                                  
-   /// Also implicitly initializes the internal key type                      
-   ///   @attention this shouldn't be called on static initialization time    
-   ///   @return the meta definition of the key type                          
+   /// Get the number of deep key containers                                  
+   ///   @return the number of deep key containers                            
    TEMPLATE() LANGULUS(INLINED)
-   DMeta TABLE()::GetKeyType() const noexcept {
-      return BlockMap::GetKeyType<TMap>();
+   Count TABLE()::GetKeyCountDeep() const noexcept {
+      return BlockMap::GetKeyCountDeep<TMap>();
    }
 
-   /// Get the value meta data                                                
-   /// Also implicitly initializes the internal key type                      
-   ///   @attention this shouldn't be called on static initialization time    
-   ///   @return the meta definition of the value type                        
+   /// Get the number of deep key containers                                  
+   ///   @return the number of deep key containers                            
    TEMPLATE() LANGULUS(INLINED)
-   DMeta TABLE()::GetValueType() const noexcept {
-      return BlockMap::GetValueType<TMap>();
+   Count TABLE()::GetKeyCountElementsDeep() const noexcept {
+      return BlockMap::GetKeyCountElementsDeep<TMap>();
+   }
+
+   /// Get the number of deep value containers                                
+   ///   @return the number of deep value containers                          
+   TEMPLATE() LANGULUS(INLINED)
+   Count TABLE()::GetValueCountDeep() const noexcept {
+      return BlockMap::GetValueCountDeep<TMap>();
+   }
+
+   /// Get the number of deep value containers                                
+   ///   @return the number of deep value containers                          
+   TEMPLATE() LANGULUS(INLINED)
+   Count TABLE()::GetValueCountElementsDeep() const noexcept {
+      return BlockMap::GetValueCountElementsDeep<TMap>();
+   }
+
+   /// Check if the map contains at least one missing entry (nested)          
+   ///   @return true if the map has missing entries                          
+   TEMPLATE() LANGULUS(INLINED)
+   bool TABLE()::IsMissingDeep() const {
+      return BlockMap::IsMissingDeep<TMap>();
    }
 
    /// Check if key origin type matches any of the list                       

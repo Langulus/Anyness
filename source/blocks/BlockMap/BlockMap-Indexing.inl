@@ -68,7 +68,7 @@ namespace Langulus::Anyness
       const auto idx = SimplifyIndex<THIS>(index);
       if (not mInfo[idx])
          LANGULUS_OOPS(OutOfRange, "No pair at given index");
-      return GeKeyRef<THIS>(idx);
+      return GetKeyRef<THIS>(idx);
    }
 
    template<CT::Map THIS> LANGULUS(INLINED)

@@ -75,8 +75,8 @@ namespace Langulus::Anyness
       THive(const THive&);
       THive(THive&&);
 
-      template<template<class> class S> requires CT::Semantic<S<THive>>
-      THive(S<THive>&&);
+      template<template<class> class S> requires CT::Semantic<S<THive<T>>>
+      THive(S<THive<T>>&&);
 
       ~THive();
 
@@ -86,8 +86,8 @@ namespace Langulus::Anyness
       THive& operator = (const THive&);
       THive& operator = (THive&&);
 
-      template<template<class> class S> requires CT::Semantic<S<THive>>
-      THive& operator = (S<THive>&&);
+      template<template<class> class S> requires CT::Semantic<S<THive<T>>>
+      THive& operator = (S<THive<T>>&&);
 
       ///                                                                     
       ///   Capsulation                                                       

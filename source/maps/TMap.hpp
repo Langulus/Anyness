@@ -46,7 +46,7 @@ namespace Langulus::Anyness
       using Base = Map<ORDERED>;
       using Self = TMap<K, V, ORDERED>;
       using Pair = TPair<K, V>;
-      using PairRef = TPair<K&, V&>;
+      using PairRef = TPair<const K&, V&>;
       using PairConstRef = TPair<const K&, const V&>;
 
       LANGULUS(POD) false;

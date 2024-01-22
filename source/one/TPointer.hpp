@@ -90,32 +90,3 @@ namespace Langulus::Anyness
    };
 
 } // namespace Langulus::Anyness
-
-/*namespace fmt
-{
-   
-   ///                                                                        
-   /// Extend FMT to be capable of logging any shared pointers                
-   ///                                                                        
-   template<Langulus::CT::Pointer T>
-   struct formatter<T> {
-      template<class CONTEXT>
-      constexpr auto parse(CONTEXT& ctx) {
-         return ctx.begin();
-      }
-
-      template<class CONTEXT>
-      LANGULUS(INLINED)
-      auto format(T const& element, CONTEXT& ctx) {
-         if (not element) {
-            const auto type = element.GetType();
-            if (type)
-               return fmt::format_to(ctx.out(), "{}(null)", type);
-            else
-               return fmt::format_to(ctx.out(), "null");
-         }
-         else return fmt::format_to(ctx.out(), "{}", *element.Get());
-      }
-   };
-
-} */// namespace fmt

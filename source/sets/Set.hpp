@@ -95,13 +95,16 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Comparison                                                        
       ///                                                                     
-      bool operator == (const CT::NotSemantic auto&) const;
+      using BlockSet::operator ==;
 
-      NOD() Hash GetHash() const;
-      NOD() bool Contains(const CT::NotSemantic auto&) const;
       NOD() Index Find(const CT::NotSemantic auto&) const;
       NOD() Iterator FindIt(const CT::NotSemantic auto&);
       NOD() ConstIterator FindIt(const CT::NotSemantic auto&) const;
+
+      ///                                                                     
+      ///   Memory management                                                 
+      ///                                                                     
+      void Reserve(Count);
 
       ///                                                                     
       ///   Insertion                                                         

@@ -120,24 +120,6 @@ namespace Langulus::Anyness
    decltype(auto) TABLE()::operator[] (const CT::Index auto index) const {
       return BlockSet::operator[]<Set>(index);
    }
-
-   /// Insert an element                                                      
-   ///   @param other - the data to insert                                    
-   ///   @return a reference to this container for chaining                   
-   TEMPLATE() LANGULUS(INLINED)
-   TABLE()& TABLE()::operator << (CT::Inner::UnfoldInsertable auto&& other) {
-      BlockSet::UnfoldInsert<Set>(Forward<decltype(other)>(other));
-      return *this;
-   }
-   
-   /// Insert an element                                                      
-   ///   @param other - the data to insert                                    
-   ///   @return a reference to this container for chaining                   
-   TEMPLATE() LANGULUS(INLINED)
-   TABLE()& TABLE()::operator >> (CT::Inner::UnfoldInsertable auto&& other) {
-      BlockSet::UnfoldInsert<Set>(Forward<decltype(other)>(other));
-      return *this;
-   }
    
    /// Get iterator to first element                                          
    ///   @return an iterator to the first element, or end if empty            
@@ -264,6 +246,55 @@ namespace Langulus::Anyness
    TEMPLATE() LANGULUS(INLINED)
    bool TABLE()::IsExact(DMeta meta) const noexcept {
       return BlockSet::IsExact<Set>(meta);
+   }
+
+   /// Search for a key inside the table, and return it if found              
+   ///   @param key - the key to search for                                   
+   ///   @return the index if key was found, or IndexNone if not              
+   TEMPLATE() LANGULUS(INLINED)
+   Index TABLE()::Find(const CT::NotSemantic auto& key) const {
+      return BlockSet::Find<Set>(key);
+   }
+
+   /// Search for a key inside the table, and return an iterator to it        
+   ///   @param key - the key to search for                                   
+   ///   @return the iterator                                                 
+   TEMPLATE() LANGULUS(INLINED)
+   typename TABLE()::Iterator TABLE()::FindIt(const CT::NotSemantic auto& key) {
+      return BlockSet::FindIt<Set>(key);
+   }
+
+   TEMPLATE() LANGULUS(INLINED)
+   typename TABLE()::ConstIterator TABLE()::FindIt(const CT::NotSemantic auto& key) const {
+      return BlockSet::FindIt<Set>(key);
+   }
+
+   /// Insert an element/set/array in the set                                 
+   ///   @attention << and >> do the same thing, as sets aren't sequential    
+   ///   @param other - the data to insert                                    
+   ///   @return a reference to this container for chaining                   
+   TEMPLATE() LANGULUS(INLINED)
+   TABLE()& TABLE()::operator << (CT::Inner::UnfoldInsertable auto&& other) {
+      BlockSet::UnfoldInsert<Set>(Forward<decltype(other)>(other));
+      return *this;
+   }
+   
+   /// Insert an element/set/array in the set                                 
+   ///   @attention << and >> do the same thing, as sets aren't sequential    
+   ///   @param other - the data to insert                                    
+   ///   @return a reference to this container for chaining                   
+   TEMPLATE() LANGULUS(INLINED)
+   TABLE()& TABLE()::operator >> (CT::Inner::UnfoldInsertable auto&& other) {
+      BlockSet::UnfoldInsert<Set>(Forward<decltype(other)>(other));
+      return *this;
+   }
+   
+   /// Reserves space for the specified number of elements                    
+   ///   @attention does nothing if reserving less than current reserve       
+   ///   @param count - number of elements to allocate                        
+   TEMPLATE() LANGULUS(INLINED)
+   void TABLE()::Reserve(Count count) {
+      BlockSet::Reserve<Set>(count);
    }
 
 } // namespace Langulus::Anyness

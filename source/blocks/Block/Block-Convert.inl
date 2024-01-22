@@ -9,17 +9,58 @@
 #pragma once
 #include "../Block.hpp"
 
-#ifndef LANGULUS_MAX_DEBUGGABLE_ELEMENTS
-   #if LANGULUS(DEBUG) or LANGULUS(SAFE)
-      #define LANGULUS_MAX_DEBUGGABLE_ELEMENTS 32
-   #else
-      #define LANGULUS_MAX_DEBUGGABLE_ELEMENTS 8
-   #endif
-#endif
 
-
-namespace Langulus::Flow
+namespace Langulus::Anyness
 {
+
+   /// Convert block's contents to another kind of contents, by iterating     
+   /// all elements, and casting them one by one                              
+   ///   @param out - what are we converting to?                              
+   ///   @return the number of converted elements inserted in 'out'           
+   template<CT::Block THIS>
+   Count Block::Convert(CT::Block auto& out) const {
+      TODO();
+      return 0;
+   }
+
+   template<CT::Block TO, CT::Block THIS>
+   TO Block::Convert() const {
+      TO result;
+      (void)Convert<THIS>(result);
+      return result;
+   }
+
+   /// Serialize a block into a desired serial format, by following the       
+   /// serializer's rules                                                     
+   ///   @param out - the resulting serialized data                           
+   ///   @return the number of elements (usually bytes/chars) written to 'out'
+   template<CT::Block THIS>
+   Count Block::Serialize(CT::Serial auto& out) const {
+      TODO();
+      return 0;
+   }
+
+   template<CT::Serial TO, CT::Block THIS>
+   TO Block::Serialize() const {
+      TO result;
+      (void)Serialize<THIS>(result);
+      return result;
+   }
+
+   /// Deserialize from this block, to a value/block of values                
+   ///   @param resulting value/block of values                               
+   ///   @return the number of elements written to 'out'                      
+   template<CT::Serial THIS>
+   Count Block::Deserialize(CT::Data auto& out) const {
+
+   }
+
+   template<CT::Data TO, CT::Serial THIS>
+   TO Block::Deserialize() const {
+      TO result;
+      (void)Deserialize<THIS>(result);
+      return result;
+   }
 
    /// Conversion routine, that is specialized for serialization              
    ///   @tparam TO - the type we're serializing to                           

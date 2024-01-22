@@ -13,9 +13,9 @@
 namespace Langulus::Anyness
 {
 
-   /// Reserves space for the specified number of pairs                       
+   /// Reserves space for the specified number of elements                    
    ///   @attention does nothing if reserving less than current reserve       
-   ///   @param count - number of pairs to allocate                           
+   ///   @param count - number of elements to allocate                        
    template<CT::Set THIS> LANGULUS(INLINED)
    void BlockSet::Reserve(const Count count) {
       AllocateInner<THIS>(

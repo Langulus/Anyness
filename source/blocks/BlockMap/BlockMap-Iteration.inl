@@ -381,7 +381,6 @@ namespace Langulus::Anyness
       return const_cast<BlockMap*>(this)->begin<THIS>();
    }
 
-
    /// Get iterator to the last element                                       
    ///   @return an iterator to the last element, or end if empty             
    template<CT::Map THIS> LANGULUS(INLINED)
@@ -502,23 +501,19 @@ namespace Langulus::Anyness
       if (mInfo >= mSentinel)
          LANGULUS_OOPS(Access, "Trying to access end of iteration");
 
+      const auto me = const_cast<Iterator<T>*>(this);
       using B = Conditional<CT::Mutable<T>, Block&, const Block&>;
       if constexpr (CT::TypeErased<Key>) {
          if constexpr (CT::TypeErased<Value>)
-            return TPair<B, B> {mKey, mValue};
-         else {
-            using V = Conditional<CT::Mutable<T>, Value&, const Value&>;
-            return TPair<B, V> {mKey, *mValue};
-         }
+            return TPair<const Block&, B> {mKey, me->mValue};
+         else
+            return TPair<const Block&, Value&> {mKey, *me->mValue};
       }
       else {
-         using K = Conditional<CT::Mutable<T>, Key&, const Key&>;
          if constexpr (CT::TypeErased<Value>)
-            return TPair<K, B> {*mKey, mValue};
-         else {
-            using V = Conditional<CT::Mutable<T>, Value&, const Value&>;
-            return TPair<K, V> {*mKey, *mValue};
-         }
+            return TPair<Key&, B> {*mKey, me->mValue};
+         else
+            return TPair<Key&, Value&> {*mKey, *me->mValue};
       }
    }
 

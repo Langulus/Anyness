@@ -16,11 +16,48 @@
 namespace Langulus::Anyness
 {
 
+   /// Semantic constructor from any other pair (if K and V aren't references)
+   ///   @param pair - the pair to use for initialization                     
+   TEMPLATE() template<class P>
+   requires CT::PairMakable<K, V, P> LANGULUS(INLINED)
+   PAIR()::TPair(P&& pair)
+      : mKey   {SemanticOf<P>::Nest(DesemCast(pair).mKey)}
+      , mValue {SemanticOf<P>::Nest(DesemCast(pair).mValue)} {}
+
+   /// Semantic constructor from key and value (if K and V aren't references) 
+   ///   @param key - the key                                                 
+   ///   @param val - the value                                               
+   TEMPLATE() template<class K1, class V1>
+   requires (CT::Inner::MakableFrom<K, K1> and CT::Inner::MakableFrom<V, V1>
+     and not CT::Reference<K, V>) LANGULUS(INLINED)
+   PAIR()::TPair(K1&& key, V1&& val)
+      : mKey   {SemanticOf<K1>::Nest(key)}
+      , mValue {SemanticOf<V1>::Nest(val)} {}
+
+   /// Semantic constructor from key and value (if K and V are references)    
+   ///   @param key - the key                                                 
+   ///   @param val - the value                                               
+   TEMPLATE() LANGULUS(INLINED)
+   PAIR()::TPair(K&& key, V&& val) noexcept requires CT::Reference<K, V>
+      : mKey   {key}
+      , mValue {val} {}
+
+   /// Semantic assignment from any other pair (if K and V aren't references) 
+   ///   @param pair - the pair to assign                                     
+   TEMPLATE() template<class P>
+   requires CT::PairAssignable<K, V, P> LANGULUS(INLINED)
+   PAIR()& PAIR()::operator = (P&& pair) {
+      mKey   = SemanticOf<P>::Nest(DesemCast(pair).mKey);
+      mValue = SemanticOf<P>::Nest(DesemCast(pair).mValue);
+      return *this;
+   }
+
    /// Comparison                                                             
    ///   @param rhs - pair to compare against                                 
    ///   @return true if pairs match                                          
-   TEMPLATE() LANGULUS(INLINED)
-   bool PAIR()::operator == (CT::Pair auto const& rhs) const {
+   TEMPLATE() template<class P>
+   requires CT::PairComparable<K, V, P> LANGULUS(INLINED)
+   bool PAIR()::operator == (const P& rhs) const {
       return mKey == rhs.mKey and mValue == rhs.mValue;
    }
 
@@ -28,7 +65,7 @@ namespace Langulus::Anyness
    ///   @attention hash is not cached, so this function is slow              
    ///   @return the hash                                                     
    TEMPLATE() LANGULUS(INLINED)
-   Hash PAIR()::GetHash() const {
+   Hash PAIR()::GetHash() const requires CT::Hashable<K, V> {
       return HashOf(mKey, mValue);
    }
 
@@ -44,6 +81,13 @@ namespace Langulus::Anyness
    TEMPLATE() LANGULUS(INLINED)
    DMeta PAIR()::GetValueType() const noexcept {
       return MetaDataOf<V>();
+   }
+
+   /// Implicit cast to constant pair                                         
+   TEMPLATE() LANGULUS(INLINED)
+   PAIR()::operator TPair<const Deref<K>&, const Deref<V>&>() const noexcept
+   requires CT::Reference<K, V> {
+      return {mKey, mValue};
    }
 
 } // namespace Langulus::Anyness

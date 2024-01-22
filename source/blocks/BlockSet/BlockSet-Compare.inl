@@ -102,10 +102,7 @@ namespace Langulus::Anyness
          GetRaw<THIS>(offset)
       };
    }
-   
-   /// Search for a key inside the table, and return an iterator to it        
-   ///   @param key - the key to search for                                   
-   ///   @return the iterator                                                 
+
    template<CT::Set THIS> LANGULUS(INLINED)
    BlockSet::Iterator<const THIS> BlockSet::FindIt(const CT::NotSemantic auto& key) const {
       return const_cast<BlockSet*>(this)->template FindIt<THIS>(key);

@@ -12,6 +12,7 @@
 #include "../blocks/Block/Block-Capsulation.inl"
 #include "../blocks/Block/Block-Compare.inl"
 #include "../blocks/Block/Block-Construct.inl"
+#include "../blocks/Block/Block-Convert.inl"
 #include "../blocks/Block/Block-Indexing.inl"
 #include "../blocks/Block/Block-Insert.inl"
 #include "../blocks/Block/Block-Iteration.inl"

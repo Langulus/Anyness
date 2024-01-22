@@ -105,6 +105,12 @@ namespace Langulus
       concept Block = BlockBased<T...>
           and ((sizeof(T) == sizeof(A::Block)) and ...);
 
+      template<class...T>
+      concept TypedBlock = Block<T...> and Typed<T...>;
+
+      template<class...T>
+      concept UntypedBlock = Block<T...> and not Typed<T...>;
+
       /// A deep type is any type with a true static member T::CTTI_Deep,     
       /// is binary compatible with Block, and having the same interface      
       /// If no such member/base exists, the type is assumed NOT deep by      
@@ -794,16 +800,22 @@ namespace Langulus::Anyness
       ///   Conversion                                                        
       ///                                                                     
       template<CT::Block = Any>
-      NOD() Count ConvertTo(CT::Block auto&) const;
+      NOD() Count Convert(CT::Block auto&) const;
 
       template<CT::Block TO, CT::Block = Any>
-      NOD() TO ConvertTo() const;
+      NOD() TO Convert() const;
 
       template<CT::Block = Any>
       NOD() Count Serialize(CT::Serial auto&) const;
 
       template<CT::Serial TO, CT::Block = Any>
       NOD() TO Serialize() const;
+
+      template<CT::Serial THIS>
+      NOD() Count Deserialize(CT::Data auto&) const;
+
+      template<CT::Data TO, CT::Serial THIS>
+      NOD() TO Deserialize() const;
 
       ///                                                                     
       ///   Flow                                                              

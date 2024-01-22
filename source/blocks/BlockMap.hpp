@@ -507,8 +507,11 @@ namespace Langulus::Anyness
       static_assert(CT::Map<MAP>, "MAP must be a CT::Map type");
       static constexpr bool Mutable = CT::Mutable<MAP>;
 
-      using Key   = typename MAP::Key;
-      using Value = typename MAP::Value;
+      // Key type is always constant, because changing it will mean     
+      // rehashing the entire table, so we forbid it while iterating    
+      using Key   = const typename MAP::Key;
+      using Value = Conditional<Mutable, typename MAP::Value,
+                                         const typename MAP::Value>;
       using Pair  = Conditional<Mutable, typename MAP::PairRef,
                                          typename MAP::PairConstRef>;
       using KA = Conditional<CT::TypeErased<Key>,   Block, Key*>;

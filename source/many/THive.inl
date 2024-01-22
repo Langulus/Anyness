@@ -46,14 +46,15 @@ namespace Langulus::Anyness
    ///   @param other - the have to assign                                    
    TEMPLATE() template<template<class> class S>
    requires CT::Semantic<S<THive<T>>> LANGULUS(INLINED)
-   TME()& TME()::operator = (S<THive>&& other) {
-      mFrames = S<THive>::Nest(other->mFrames);
+   TME()& TME()::operator = (S<THive<T>>&& other) {
+      using SS = S<THive<T>>;
+      mFrames = SS::Nest(other->mFrames);
       mReusable = other->mReusable;
       mCount = other->mCount;
 
-      if constexpr (S<THive>::Move and S<THive>::Keep) {
-         other.mCount = 0;
-         other.mReusable = nullptr;
+      if constexpr (SS::Move and SS::Keep) {
+         other->mCount = 0;
+         other->mReusable = nullptr;
       }
       return *this;
    }
@@ -257,7 +258,7 @@ namespace Langulus::Anyness
    /// Construct an iterator                                                  
    ///   @param start - the current iterator position                         
    ///   @param end - the ending marker                                       
-   TEMPLATE() template<CT::Hive HIVE> LANGULUS(INLINED)
+   TEMPLATE() template<class HIVE> LANGULUS(INLINED)
    constexpr THive<T>::Iterator<HIVE>::Iterator(Cell* start, Cell const* end, Frame* startf, Frame const* endf) noexcept
       : mCell {start}
       , mCellEnd {end}
@@ -265,7 +266,7 @@ namespace Langulus::Anyness
       , mFrameEnd {end} {}
 
    /// Construct an end iterator                                              
-   TEMPLATE() template<CT::Hive HIVE> LANGULUS(INLINED)
+   TEMPLATE() template<class HIVE> LANGULUS(INLINED)
    constexpr THive<T>::Iterator<HIVE>::Iterator(const A::IteratorEnd&) noexcept
       : mCell {nullptr}
       , mCellEnd {nullptr}
@@ -275,7 +276,7 @@ namespace Langulus::Anyness
    /// Compare two iterators                                                  
    ///   @param rhs - the other iterator                                      
    ///   @return true if iterators point to the same element                  
-   TEMPLATE() template<CT::Hive HIVE> LANGULUS(INLINED)
+   TEMPLATE() template<class HIVE> LANGULUS(INLINED)
    constexpr bool THive<T>::Iterator<HIVE>::operator == (const Iterator& rhs) const noexcept {
       return mCell == rhs.mCell;
    }
@@ -283,21 +284,21 @@ namespace Langulus::Anyness
    /// Compare iterator with an end marker                                    
    ///   @param rhs - the end iterator                                        
    ///   @return true element is at or beyond the end marker                  
-   TEMPLATE() template<CT::Hive HIVE> LANGULUS(INLINED)
+   TEMPLATE() template<class HIVE> LANGULUS(INLINED)
    constexpr bool THive<T>::Iterator<HIVE>::operator == (const A::IteratorEnd&) const noexcept {
       return mCell >= mFrameEnd->GetRawEnd();
    }
    
    /// Iterator access operator                                               
    ///   @return a reference to the element at the current iterator position  
-   TEMPLATE() template<CT::Hive HIVE> LANGULUS(INLINED)
+   TEMPLATE() template<class HIVE> LANGULUS(INLINED)
    constexpr decltype(auto) THive<T>::Iterator<HIVE>::operator * () const noexcept {
       return *mCell;
    }
 
    /// Iterator access operator                                               
    ///   @return a reference to the element at the current iterator position  
-   TEMPLATE() template<CT::Hive HIVE> LANGULUS(INLINED)
+   TEMPLATE() template<class HIVE> LANGULUS(INLINED)
    constexpr decltype(auto) THive<T>::Iterator<HIVE>::operator -> () const noexcept {
       return *mCell;
    }
@@ -305,7 +306,7 @@ namespace Langulus::Anyness
    /// Prefix increment operator                                              
    ///   @attention assumes iterator points to a valid element                
    ///   @return the modified iterator                                        
-   TEMPLATE() template<CT::Hive HIVE> LANGULUS(INLINED)
+   TEMPLATE() template<class HIVE> LANGULUS(INLINED)
    constexpr THive<T>::Iterator<HIVE>& THive<T>::Iterator<HIVE>::operator ++ () noexcept {
       ++mCell;
 
@@ -329,7 +330,7 @@ namespace Langulus::Anyness
    /// Suffix increment operator                                              
    ///   @attention assumes iterator points to a valid element                
    ///   @return the previous value of the iterator                           
-   TEMPLATE() template<CT::Hive HIVE> LANGULUS(INLINED)
+   TEMPLATE() template<class HIVE> LANGULUS(INLINED)
    constexpr THive<T>::Iterator<HIVE> THive<T>::Iterator<HIVE>::operator ++ (int) noexcept {
       const auto backup = *this;
       operator ++ ();
@@ -337,13 +338,13 @@ namespace Langulus::Anyness
    }
 
    /// Check if iterator is valid                                             
-   TEMPLATE() template<CT::Hive HIVE> LANGULUS(INLINED)
+   TEMPLATE() template<class HIVE> LANGULUS(INLINED)
    constexpr THive<T>::Iterator<HIVE>::operator bool() const noexcept {
       return *this != A::IteratorEnd {};
    }
 
    /// Implicitly convert to a constant iterator                              
-   TEMPLATE() template<CT::Hive HIVE> LANGULUS(INLINED)
+   TEMPLATE() template<class HIVE> LANGULUS(INLINED)
    constexpr THive<T>::Iterator<HIVE>::operator Iterator<const HIVE>() const noexcept requires Mutable {
       return {mCell, mCellEnd, mFrame, mFrameEnd};
    }

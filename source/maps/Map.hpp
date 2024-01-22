@@ -138,14 +138,7 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Comparison                                                        
       ///                                                                     
-      bool operator == (CT::Map  auto const&) const;
-      bool operator == (CT::Pair auto const&) const;
-
-      NOD() Hash GetHash() const;
-
-      NOD() bool ContainsKey(const CT::NotSemantic auto&) const;
-      NOD() bool ContainsValue(const CT::NotSemantic auto&) const;
-      NOD() bool ContainsPair(const CT::Pair auto&) const;
+      using BlockMap::operator ==;
 
       NOD() Index Find(const CT::NotSemantic auto&) const;
       NOD() Iterator FindIt(const CT::NotSemantic auto&);

@@ -105,20 +105,66 @@ namespace Langulus::Anyness
 
       return *this;
    }
+   
+   /// Get a key at an index                                                  
+   ///   @attention will throw OutOfRange if there's no pair at the index     
+   ///   @param index - the index                                             
+   ///   @return the mutable key reference                                    
+   TEMPLATE() LANGULUS(INLINED)
+   Block TABLE()::GetKey(CT::Index auto index) {
+      return BlockMap::GetKey<Map>(index);
+   }
 
+   TEMPLATE() LANGULUS(INLINED)
+   Block TABLE()::GetKey(CT::Index auto index) const {
+      return BlockMap::GetKey<Map>(index);
+   }
+
+   /// Get a value at an index                                                
+   ///   @attention will throw OutOfRange if there's no pair at the index     
+   ///   @param i - the index                                                 
+   ///   @return the mutable value reference                                  
+   TEMPLATE() LANGULUS(INLINED)
+   Block TABLE()::GetValue(CT::Index auto index) {
+      return BlockMap::GetValue<Map>(index);
+   }
+
+   TEMPLATE() LANGULUS(INLINED)
+   Block TABLE()::GetValue(CT::Index auto index) const {
+      return BlockMap::GetValue<Map>(index);
+   }
+
+   /// Get a pair at an index                                                 
+   ///   @attention will throw OutOfRange if there's no pair at the index     
+   ///   @param index - the index                                             
+   ///   @return the mutable pair reference                                   
+   TEMPLATE() LANGULUS(INLINED)
+   typename TABLE()::Pair TABLE()::GetPair(CT::Index auto index) {
+      return BlockMap::GetPair<Map>(index);
+   }
+
+   TEMPLATE() LANGULUS(INLINED)
+   typename TABLE()::Pair TABLE()::GetPair(CT::Index auto index) const {
+      return BlockMap::GetPair<Map>(index);
+   }
+
+   /// Get iterator to first element                                          
+   ///   @return an iterator to the first element, or end if empty            
    TEMPLATE() LANGULUS(INLINED)
    typename TABLE()::Iterator TABLE()::begin() noexcept {
       return BlockMap::begin<Map>();
    }
 
    TEMPLATE() LANGULUS(INLINED)
-   typename TABLE()::Iterator TABLE()::last() noexcept {
-      return BlockMap::last<Map>();
-   }
-
-   TEMPLATE() LANGULUS(INLINED)
    typename TABLE()::ConstIterator TABLE()::begin() const noexcept {
       return BlockMap::begin<Map>();
+   }
+
+   /// Get iterator to the last element                                       
+   ///   @return an iterator to the last element, or end if empty             
+   TEMPLATE() LANGULUS(INLINED)
+   typename TABLE()::Iterator TABLE()::last() noexcept {
+      return BlockMap::last<Map>();
    }
 
    TEMPLATE() LANGULUS(INLINED)
@@ -306,54 +352,6 @@ namespace Langulus::Anyness
       return BlockMap::IsValueExact<Map>(value);
    }
 
-   /// Compare this map against another map, type-erased or not               
-   ///   @param rhs - map to compare against                                  
-   ///   @return true if contents of both maps are the same                   
-   TEMPLATE() LANGULUS(INLINED)
-   bool TABLE()::operator == (CT::Map auto const& rhs) const {
-      return BlockMap::operator == <Map> (rhs);
-   }
-
-   /// Compare this map against a pair, type-erased or not                    
-   ///   @param rhs - pair to compare against                                 
-   ///   @return true this map contains only this exact pair                  
-   TEMPLATE() LANGULUS(INLINED)
-   bool TABLE()::operator == (CT::Pair auto const& rhs) const {
-      return BlockMap::operator == <Map> (rhs);
-   }
-
-   /// Hash the contents of map                                               
-   ///   @attention hashing is slow, it is recommended to cache the value     
-   ///   @return the cache                                                    
-   TEMPLATE() LANGULUS(INLINED)
-   Hash TABLE()::GetHash() const {
-      return BlockMap::GetHash<Map>();
-   }
-
-   /// Search for a key inside the table                                      
-   ///   @param key - the key to search for                                   
-   ///   @return true if key is found, false otherwise                        
-   TEMPLATE() LANGULUS(INLINED)
-   bool TABLE()::ContainsKey(const CT::NotSemantic auto& key) const {
-      return BlockMap::ContainsKey<Map>(key);
-   }
-
-   /// Search for a value inside the table                                    
-   ///   @param val - the value to search for                                 
-   ///   @return true if value is found, false otherwise                      
-   TEMPLATE() LANGULUS(INLINED)
-   bool TABLE()::ContainsValue(const CT::NotSemantic auto& val) const {
-      return BlockMap::ContainsValue<Map>(val);
-   }
-
-   /// Search for a pair inside the table                                     
-   ///   @param pair - the pair to search for                                 
-   ///   @return true if pair is found, false otherwise                       
-   TEMPLATE() LANGULUS(INLINED)
-   bool TABLE()::ContainsPair(const CT::Pair auto& pair) const {
-      return BlockMap::ContainsPair<Map>(pair);
-   }
-
    /// Search for a key inside the table, and return it if found              
    ///   @param key - the key to search for                                   
    ///   @return the index if key was found, or IndexNone if not              
@@ -400,6 +398,14 @@ namespace Langulus::Anyness
    TEMPLATE() LANGULUS(INLINED)
    decltype(auto) TABLE()::operator[] (const CT::NotSemantic auto& key) const {
       return BlockMap::operator [] <Map>(key);
+   }
+   
+   /// Reserves space for the specified number of pairs                       
+   ///   @attention does nothing if reserving less than current reserve       
+   ///   @param count - number of pairs to allocate                           
+   TEMPLATE() LANGULUS(INLINED)
+   void TABLE()::Reserve(Count count) {
+      BlockMap::Reserve<Map>(count);
    }
 
    /// Insert a pair                                                          
