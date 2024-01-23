@@ -63,7 +63,7 @@ namespace Langulus::Anyness
       TPair(P&&);
 
       template<class K1, class V1>
-      requires (CT::Inner::MakableFrom<K, K1> and CT::Inner::MakableFrom<V, V1>
+      requires (CT::MakableFrom<K, K1> and CT::MakableFrom<V, V1>
            and not CT::Reference<K, V>)
       TPair(K1&&, V1&&);
 

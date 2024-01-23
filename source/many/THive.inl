@@ -262,8 +262,8 @@ namespace Langulus::Anyness
    constexpr THive<T>::Iterator<HIVE>::Iterator(Cell* start, Cell const* end, Frame* startf, Frame const* endf) noexcept
       : mCell {start}
       , mCellEnd {end}
-      , mFrame {start}
-      , mFrameEnd {end} {}
+      , mFrame {startf}
+      , mFrameEnd {endf} {}
 
    /// Construct an end iterator                                              
    TEMPLATE() template<class HIVE> LANGULUS(INLINED)
@@ -293,14 +293,14 @@ namespace Langulus::Anyness
    ///   @return a reference to the element at the current iterator position  
    TEMPLATE() template<class HIVE> LANGULUS(INLINED)
    constexpr decltype(auto) THive<T>::Iterator<HIVE>::operator * () const noexcept {
-      return *mCell;
+      return (mCell->mData);
    }
 
    /// Iterator access operator                                               
    ///   @return a reference to the element at the current iterator position  
    TEMPLATE() template<class HIVE> LANGULUS(INLINED)
    constexpr decltype(auto) THive<T>::Iterator<HIVE>::operator -> () const noexcept {
-      return *mCell;
+      return &(mCell->mData);
    }
 
    /// Prefix increment operator                                              

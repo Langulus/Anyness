@@ -46,18 +46,18 @@ namespace Langulus::Anyness
       constexpr Handle(Handle&&) noexcept = default;
 
       constexpr Handle(T&, const Allocation*&) IF_UNSAFE(noexcept)
-      requires (Embedded and CT::Sparse<T>);
+      requires (EMBED and CT::Sparse<T>);
 
       constexpr Handle(T&, const Allocation*) IF_UNSAFE(noexcept)
-      requires (Embedded and CT::Dense<T>);
-
-      template<CT::NotHandle T1>
-      constexpr Handle(T1&&, const Allocation* = nullptr)
-      requires (not Embedded and CT::Inner::MakableFrom<T, T1>);
+      requires (EMBED and CT::Dense<T>);
 
       template<template<class> class S, CT::Handle H>
-      constexpr Handle(S<H>&&)
-      requires (CT::Inner::MakableFrom<T, S<TypeOf<H>>>);
+      requires CT::Inner::SemanticMakable<S, T>
+      constexpr Handle(S<H>&&);
+
+      template<template<class> class S, CT::NotHandle H>
+      requires (not EMBED and CT::Semantic<S<H>> and CT::MakableFrom<T, S<H>>)
+      constexpr Handle(S<H>&&, const Allocation* = nullptr);
 
       constexpr Handle& operator = (const Handle&) noexcept = default;
       constexpr Handle& operator = (Handle&&) noexcept = default;

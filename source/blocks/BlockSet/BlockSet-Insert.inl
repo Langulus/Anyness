@@ -36,7 +36,7 @@ namespace Langulus::Anyness
 
       if constexpr (CT::Array<T>) {
          if constexpr (not CT::TypeErased<E>) {
-            if constexpr (CT::Inner::MakableFrom<E, Deext<T>>) {
+            if constexpr (CT::MakableFrom<E, Deext<T>>) {
                // Construct from an array of elements, each of which    
                // can be used to initialize an element, nesting any     
                // semantic while doing it                               
@@ -49,7 +49,7 @@ namespace Langulus::Anyness
                }
                return ExtentOf<T>;
             }
-            else if constexpr (CT::Inner::MakableFrom<E, Unfold<Deext<T>>>) {
+            else if constexpr (CT::MakableFrom<E, Unfold<Deext<T>>>) {
                // Construct from an array of things, which can't be used
                // to directly construct elements, so nest this insert   
                Count inserted = 0;
@@ -82,7 +82,7 @@ namespace Langulus::Anyness
          }
       }
       else if constexpr (not CT::TypeErased<E>) {
-         if constexpr (CT::Inner::MakableFrom<E, T>) {
+         if constexpr (CT::MakableFrom<E, T>) {
             // Some of the arguments might still be used directly to    
             // make an element, forward these to standard insertion here
             Reserve(GetCount() + 1);
@@ -98,7 +98,7 @@ namespace Langulus::Anyness
                // The contained type is known at compile-time           
                using T2 = TypeOf<T>;
 
-               if constexpr (CT::Inner::MakableFrom<E, T2>) {
+               if constexpr (CT::MakableFrom<E, T2>) {
                   // Elements are mappable                              
                   Reserve(GetCount() + DesemCast(item).GetCount());
                   for (auto& key : DesemCast(item)) {
@@ -109,7 +109,7 @@ namespace Langulus::Anyness
                   }
                   return DesemCast(item).GetCount();
                }
-               else if constexpr (CT::Inner::MakableFrom<E, Unfold<T2>>) {
+               else if constexpr (CT::MakableFrom<E, Unfold<T2>>) {
                   // Set elements need to be unfolded one by one        
                   Count inserted = 0;
                   for (auto& key : DesemCast(item))

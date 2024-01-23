@@ -45,7 +45,7 @@ namespace Langulus::Anyness
       requires CT::Inner::SemanticMakable<S, T*>
       constexpr TPointer(S<TPointer>&&);
 
-      template<class A> requires CT::Inner::MakableFrom<T*, A>
+      template<class A> requires CT::MakableFrom<T*, A>
       constexpr TPointer(A&&);
 
       ~TPointer();
@@ -63,7 +63,7 @@ namespace Langulus::Anyness
       requires CT::Inner::SemanticAssignable<S, T*>
       TPointer& operator = (S<TPointer>&&);
 
-      template<CT::NotOwned A> requires CT::Inner::AssignableFrom<T*, A>
+      template<CT::NotOwned A> requires CT::AssignableFrom<T*, A>
       TPointer& operator = (A&&);
 
       ///                                                                     

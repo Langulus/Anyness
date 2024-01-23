@@ -22,7 +22,7 @@ namespace Langulus::Anyness
    ///   @param e - a reference to the element's entry                        
    TEMPLATE() LANGULUS(INLINED)
    constexpr HAND()::Handle(T& v, const Allocation*& e) IF_UNSAFE(noexcept)
-   requires (Embedded and CT::Sparse<T>)
+   requires (EMBED and CT::Sparse<T>)
       : mValue {&v}
       , mEntry {&e} {
       static_assert(CT::NotHandle<T>, "Handles can't be nested");
@@ -33,47 +33,21 @@ namespace Langulus::Anyness
    ///   @param e - the entry (optional)                                      
    TEMPLATE() LANGULUS(INLINED)
    constexpr HAND()::Handle(T& v, const Allocation* e) IF_UNSAFE(noexcept)
-   requires (Embedded and CT::Dense<T>)
+   requires (EMBED and CT::Dense<T>)
       : mValue {&v}
       , mEntry {e} {
       static_assert(CT::NotHandle<T>, "Handles can't be nested");
    }
-      
-   /// Create a standalone handle                                             
-   ///   @param v - the element                                               
-   ///   @param e - the entry (optional)                                      
-   TEMPLATE() template<CT::NotHandle T1> LANGULUS(INLINED)
-   constexpr HAND()::Handle(T1&& v, const Allocation* e)
-   requires (not Embedded and CT::Inner::MakableFrom<T, T1>)
-      : mValue {Forward<T1>(v)}
-      , mEntry {e} {
-      if constexpr (CT::Semantic<T1> and CT::Sparse<T>) {
-         if constexpr (T1::Shallow) {
-            // Copy/Disown/Move/Abandon a pointer                       
-            // Since pointers don't have ownership, it's just a copy    
-            // with an optional entry search, if not disowned, and if   
-            // managed memory is enabled                                
-            using DT = Deptr<T>;
-            if constexpr (not CT::Function<Decay<T>> and CT::Inner::Allocatable<DT> and (T1::Keep or T1::Move))
-               mEntry = Allocator::Find(MetaDataOf<DT>(), mValue);
-         }
-         else {
-            // Clone a pointer                                          
-            TODO();
-         }
-      }
-   }
 
    /// Semantically construct using handle of any compatible type             
    ///   @param other - the handle and semantic to construct with             
-   TEMPLATE() template<template<class> class S, CT::Handle H> LANGULUS(INLINED)
-   constexpr HAND()::Handle(S<H>&& other)
-   requires (CT::Inner::MakableFrom<T, S<TypeOf<H>>>)
-      : mValue {S<TypeOf<H>>(other->Get())}
+   TEMPLATE() template<template<class> class S, CT::Handle H>
+   requires CT::Inner::SemanticMakable<S, T> LANGULUS(INLINED)
+   constexpr HAND()::Handle(S<H>&& other) 
+      : mValue {S<T>(other->Get())}
       , mEntry {other->GetEntry()} {
       using HT = TypeOf<H>;
-      static_assert(CT::NotHandle<HT>, "Handles can't be nested");
-      static_assert(CT::Exact<T, HT>, "Handle types must match exactly");
+      static_assert(CT::Similar<T, HT>, "Type mismatch");
 
       if constexpr (not Embedded) {
          if constexpr (S<H>::Shallow) {
@@ -96,10 +70,38 @@ namespace Langulus::Anyness
          }
       }
    }
+      
+   /// Semantically construct using compatible non-handle type                
+   ///   @param other - the handle and semantic to construct with             
+   TEMPLATE() template<template<class> class S, CT::NotHandle H>
+   requires (not EMBED and CT::Semantic<S<H>> and CT::MakableFrom<T, S<H>>) LANGULUS(INLINED)
+   constexpr HAND()::Handle(S<H>&& other, const Allocation* e)
+      : mValue {other.Forward()}
+      , mEntry {e} {
+      if constexpr (CT::Sparse<T>) {
+         // A pointer on the stack can still contain an entry           
+         if constexpr (S<H>::Shallow) {
+            // Copy/Disown/Move/Abandon a pointer                       
+            // Since pointers don't have ownership, it's just a copy    
+            // with an optional entry search, if not disowned, and if   
+            // managed memory is enabled                                
+            using DT = Deptr<T>;
+            if constexpr (
+            not CT::Function<Decay<T>> and CT::Allocatable<DT>
+            and (S<H>::Keep or S<H>::Move)) {
+               mEntry = Allocator::Find(MetaDataOf<DT>(), mValue);
+            }
+         }
+         else {
+            // Clone a pointer                                          
+            TODO();
+         }
+      }
+   }
 
    /// Compare a handle with a comparable value                               
-   TEMPLATE() template<class T1> requires CT::Inner::Comparable<T, T1>
-   LANGULUS(INLINED)
+   TEMPLATE() template<class T1>
+   requires CT::Inner::Comparable<T, T1> LANGULUS(INLINED)
    constexpr bool HAND()::operator == (const T1& rhs) const noexcept {
       if constexpr (Embedded)
          return *mValue == rhs;
@@ -108,8 +110,8 @@ namespace Langulus::Anyness
    }
       
    /// Compare handles                                                        
-   TEMPLATE() template<class T1, bool EMBED1> requires CT::Inner::Comparable<T, T1>
-   LANGULUS(INLINED)
+   TEMPLATE() template<class T1, bool EMBED1>
+   requires CT::Inner::Comparable<T, T1> LANGULUS(INLINED)
    constexpr bool HAND()::operator == (const Handle<T1, EMBED1>& rhs) const noexcept {
       if constexpr (Embedded) {
          if constexpr (EMBED1)
@@ -292,7 +294,7 @@ namespace Langulus::Anyness
             Get() = nullptr;
             GetEntry() = nullptr;
          }
-         else if constexpr (CT::Inner::MakableFrom<T, ST>) {
+         else if constexpr (CT::MakableFrom<T, ST>) {
             // RHS is not a handle, but we'll wrap it in a handle, in   
             // order to find its entry (if managed memory is enabled)   
             HandleLocal<T> rhsh {rhs.Forward()};
@@ -308,9 +310,9 @@ namespace Langulus::Anyness
       }
       else if constexpr (CT::Dense<T>) {
          // Do a copy/disown/abandon/move/clone inside a dense handle   
-         if constexpr (CT::Handle<ST> and CT::Inner::MakableFrom<T, TypeOf<ST>>)
+         if constexpr (CT::Handle<ST> and CT::MakableFrom<T, TypeOf<ST>>)
             SemanticNew(&Get(), S<ST>::Nest(rhs->Get()));
-         else if constexpr (CT::Inner::MakableFrom<T, ST>)
+         else if constexpr (CT::MakableFrom<T, ST>)
             SemanticNew(&Get(), rhs.Forward());
          else
             LANGULUS_ERROR("Can't initialize dense T");
