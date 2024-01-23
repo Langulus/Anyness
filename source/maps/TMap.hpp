@@ -255,7 +255,7 @@ namespace Langulus::Anyness
       ///   Insertion                                                         
       ///                                                                     
       template<class K1, class V1>
-      requires (CT::Inner::MakableFrom<K, K1> and CT::Inner::MakableFrom<V, V1>)
+      requires (CT::MakableFrom<K, K1> and CT::MakableFrom<V, V1>)
       Count Insert(K1&&, V1&&);
 
       Count InsertBlock(auto&&, auto&&);
@@ -271,8 +271,6 @@ namespace Langulus::Anyness
       template<class T1>
       requires CT::Inner::UnfoldMakableFrom<TPair<K, V>, T1>
       TMap& operator >> (T1&&);
-
-      //Count InsertPairBlock(auto&&);
 
       TMap& operator += (const TMap&);
 

@@ -28,7 +28,7 @@ namespace Langulus::Anyness
    ///   @param key - the key                                                 
    ///   @param val - the value                                               
    TEMPLATE() template<class K1, class V1>
-   requires (CT::Inner::MakableFrom<K, K1> and CT::Inner::MakableFrom<V, V1>
+   requires (CT::MakableFrom<K, K1> and CT::MakableFrom<V, V1>
      and not CT::Reference<K, V>) LANGULUS(INLINED)
    PAIR()::TPair(K1&& key, V1&& val)
       : mKey   {SemanticOf<K1>::Nest(key)}

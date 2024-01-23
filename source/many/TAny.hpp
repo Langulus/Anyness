@@ -53,15 +53,14 @@ namespace Langulus::Anyness
    ///                                                                        
    template<CT::Data T>
    class TAny : public Any {
+      static_assert(CT::Insertable<T>,   "Contained type must be insertable");
+      static_assert(CT::Allocatable<T>,  "Contained type must be allocatable");
+      static_assert(not CT::Reference<T>,"Contained type can't be a reference");
+
       LANGULUS(DEEP) true;
       LANGULUS(POD) false;
       LANGULUS(TYPED) T;
       LANGULUS_BASES(Any);
-
-      static_assert(CT::Inner::Insertable<T>,
-         "Contained type is not insertable");
-      static_assert(CT::Inner::Allocatable<T>,
-         "Contained type is not allocatable");
 
       ///                                                                     
       ///   Construction                                                      

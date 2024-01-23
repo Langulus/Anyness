@@ -368,7 +368,11 @@ namespace Langulus::Anyness
    constexpr decltype(auto) BlockSet::Iterator<SET>::operator * () const {
       if (mInfo >= mSentinel)
          LANGULUS_OOPS(Access, "Trying to access end of iteration");
-      return DenseCast(mKey);
+
+      if constexpr (CT::Typed<SET>)
+         return *mKey;
+      else
+         return (mKey);
    }
 
    /// Explicit bool operator, to check if iterator is valid                  

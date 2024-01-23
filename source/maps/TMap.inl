@@ -384,7 +384,7 @@ namespace Langulus::Anyness
    ///   @param val - the value to insert                                     
    ///   @return 1 if pair was inserted, zero otherwise                       
    TEMPLATE() template<class K1, class V1>
-   requires (CT::Inner::MakableFrom<K, K1> and CT::Inner::MakableFrom<V, V1>)
+   requires (CT::MakableFrom<K, K1> and CT::MakableFrom<V, V1>)
    LANGULUS(INLINED) Count TABLE()::Insert(K1&& key, V1&& val) {
       return BlockMap::Insert<TMap>(Forward<K1>(key), Forward<V1>(val));
    }

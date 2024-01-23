@@ -70,7 +70,7 @@ namespace Langulus::Anyness
 
    /// Argument forwarding assignment                                         
    TEMPLATE() template<CT::NotOwned A>
-   requires ::std::assignable_from<T, A> LANGULUS(INLINED)
+   requires CT::AssignableFrom<T, A> LANGULUS(INLINED)
    constexpr TME()& TME()::operator = (A&& rhs) {
       mValue = Forward<A>(rhs);
       return *this;

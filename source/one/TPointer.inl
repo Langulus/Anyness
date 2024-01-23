@@ -70,7 +70,7 @@ namespace Langulus::Anyness
    ///      which will incur some runtime overhead, unless you use Disown     
    ///   @param other - the pointer                                           
    TEMPLATE() template<class A>
-   requires CT::Inner::MakableFrom<T*, A> LANGULUS(INLINED)
+   requires CT::MakableFrom<T*, A> LANGULUS(INLINED)
    constexpr TME()::TPointer(A&& other) {
       using S = SemanticOf<A>;
       using ST = TypeOf<S>;
@@ -177,7 +177,7 @@ namespace Langulus::Anyness
    ///   @param rhs - the value and semantic to assign                        
    ///   @return a reference to this shared pointer                           
    TEMPLATE() template<CT::NotOwned A>
-   requires CT::Inner::AssignableFrom<T*, A> LANGULUS(INLINED)
+   requires CT::AssignableFrom<T*, A> LANGULUS(INLINED)
    TME()& TME()::operator = (A&& rhs) {
       using S = SemanticOf<A>;
       using ST = TypeOf<S>;

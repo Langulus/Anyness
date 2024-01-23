@@ -201,7 +201,7 @@ namespace Langulus::Anyness
       }
       else {
          using T = Conditional<CT::Typed<THIS>, TypeOf<THIS>, TypeOf<S>>;
-         static_assert(CT::Inner::Insertable<T>, "T is not insertable");
+         static_assert(CT::Insertable<T>, "T is not insertable");
 
          if constexpr (CT::CanBeDeepened<FORCE, THIS> and MOVE_ASIDE) {
             // Type may mutate                                          
@@ -1017,7 +1017,7 @@ namespace Langulus::Anyness
                // Shallow pointer transfer                              
                ShallowBatchPointerConstruction(source.Forward());
             }
-            else if constexpr (CT::Unallocatable<T> or not CT::CloneMakable<T>) {
+            else if constexpr (CT::Unallocatable<Decay<T>> or not CT::CloneMakable<T>) {
                // We early-return with an enforced shallow pointer      
                // transfer, because its requesting to clone             
                // unallocatable/unclonable/abstract data, such as metas 
@@ -1311,7 +1311,7 @@ namespace Langulus::Anyness
                Destroy<THIS>();
                ShallowBatchPointerConstruction(mCount, source.Forward());
             }
-            else if constexpr (CT::Unallocatable<T> or not CT::CloneAssignable<T>) {
+            else if constexpr (CT::Unallocatable<Decay<T>> or not CT::CloneAssignable<T>) {
                // We early-return with an enforced shallow pointer      
                // transfer, because its requesting to clone             
                // unallocatable/unclonable/abstract data, such as metas 

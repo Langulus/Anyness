@@ -24,6 +24,7 @@ namespace Langulus::Anyness
 
       using Text::Text;
       using Text::operator +=;
+      using Text::operator ==;
 
       Path(const Text&);
       Path(Text&&);

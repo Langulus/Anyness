@@ -48,7 +48,7 @@ namespace Langulus::Anyness
 
       if constexpr (CT::Array<T>) {
          if constexpr (not CT::TypeErased<E>) {
-            if constexpr (CT::Inner::MakableFrom<E, Deext<T>>) {
+            if constexpr (CT::MakableFrom<E, Deext<T>>) {
                // Construct from an array of elements, each of which    
                // can be used to initialize a pair, nesting any         
                // semantic while doing it                               
@@ -57,7 +57,7 @@ namespace Langulus::Anyness
                for (auto& pair : DesemCast(item))
                   inserted += InsertPairInner<THIS, true>(mask, S::Nest(pair));
             }
-            else if constexpr (CT::Inner::MakableFrom<E, Unfold<Deext<T>>>) {
+            else if constexpr (CT::MakableFrom<E, Unfold<Deext<T>>>) {
                // Construct from an array of things, which can't be used
                // to directly construct elements, so nest this insert   
                for (auto& pair : DesemCast(item))
@@ -74,7 +74,7 @@ namespace Langulus::Anyness
          }
       }
       else if constexpr (not CT::TypeErased<E>) {
-         if constexpr (CT::Inner::MakableFrom<E, T>) {
+         if constexpr (CT::MakableFrom<E, T>) {
             // Some of the arguments might still be used directly to    
             // make a pair, forward these to standard insertion here    
             Reserve<THIS>(GetCount() + 1);
@@ -87,14 +87,14 @@ namespace Langulus::Anyness
                // The contained type is known at compile-time           
                using T2 = TypeOf<T>;
 
-               if constexpr (CT::Inner::MakableFrom<E, T2>) {
+               if constexpr (CT::MakableFrom<E, T2>) {
                   // Elements are mappable                              
                   Reserve<THIS>(GetCount() + DesemCast(item).GetCount());
                   const auto mask = GetReserved() - 1;
                   for (auto& pair : DesemCast(item))
                      inserted += InsertPairInner<THIS, true>(mask, S::Nest(pair));
                }
-               else if constexpr (CT::Inner::MakableFrom<E, Unfold<T2>>) {
+               else if constexpr (CT::MakableFrom<E, Unfold<T2>>) {
                   // Map pairs need to be unfolded one by one           
                   for (auto& pair : DesemCast(item))
                      inserted += UnfoldInsert<THIS>(S::Nest(pair));

@@ -94,7 +94,7 @@ namespace Langulus::Anyness
       requires CT::Inner::SemanticAssignable<S, T>
       constexpr TOwned& operator = (S<TOwned>&&);
 
-      template<CT::NotOwned A> requires ::std::assignable_from<T, A>
+      template<CT::NotOwned A> requires CT::AssignableFrom<T, A>
       constexpr TOwned& operator = (A&&);
 
       ///                                                                     
