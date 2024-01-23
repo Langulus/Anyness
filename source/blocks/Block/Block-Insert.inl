@@ -316,7 +316,7 @@ namespace Langulus::Anyness
                return 0;
 
             const auto data = Block::From(item);
-            if (not IsSimilar<THIS, DT>() or not FindBlock<false, THIS>(data)) {
+            if (not IsSimilar<THIS, DT>() or not FindBlock<false, THIS>(data, IndexFront)) {
                InsertBlockInner<THIS, FORCE, MOVE_ASIDE, DT>(
                   index, S::Nest(data));
                return ExtentOf<T>;
@@ -430,7 +430,7 @@ namespace Langulus::Anyness
    requires CT::Block<Desem<T>> LANGULUS(INLINED)
    Count Block::MergeBlock(CT::Index auto index, T&& other) {
       Count inserted = 0;
-      if (not FindBlock(DesemCast(other))) {
+      if (not FindBlock(DesemCast(other), IndexFront)) {
          inserted += InsertBlock<THIS, FORCE, MOVE_ASIDE>(
             index, SemanticOf<T>::Nest(other));
       }

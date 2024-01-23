@@ -939,7 +939,7 @@ namespace Langulus::Anyness
             return index;
 
          // Iterate all relevant traits                                 
-         for (auto& data : found->mValue) {
+         for (auto& data : *found.mValue) {
             // Create a temporary trait                                 
             Decay<A> temporaryTrait {data};
 

@@ -18,7 +18,7 @@ namespace Langulus::Anyness
    ///   @param out - what are we converting to?                              
    ///   @return the number of converted elements inserted in 'out'           
    template<CT::Block THIS>
-   Count Block::Convert(CT::Block auto& out) const {
+   Count Block::Convert(CT::Block auto&) const {
       TODO();
       return 0;
    }
@@ -35,7 +35,7 @@ namespace Langulus::Anyness
    ///   @param out - the resulting serialized data                           
    ///   @return the number of elements (usually bytes/chars) written to 'out'
    template<CT::Block THIS>
-   Count Block::Serialize(CT::Serial auto& out) const {
+   Count Block::Serialize(CT::Serial auto&) const {
       TODO();
       return 0;
    }
@@ -51,8 +51,9 @@ namespace Langulus::Anyness
    ///   @param resulting value/block of values                               
    ///   @return the number of elements written to 'out'                      
    template<CT::Serial THIS>
-   Count Block::Deserialize(CT::Data auto& out) const {
-
+   Count Block::Deserialize(CT::Data auto&) const {
+      TODO();
+      return 0;
    }
 
    template<CT::Data TO, CT::Serial THIS>

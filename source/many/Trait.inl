@@ -33,7 +33,7 @@ namespace Langulus::Anyness
    ///   @param tail - the rest of the arguments (optional)                   
    template<class T1, class...TAIL>
    requires CT::Inner::UnfoldInsertable<T1, TAIL...> LANGULUS(INLINED)
-   Trait::Trait(T1&& t1, TAIL&&... tail) {
+   Trait::Trait(T1&& t1, TAIL&&...tail) {
       if constexpr (sizeof...(TAIL) == 0 and not CT::Array<T1>) {
          using S = SemanticOf<T1>;
          using T = TypeOf<S>;

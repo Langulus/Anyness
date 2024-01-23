@@ -54,7 +54,7 @@ namespace Langulus::Anyness
             // with an optional entry search, if not disowned, and if   
             // managed memory is enabled                                
             using DT = Deptr<T>;
-            if constexpr (CT::Allocatable<DT> and (T1::Keep or T1::Move))
+            if constexpr (not CT::Function<Decay<T>> and CT::Inner::Allocatable<DT> and (T1::Keep or T1::Move))
                mEntry = Allocator::Find(MetaDataOf<DT>(), mValue);
          }
          else {
@@ -292,10 +292,9 @@ namespace Langulus::Anyness
             Get() = nullptr;
             GetEntry() = nullptr;
          }
-         else {
+         else if constexpr (CT::Inner::MakableFrom<T, ST>) {
             // RHS is not a handle, but we'll wrap it in a handle, in   
             // order to find its entry (if managed memory is enabled)   
-            static_assert(CT::Similar<T, ST>, "Type mismatch");
             HandleLocal<T> rhsh {rhs.Forward()};
             Get() = rhsh.Get();
             GetEntry() = rhsh.GetEntry();
@@ -305,14 +304,13 @@ namespace Langulus::Anyness
                   const_cast<Allocation*>(GetEntry())->Keep();
             }
          }
+         else LANGULUS_ERROR("Can't initialize sparse T");
       }
       else if constexpr (CT::Dense<T>) {
          // Do a copy/disown/abandon/move/clone inside a dense handle   
-         if constexpr (CT::Handle<ST> and CT::Similar<T, TypeOf<ST>>)
+         if constexpr (CT::Handle<ST> and CT::Inner::MakableFrom<T, TypeOf<ST>>)
             SemanticNew(&Get(), S<ST>::Nest(rhs->Get()));
-         else if constexpr (CT::Similar<T, ST>)
-            SemanticNew(&Get(), rhs.Forward());
-         else if constexpr (CT::Pointer<T> and CT::Similar<TypeOf<T>, ST>)
+         else if constexpr (CT::Inner::MakableFrom<T, ST>)
             SemanticNew(&Get(), rhs.Forward());
          else
             LANGULUS_ERROR("Can't initialize dense T");
