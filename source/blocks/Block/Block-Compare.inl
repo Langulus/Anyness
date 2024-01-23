@@ -444,7 +444,8 @@ namespace Langulus::Anyness
    ///   @param cookie - continue search from a given offset                  
    ///   @return the index of the found item, or IndexNone if not found       
    template<bool REVERSE, CT::Block THIS>
-   Index Block::FindBlock(const CT::Block auto& item, Offset cookie) const noexcept {
+   Index Block::FindBlock(const CT::Block auto& item, CT::Index auto index) const noexcept {
+      Offset cookie = SimplifyIndex<THIS>(index);
       if (cookie >= mCount or item.mCount > mCount - cookie)
          return IndexNone;
 
@@ -454,19 +455,18 @@ namespace Langulus::Anyness
          using TR = Conditional<CT::Typed<B>,    TypeOf<B>,    TypeOf<THIS>>;
 
          if constexpr (CT::Typed<THIS, B>) {
-            // Leverage the fact, that both participants are typed         
-            // We're allowed to peek whether types are comparable directly 
+            // Leverage the fact, that both participants are typed      
             if constexpr (not CT::Inner::Comparable<TL, TR>)
                return IndexNone;
          }
          else {
-            // One of the participants is typed, make sure types match     
-            // at runtime                                                  
+            // One or none of the participants is typed, make sure types
+            // match at runtime                                         
             if (not IsSimilar(item.GetType()))
                return IndexNone;
          }
 
-         // If reached, types are comparable                               
+         // If reached, types are comparable                            
          auto lhs = REVERSE ? GetRawEnd<TAny<TL>>() - cookie - item.GetCount()
                             : GetRaw<TAny<TL>>() + cookie;
          auto rhs = item.template GetRawAs<TR>();
@@ -483,12 +483,12 @@ namespace Langulus::Anyness
 
                if constexpr (CT::Inner::BinaryCompatible<TL, TR>
                         and  CT::Inner::POD<TL, TR>) {
-                  // We can use batch-compare                              
+                  // We can use batch-compare                           
                   if (0 == memcmp(rhs, lhs, bytesize))
                      return cookie;
                }
                else {
-                  // Types are not batch-comparable                        
+                  // Types are not batch-comparable                     
                   while (rhs != rhsEnd and *lhs == *rhs) {
                      ++lhs;
                      ++rhs;

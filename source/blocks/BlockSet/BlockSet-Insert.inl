@@ -208,7 +208,7 @@ namespace Langulus::Anyness
    Size BlockSet::RequestKeyAndInfoSize(
       const Count request, Offset& infoStart
    ) const IF_UNSAFE(noexcept) {
-      Size keymemory;
+      Offset keymemory;
       if constexpr (CT::Typed<THIS>) {
          using T = TypeOf<THIS>;
          keymemory = request * sizeof(T);

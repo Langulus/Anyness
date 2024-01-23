@@ -300,7 +300,7 @@ namespace Langulus::Anyness
       NOD() constexpr bool CanFitState(const Block&) const noexcept;
       NOD() constexpr bool CanFitOrAnd(const Block&) const noexcept;
       template<CT::BlockBased = Any>
-      NOD() constexpr Count GetBytesize() const noexcept;
+      NOD() constexpr Size GetBytesize() const noexcept;
       NOD() constexpr Token GetToken() const noexcept;
       template<CT::BlockBased = Any>
       NOD() constexpr Size GetStride() const noexcept;
@@ -605,7 +605,7 @@ namespace Langulus::Anyness
       NOD() Iterator<const THIS> FindIt(const CT::NotSemantic auto&) const;
 
       template<bool REVERSE = false, CT::Block = Any>
-      NOD() Index FindBlock(const CT::Block auto&, Offset = 0) const noexcept;
+      NOD() Index FindBlock(const CT::Block auto&, CT::Index auto) const noexcept;
 
       template<bool ASCEND = false, CT::Block = Any>
       void Sort();

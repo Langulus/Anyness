@@ -251,7 +251,7 @@ namespace Langulus::Anyness
       NOD() ConstIterator FindIt(const T1&) const;
 
       template<bool REVERSE = false>
-      NOD() Index FindBlock(const CT::Block auto&, Offset = 0) const noexcept;
+      NOD() Index FindBlock(const CT::Block auto&, CT::Index auto) const noexcept;
 
       NOD() bool CompareLoose(const CT::Block auto&) const noexcept;
       NOD() Count Matches(const CT::Block auto&) const noexcept;

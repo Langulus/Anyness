@@ -388,7 +388,7 @@ namespace Langulus::Anyness
       if constexpr (CT::Typed<THIS>)
          return sizeof(TypeOf<THIS>);
       else
-         return mType ? mType->mSize : 0;
+         return mType ? mType->mSize : Size {0};
    }
    
    /// Get the data state of the container                                    

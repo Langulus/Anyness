@@ -194,9 +194,9 @@ namespace Langulus::Anyness
             return B {};
 
          // Find how elements fit from one to another                   
-         const Size baseBytes = (common.mType->mSize * common.mCount)
+         const Offset baseBytes = (common.mType->mSize * common.mCount)
             / pattern.GetStride();
-         const Size resultSize = pattern.IsEmpty()
+         const Offset resultSize = pattern.IsEmpty()
             ? baseBytes : (baseBytes / pattern.mCount) * pattern.mCount;
 
          // Create a static view of the desired type                    

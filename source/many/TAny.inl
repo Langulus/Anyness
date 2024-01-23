@@ -843,7 +843,7 @@ namespace Langulus::Anyness
    ///   @param cookie - resume search from a given index                     
    ///   @return the index of the found item, or IndexNone if none found      
    TEMPLATE() template<bool REVERSE>
-   Index TAny<T>::FindBlock(const CT::Block auto& item, Offset cookie) const noexcept {
+   Index TAny<T>::FindBlock(const CT::Block auto& item, CT::Index auto cookie) const noexcept {
       return Block::FindBlock<REVERSE, TAny>(item, cookie);
    }
 

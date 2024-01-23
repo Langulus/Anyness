@@ -455,7 +455,7 @@ namespace Langulus::Anyness
    ///   @return the requested byte size                                      
    TEMPLATE() LANGULUS(INLINED)
    Size TABLE()::RequestValuesSize(const Count count) noexcept {
-      Size valueByteSize = count * sizeof(V);
+      Offset valueByteSize = count * sizeof(V);
       if constexpr (CT::Sparse<V>)
          valueByteSize *= 2;
       return valueByteSize;

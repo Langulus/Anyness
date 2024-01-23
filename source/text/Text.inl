@@ -645,7 +645,7 @@ namespace Langulus::Anyness
       result.AllocateFresh<Text>(result.RequestSize<Text>(sizeof(from) * 2));
       auto from_bytes = reinterpret_cast<const std::byte*>(&from);
       auto to_bytes = result.GetRaw();
-      for (int i = 0; i < sizeof(from); ++i)
+      for (Offset i = 0; i < sizeof(from); ++i)
          fmt::format_to_n(to_bytes + i * 2, 2, "{:X}", from_bytes[i]);
       result.mCount = sizeof(from) * 2;
       return result;
