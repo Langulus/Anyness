@@ -122,14 +122,21 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    Text::Text(const CT::Exception auto& from) {
       #if LANGULUS(DEBUG)
-         (*this) = TemplateRt("{}({} at {})",
+         *this = TemplateRt("{}({} at {})",
             from.GetName(),
             from.GetMessage(),
             from.GetLocation()
          );
       #else
-         (*this) = Disown(from.GetName());
+         *this = Disown(from.GetName());
       #endif
+   }
+
+   /// Convert anything that has named values reflected                       
+   ///   @param number - the number to stringify                              
+   LANGULUS(INLINED)
+   Text::Text(const CT::HasNamedValues auto& named) {
+      *this = TemplateRt("{}", named);
    }
 
    /// Convert a number type to text                                          

@@ -63,6 +63,7 @@ namespace Langulus::CT
            or DenseBuiltinNumber<T>
            or Exception<T>
            or Meta<T>
+           or HasNamedValues<T>
            or Inner::StringifiableByOperator<T>) and ...);
 
       /// Used internally for specializing fmt::formatter without causing     
@@ -74,6 +75,7 @@ namespace Langulus::CT
           and not Meta<T...>
           and not Exception<T...>
           and not DenseBuiltinNumber<T...>
+          and not HasNamedValues<T...>
           and ((StringifiableByOperator<T> or StringifiableByConstructor<T>)
         and ...);
 
@@ -147,6 +149,7 @@ namespace Langulus::Anyness
       Text(const CT::Meta auto&);
       Text(const CT::Exception auto&);
 
+      explicit Text(const CT::HasNamedValues auto&);
       explicit Text(const CT::DenseBuiltinNumber auto&);
 
       template<class T1, class T2, class...TN>
