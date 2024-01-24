@@ -23,19 +23,19 @@ namespace Langulus
    namespace CT
    {
       /// Anything derived from A::Owned                                      
-      template<class... T>
+      template<class...T>
       concept Owned = (DerivedFrom<T, A::Owned> and ...);
 
       /// Anything not derived from A::Owned                                  
-      template<class... T>
+      template<class...T>
       concept NotOwned = CT::Data<T...> and not Owned<T...>;
 
       /// Any owned pointer                                                   
-      template<class... T>
+      template<class...T>
       concept Pointer = Owned<T...> and Sparse<TypeOf<T>...>;
 
       /// Anything usable to initialize a shared pointer                      
-      template<class... T>
+      template<class...T>
       concept PointerRelated = ((Pointer<T> or Sparse<T> or Nullptr<T>) and ...);
    }
 
@@ -181,22 +181,17 @@ namespace fmt
       template<class CONTEXT> LANGULUS(INLINED)
       auto format(T const& element, CONTEXT& ctx) {
          using namespace Langulus;
-
          if constexpr (CT::Sparse<TypeOf<T>>) {
             if (element == nullptr) {
                const auto type = element.GetType();
                if (type)
-                  return fmt::format_to(ctx.out(), "{}(null)", *type);
+                  return fmt::format_to(ctx.out(), "{}(null)", type);
                else
                   return fmt::format_to(ctx.out(), "null");
             }
             else return fmt::format_to(ctx.out(), "{}", *element.Get());
          }
-         else {
-            static_assert(CT::Dense<decltype(element.Get())>,
-               "T not dense, but not sparse either????");
-            return fmt::format_to(ctx.out(), "{}", element.Get());
-         }
+         else return fmt::format_to(ctx.out(), "{}", element.Get());
       }
    };
 

@@ -797,7 +797,7 @@ namespace Langulus::Anyness
          }
          else {
             // Construct all dense elements in place                    
-            auto lhs = mthis.GetRaw();
+            auto lhs = mthis->GetRaw();
             const auto lhsEnd = lhs + mCount;
             while (lhs != lhsEnd) {
                new (lhs++) Decay<T> {Describe(getNeat())};
