@@ -296,12 +296,20 @@ namespace Langulus::Anyness
    /// Unfold-insert elements, semantically or not                            
    ///   @param t1, tail... - elements, or arrays of elements, to insert      
    ///   @return the number of inserted elements                              
-   TEMPLATE() template<class T1, class... TAIL>
+   TEMPLATE() template<class T1, class...TAIL>
    requires CT::Inner::UnfoldMakableFrom<T, T1, TAIL...> LANGULUS(INLINED)
    Count TABLE()::Insert(T1&& t1, TAIL&&...tail) {
       return BlockSet::Insert<TSet>(Forward<T1>(t1), Forward<TAIL>(tail)...);
    }
    
+   /// Insert all elements of a set, semantically or not                      
+   ///   @param item - the set to insert                                      
+   ///   @return number of inserted elements                                  
+   TEMPLATE() template<class T1> requires CT::Set<Desem<T1>> LANGULUS(INLINED)
+   Count TABLE()::InsertBlock(T1&& t1) {
+      return BlockSet::InsertBlock<TSet>(Forward<T1>(t1));
+   }
+
    /// Move-insert a pair inside the map                                      
    ///   @param rhs - the pair to insert                                      
    ///   @return a reference to this table for chaining                       

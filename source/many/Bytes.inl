@@ -28,37 +28,54 @@ namespace Langulus::Anyness
 
    /// Semantic constructor                                                   
    ///   @param other - the container/element and the semantic                
-   template<template<class> class S> LANGULUS(INLINED)
-   Bytes::Bytes(S<Bytes>&& other) requires CT::Semantic<S<Bytes>> {
+   template<template<class> class S>
+   requires CT::Semantic<S<Bytes>> LANGULUS(INLINED)
+   Bytes::Bytes(S<Bytes>&& other) {
       mType = MetaDataOf<Byte>();
-      BlockTransfer<Base>(other.Forward());
+      BlockTransfer<Bytes>(other.Forward());
    }
 
    /// Construct from anything else                                           
    ///   @param other - an array, range, or anything POD                      
-   template<class T> LANGULUS(INLINED)
-   Bytes::Bytes(T&& other) requires (CT::Inner::UnfoldMakableFrom<Byte, T>
-                                 or (CT::POD<T> and CT::Dense<T>)) {
-      UnfoldInsert(IndexFront, Forward<T>(other));
+   template<class T>
+   requires (CT::Inner::UnfoldMakableFrom<Byte, T> or (CT::POD<T> and CT::Dense<T>))
+   LANGULUS(INLINED) Bytes::Bytes(T&& other){
+      UnfoldInsert(Forward<T>(other));
    }
 
    /// Serialize a meta definition                                            
    ///   @param meta - the definition to serialize                            
    LANGULUS(INLINED)
    Bytes::Bytes(const CT::Meta auto& meta) {
-      if (meta) {
-         *this += Bytes {Count {meta->mToken.size()}};
-         *this += Bytes {meta->mToken};
-      }
-      else *this += Bytes {Count {0}};
+      if (meta)
+         *this = Bytes {Count {meta->mToken.size()}, meta->mToken};
+      else
+         *this = Bytes {Count {0}};
+   }
+   
+   /// Compose text by an arbitrary amount of formattable arguments           
+   ///   @param ...args - the arguments                                       
+   template<class T1, class T2, class...TN>
+   requires CT::Inner::Binable<T1, T2, TN...>
+   Bytes::Bytes(T1&& t1, T2&& t2, TN&&...tn) {
+      UnfoldInsert(Forward<T1>(t1));
+      UnfoldInsert(Forward<T2>(t2));
+      ((UnfoldInsert(Forward<TN>(tn))), ...);
+   }
+   
+   /// Semantic construction from count-terminated array                      
+   ///   @param text - text memory to wrap                                    
+   ///   @param count - number of characters inside text                      
+   template<class T> requires (CT::Sparse<Desem<T>> and CT::Byte<Desem<T>>)
+   Bytes Bytes::From(T&& text, Count count) {
+      return Base::From(Forward<T>(text), count);
    }
 
-   /// Construct semantically via raw memory pointer, semantic, and size      
-   ///   @param raw - raw memory and semantic to use                          
-   ///   @param size - number of bytes inside 'raw'                           
+   /// Private constructor from Block                                         
+   ///   @param other - the block to initialize with                          
    LANGULUS(INLINED)
-   Bytes::Bytes(auto&& raw, const Size& size)
-      : TAny {TAny::From(Forward<decltype(raw)>(raw), size)} { }
+   Bytes::Bytes(Block&& other)
+      : Base {Forward<Block>(other)} {}
 
    /// Shallow copy assignment from immutable byte container                  
    ///   @param rhs - the byte container to shallow-copy                      
@@ -76,112 +93,11 @@ namespace Langulus::Anyness
       return operator = (Move(rhs));
    }
 
-   /// Shallow-copy disowned runtime container without referencing contents   
-   /// This is a bit slower, because checks type compatibility at runtime     
-   ///   @param other - the container to shallow-copy                         
-   ///   @return a reference to this container                                
-   template<template<class> class S> LANGULUS(INLINED)
-   Bytes& Bytes::operator = (S<Bytes>&& other) requires CT::Semantic<S<Bytes>> {
-      if (static_cast<const Block*>(this)
-       == static_cast<const Block*>(&*other))
-            return *this;
-
-      Free<Bytes>();
-      new (this) Bytes {other.Forward()};
-      return *this;
-   }
-   
-   /// Insert an element, or an array of elements                             
-   ///   @param index - the index at which to insert                          
-   ///   @param item - the argument to unfold and insert, can be semantic     
-   ///   @return the number of inserted elements after unfolding              
-   Count Bytes::UnfoldInsert(CT::Index auto index, auto&& item) {
-      using S = SemanticOf<decltype(item)>;
-      using T = TypeOf<S>;
-      
-      if constexpr (CT::Array<T>) {
-         using DT = Deext<T>;
-
-         if constexpr (CT::POD<DT> and CT::Dense<DT>) {
-            // Insert as byte array                                     
-            auto data = Block::From(
-               reinterpret_cast<const Byte*>(DesemCast(item)),
-               sizeof(T)
-            );
-            InsertBlockInner<Bytes, void, true, Byte>(index, Copy(data));
-            return sizeof(T);
-         }
-         else {
-            // Unfold and serialize elements, one by one                
-            Count inserted = 0;
-            for (auto& element : DesemCast(item))
-               inserted += UnfoldInsert(index + inserted, Copy(element));
-            return inserted;
-         }
-      }
-      else if constexpr (CT::POD<T> and CT::Dense<T>) {
-         // Insert as byte array                                        
-         auto data = Block::From(
-            reinterpret_cast<const Byte*>(&DesemCast(item)),
-            sizeof(T)
-         );
-         InsertBlockInner<Bytes, void, true, Byte>(index, Copy(data));
-         return sizeof(T);
-      }
-      else LANGULUS_ERROR("Unable to insert as bytes");
-   }
-
-
-   ///                                                                        
-   ///   Concatenation                                                        
-   ///                                                                        
-   
-   /// Copy-concatenate with another TAny                                     
-   ///   @param rhs - the right operand                                       
-   ///   @return the combined container                                       
-   LANGULUS(INLINED)
-   Bytes Bytes::operator + (const Bytes& rhs) const {
-      return operator + (Copy(rhs));
-   }
-
-   /// Move-concatenate with another TAny                                     
-   ///   @param rhs - the right operand                                       
-   ///   @return the combined container                                       
-   LANGULUS(INLINED)
-   Bytes Bytes::operator + (Bytes&& rhs) const {
-      return operator + (Move(rhs));
-   }
-
-   /// Move-concatenate with another TAny                                     
-   ///   @param rhs - the right operand                                       
-   ///   @return the combined container                                       
-   template<template<class> class S> LANGULUS(INLINED)
-   Bytes Bytes::operator + (S<Bytes>&& rhs) const requires CT::Semantic<S<Bytes>> {
-      return ConcatBlock<Bytes>(rhs.Forward());
-   }
-
-   /// Destructive copy-concatenate with another TAny                         
-   ///   @param rhs - the right operand                                       
-   ///   @return a reference to this modified container                       
-   LANGULUS(INLINED)
-   Bytes& Bytes::operator += (const Bytes& rhs) {
-      return operator += (Copy(rhs));
-   }
-
-   /// Destructive move-concatenate with any deep type                        
-   ///   @param rhs - the right operand                                       
-   ///   @return a reference to this modified container                       
-   LANGULUS(INLINED)
-   Bytes& Bytes::operator += (Bytes&& rhs) {
-      return operator += (Move(rhs));
-   }
-
-   /// Destructive move-concatenate with any deep type                        
-   ///   @param rhs - the right operand                                       
-   ///   @return a reference to this modified container                       
-   template<template<class> class S> LANGULUS(INLINED)
-   Bytes& Bytes::operator += (S<Bytes>&& rhs) requires CT::Semantic<S<Bytes>> {
-      Block::InsertBlock<Bytes, void, true>(IndexBack, rhs.Forward());
+   /// Assign any Bytes block                                                 
+   ///   @param rhs - the block to assign                                     
+   template<template<class> class S> requires CT::Semantic<S<Bytes>>
+   LANGULUS(INLINED) Bytes& Bytes::operator = (S<Bytes>&& rhs) {
+      Base::operator = (rhs.Forward());
       return *this;
    }
    
@@ -191,13 +107,21 @@ namespace Langulus::Anyness
    Hash Bytes::GetHash() const {
       return HashBytes(GetRaw(), static_cast<int>(GetCount()));
    }
-
-   /// Compare with another byte container                                    
-   ///   @param other - the byte container to compare with                    
-   ///   @return true if both containers are identical                        
+   
+   /// Compare with another block                                             
+   ///   @param rhs - the block to compare with                               
+   ///   @return true if blocks are the same                                  
    LANGULUS(INLINED)
-   bool Bytes::operator == (const Bytes& other) const noexcept {
-      return Compare(other);
+   bool Bytes::operator == (const CT::Block auto& rhs) const noexcept {
+      return Block::operator == <Bytes> (rhs);
+   }
+
+   /// Compare with a single character                                        
+   ///   @param rhs - the character to compare with                           
+   ///   @return true if this container contains this exact character         
+   LANGULUS(INLINED)
+   bool Bytes::operator == (const Byte rhs) const noexcept {
+      return operator == (Bytes::From(Disown(&rhs), 1));
    }
 
    /// Pick a part of the byte array                                          
@@ -214,6 +138,78 @@ namespace Langulus::Anyness
       return Block::Crop<Bytes>(start, count);
    }
 
+   /// Concatenate two byte containers                                        
+   ///   @param rhs - right hand side                                         
+   ///   @return the concatenated byte container                              
+   template<class T> requires CT::Binable<Desem<T>> LANGULUS(INLINED)
+   Bytes Bytes::operator + (T&& rhs) const {
+      return ConcatInner<Bytes>(Forward<T>(rhs));
+   }
+
+   /// Concatenate (destructively) byte containers                            
+   ///   @param rhs - right hand side                                         
+   ///   @return a reference to this container                                
+   template<class T> requires CT::Binable<Desem<T>> LANGULUS(INLINED)
+   Bytes& Bytes::operator += (T&& rhs) {
+      return ConcatRelativeInner<Bytes>(Forward<T>(rhs));
+   }
+
+   /// Inner concatenation function, used in all Byte derivatives             
+   ///   @param rhs - right hand side                                         
+   ///   @return the concatenated byte container                              
+   template<CT::Bytes THIS, class T>
+   THIS Bytes::ConcatInner(T&& rhs) const {
+      using S = SemanticOf<T>;
+      using B = TypeOf<S>;
+
+      if constexpr (CT::Block<B>) {
+         if constexpr (CT::Typed<B>) {
+            if constexpr (CT::Similar<Byte, TypeOf<B>>) {
+               // We can concat directly                                
+               return Block::ConcatBlock<THIS>(S::Nest(rhs));
+            }
+            else LANGULUS_ERROR("Can't concatenate with this container");
+         }
+         else {
+            // Type-erased concat                                       
+            return Block::ConcatBlock<THIS>(S::Nest(rhs));
+         }
+      }
+      else {
+         // RHS isn't Block, try to convert it to Bytes, and nest       
+         return ConcatInner<THIS>(static_cast<THIS>(DesemCast(rhs)));
+      }
+   }
+
+   /// Inner concatenation function, used in all Text derivatives             
+   ///   @param rhs - right hand side                                         
+   ///   @return a reference to this container                                
+   template<CT::Bytes THIS, class T>
+   THIS& Bytes::ConcatRelativeInner(T&& rhs) {
+      using S = SemanticOf<T>;
+      using B = TypeOf<S>;
+
+      if constexpr (CT::Block<B>) {
+         if constexpr (CT::Typed<B>) {
+            if constexpr (CT::Similar<Byte, TypeOf<B>>) {
+               // We can concat directly                                
+               Block::InsertBlock<THIS, void>(IndexBack, S::Nest(rhs));
+            }
+            else LANGULUS_ERROR("Can't concatenate with this container");
+         }
+         else {
+            // Type-erased concat                                       
+            Block::InsertBlock<THIS, void>(IndexBack, S::Nest(rhs));
+         }
+      }
+      else {
+         // RHS isn't Block, try to convert it to Text, and nest        
+         return ConcatRelativeInner<THIS>(static_cast<THIS>(DesemCast(rhs)));
+      }
+
+      return static_cast<THIS&>(*this);
+   }
+
    /// Extend the byte sequence, change count, and return the new range       
    ///   @attention if you extend static container, it will diverge           
    ///   @param count - the number of bytes to append                         
@@ -221,6 +217,42 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    Bytes Bytes::Extend(Count count) {
       return Block::Extend<Bytes>(count);
+   }
+   
+   /// Insert an element, or an array of elements                             
+   ///   @param index - the index at which to insert                          
+   ///   @param item - the argument to unfold and insert, can be semantic     
+   ///   @return the number of inserted elements after unfolding              
+   void Bytes::UnfoldInsert(auto&& item) {
+      using S = SemanticOf<decltype(item)>;
+      using T = TypeOf<S>;
+      
+      if constexpr (CT::Array<T>) {
+         using DT = Deext<T>;
+
+         if constexpr (CT::POD<DT> and CT::Dense<DT>) {
+            // Insert as byte array                                     
+            auto data = Block::From(
+               reinterpret_cast<const Byte*>(DesemCast(item)),
+               sizeof(T)
+            );
+            Block::InsertBlockInner<Bytes, void, true>(IndexBack, Copy(data));
+         }
+         else {
+            // Unfold and serialize elements, one by one                
+            for (auto& element : DesemCast(item))
+               UnfoldInsert(element);
+         }
+      }
+      else if constexpr (CT::POD<T> and CT::Dense<T>) {
+         // Insert as byte array                                        
+         auto data = Block::From(
+            reinterpret_cast<const Byte*>(&DesemCast(item)),
+            sizeof(T)
+         );
+         InsertBlockInner<Bytes, void, true>(IndexBack, Copy(data));
+      }
+      else LANGULUS_ERROR("Unable to insert as bytes");
    }
 
    /// Default header constructor                                             
@@ -241,8 +273,13 @@ namespace Langulus::Anyness
       return mAtomSize == rhs.mAtomSize and mFlags == rhs.mFlags;
    }
    
+   template<class T>
+   T Bytes::Deserialize() const {
+      TODO();
+      return {};
+   }
 
-#if LANGULUS_FEATURE(MANAGED_REFLECTION)
+/*#if LANGULUS_FEATURE(MANAGED_REFLECTION)
 
    ///                                                                        
    LANGULUS(INLINED)
@@ -332,6 +369,6 @@ namespace Langulus::Anyness
       return read;
    }
 
-#endif
+#endif*/
 
 } // namespace Langulus::Anyness

@@ -208,17 +208,11 @@ namespace Langulus::Anyness
       return operator = (Move(rhs));
    }
    
-   /// Assign a block of any kind                                             
+   /// Assign any Text block                                                  
    ///   @param rhs - the block to assign                                     
    template<class T> requires CT::TextBased<Desem<T>> LANGULUS(INLINED)
    Text& Text::operator = (T&& rhs) {
       Base::operator = (Forward<T>(rhs));
-
-      // Base constructor should handle initialization from anything    
-      // TAny<Letter> based, but it will not make any null-             
-      // termination corrections, so we have to do them here.           
-      /*if constexpr (not CT::Text<Desem<T>>)
-         mCount = strnlen(GetRaw(), mCount);*/
       return *this;
    }
 
@@ -582,38 +576,22 @@ namespace Langulus::Anyness
    ///   @return the concatenated text container                              
    template<class T> requires CT::Stringifiable<Desem<T>> LANGULUS(INLINED)
    Text Text::operator + (T&& rhs) const {
-      using S = SemanticOf<T>;
-      using B = TypeOf<S>;
-
-      if constexpr (CT::Block<B>) {
-         if constexpr (CT::Typed<B>) {
-            if constexpr (CT::Similar<Letter, TypeOf<B>>) {
-               // We can concat directly                                
-               return Block::ConcatBlock<Text>(S::Nest(rhs));
-            }
-            else if constexpr (CT::DenseCharacter<TypeOf<B>>) {
-               // We're concatenating with different type of characters 
-               // - do UTF conversions here                             
-               TODO();
-            }
-            else LANGULUS_ERROR("Can't concatenate with this container");
-         }
-         else {
-            // Type-erased concat                                       
-            return Block::ConcatBlock<Text>(S::Nest(rhs));
-         }
-      }
-      else {
-         // RHS isn't Block, try to convert it to Text, and nest        
-         return operator + (static_cast<Text>(DesemCast(rhs)));
-      }
+      return ConcatInner<Text>(Forward<T>(rhs));
    }
 
    /// Concatenate (destructively) text containers                            
    ///   @param rhs - right hand side                                         
    ///   @return a reference to this container                                
-   template<class T> requires CT::Stringifiable<Desem<T>>
+   template<class T> requires CT::Stringifiable<Desem<T>> LANGULUS(INLINED)
    Text& Text::operator += (T&& rhs) {
+      return ConcatRelativeInner<Text>(Forward<T>(rhs));
+   }
+
+   /// Inner concatenation function, used in all Text derivatives             
+   ///   @param rhs - right hand side                                         
+   ///   @return the concatenated text container                              
+   template<CT::TextBased THIS, class T>
+   THIS Text::ConcatInner(T&& rhs) const {
       using S = SemanticOf<T>;
       using B = TypeOf<S>;
 
@@ -621,7 +599,7 @@ namespace Langulus::Anyness
          if constexpr (CT::Typed<B>) {
             if constexpr (CT::Similar<Letter, TypeOf<B>>) {
                // We can concat directly                                
-               Block::InsertBlock<Text, void>(IndexBack, S::Nest(rhs));
+               return Block::ConcatBlock<THIS>(S::Nest(rhs));
             }
             else if constexpr (CT::DenseCharacter<TypeOf<B>>) {
                // We're concatenating with different type of characters 
@@ -632,15 +610,47 @@ namespace Langulus::Anyness
          }
          else {
             // Type-erased concat                                       
-            Block::InsertBlock<Text, void>(IndexBack, S::Nest(rhs));
+            return Block::ConcatBlock<THIS>(S::Nest(rhs));
          }
       }
       else {
          // RHS isn't Block, try to convert it to Text, and nest        
-         return operator += (static_cast<Text>(DesemCast(rhs)));
+         return ConcatInner<THIS>(static_cast<THIS>(DesemCast(rhs)));
+      }
+   }
+
+   /// Inner concatenation function, used in all Text derivatives             
+   ///   @param rhs - right hand side                                         
+   ///   @return a reference to this container                                
+   template<CT::TextBased THIS, class T>
+   THIS& Text::ConcatRelativeInner(T&& rhs) {
+      using S = SemanticOf<T>;
+      using B = TypeOf<S>;
+
+      if constexpr (CT::Block<B>) {
+         if constexpr (CT::Typed<B>) {
+            if constexpr (CT::Similar<Letter, TypeOf<B>>) {
+               // We can concat directly                                
+               Block::InsertBlock<THIS, void>(IndexBack, S::Nest(rhs));
+            }
+            else if constexpr (CT::DenseCharacter<TypeOf<B>>) {
+               // We're concatenating with different type of characters 
+               // - do UTF conversions here                             
+               TODO();
+            }
+            else LANGULUS_ERROR("Can't concatenate with this container");
+         }
+         else {
+            // Type-erased concat                                       
+            Block::InsertBlock<THIS, void>(IndexBack, S::Nest(rhs));
+         }
+      }
+      else {
+         // RHS isn't Block, try to convert it to Text, and nest        
+         return ConcatRelativeInner<THIS>(static_cast<THIS>(DesemCast(rhs)));
       }
 
-      return *this;
+      return static_cast<THIS&>(*this);
    }
 
    /// Generate hexadecimal string from a given value                         

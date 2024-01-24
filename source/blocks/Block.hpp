@@ -202,7 +202,7 @@ namespace Langulus::Anyness
       template<CT::Data, bool>
       friend struct TSet;
 
-      friend class Bytes;
+      friend struct Bytes;
       friend struct Text;
       friend struct Path;
 

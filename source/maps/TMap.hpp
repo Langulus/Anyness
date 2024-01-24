@@ -19,17 +19,18 @@ namespace Langulus::CT
    template<class K, class V, class...A>
    concept DeepMapMakable = Inner::UnfoldMakableFrom<Anyness::TPair<K, V>, A...>
         or (sizeof...(A) == 1
-           and Map<Desem<FirstOf<A...>>>
-           and Inner::SemanticMakableAlt<
+           and Map<Desem<FirstOf<A...>>> and (SemanticOf<FirstOf<A...>>::Shallow
+            or Inner::SemanticMakableAlt<
               typename SemanticOf<FirstOf<A...>>::template As<Anyness::TPair<K, V>>>
-        );
+        ));
 
    /// Concept for recognizing argument, with which a statically typed        
    /// map can be assigned                                                    
    template<class K, class V, class A>
    concept DeepMapAssignable = Inner::UnfoldMakableFrom<Anyness::TPair<K, V>, A>
-        or (Map<Desem<A>> and Inner::SemanticAssignableAlt<
-           typename SemanticOf<A>::template As<Anyness::TPair<K, V>>>);
+        or (Map<Desem<A>> and (SemanticOf<A>::Shallow 
+           or Inner::SemanticAssignableAlt<
+             typename SemanticOf<A>::template As<Anyness::TPair<K, V>>>));
 
 } // namespace Langulus::CT
 

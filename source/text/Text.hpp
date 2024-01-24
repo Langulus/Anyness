@@ -102,7 +102,7 @@ namespace Langulus::Anyness
    /// aims at being isomorphic, converting to Text aims at readability only. 
    /// Consider it a general day to day speech container, that may or may not 
    /// be formal. If you want to serialize your data in a readable format,    
-   /// convert to Flow::Code, or other isomorphic representations             
+   /// convert to Flow::Code, or other isomorphic representations.            
    ///                                                                        
    struct Text : TAny<Letter> {
       using Base = TAny<Letter>;
@@ -204,10 +204,6 @@ namespace Langulus::Anyness
       Text Extend(Count);
       NOD() Text Terminate() const;
 
-   protected:
-      void UnfoldInsert(auto&&);
-
-   public:
       ///                                                                     
       ///   Removal                                                           
       ///                                                                     
@@ -222,6 +218,15 @@ namespace Langulus::Anyness
       template<class T> requires CT::Stringifiable<Desem<T>>
       Text& operator += (T&&);
 
+   protected:
+      template<CT::TextBased THIS, class T>
+      THIS ConcatInner(T&&) const;
+      template<CT::TextBased THIS, class T>
+      THIS& ConcatRelativeInner(T&&);
+
+      void UnfoldInsert(auto&&);
+
+   public:
       ///                                                                     
       ///   Services                                                          
       ///                                                                     
