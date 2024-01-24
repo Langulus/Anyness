@@ -190,7 +190,7 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Insertion                                                         
       ///                                                                     
-      template<class T1, class... TAIL>
+      template<class T1, class...TAIL>
       requires CT::Inner::UnfoldMakableFrom<T, T1, TAIL...>
       Count Insert(T1&&, TAIL&&...);
 

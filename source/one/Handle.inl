@@ -74,8 +74,8 @@ namespace Langulus::Anyness
    /// Semantically construct using compatible non-handle type                
    ///   @param other - the handle and semantic to construct with             
    TEMPLATE() template<template<class> class S, CT::NotHandle H>
-   requires (not EMBED and CT::Semantic<S<H>> and CT::MakableFrom<T, S<H>>) LANGULUS(INLINED)
-   constexpr HAND()::Handle(S<H>&& other, const Allocation* e)
+   requires (not EMBED and CT::Semantic<S<H>> and CT::MakableFrom<T, S<H>>)
+   LANGULUS(INLINED) constexpr HAND()::Handle(S<H>&& other, const Allocation* e)
       : mValue {other.Forward()}
       , mEntry {e} {
       if constexpr (CT::Sparse<T>) {
@@ -86,11 +86,8 @@ namespace Langulus::Anyness
             // with an optional entry search, if not disowned, and if   
             // managed memory is enabled                                
             using DT = Deptr<T>;
-            if constexpr (
-            not CT::Function<Decay<T>> and CT::Allocatable<DT>
-            and (S<H>::Keep or S<H>::Move)) {
+            if constexpr (CT::Allocatable<DT> and (S<H>::Keep or S<H>::Move))
                mEntry = Allocator::Find(MetaDataOf<DT>(), mValue);
-            }
          }
          else {
             // Clone a pointer                                          

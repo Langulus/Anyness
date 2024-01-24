@@ -21,7 +21,7 @@ SCENARIO("Byte manipulation", "[bytes]") {
          data.Reserve(500);
          auto memory = data.GetRaw();
 
-         REQUIRE(!data);
+         REQUIRE(not data);
          REQUIRE(data.GetCount() == 0);
          REQUIRE(data.GetReserved() >= 500);
 
@@ -54,9 +54,7 @@ SCENARIO("Byte manipulation", "[bytes]") {
 
          REQUIRE(data.GetCount() == 8 * sizeof(int));
          REQUIRE(data.GetReserved() >= 8 * sizeof(int));
-         #if LANGULUS_FEATURE(MANAGED_MEMORY)
-            REQUIRE(data.GetRaw() == memory);
-         #endif
+         IF_LANGULUS_MANAGED_MEMORY(REQUIRE(data.GetRaw() == memory));
          REQUIRE(data.HasAuthority());
          REQUIRE(data.Is<Byte>());
       }
@@ -66,9 +64,7 @@ SCENARIO("Byte manipulation", "[bytes]") {
 
          REQUIRE(data.GetCount() == 5 * sizeof(int));
          REQUIRE(data.GetReserved() >= 40);
-         #if LANGULUS_FEATURE(MANAGED_MEMORY)
-            REQUIRE(data.GetRaw() == memory);
-         #endif
+         IF_LANGULUS_MANAGED_MEMORY(REQUIRE(data.GetRaw() == memory));
          REQUIRE(data.HasAuthority());
       }
 
@@ -77,9 +73,7 @@ SCENARIO("Byte manipulation", "[bytes]") {
 
          REQUIRE(data.GetCount() == 5 * sizeof(int) + 10);
          REQUIRE(data.GetReserved() >= 5 * sizeof(int) + 10);
-         #if LANGULUS_FEATURE(MANAGED_MEMORY)
-            REQUIRE(data.GetRaw() == memory);
-         #endif
+         IF_LANGULUS_MANAGED_MEMORY(REQUIRE(data.GetRaw() == memory));
          REQUIRE(data.HasAuthority());
          REQUIRE(region.GetCount() == 10);
          REQUIRE(region.GetRaw() == data.GetRaw() + 5 * sizeof(int));
