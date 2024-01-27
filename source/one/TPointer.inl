@@ -119,7 +119,7 @@ namespace Langulus::Anyness
    void TME()::ResetInner() {
       if constexpr (DR and CT::Referencable<T>) {
          // Do double referencing                                       
-         if (mValue)
+         if (mValue and mValue->GetReferences() > 1)
             mValue->Free();
       }
 
@@ -158,7 +158,7 @@ namespace Langulus::Anyness
       using SS = S<TPointer>;
       if constexpr (DR and CT::Referencable<T>) {
          // Decrement deeper references                                 
-         if (mValue)
+         if (mValue and mValue->GetReferences() > 1)
             mValue->Free();
       }
 
@@ -190,7 +190,7 @@ namespace Langulus::Anyness
          // Assign a new pointer                                        
          if constexpr (DR and CT::Referencable<T>) {
             // Decrement deeper references                              
-            if (mValue)
+            if (mValue and mValue->GetReferences() > 1)
                mValue->Free();
          }
 
