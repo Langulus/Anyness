@@ -185,14 +185,16 @@ namespace Langulus::Anyness
             : DefaultFrameSize;
 
          mFrames.New(1);
-         mFrames.Last().Reserve(nextReserved);
+         auto& frame = mFrames.Last();
+         frame.Reserve(nextReserved);
 
          // Use first cell to initialize our object                     
-         result = new (mFrames.Last().GetRaw()) Cell {Forward<A>(args)...};
+         result = new (frame.GetRaw()) Cell {Forward<A>(args)...};
 
          // Pass through all new unused cells, and set their markers    
-         mReusable = mFrames.Last().GetRaw() + 1;
-         for (auto cell = mReusable; cell < mFrames.Last().GetRawEnd(); ++cell)
+         mReusable = frame.GetRaw() + 1;
+         const auto cellEnd = frame.GetRaw() + frame.GetReserved();
+         for (auto cell = mReusable; cell < cellEnd; ++cell)
             cell->mNextFreeCell = cell + 1;
       }
 

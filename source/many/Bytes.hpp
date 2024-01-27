@@ -12,6 +12,13 @@
 
 namespace Langulus::CT
 {
+
+   /// Any dense value or array of values, that isn't CT::Block               
+   template<class...T>
+   concept BinablePOD = (
+         (Inner::POD<Deext<T>> and Dense<Deext<T>> and not Block<Deext<T>>
+      ) and ...);
+
    namespace Inner
    {
    
@@ -29,9 +36,8 @@ namespace Langulus::CT
       /// constructor can accept                                              
       template<class...T>
       concept Binable = ((DerivedFrom<T, Anyness::Bytes>
-           or (POD<T> and Dense<T>)
+           or BinablePOD<T>
            or Meta<T>
-           or CT::Inner::UnfoldMakableFrom<::Langulus::Byte, T>
            or Inner::BinableByOperator<T>) and ...);
 
    } // namespace Langulus::CT::Inner
@@ -51,7 +57,7 @@ namespace Langulus::CT
 
 namespace Langulus::Anyness
 {
-
+   
    ///                                                                        
    ///   Byte sequence container                                              
    ///                                                                        
@@ -75,17 +81,13 @@ namespace Langulus::Anyness
       ///   Construction                                                      
       ///                                                                     
       constexpr Bytes() = default;
-
       Bytes(const Bytes&);
       Bytes(Bytes&&) noexcept;
 
-      template<template<class> class S> requires CT::Semantic<S<Bytes>>
-      Bytes(S<Bytes>&&);
-
-      template<class T>
-      requires (CT::Inner::UnfoldMakableFrom<Byte, T> or (CT::POD<T> and CT::Dense<T>))
+      template<class T> requires CT::Bytes<Desem<T>>
       Bytes(T&&);
 
+      explicit Bytes(const CT::BinablePOD auto&);
       Bytes(const CT::Meta auto&);
 
       template<class T1, class T2, class...TN>
@@ -95,19 +97,14 @@ namespace Langulus::Anyness
       template<class T> requires (CT::Sparse<Desem<T>> and CT::Byte<Desem<T>>)
       static Bytes From(T&&, Count);
 
-   private:
-      friend struct Block;
-      Bytes(Block&&);
-
-   public:
       ///                                                                     
       ///   Assignment                                                        
       ///                                                                     
       Bytes& operator = (const Bytes&);
       Bytes& operator = (Bytes&&);
 
-      template<template<class> class S> requires CT::Semantic<S<Bytes>>
-      Bytes& operator = (S<Bytes>&&);
+      template<class T> requires CT::Bytes<Desem<T>>
+      Bytes& operator = (T&&);
       
       ///                                                                     
       ///   Capsulation                                                       
@@ -124,7 +121,7 @@ namespace Langulus::Anyness
       ///   Comparison                                                        
       ///                                                                     
       bool operator == (const CT::Block auto&) const noexcept;
-      bool operator == (Byte) const noexcept;
+      bool operator == (const CT::BinablePOD auto&) const noexcept;
 
       ///                                                                     
       ///   Insertion                                                         

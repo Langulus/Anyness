@@ -26,37 +26,44 @@ namespace Langulus::Anyness
    Bytes::Bytes(Bytes&& other) noexcept
       : Bytes {Move(other)} {}
 
-   /// Semantic constructor                                                   
-   ///   @param other - the container/element and the semantic                
-   template<template<class> class S>
-   requires CT::Semantic<S<Bytes>> LANGULUS(INLINED)
-   Bytes::Bytes(S<Bytes>&& other) {
-      mType = MetaDataOf<Byte>();
-      BlockTransfer<Bytes>(other.Forward());
-   }
+   /// Semantic bytes constructor                                             
+   ///   @param other - the text container to use semantically                
+   template<class T> requires CT::Bytes<Desem<T>> LANGULUS(INLINED)
+   Bytes::Bytes(T&& other)
+      : Base {SemanticOf<T>(other).template Forward<Base>()} {}
 
-   /// Construct from anything else                                           
-   ///   @param other - an array, range, or anything POD                      
-   template<class T>
-   requires (CT::Inner::UnfoldMakableFrom<Byte, T> or (CT::POD<T> and CT::Dense<T>))
-   LANGULUS(INLINED) Bytes::Bytes(T&& other){
-      UnfoldInsert(Forward<T>(other));
+   /// Serialize a single POD item                                            
+   ///   @param item - the item to serialize                                  
+   LANGULUS(INLINED)
+   Bytes::Bytes(const CT::BinablePOD auto& item) {
+      using T = Deref<decltype(item)>;
+      Block::AllocateFresh<Bytes>(Block::RequestSize<Bytes>(sizeof(T)));
+      if constexpr (CT::Array<T>)
+         CopyMemory(mRaw, reinterpret_cast<const Byte*>(item), sizeof(T));
+      else
+         CopyMemory(mRaw, reinterpret_cast<const Byte*>(&item), sizeof(T));
+      mCount += sizeof(T);
    }
-
+ 
    /// Serialize a meta definition                                            
    ///   @param meta - the definition to serialize                            
    LANGULUS(INLINED)
    Bytes::Bytes(const CT::Meta auto& meta) {
-      if (meta)
-         *this = Bytes {Count {meta->mToken.size()}, meta->mToken};
-      else
-         *this = Bytes {Count {0}};
+      const auto tokensize = meta->mToken.size();
+      const auto count = sizeof(Count) + tokensize;
+      Block::AllocateFresh<Bytes>(Block::RequestSize<Bytes>(count));
+      CopyMemory(GetRaw(), &tokensize, sizeof(tokensize));
+      if (tokensize)
+         CopyMemory(GetRaw() + sizeof(Count), meta->mToken.data(), tokensize);
+      mCount = count;
    }
-   
-   /// Compose text by an arbitrary amount of formattable arguments           
-   ///   @param ...args - the arguments                                       
+ 
+   /// Compose bytes by an arbitrary amount of binable arguments              
+   ///   @param t1 - the first argument                                       
+   ///   @param t2 - the second argument                                      
+   ///   @param tn... - the rest of the arguments (optional)                  
    template<class T1, class T2, class...TN>
-   requires CT::Inner::Binable<T1, T2, TN...>
+   requires CT::Inner::Binable<T1, T2, TN...> LANGULUS(INLINED)
    Bytes::Bytes(T1&& t1, T2&& t2, TN&&...tn) {
       UnfoldInsert(Forward<T1>(t1));
       UnfoldInsert(Forward<T2>(t2));
@@ -67,15 +74,10 @@ namespace Langulus::Anyness
    ///   @param text - text memory to wrap                                    
    ///   @param count - number of characters inside text                      
    template<class T> requires (CT::Sparse<Desem<T>> and CT::Byte<Desem<T>>)
-   Bytes Bytes::From(T&& text, Count count) {
-      return Base::From(Forward<T>(text), count);
+   LANGULUS(INLINED) Bytes Bytes::From(T&& text, Count count) {
+      auto block = Base::From(Forward<T>(text), count);
+      return Abandon(reinterpret_cast<Bytes&>(block));
    }
-
-   /// Private constructor from Block                                         
-   ///   @param other - the block to initialize with                          
-   LANGULUS(INLINED)
-   Bytes::Bytes(Block&& other)
-      : Base {Forward<Block>(other)} {}
 
    /// Shallow copy assignment from immutable byte container                  
    ///   @param rhs - the byte container to shallow-copy                      
@@ -95,9 +97,9 @@ namespace Langulus::Anyness
 
    /// Assign any Bytes block                                                 
    ///   @param rhs - the block to assign                                     
-   template<template<class> class S> requires CT::Semantic<S<Bytes>>
-   LANGULUS(INLINED) Bytes& Bytes::operator = (S<Bytes>&& rhs) {
-      Base::operator = (rhs.Forward());
+   template<class T> requires CT::Bytes<Desem<T>>
+   LANGULUS(INLINED) Bytes& Bytes::operator = (T&& rhs) {
+      Base::operator = (Forward<T>(rhs));
       return *this;
    }
    
@@ -108,20 +110,42 @@ namespace Langulus::Anyness
       return HashBytes(GetRaw(), static_cast<int>(GetCount()));
    }
    
-   /// Compare with another block                                             
+   /// Compare with another block of bytes                                    
+   /// The base Block::operator == can't be used, because Bytes arent CT::Deep
    ///   @param rhs - the block to compare with                               
    ///   @return true if blocks are the same                                  
    LANGULUS(INLINED)
    bool Bytes::operator == (const CT::Block auto& rhs) const noexcept {
-      return Block::operator == <Bytes> (rhs);
+      if (mCount != rhs.mCount)
+         return false;
+      else if (IsEmpty())
+         return true;
+
+      using T = Deref<decltype(rhs)>;
+      if constexpr (CT::Bytes<T> or (CT::Typed<T> and CT::Byte<TypeOf<T>>))
+         return 0 == ::std::memcmp(mRaw, rhs.mRaw, mCount);
+      else if constexpr (not CT::Typed<T>) {
+         if (rhs.GetType()->template IsSimilar<Byte>())
+            return 0 == ::std::memcmp(mRaw, rhs.mRaw, mCount);
+         else
+            return false;
+      }
+      else return false;
    }
 
    /// Compare with a single character                                        
    ///   @param rhs - the character to compare with                           
    ///   @return true if this container contains this exact character         
    LANGULUS(INLINED)
-   bool Bytes::operator == (const Byte rhs) const noexcept {
-      return operator == (Bytes::From(Disown(&rhs), 1));
+   bool Bytes::operator == (const CT::BinablePOD auto& rhs) const noexcept {
+      using T = Deref<decltype(rhs)>;
+      if (mCount != sizeof(T))
+         return false;
+
+      if constexpr (CT::Array<T>)
+         return 0 == ::std::memcmp(mRaw, rhs, sizeof(T));
+      else
+         return 0 == ::std::memcmp(mRaw, &rhs, sizeof(T));
    }
 
    /// Pick a part of the byte array                                          
@@ -220,9 +244,7 @@ namespace Langulus::Anyness
    }
    
    /// Insert an element, or an array of elements                             
-   ///   @param index - the index at which to insert                          
    ///   @param item - the argument to unfold and insert, can be semantic     
-   ///   @return the number of inserted elements after unfolding              
    void Bytes::UnfoldInsert(auto&& item) {
       using S = SemanticOf<decltype(item)>;
       using T = TypeOf<S>;
@@ -241,7 +263,31 @@ namespace Langulus::Anyness
          else {
             // Unfold and serialize elements, one by one                
             for (auto& element : DesemCast(item))
-               UnfoldInsert(element);
+               UnfoldInsert(S::Nest(element));
+         }
+      }
+      else if constexpr (CT::Block<T>) {
+         if constexpr (CT::Bytes<T>) {
+            // Insert another byte block's contents                     
+            Block::AllocateMore<Bytes>(mCount + DesemCast(item).GetCount());
+            CopyMemory(GetRaw() + mCount, DesemCast(item).GetRaw());
+            mCount += DesemCast(item).GetCount();
+         }
+         else if constexpr (CT::Typed<T>) {
+            // Nest-insert typed block's elements one by one            
+            for (auto& element : DesemCast(item))
+               UnfoldInsert(S::Nest(element));
+         }
+         else {
+            // Check a type-erased block                                
+            if (DesemCast(item).GetType()->template IsSimilar<Byte>()) {
+               // Insert another byte block's contents directly         
+               Block::AllocateMore<Bytes>(mCount + DesemCast(item).GetCount());
+               CopyMemory(GetRaw() + mCount, DesemCast(item).template GetRaw<Bytes>());
+               mCount += DesemCast(item).GetCount();
+            }
+            else for (auto subblock : DesemCast(item))
+               UnfoldInsert(S::Nest(subblock));
          }
       }
       else if constexpr (CT::POD<T> and CT::Dense<T>) {

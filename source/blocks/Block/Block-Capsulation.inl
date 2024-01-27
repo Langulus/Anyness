@@ -112,8 +112,8 @@ namespace Langulus::Anyness
          return 1;
 
       Count counter = 1;
-      const_cast<Block*>(this)->IterateInner<THIS, void, const Block&>(
-         mCount, [&counter](const Block& block) noexcept {
+      IterateInner<THIS>(mCount, 
+         [&counter](const Block& block) noexcept {
             //TODO could be optimized further, if THIS is typed
             counter += block.GetCountDeep<Block>();
          }
@@ -132,8 +132,8 @@ namespace Langulus::Anyness
          return mCount;
 
       Count counter = 0;
-      const_cast<Block*>(this)->IterateInner<THIS, void, const Block&>(
-         mCount, [&counter](const Block& block) noexcept {
+      const_cast<Block*>(this)->IterateInner<THIS>(mCount,
+         [&counter](const Block& block) noexcept {
             //TODO could be optimized further, if THIS is typed
             counter += block.GetCountElementsDeep<Block>();
          }

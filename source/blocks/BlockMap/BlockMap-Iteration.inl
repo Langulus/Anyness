@@ -23,7 +23,7 @@ namespace Langulus::Anyness
          return 0;
 
       using F = Deref<decltype(call)>;
-      using A = Decay<ArgumentOf<F>>;
+      using A = ArgumentOf<F>;
       using R = ReturnOf<F>;
 
       static_assert(CT::Pair<A>, "F's argument must be a pair type");
@@ -41,59 +41,11 @@ namespace Langulus::Anyness
       }
 
       // Prepare for the loop                                           
-      constexpr bool HasBreaker = CT::Bool<R>;
       auto key = mKeys.GetElement(REVERSE ? -1 : 0);
       auto val = mValues.GetElement(REVERSE ? -1 : 0);
       auto inf = REVERSE ? mInfo + GetReserved() - 1 : mInfo;
       const auto infEnd = REVERSE ? mInfo - 1 : mInfo + GetReserved();
-      Count executions {};
-
-      while (inf != infEnd) {
-         if (*inf) {
-            ++executions;
-
-            // Execute function for each valid pair                     
-            if constexpr (HasBreaker) {
-               if constexpr (CT::TypedPair<A>) {
-                  // The pair is statically typed, so we need to access 
-                  // the elements by the provided types                 
-                  using K = typename A::Key;
-                  using V = typename A::Value;
-                  A pair {key.template Get<K>(), val.template Get<V>()};
-                  if (not call(pair)) {
-                     // Early return, if function returns a false bool  
-                     return executions;
-                  }
-               }
-               else {
-                  // The pair is dynamically typed, so we directly      
-                  // forward the element blocks                         
-                  A pair {key, val};
-                  if (not call(pair)) {
-                     // Early return, if function returns a false bool  
-                     return executions;
-                  }
-               }
-            }
-            else {
-               if constexpr (CT::TypedPair<A>) {
-                  // The pair is statically typed, so we need to access 
-                  // the elements by the provided types                 
-                  using K = typename A::Key;
-                  using V = typename A::Value;
-                  A pair {key.template Get<K>(), val.template Get<V>()};
-                  call(pair);
-               }
-               else {
-                  // The pair is dynamically typed, so we directly      
-                  // forward the element blocks                         
-                  A pair {key, val};
-                  call(pair);
-               }
-            }
-         }
-
-         // Next element                                                
+      const auto next = [&inf,&key,&val] {
          if constexpr (REVERSE) {
             --inf;
             key.Prev();
@@ -104,6 +56,82 @@ namespace Langulus::Anyness
             key.Next();
             val.Next();
          }
+      };
+
+      Count executions = 0;
+      while (inf != infEnd) {
+         if (not *inf) {
+            next();
+            continue;
+         }
+         
+         // Execute function for each valid pair                        
+         ++executions;
+
+         if constexpr (CT::Void<R>) {
+            if constexpr (CT::TypedPair<A>) {
+               // The pair is statically typed, so we need to access    
+               // the elements by the provided types                    
+               using K = typename A::Key;
+               using V = typename A::Value;
+               A pair {key.template Get<K>(), val.template Get<V>()};   
+               call(pair);
+            }
+            else {
+               // The pair is dynamically typed, so we directly         
+               // forward the element blocks                            
+               A pair {key, val};
+               call(pair);
+            }
+
+            next();
+         }
+         else {
+            R loop;
+            if constexpr (CT::TypedPair<A>) {
+               // The pair is statically typed, so we need to access    
+               // the elements by the provided types                    
+               using K = typename A::Key;
+               using V = typename A::Value;
+               A pair {key.template Get<K>(), val.template Get<V>()};
+               loop = call(pair);
+            }
+            else {
+               // The pair is dynamically typed, so we directly         
+               // forward the element blocks                            
+               A pair {key, val};
+               loop = call(pair);
+            }
+
+            if constexpr (CT::Bool<R>) {
+               if (not loop)
+                  return executions;
+               next();
+            }
+            else if constexpr (CT::Exact<R, LoopControl>) {
+               switch (loop) {
+               case Loop::Break:
+                  return executions;
+               case Loop::Continue:
+                  next();
+                  break;
+               case Loop::Discard:
+                  if constexpr (CT::Mutable<THIS>) {
+                     // Discard is allowed only if THIS is mutable      
+                     const_cast<BlockMap*>(this)
+                        ->template RemoveInner<THIS>(inf - mInfo);
+                     if constexpr (REVERSE)
+                        next();
+                  }
+                  else {
+                     // ...otherwise it acts like a Loop::Continue      
+                     next();
+                  }
+                  break;
+               }
+            }
+            else LANGULUS_ERROR("Unknown loop control format");
+         }
       }
 
       return executions;
@@ -111,42 +139,73 @@ namespace Langulus::Anyness
 
    /// Iterate and execute call for each element in mKeys/mValues             
    ///   @attention assumes map is not empty, and part is properly typed      
-   ///   @tparam R - the function return type                                 
-   ///               if R is boolean, loop will cease on returning false      
-   ///   @tparam A - the function argument type                               
-   ///               A must be a CT::Block type                               
    ///   @tparam REVERSE - whether to iterate in reverse                      
    ///   @param call - the function to execute for each element               
    ///   @return the number of executions that occured                        
-   template<CT::Map, class R, CT::Data A, bool REVERSE>
-   Count BlockMap::ForEachInner(const CT::Block auto& part, auto&& call) const {
+   template<CT::Map THIS, bool REVERSE>
+   LoopControl BlockMap::ForEachInner(
+      const CT::Block auto& part, auto&& call, Count& counter
+   ) const {
+      using F = Deref<decltype(call)>;
+      using A = ArgumentOf<F>;
+      using R = ReturnOf<F>;
+
       LANGULUS_ASSUME(DevAssumes, not IsEmpty(),
          "Map is empty");
       LANGULUS_ASSUME(DevAssumes, (part.template CastsTo<A, true>()),
          "Map is not typed properly");
        
-      constexpr bool HasBreaker = CT::Bool<R>;
-      Count done = 0;
-      Count index = 0;
+      auto inf = REVERSE ? mInfo + GetReserved() - 1 : mInfo;
+      const auto infEnd = REVERSE ? mInfo - 1 : mInfo + GetReserved();
+      const auto next = [&inf] {
+         if constexpr (REVERSE)  --inf;
+         else                    ++inf;
+      };
 
-      while (index < mValues.mReserved) {
-         if (not mInfo[index]) {
-            ++index;
+      while (inf != infEnd) {
+         if (not *inf) {
+            next();
             continue;
          }
 
-         const auto dind = REVERSE ? mValues.mReserved - index - 1 : index;
-         if constexpr (HasBreaker) {
-            if (not call(part.template Get<A>(dind)))
-               return ++done;
-         }
-         else call(part.template Get<A>(dind));
+         ++counter;
 
-         ++index;
-         ++done;
+         if constexpr (CT::Bool<R>) {
+            if (not call(part.template Get<A>(inf - mInfo)))
+               return Loop::Break;
+            next();
+         }
+         else if constexpr (CT::Exact<R, LoopControl>) {
+            const auto loop = call(part.template Get<A>(inf - mInfo));
+            switch (loop.mControl) {
+            case LoopControl::Break:
+            case LoopControl::NextLoop:
+               return loop;
+            case LoopControl::Continue:
+               next();
+               break;
+            case LoopControl::Discard:
+               if constexpr (CT::Mutable<THIS>) {
+                  // Discard is allowed only if THIS is mutable         
+                  const_cast<BlockMap*>(this)
+                     ->template RemoveInner<THIS>(inf - mInfo);
+                  if constexpr (REVERSE)
+                     next();
+               }
+               else {
+                  // ...otherwise it acts like a Loop::Continue         
+                  next();
+               }
+               break;
+            }
+         }
+         else {
+            call(part.template Get<A>(inf - mInfo));
+            next();
+         }
       }
 
-      return done;
+      return Loop::Continue;
    }
    
    /// Iterate all keys inside the map, and perform f() on them               
@@ -156,7 +215,9 @@ namespace Langulus::Anyness
    ///   @param call - the function to call for each key block                
    ///   @return the number of successful executions                          
    template<CT::Map THIS, bool REVERSE>
-   Count BlockMap::ForEachElement(const CT::Block auto& part, auto&& call) const {
+   LoopControl BlockMap::ForEachElementInner(
+      const CT::Block auto& part, auto&& call, Count& counter
+   ) const {
       using F = Deref<decltype(call)>;
       using A = ArgumentOf<F>;
       using R = ReturnOf<F>;
@@ -166,95 +227,123 @@ namespace Langulus::Anyness
       static_assert(CT::Constant<A> or CT::Mutable<THIS>,
          "Non constant iterator for constant memory block");
 
-      auto info = mInfo;
-      const auto infoEnd = mInfo + GetReserved();
+      auto info = REVERSE ? mInfo + GetReserved() - 1 : mInfo;
+      const auto infoEnd = REVERSE ? mInfo - 1 : mInfo + GetReserved();
+      const auto next = [&info] {
+         if constexpr (REVERSE)  --info;
+         else                    ++info;
+      };
+
       while (info != infoEnd) {
          if (not *info) {
-            ++info;
+            next();
             continue;
          }
 
-         const Offset index = info - mInfo;
-         A block = part.GetElement(index);
-         if constexpr (CT::Bool<R>) {
-            if (not call(block))
-               return index + 1;
-         }
-         else call(block);
+         ++counter;
 
-         ++info;
+         if constexpr (CT::Bool<R>) {
+            if (not call(part.GetElement(info - mInfo)))
+               return Loop::Break;
+            next();
+         }
+         else if constexpr (CT::Exact<R, LoopControl>) {
+            const auto loop = call(part.GetElement(info - mInfo));
+            switch (loop) {
+            case LoopControl::Break:
+            case LoopControl::NextLoop:
+               return loop;
+            case Loop::Continue:
+               next();
+               break;
+            case Loop::Discard:
+               if constexpr (CT::Mutable<THIS>) {
+                  // Discard is allowed only if THIS is mutable         
+                  const_cast<BlockMap*>(this)
+                     ->template RemoveInner<THIS>(info - mInfo);
+                  if constexpr (REVERSE)
+                     next();
+               }
+               else {
+                  // ...otherwise it acts like a Loop::Continue         
+                  next();
+               }
+               break;
+            }
+         }
+         else {
+            call(part.GetElement(info - mInfo));
+            next();
+         }
       }
 
-      return info - mInfo;
+      return Loop::Continue;
    }
    
    /// Iterate and execute call for each deep element                         
-   ///   @tparam R - the function return type                                 
-   ///               if R is boolean, loop will cease on returning false      
-   ///   @tparam A - the function argument type                               
-   ///               A must be a CT::Block type                               
    ///   @tparam REVERSE - whether to iterate in reverse                      
    ///   @tparam SKIP - true to avoid executing call in intermediate blocks   
    ///   @param call - the function to execute for each element of type A     
    ///   @return the number of executions that occured                        
-   template<CT::Map THIS, class R, CT::Data A, bool REVERSE, bool SKIP>
-   Count BlockMap::ForEachDeepInner(const CT::Block auto& part, auto&& call) const {
-      constexpr bool HasBreaker = CT::Bool<R>;
-      constexpr bool Mutable = CT::Mutable<THIS>;
-      using SubBlock = Conditional<Mutable, Block&, const Block&>;
-      Count counter = 0;
+   template<CT::Map THIS, bool REVERSE, bool SKIP>
+   LoopControl BlockMap::ForEachDeepInner(
+      const CT::Block auto& part, auto&& call, Count& counter
+   ) const {
+      using F = Deref<decltype(call)>;
+      using A = ArgumentOf<F>;
+      //using R = ReturnOf<F>;
+      using SubBlock = Conditional<CT::Mutable<THIS>, Block&, const Block&>;
 
-      if constexpr (CT::Deep<Decay<A>>) {
+      /*if constexpr (CT::Deep<A>) {
          if (not SKIP or not part.IsDeep()) {
             // Always execute for intermediate/non-deep *this           
             ++counter;
 
-            if constexpr (CT::Dense<A>) {
-               if constexpr (HasBreaker) {
-                  if (not call(part))
-                     return counter;
-               }
-               else call(part);
+            if constexpr (CT::Bool<R>) {
+               if (not call(part))
+                  return Loop::Break;
             }
-            else {
-               if constexpr (HasBreaker) {
-                  if (not call(&part))
-                     return counter;
+            else if constexpr (CT::Exact<R, LoopControl>) {
+               // Do things depending on the F's return                 
+               const auto loop = call(part);
+               switch (loop) {
+               case Loop::Break:
+                  return Loop::Break;
+               case Loop::Continue:
+                  break;
+               case Loop::Discard:
+                  if constexpr (CT::Mutable<THIS>) {
+                     // Discard is allowed only if THIS is mutable      
+                     const_cast<Block&>(part).template Reset<THIS>();
+                     return Loop::Discard;
+                  }
+                  else {
+                     // ...otherwise it acts like a Loop::Continue      
+                     break;
+                  }
                }
-               else call(&part);
             }
+            else call(part);
          }
+      }*/
 
-         if (part.IsDeep()) {
-            // Iterate using a block type                               
-            ForEachInner<THIS, void, SubBlock, REVERSE>(part,
-               [&counter, &call](SubBlock group) {
-                  counter += DenseCast(group).template
-                     ForEachDeepInner<SubBlock, R, A, REVERSE, SKIP>(
-                        ::std::move(call));
-               }
-            );
-         }
+      if (part.IsDeep()) {
+         // Iterate deep keys/values using non-block type               
+         return ForEachInner<THIS, REVERSE>(part,
+            [&counter, &call](SubBlock group) -> LoopControl {
+               return DenseCast(group).template
+                  ForEachDeepInner<SubBlock, REVERSE, SKIP>(
+                     ::std::move(call), counter);
+            }, counter
+         );
       }
-      else {
-         if (part.IsDeep()) {
-            // Iterate deep keys/values using non-block type            
-            ForEachInner<THIS, void, SubBlock, REVERSE>(part,
-               [&counter, &call](SubBlock group) {
-                  counter += DenseCast(group).template
-                     ForEachDeepInner<SubBlock, R, A, REVERSE, SKIP>(
-                        ::std::move(call));
-               }
-            );
-         }
-         else {
-            // Equivalent to non-deep iteration                         
-            counter += ForEachInner<THIS, R, A, REVERSE>(part,
-               ::std::move(call));
-         }
+      else if constexpr (not CT::Deep<A>) {
+         // Equivalent to non-deep iteration                            
+         return ForEachInner<THIS, REVERSE>(
+            part, ::std::move(call), counter);
       }
 
-      return counter;
+      return Loop::Continue;
    }
 
    /// Iterate all keys inside the map, and perform call() on each            
@@ -293,9 +382,8 @@ namespace Langulus::Anyness
          return 0;
 
       Count result = 0;
-      (void) (... or (0 != (result = 
-         ForEachInner<THIS, ReturnOf<F>, ArgumentOf<F>, REVERSE>(
-            GetKeys<THIS>(), Forward<F>(call)))
+      (void) (... or (Loop::NextLoop !=  
+         ForEachInner<THIS, REVERSE>(GetKeys<THIS>(), Forward<F>(call), result)
       ));
       return result;
    }
@@ -312,9 +400,8 @@ namespace Langulus::Anyness
          return 0;
 
       Count result = 0;
-      (void) (... or (0 != (result = 
-         ForEachInner<THIS, ReturnOf<F>, ArgumentOf<F>, REVERSE>(
-            GetVals<THIS>(), Forward<F>(call)))
+      (void) (... or (Loop::NextLoop != 
+         ForEachInner<THIS, REVERSE>(GetVals<THIS>(), Forward<F>(call), result)
       ));
       return result;
    }
@@ -330,9 +417,9 @@ namespace Langulus::Anyness
          return 0;
 
       Count result = 0;
-      (void) (... or (0 != (result = 
-         ForEachDeepInner<THIS, ReturnOf<F>, ArgumentOf<F>, REVERSE, SKIP>(
-            GetKeys<THIS>(), Forward<F>(call)))
+      (void) (... or (Loop::Break != 
+         ForEachDeepInner<THIS, REVERSE, SKIP>(
+            GetKeys<THIS>(), Forward<F>(call), result)
       ));
       return result;
    }
@@ -349,9 +436,9 @@ namespace Langulus::Anyness
          return 0;
 
       Count result = 0;
-      (void) (... or (0 != (result = 
-         ForEachDeepInner<THIS, ReturnOf<F>, ArgumentOf<F>, REVERSE, SKIP>(
-            GetVals<THIS>(), Forward<F>(call)))
+      (void) (... or (Loop::Break != 
+         ForEachDeepInner<THIS, REVERSE, SKIP>(
+            GetVals<THIS>(), Forward<F>(call), result)
       ));
       return result;
    }

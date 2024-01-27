@@ -17,66 +17,65 @@ namespace Langulus::Anyness
    /// successfull execution                                                  
    ///   @attention assumes block is not empty                                
    ///   @attention assumes block is typed                                    
-   ///   @tparam R - the function return type                                 
-   ///               if R is boolean, loop will cease on f() returning false  
-   ///   @tparam A - the function argument type                               
    ///   @tparam REVERSE - whether to iterate in reverse                      
    ///   @param f - the function to execute for each element of type A        
    ///   @return the number of executions that occured                        
-   template<CT::Set THIS, class R, CT::Data A, bool REVERSE> LANGULUS(INLINED)
-   Count BlockSet::ForEachInner(auto&& f) const
+   template<CT::Set THIS, bool REVERSE> LANGULUS(INLINED)
+   LoopControl BlockSet::ForEachInner(auto&& f, Count& executions) const
    noexcept(NoexceptIterator<decltype(f)>) {
+      using F = Deref<decltype(f)>;
+      using A = ArgumentOf<F>;
+      using R = ReturnOf<F>;
       constexpr auto NOE = NoexceptIterator<decltype(f)>;
+
       auto& keys = GetValues<THIS>();
       using KEYS = Conditional<CT::Mutable<THIS>,
          Decvq<Deref<decltype(keys)>>,
          Deref<decltype(keys)>>;
 
-      if ((CT::Deep<Decay<A>> and keys.IsDeep())
-      or (not CT::Deep<Decay<A>> and keys.template CastsTo<A>())) {
+      if (   (CT::Deep<A> and keys.IsDeep())
+      or (not CT::Deep<A> and keys.template CastsTo<A>())) {
          Count index = 0;
-         Count executions = 0;
          if (mKeys.mType->mIsSparse) {
             // Iterate using pointers of A                              
-            using DA = Conditional<CT::Mutable<THIS>, Decay<A>*, const Decay<A>*>;
-            mKeys.IterateInner<KEYS, R, DA, REVERSE>(mKeys.mReserved,
+            using DA = Conditional<CT::Mutable<THIS>, Deref<A>*, const Deref<A>*>;
+            return mKeys.IterateInner<KEYS, REVERSE>(mKeys.mReserved,
                [&](DA element) noexcept(NOE) -> R {
                   if (not mInfo[index++]) {
                      if constexpr (CT::Bool<R>)
                         return true;
+                     else if constexpr (CT::Exact<R, LoopControl>)
+                        return Loop::Continue;
                      else
                         return;
                   }
 
                   ++executions;
-                  if constexpr (CT::Sparse<A>)  return f(element);
-                  else                          return f(*element);
+                  return f(*element);
                }
             );
          }
          else {
             // Iterate using references of A                            
-            using DA = Conditional<CT::Mutable<THIS>, Decay<A>&, const Decay<A>&>;
-            mKeys.IterateInner<KEYS, R, DA, REVERSE>(mKeys.mReserved,
+            using DA = Conditional<CT::Mutable<THIS>, Deref<A>&, const Deref<A>&>;
+            return mKeys.IterateInner<KEYS, REVERSE>(mKeys.mReserved,
                [&](DA element) noexcept(NOE) -> R {
                   if (not mInfo[index++]) {
                      if constexpr (CT::Bool<R>)
                         return true;
+                     else if constexpr (CT::Exact<R, LoopControl>)
+                        return Loop::Continue;
                      else
                         return;
                   }
 
                   ++executions;
-                  if constexpr (CT::Sparse<A>)  return f(&element);
-                  else                          return f(element);
+                  return f(element);
                }
             );
          }
-
-         return executions;
       }
-      
-      return 0;
+      else return Loop::NextLoop;
    }
          
    /// Iterate all keys inside the set, and perform f() on them               
@@ -94,94 +93,120 @@ namespace Langulus::Anyness
       static_assert(CT::Constant<A> or CT::Mutable<THIS>,
          "Non constant iterator for constant memory block");
 
-      auto info = mInfo;
-      const auto infoEnd = mInfo + GetReserved();
+      Count counter = 0;
+      auto info = REVERSE ? mInfo + GetReserved() - 1 : mInfo;
+      const auto infoEnd = REVERSE ? mInfo - 1 : mInfo + GetReserved();
+      const auto next = [&info] {
+         if constexpr (REVERSE)  --info;
+         else                    ++info;
+      };
+
       while (info != infoEnd) {
          if (not *info) {
-            ++info;
+            next();
             continue;
          }
 
-         const Offset index = info - mInfo;
-         A block = mKeys.GetElement(index);
+         ++counter;
+
          if constexpr (CT::Bool<R>) {
-            if (not call(block))
-               return index + 1;
+            if (not call(mKeys.GetElement(info - mInfo)))
+               return counter;
+            next();
          }
-         else call(block);
-
-         ++info;
-      }
-
-      return info - mInfo;
-   }
-   
-   /// Iterate and execute call for each deep element                         
-   ///   @tparam R - the function return type (deduced)                       
-   ///               if R is boolean, loop will cease on returning false      
-   ///   @tparam A - the function argument type (deduced)                     
-   ///               A must be a CT::Block type                               
-   ///   @tparam REVERSE - whether to iterate in reverse                      
-   ///   @param call - the function to execute for each element of type A     
-   ///   @return the number of executions that occured                        
-   template<CT::Set THIS, class R, CT::Data A, bool REVERSE, bool SKIP>
-   Count BlockSet::ForEachDeepInner(auto&& call) const {
-      constexpr bool HasBreaker = CT::Bool<R>;
-      constexpr bool Mutable = CT::Mutable<THIS>;
-      using SubBlock = Conditional<Mutable, Block&, const Block&>;
-      Count counter = 0;
-
-      if constexpr (CT::Deep<Decay<A>>) {
-         if (not SKIP or not IsDeep<THIS>()) {
-            // Always execute for intermediate/non-deep *this           
-            ++counter;
-
-            if constexpr (CT::Dense<A>) {
-               if constexpr (HasBreaker) {
-                  if (not call(mKeys))
-                     return counter;
+         else if constexpr (CT::Exact<R, LoopControl>) {
+            const auto loop = call(mKeys.GetElement(info - mInfo));
+            switch (loop) {
+            case LoopControl::Break:
+            case LoopControl::NextLoop:
+               return counter;
+            case Loop::Continue:
+               next();
+               break;
+            case Loop::Discard:
+               if constexpr (CT::Mutable<THIS>) {
+                  // Discard is allowed only if THIS is mutable         
+                  const_cast<BlockMap*>(this)
+                     ->template RemoveInner<THIS>(info - mInfo);
+                  if constexpr (REVERSE)
+                     next();
                }
-               else call(mKeys);
+               else {
+                  // ...otherwise it acts like a Loop::Continue         
+                  next();
+               }
+               break;
             }
-            else {
-               if constexpr (HasBreaker) {
-                  if (not call(&mKeys))
-                     return counter;
-               }
-               else call(&mKeys);
-            }
-         }
-
-         if (IsDeep<THIS>()) {
-            // Iterate using a block type                               
-            ForEachInner<THIS, void, SubBlock, REVERSE>(
-               [&counter, &call](SubBlock group) {
-                  counter += DenseCast(group).template
-                     ForEachDeepInner<SubBlock, R, A, REVERSE, SKIP>(
-                        ::std::move(call));
-               }
-            );
-         }
-      }
-      else {
-         if (IsDeep<THIS>()) {
-            // Iterate deep keys/values using non-block type            
-            ForEachInner<THIS, void, SubBlock, REVERSE>(
-               [&counter, &call](SubBlock group) {
-                  counter += DenseCast(group).template
-                     ForEachDeepInner<SubBlock, R, A, REVERSE, SKIP>(
-                        ::std::move(call));
-               }
-            );
          }
          else {
-            // Equivalent to non-deep iteration                         
-            counter += ForEachInner<THIS, R, A, REVERSE>(
-               ::std::move(call));
+            call(mKeys.GetElement(info - mInfo));
+            next();
          }
       }
 
       return counter;
+   }
+   
+   /// Iterate and execute call for each deep element                         
+   ///   @tparam REVERSE - whether to iterate in reverse                      
+   ///   @param call - the function to execute for each element of type A     
+   ///   @return the number of executions that occured                        
+   template<CT::Set THIS, bool REVERSE, bool SKIP>
+   LoopControl BlockSet::ForEachDeepInner(auto&& call, Count& counter) const {
+      using F = Deref<decltype(call)>;
+      using A = ArgumentOf<F>;
+      //using R = ReturnOf<F>;
+      using SubBlock = Conditional<CT::Mutable<THIS>, Block&, const Block&>;
+
+      /*if constexpr (CT::Deep<A>) {
+         if (not SKIP or not IsDeep<THIS>()) {
+            // Always execute for intermediate/non-deep *this           
+            ++counter;
+
+            if constexpr (CT::Bool<R>) {
+               if (not call(mKeys))
+                  return Loop::Break;
+            }
+            else if constexpr (CT::Exact<R, LoopControl>) {
+               // Do things depending on the F's return                 
+               const auto loop = call(mKeys);
+               switch (loop) {
+               case Loop::Break:
+                  return Loop::Break;
+               case Loop::Continue:
+                  break;
+               case Loop::Discard:
+                  if constexpr (CT::Mutable<THIS>) {
+                     // Discard is allowed only if THIS is mutable      
+                     const_cast<BlockSet*>(this)->template Reset<THIS>();
+                     return Loop::Discard;
+                  }
+                  else {
+                     // ...otherwise it acts like a Loop::Continue      
+                     break;
+                  }
+               }
+            }
+            else call(mKeys);
+         }
+      }*/
+
+      if (IsDeep<THIS>()) {
+         // Iterate deep keys/values using non-block type               
+         return ForEachInner<THIS, REVERSE>(
+            [&counter, &call](SubBlock group) -> LoopControl {
+               return DenseCast(group).template
+                  ForEachDeepInner<SubBlock, REVERSE, SKIP>(
+                     ::std::move(call), counter);
+            }, counter
+         );
+      }
+      else if constexpr (not CT::Deep<A>) {
+         // Equivalent to non-deep iteration                            
+         return ForEachInner<THIS, REVERSE>(::std::move(call), counter);
+      }
+
+      return Loop::Continue;
    }
 
    /// Iterate keys inside the map, and perform a set of functions on them    
@@ -195,9 +220,8 @@ namespace Langulus::Anyness
          return 0;
 
       Count result = 0;
-      (void) (... or (0 != (result = 
-         ForEachInner<THIS, ReturnOf<F>, ArgumentOf<F>, REVERSE>(
-            Forward<F>(f)))
+      (void) (... or (Loop::NextLoop != 
+         ForEachInner<THIS, REVERSE>(Forward<F>(f), result)
       ));
       return result;
    }
@@ -209,9 +233,9 @@ namespace Langulus::Anyness
    template<bool REVERSE, bool SKIP, CT::Set THIS, class...F>
    LANGULUS(INLINED) Count BlockSet::ForEachDeep(F&&...calls) const {
       Count result = 0;
-      ((result += ForEachDeepInner<THIS, ReturnOf<F>, ArgumentOf<F>, REVERSE, SKIP>(
-         Forward<F>(calls))
-      ), ...);
+      (void)(... or (Loop::Break != 
+         ForEachDeepInner<THIS, REVERSE, SKIP>(Forward<F>(calls), result)
+      ));
       return result;
    }
 

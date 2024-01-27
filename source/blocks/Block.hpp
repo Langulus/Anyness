@@ -517,14 +517,14 @@ namespace Langulus::Anyness
       static constexpr bool NoexceptIterator = not LANGULUS_SAFE()
          and noexcept(Fake<F&&>().operator() (Fake<ArgumentOf<F>>()));
 
-      template<CT::Block, class R, CT::Data A, bool REVERSE>
-      Count ForEachInner(auto&& f) const noexcept(NoexceptIterator<decltype(f)>);
+      template<CT::Block, bool REVERSE>
+      LoopControl ForEachInner(auto&& f, Count&) const noexcept(NoexceptIterator<decltype(f)>);
 
-      template<CT::Block, class R, CT::Data A, bool REVERSE, bool SKIP>
-      Count ForEachDeepInner(auto&&) const;
+      template<CT::Block, bool REVERSE, bool SKIP>
+      LoopControl ForEachDeepInner(auto&&, Count&) const;
 
-      template<CT::Block, class R, CT::Data A, bool REVERSE = false>
-      void IterateInner(Count, auto&& f) const noexcept(NoexceptIterator<decltype(f)>);
+      template<CT::Block, bool REVERSE = false>
+      LoopControl IterateInner(Count, auto&& f) const noexcept(NoexceptIterator<decltype(f)>);
 
    public:
       ///                                                                     

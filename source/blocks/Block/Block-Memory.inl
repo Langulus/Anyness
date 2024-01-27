@@ -255,6 +255,9 @@ namespace Langulus::Anyness
       clone.AllocateFresh<THIS>(RequestSize<THIS>(mCount));
       clone.CreateSemantic<THIS>(Copy(*this));
 
+      // Discard constness and staticness                               
+      clone.mState -= DataState::Static | DataState::Constant;
+
       // Overwrite this block directly                                  
       CopyMemory(this, &clone);
    }

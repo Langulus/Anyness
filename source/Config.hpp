@@ -33,19 +33,42 @@
 /// Make the rest of the code aware, that Langulus::Anyness has been included 
 #define LANGULUS_LIBRARY_ANYNESS() 1
 
-   
-namespace Langulus::Flow
-{
-
-   /// Just syntax sugar, for breaking ForEach loop                           
-   constexpr bool Break = false;
-   /// Just syntax sugar, for continuing ForEach loop                         
-   constexpr bool Continue = true;
-
-} // namespace Langulus::Flow
 
 namespace Langulus
 {
+
+   /// Loop controls from inside ForEach lambdas when iterating containers    
+   struct LoopControl {
+      enum Command : int {
+         Break = 0,     // Break the loop                                  
+         Continue = 1,  // Continue the loop                               
+         Discard = 2,   // Remove the current element                      
+         NextLoop = 3   // Skip to next function in the visitor pattern    
+      } mControl;
+
+      LoopControl() = delete;
+
+      constexpr LoopControl(bool a) noexcept
+         : mControl {static_cast<Command>(a)} {}
+      constexpr LoopControl(Command a) noexcept
+         : mControl {a} {}
+
+      explicit constexpr operator bool() const noexcept {
+         return mControl == Continue;
+      }
+
+      constexpr bool operator == (const LoopControl& rhs) const noexcept {
+         return mControl == rhs.mControl;
+      }
+   };
+
+   namespace Loop
+   {
+      constexpr LoopControl Break      = LoopControl::Break;
+      constexpr LoopControl Continue   = LoopControl::Continue;
+      constexpr LoopControl Discard    = LoopControl::Discard;
+      constexpr LoopControl NextLoop   = LoopControl::NextLoop;
+   }
 
    using RTTI::DMeta;
    using RTTI::CMeta;

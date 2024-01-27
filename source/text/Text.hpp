@@ -159,11 +159,6 @@ namespace Langulus::Anyness
       template<class T> requires CT::String<Desem<T>>
       static Text From(T&&, Count);
 
-   private:
-      friend struct Block;
-      Text(Block&&);
-
-   public:
       ///                                                                     
       ///   Assignment                                                        
       ///                                                                     
