@@ -91,9 +91,9 @@ namespace Langulus::Anyness
          return 0;
 
       Count result = 0;
-      (void) (... or (Loop::NextLoop != (
+      (void) (... or (Loop::NextLoop !=
          ForEachInner<THIS, REVERSE>(Forward<F>(calls), result)
-      )));
+      ));
       return result;
    }
 
@@ -111,9 +111,9 @@ namespace Langulus::Anyness
    template<bool REVERSE, bool SKIP, CT::Block THIS, class...F>
    LANGULUS(INLINED) Count Block::ForEachDeep(F&&...calls) const {
       Count result = 0;
-      (void)(... or (Loop::Break != (
+      (void)(... or (Loop::Break !=
          ForEachDeepInner<THIS, REVERSE, SKIP>(Forward<F>(calls), result)
-      )));
+      ));
       return result;
    }
 
@@ -187,6 +187,7 @@ namespace Langulus::Anyness
       using A = ArgumentOf<F>;
       using R = ReturnOf<F>;
       using SubBlock = Conditional<CT::Mutable<THIS>, Block&, const Block&>;
+      static_assert(CT::Dense<A>, "Iterator must be dense value/reference");
 
       if constexpr (CT::Deep<A>) {
          if (not SKIP or not IsDeep<THIS>()) {
@@ -226,12 +227,15 @@ namespace Langulus::Anyness
 
       if (IsDeep<THIS>()) {
          // Iterate subblocks                                           
+         Count intermediateCounterSink = 0;
          return ForEachInner<THIS, REVERSE>(
             [&counter, &call](SubBlock group) {
                return DenseCast(group).template
                   ForEachDeepInner<SubBlock, REVERSE, SKIP>(
-                     ::std::move(call), counter);
-            }, counter
+                     ::std::move(call), counter
+                  );
+            },
+            intermediateCounterSink
          );
       }
       else if constexpr (not CT::Deep<A>) {

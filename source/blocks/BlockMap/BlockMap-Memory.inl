@@ -301,6 +301,8 @@ namespace Langulus::Anyness
          // values' references to save on some redundancy               
          const_cast<Allocation*>(mValues.mEntry)->Free();
       }
+
+      mValues.mEntry = nullptr;
    }
 
 } // namespace Langulus::Anyness

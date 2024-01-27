@@ -316,46 +316,12 @@ SCENARIO("Deep sequential containers", "[any]") {
          REQUIRE(total == iterated);
       }
 
-      WHEN("ForEachDeep with sparse flat element (immutable, skipping)") {
-         int it = 1;
-         Count total = 0;
-         const auto iterated = pack.ForEachDeep(
-            [&](const int* i) {
-               REQUIRE(*i == it);
-               ++total;
-               if (++it == 11)
-                  it = 1;
-            }
-         );
-
-         REQUIRE(it == 1);
-         REQUIRE(total == 20);
-         REQUIRE(total == iterated);
-      }
-
       WHEN("ForEachDeep with dense flat element (mutable, skipping)") {
          int it = 1;
          Count total = 0;
          const auto iterated = pack.ForEachDeep(
             [&](int& i) {
                REQUIRE(i == it);
-               ++total;
-               if (++it == 11)
-                  it = 1;
-            }
-         );
-
-         REQUIRE(it == 1);
-         REQUIRE(total == 20);
-         REQUIRE(total == iterated);
-      }
-
-      WHEN("ForEachDeep with sparse flat element (mutable, skipping)") {
-         int it = 1;
-         Count total = 0;
-         const auto iterated = pack.ForEachDeep(
-            [&](int* i) {
-               REQUIRE(*i == it);
                ++total;
                if (++it == 11)
                   it = 1;
@@ -384,46 +350,12 @@ SCENARIO("Deep sequential containers", "[any]") {
          REQUIRE(total == iterated);
       }
 
-      WHEN("ForEachDeep with sparse flat element (immutable, non-skipping)") {
-         int it = 1;
-         Count total = 0;
-         const auto iterated = pack.template ForEachDeep<false, false>(
-            [&](const int* i) {
-               REQUIRE(*i == it);
-               ++total;
-               if (++it == 11)
-                  it = 1;
-            }
-         );
-
-         REQUIRE(it == 1);
-         REQUIRE(total == 20);
-         REQUIRE(total == iterated);
-      }
-
       WHEN("ForEachDeep with dense flat element (mutable, non-skipping)") {
          int it = 1;
          Count total = 0;
          const auto iterated = pack.template ForEachDeep<false, false>(
             [&](int& i) {
                REQUIRE(i == it);
-               ++total;
-               if (++it == 11)
-                  it = 1;
-            }
-         );
-
-         REQUIRE(it == 1);
-         REQUIRE(total == 20);
-         REQUIRE(total == iterated);
-      }
-
-      WHEN("ForEachDeep with sparse flat element (mutable, non-skipping)") {
-         int it = 1;
-         Count total = 0;
-         const auto iterated = pack.template ForEachDeep<false, false>(
-            [&](int* i) {
-               REQUIRE(*i == it);
                ++total;
                if (++it == 11)
                   it = 1;
@@ -448,36 +380,10 @@ SCENARIO("Deep sequential containers", "[any]") {
          REQUIRE(total == iterated);
       }
 
-      WHEN("ForEachDeep with sparse Block element (immutable, skipping)") {
-         Count total = 0;
-         const auto iterated = pack.ForEachDeep(
-            [&](const Block* i) {
-               (void)i;
-               ++total;
-            }
-         );
-
-         REQUIRE(total == 4);
-         REQUIRE(total == iterated);
-      }
-
       WHEN("ForEachDeep with dense Block element (mutable, skipping)") {
          Count total = 0;
          const auto iterated = pack.ForEachDeep(
             [&](Block& i) {
-               (void)i;
-               ++total;
-            }
-         );
-
-         REQUIRE(total == 4);
-         REQUIRE(total == iterated);
-      }
-
-      WHEN("ForEachDeep with sparse Block element (mutable, skipping)") {
-         Count total = 0;
-         const auto iterated = pack.ForEachDeep(
-            [&](Block* i) {
                (void)i;
                ++total;
             }
@@ -500,36 +406,10 @@ SCENARIO("Deep sequential containers", "[any]") {
          REQUIRE(total == iterated);
       }
 
-      WHEN("ForEachDeep with sparse Block element (immutable, non-skipping)") {
-         Count total = 0;
-         const auto iterated = pack.template ForEachDeep<false, false>(
-            [&](const Block* i) {
-               (void)i;
-               ++total;
-            }
-         );
-
-         REQUIRE(total == 6);
-         REQUIRE(total == iterated);
-      }
-
       WHEN("ForEachDeep with dense Block element (mutable, non-skipping)") {
          Count total = 0;
          const auto iterated = pack.template ForEachDeep<false, false>(
             [&](Block& i) {
-               (void)i;
-               ++total;
-            }
-         );
-
-         REQUIRE(total == 6);
-         REQUIRE(total == iterated);
-      }
-
-      WHEN("ForEachDeep with sparse Block element (mutable, non-skipping)") {
-         Count total = 0;
-         const auto iterated = pack.template ForEachDeep<false, false>(
-            [&](Block* i) {
                (void)i;
                ++total;
             }

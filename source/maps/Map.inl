@@ -61,7 +61,7 @@ namespace Langulus::Anyness
    /// Map destructor                                                         
    TEMPLATE() LANGULUS(INLINED)
    TABLE()::~Map() {
-      Free<Map>();
+      BlockMap::Free<Map>();
    }
 
    /// Copy assignment                                                        
