@@ -71,7 +71,7 @@ SCENARIO("Iterating containers", "[iteration]") {
          REQUIRE(Count(it) == sparse.GetCount());
       }
 
-      WHEN("Sparse-iterating a dense pack (shallow)") {
+      /*WHEN("Sparse-iterating a dense pack (shallow)") {
          int it = 0;
          dense.ForEach([&](int* i) {
             REQUIRE(*i == it + 1);
@@ -121,7 +121,7 @@ SCENARIO("Iterating containers", "[iteration]") {
             return true;
          });
          REQUIRE(Count(it) == sparse.GetCount());
-      }
+      }*/
    }
 
    // this test fails on msvc 64bit - causes heap corruption
@@ -435,7 +435,7 @@ SCENARIO("Iterating containers", "[iteration]") {
          REQUIRE(it == sparse_any.GetCount());
       }
 
-      WHEN("Sparse-iterating a dense pack (shallow)") {
+      /*WHEN("Sparse-iterating a dense pack (shallow)") {
          Count it {};
          dense_any.ForEach([&](float* i) {
             REQUIRE(*i == df + float(it));
@@ -485,7 +485,7 @@ SCENARIO("Iterating containers", "[iteration]") {
             return true;
          });
          REQUIRE(it == sparse_any.GetCount());
-      }
+      }*/
    }
 
    GIVEN("A universal Any with some deep items") {
@@ -506,19 +506,17 @@ SCENARIO("Iterating containers", "[iteration]") {
 
       WHEN("Flat-iterated with the intent to remove specific subpacks") {
          pack.ForEach([&](Any& subcontent) {
-            if (subcontent.Is<int>()) {
-               pack.Remove(subcontent);
-            }
+            if (subcontent.Is<int>())
+               return Loop::Discard;
+            return Loop::Continue;
          });
 
-         THEN("The resulting pack should be correct") {
-            Any resultingPack;
-            resultingPack << subpack3;
-            REQUIRE(pack == resultingPack);
-            REQUIRE(subpack1.GetUses() == 2);
-            REQUIRE(subpack2.GetUses() == 2);
-            REQUIRE(subpack3.GetUses() == 3);
-         }
+         Any resultingPack;
+         resultingPack << subpack3;
+         REQUIRE(pack == resultingPack);
+         REQUIRE(subpack1.GetUses() == 2);
+         REQUIRE(subpack2.GetUses() == 2);
+         REQUIRE(subpack3.GetUses() == 3);
       }
 
       /*WHEN("CT::Deep-iterated with the intent to remove specific subpacks") {

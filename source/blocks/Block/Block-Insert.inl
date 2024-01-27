@@ -46,7 +46,8 @@ namespace Langulus::Anyness
    THIS Block::Extend(const Count count) {
       const auto previousCount = mCount;
       AllocateMore<THIS, true>(mCount + count);
-      return CropInner(previousCount, count);
+      const auto newRegion = CropInner(previousCount, count);
+      return Copy(reinterpret_cast<const THIS&>(newRegion));
    }
 
    /// Create N new elements, using default construction                      

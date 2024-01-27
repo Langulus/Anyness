@@ -12,7 +12,8 @@
 
 struct Producible {
    int v;
-   Producible(int vv) : v(vv) {}
+
+   Producible(int vv) : v {vv} {}
 
    bool operator == (const Producible& a) const noexcept {
       return v == a.v;
@@ -41,8 +42,8 @@ SCENARIO("Test hives", "[hive]") {
 			REQUIRE(hive.mFrames.GetCount() == 1);
          REQUIRE(hive.mReusable == hive.mFrames[0].GetRaw() + 2);
          REQUIRE(hive.GetType() == MetaOf<Producible>());
-			REQUIRE(hive.mFrames[0][0].mData == Producible {1});
-			REQUIRE(hive.mFrames[0][1].mData == Producible {2});
+			REQUIRE(hive.mFrames[0].GetRaw()[0].mData == Producible {1});
+			REQUIRE(hive.mFrames[0].GetRaw()[1].mData == Producible {2});
 		}
 	}
 }

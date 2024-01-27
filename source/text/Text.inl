@@ -33,29 +33,17 @@ namespace Langulus::Anyness
    Text::Text(Text&& other) noexcept
       : Text {Move(other)} { }
 
-   /// Private constructor from Block                                         
-   ///   @attention assumes that block is properly strlen-ed, if not TextBased
-   ///   @param other - the block to initialize with                          
-   LANGULUS(INLINED)
-   Text::Text(Block&& other)
-      : Base {Forward<Block>(other)} {}
-
    /// Semantic text constructor                                              
    ///   @param other - the text container to use semantically                
    template<class T> requires CT::TextBased<Desem<T>> LANGULUS(INLINED)
    Text::Text(T&& other)
-      : Base {Forward<Base>(other)} {
-      /*if constexpr (not CT::Text<Desem<T>>) {
-         // Only Text container is guaranteed to be properly terminated 
-         mCount = strnlen(GetRaw(), mCount);
-      }*/
-   }
+      : Base {SemanticOf<T>(other).template Forward<Base>()} {}
 
    /// Construct from single character                                        
    ///   @param other - the character to copy                                 
    template<class T> requires CT::DenseCharacter<Desem<T>> LANGULUS(INLINED)
    Text::Text(T&& other) {
-      AllocateFresh<Text>(RequestSize<Text>(1));
+      Block::AllocateFresh<Text>(Block::RequestSize<Text>(1));
       (*this)[0] = DesemCast(other);
    }
 
@@ -81,7 +69,7 @@ namespace Langulus::Anyness
       if (not count)
          return;
 
-      SetMemory(DataState::Constrained, mType, count, DesemCast(other));
+      SetMemory(DataState::Constrained, GetType(), count, DesemCast(other));
       if constexpr (S::Move or S::Keep)
          TakeAuthority<Text>();
    }
@@ -104,7 +92,7 @@ namespace Langulus::Anyness
          count = DesemCast(other).size();
 
       SetMemory(
-         DataState::Constrained, mType,
+         DataState::Constrained, GetType(),
          DesemCast(other).size(), DesemCast(other).data()
       );
       if constexpr (S::Move or S::Keep)
@@ -177,7 +165,7 @@ namespace Langulus::Anyness
    /// Compose text by an arbitrary amount of formattable arguments           
    ///   @param ...args - the arguments                                       
    template<class T1, class T2, class...TN>
-   requires CT::Inner::Stringifiable<T1, T2, TN...>
+   requires CT::Inner::Stringifiable<T1, T2, TN...> LANGULUS(INLINED)
    Text::Text(T1&& t1, T2&& t2, TN&&...tn) {
       UnfoldInsert(Forward<T1>(t1));
       UnfoldInsert(Forward<T2>(t2));
@@ -187,9 +175,10 @@ namespace Langulus::Anyness
    /// Semantic construction from count-terminated array                      
    ///   @param text - text memory to wrap                                    
    ///   @param count - number of characters inside text                      
-   template<class T> requires CT::String<Desem<T>>
+   template<class T> requires CT::String<Desem<T>> LANGULUS(INLINED)
    Text Text::From(T&& text, Count count) {
-      return Base::From(Forward<T>(text), count);
+      auto temp = Base::From(Forward<T>(text), count);
+      return Abandon(reinterpret_cast<Text&>(temp));
    }
 
    /// Shallow copy assignment                                                
@@ -215,75 +204,6 @@ namespace Langulus::Anyness
       Base::operator = (Forward<T>(rhs));
       return *this;
    }
-
-   /// Assign a single character                                              
-   ///   @param rhs - the character                                           
-   ///   @return a reference to this container                                
-   /*template<class T> requires CT::DenseCharacter<Desem<T>> LANGULUS(INLINED)
-   Text& Text::operator = (T&& rhs) {
-      Base::operator = (Forward<T>(rhs));
-      return *this;
-   }
-
-   /// Assign a null-terminated string pointer                                
-   ///   @param rhs - the pointer                                             
-   ///   @return a reference to this container                                
-   template<class T> requires CT::StringPointer<Desem<T>> LANGULUS(INLINED)
-   Text& Text::operator = (T&& rhs) {
-      Base::operator = (Forward<T>(rhs));
-
-      // Base constructor should handle initialization from anything    
-      // TAny<Letter> based, but it will not make any null-             
-      // termination corrections, so we have to do them here.           
-      if constexpr (not CT::Text<Desem<T>>)
-         mCount = strlen(GetRaw());
-
-      using S = SemanticOf<T>;
-      if constexpr (S::Move or S::Keep)
-         TakeAuthority<Text>();
-      return *this;
-   }
-   
-   /// Assign a bounded array string                                          
-   ///   @param rhs - the pointer                                             
-   ///   @return a reference to this container                                
-   template<class T> requires CT::StringLiteral<Desem<T>> LANGULUS(INLINED)
-   Text& Text::operator = (T&& rhs) {
-      Base::operator = (Forward<T>(rhs));
-
-      // Base constructor should handle initialization from anything    
-      // TAny<Letter> based, but it will not make any null-             
-      // termination corrections, so we have to do them here.           
-      if constexpr (not CT::Text<Desem<T>>)
-         mCount = strnlen(GetRaw(), ExtentOf<Desem<T>>);
-
-      using S = SemanticOf<T>;
-      if constexpr (S::Move or S::Keep)
-         TakeAuthority<Text>();
-      return *this;
-   }
-
-   /// Assign any standard contiguous range statically typed with             
-   /// characters. This includes std::string, string_view, span, vector,      
-   /// array, etc. Containers that aren't strings will be strnlen'ed          
-   ///   @param rhs - the string and semantic                                 
-   ///   @return a reference to this container                                
-   template<class T> requires (CT::StandardContiguousContainer<Desem<T>>
-                          and  CT::DenseCharacter<TypeOf<Desem<T>>>)
-   LANGULUS(INLINED) Text& Text::operator = (T&& rhs) {
-      Base::operator = (Forward<T>(rhs));
-
-      Count count;
-      if constexpr (not ::std::is_convertible_v<Desem<T>, std::string_view>)
-         count = strnlen(DesemCast(rhs).data(), DesemCast(rhs).size());
-      else
-         count = DesemCast(rhs).size();
-
-      using S = SemanticOf<T>;
-      if constexpr (S::Move or S::Keep)
-         TakeAuthority<Text>();
-      return *this;
-   }*/
 
    #if LANGULUS_FEATURE(UNICODE)
       /// Widen the text container to the utf16                               

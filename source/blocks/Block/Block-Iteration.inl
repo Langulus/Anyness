@@ -28,21 +28,53 @@ namespace Langulus::Anyness
       static_assert(CT::Constant<A> or CT::Mutable<THIS>,
          "Non constant iterator for constant memory block");
 
-      Count index {};
+      Count index = REVERSE ? mCount - 1 : 0;
+      const auto next = [&index] {
+         if constexpr (REVERSE)  --index;
+         else                    ++index;
+      };
+
       while (index < mCount) {
          A block = GetElement(index);
+
          if constexpr (CT::Bool<R>) {
             // If F returns bool, you can decide when to break the loop 
             // by simply returning false                                
             if (not call(block))
-               return index + 1;
+               return REVERSE ? mCount - index : index + 1;
+            next();
          }
-         else call(block);
-
-         ++index;
+         else if constexpr (CT::Exact<R, LoopControl>) {
+            // Do things depending on the F's return                    
+            const auto loop = call(block);
+            switch (loop) {
+            case Loop::Break:
+               return REVERSE ? mCount - index : index + 1;
+            case Loop::Continue:
+               next();
+               break;
+            case Loop::Discard:
+               if constexpr (CT::Mutable<THIS>) {
+                  // Discard is allowed only if THIS is mutable         
+                  const_cast<Block*>(this)
+                     ->template RemoveIndex<THIS>(index);
+                  if constexpr (REVERSE)
+                     next();
+               }
+               else {
+                  // ...otherwise it acts like a Loop::Continue         
+                  next();
+               }
+               break;
+            }
+         }
+         else {
+            call(block);
+            next();
+         }
       }
 
-      return index;
+      return mCount;
    }
 
    /// Execute functions for each element inside container                    
@@ -59,10 +91,9 @@ namespace Langulus::Anyness
          return 0;
 
       Count result = 0;
-      (void) (... or (0 != (
-         result = ForEachInner<THIS, ReturnOf<F>, ArgumentOf<F>, REVERSE>(
-            Forward<F>(calls)))
-      ));
+      (void) (... or (Loop::NextLoop != (
+         ForEachInner<THIS, REVERSE>(Forward<F>(calls), result)
+      )));
       return result;
    }
 
@@ -71,7 +102,7 @@ namespace Langulus::Anyness
    /// Each function has a distinct argument type, that is tested against the 
    /// contained type. If argument is compatible with the type, the block is  
    /// iterated, and F is executed for all elements. None of the provided     
-   /// functions are ignored.                                                 
+   /// functions are ignored, unless Loop::Break is called.                   
    ///   @tparam REVERSE - whether to iterate in reverse                      
    ///   @tparam SKIP - set to false, to execute F for intermediate blocks,   
    ///                  too; otherwise will execute only for non-blocks       
@@ -80,9 +111,9 @@ namespace Langulus::Anyness
    template<bool REVERSE, bool SKIP, CT::Block THIS, class...F>
    LANGULUS(INLINED) Count Block::ForEachDeep(F&&...calls) const {
       Count result = 0;
-      ((result += ForEachDeepInner<THIS, ReturnOf<F>, ArgumentOf<F>, REVERSE, SKIP>(
-         Forward<F>(calls))
-      ), ...);
+      (void)(... or (Loop::Break != (
+         ForEachDeepInner<THIS, REVERSE, SKIP>(Forward<F>(calls), result)
+      )));
       return result;
    }
 
@@ -108,117 +139,107 @@ namespace Langulus::Anyness
    /// successfull execution                                                  
    ///   @attention assumes block is not empty                                
    ///   @attention assumes block is typed                                    
-   ///   @tparam R - the function return type                                 
-   ///               if R is boolean, loop will cease on f() returning false  
-   ///   @tparam A - the function argument type                               
    ///   @tparam REVERSE - whether to iterate in reverse                      
    ///   @param f - the function to execute for each element of type A        
-   ///   @return the number of executions that occured                        
-   template<CT::Block THIS, class R, CT::Data A, bool REVERSE> LANGULUS(INLINED)
-   Count Block::ForEachInner(auto&& f) const
+   ///   @return the last 'f' result                                          
+   template<CT::Block THIS, bool REVERSE> LANGULUS(INLINED)
+   LoopControl Block::ForEachInner(auto&& f, Count& index) const
    noexcept(NoexceptIterator<decltype(f)>) {
+      using F = Deref<decltype(f)>;
+      using A = ArgumentOf<F>;
+      using R = ReturnOf<F>;
       constexpr auto NOE = NoexceptIterator<decltype(f)>;
 
-      if ((CT::Deep<Decay<A>> and IsDeep<THIS>())
-      or (not CT::Deep<Decay<A>> and CastsTo<A>())) {
-         Count index = 0;
-
+      if (   (CT::Deep<A> and IsDeep<THIS>())
+      or (not CT::Deep<A> and CastsTo<A>())) {
          if (mType->mIsSparse) {
             // Iterate using pointers of A                              
-            using DA = Conditional<CT::Mutable<THIS>, Decay<A>*, const Decay<A>*>;
-            IterateInner<THIS, R, DA, REVERSE>(mCount,
+            using DA = Conditional<CT::Mutable<THIS>, Deref<A>*, const Deref<A>*>;
+            return IterateInner<THIS, REVERSE>(mCount,
                [&index, &f](DA element) noexcept(NOE) -> R {
                   ++index;
-                  if constexpr (CT::Sparse<A>)  return f(element);
-                  else                          return f(*element);
+                  return f(*element);
                }
             );
          }
          else {
             // Iterate using references of A                            
-            using DA = Conditional<CT::Mutable<THIS>, Decay<A>&, const Decay<A>&>;
-            IterateInner<THIS, R, DA, REVERSE>(mCount,
+            using DA = Conditional<CT::Mutable<THIS>, Deref<A>&, const Deref<A>&>;
+            return IterateInner<THIS, REVERSE>(mCount,
                [&index, &f](DA element) noexcept(NOE) -> R {
                   ++index;
-                  if constexpr (CT::Sparse<A>)  return f(&element);
-                  else                          return f(element);
+                  return f(element);
                }
             );
          }
-
-         return index;
       }
-      else return 0;
+      else return Loop::NextLoop;
    }
    
    /// Iterate and execute call for each deep element                         
-   ///   @tparam R - the function return type (deduced)                       
-   ///               if R is boolean, loop will cease on returning false      
-   ///   @tparam A - the function argument type (deduced)                     
-   ///               A must be a CT::Block type                               
    ///   @tparam REVERSE - whether to iterate in reverse                      
    ///   @tparam SKIP - whether to execute call for intermediate blocks       
    ///   @param call - the function to execute for each element of type A     
    ///   @return the number of executions that occured                        
-   template<CT::Block THIS, class R, CT::Data A, bool REVERSE, bool SKIP>
-   Count Block::ForEachDeepInner(auto&& call) const {
-      constexpr bool HasBreaker = CT::Bool<R>;
-      constexpr bool Mutable = CT::Mutable<THIS>;
-      using SubBlock = Conditional<Mutable, Block&, const Block&>;
-      Count counter = 0;
+   template<CT::Block THIS, bool REVERSE, bool SKIP>
+   LoopControl Block::ForEachDeepInner(auto&& call, Count& counter) const {
+      using F = Deref<decltype(call)>;
+      using A = ArgumentOf<F>;
+      using R = ReturnOf<F>;
+      using SubBlock = Conditional<CT::Mutable<THIS>, Block&, const Block&>;
 
-      if constexpr (CT::Deep<Decay<A>>) {
+      if constexpr (CT::Deep<A>) {
          if (not SKIP or not IsDeep<THIS>()) {
             // Always execute for intermediate/non-deep *this           
             ++counter;
 
-            auto b = reinterpret_cast<Decay<A>*>(const_cast<Block*>(this));
-            if constexpr (CT::Dense<A>) {
-               if constexpr (HasBreaker) {
-                  if (not call(*b))
-                     return counter;
-               }
-               else call(*b);
+            auto b = reinterpret_cast<Deref<A>*>(const_cast<Block*>(this));
+            if constexpr (CT::Bool<R>) {
+               if (not call(*b))
+                  return Loop::Break;
             }
-            else {
-               if constexpr (HasBreaker) {
-                  if (not call(b))
-                     return counter;
+            else if constexpr (CT::Exact<R, LoopControl>) {
+               // Do things depending on the F's return                 
+               const auto loop = call(*b);
+               switch (loop) {
+               case Loop::Break:
+                  return Loop::Break;
+               case Loop::Continue:
+                  break;
+               case Loop::Discard:
+                  if constexpr (CT::Mutable<THIS>) {
+                     // Discard is allowed only if THIS is mutable      
+                     // You can't fully discard the topmost block,      
+                     // only reset it                                   
+                     const_cast<Block*>(this)->template Reset<THIS>();
+                     return Loop::Discard;
+                  }
+                  else {
+                     // ...otherwise it acts like a Loop::Continue      
+                     break;
+                  }
                }
-               else call(b);
             }
-         }
-
-         if (IsDeep<THIS>()) {
-            // Iterate using a block type                               
-            ForEachInner<THIS, void, SubBlock, REVERSE>(
-               [&counter, &call](SubBlock group) {
-                  counter += DenseCast(group).template
-                     ForEachDeepInner<SubBlock, R, A, REVERSE, SKIP>(
-                        ::std::move(call));
-               }
-            );
-         }
-      }
-      else {
-         if (IsDeep<THIS>()) {
-            // Iterate deep using non-block type                        
-            ForEachInner<THIS, void, SubBlock, REVERSE>(
-               [&counter, &call](SubBlock group) {
-                  counter += DenseCast(group).template
-                     ForEachDeepInner<SubBlock, R, A, REVERSE, SKIP>(
-                        ::std::move(call));
-               }
-            );
-         }
-         else {
-            // Equivalent to non-deep iteration                         
-            counter += ForEachInner<THIS, R, A, REVERSE>(
-               ::std::move(call));
+            else call(*b);
          }
       }
 
-      return counter;
+      if (IsDeep<THIS>()) {
+         // Iterate subblocks                                           
+         return ForEachInner<THIS, REVERSE>(
+            [&counter, &call](SubBlock group) {
+               return DenseCast(group).template
+                  ForEachDeepInner<SubBlock, REVERSE, SKIP>(
+                     ::std::move(call), counter);
+            }, counter
+         );
+      }
+      else if constexpr (not CT::Deep<A>) {
+         // Equivalent to non-deep iteration                            
+         return ForEachInner<THIS, REVERSE>(::std::move(call), counter);
+      }
+
+      return Loop::Continue;
    }
 
    /// Execute a function for each element inside container                   
@@ -226,14 +247,15 @@ namespace Langulus::Anyness
    ///   @attention assumes A is binary compatible with the contained type    
    ///   @attention assumes block is not empty                                
    ///   @attention assumes sparseness matches                                
-   ///   @tparam R - optional call return (deducible)                         
-   ///               if R is boolean, loop will cease on returning false      
-   ///   @tparam A - iterator type (deducible)                                
    ///   @tparam REVERSE - direction we're iterating in                       
    ///   @param call - the constexpr noexcept function to call on each item   
-   template<CT::Block THIS, class R, CT::Data A, bool REVERSE> LANGULUS(INLINED)
-   void Block::IterateInner(const Count count, auto&& f) const
+   template<CT::Block THIS, bool REVERSE> LANGULUS(INLINED)
+   LoopControl Block::IterateInner(const Count count, auto&& f) const
    noexcept(NoexceptIterator<decltype(f)>) {
+      using F = Deref<decltype(f)>;
+      using A = ArgumentOf<F>;
+      using R = ReturnOf<F>;
+
       static_assert(CT::Complete<Decay<A>> or CT::Sparse<A>,
          "Can't iterate with incomplete type, use pointer instead");
       static_assert(CT::Constant<Deptr<A>> or CT::Mutable<THIS>,
@@ -259,81 +281,58 @@ namespace Langulus::Anyness
       // Should be optimized-out when !MUTABLE                          
       using DA = Deref<A>;
       const auto raw = const_cast<Block*>(this)->GetRawAs<DA, THIS>();
-      UNUSED() DA* initialData;
-      UNUSED() Count initialCount;
-      if constexpr (CT::Mutable<THIS>) {
-         initialData = raw;
-         initialCount = count;
-      }
 
       // Prepare for the loop                                           
-      constexpr bool HasBreaker = CT::Bool<R>;
       auto data = raw;
       if constexpr (REVERSE)
          data += count - 1;
+      const auto next = [&data] {
+         if constexpr (REVERSE)  --data;
+         else                    ++data;
+      };
 
       auto dataEnd = REVERSE ? raw - 1 : raw + count;
       while (data != dataEnd) {
          // Execute function                                            
-         if constexpr (HasBreaker) {
-            if (not f(*data)) {
-               // Early return, if function returns a false bool        
-               return;
-            }
+         if constexpr (CT::Bool<R>) {
+            if (not f(*data))
+               return Loop::Break;
+            next();
          }
-         else f(*data);
-
-         if constexpr (CT::Mutable<THIS>) {
-            // The block might change while iterating - make sure we    
-            // consider this. It is always assumed, that the change     
-            // happened in the last call at '*data'                     
-            if (raw != initialData) {
-               // Memory moved, so we have to recalculate iterators     
-               // based on the new memory (can happen independently)    
-               data = raw + (data - initialData);
-               if constexpr (REVERSE)
-                  dataEnd = raw - 1;
-               else
-                  dataEnd = raw + count;
-
-               initialData = raw;
-            }
-
-            if (count > initialCount) {
-               // Something was inserted at that position, so make sure 
-               // we skip the addition and extend the 'dataEnd'         
-               const auto addition = count - initialCount;
-               if constexpr (REVERSE)
-                  data -= addition;
-               else {
-                  data += addition;
-                  dataEnd += addition;
+         else if constexpr (CT::Exact<R, LoopControl>) {
+            // Do things depending on the F's return                    
+            const auto loop = f(*data);
+            switch (loop.mControl) {
+            case LoopControl::Break:
+            case LoopControl::NextLoop:
+               return loop;
+            case LoopControl::Continue:
+               next();
+               break;
+            case LoopControl::Discard:
+               if constexpr (CT::Mutable<THIS>) {
+                  // Discard is allowed only if THIS is mutable         
+                  const_cast<Block*>(this)
+                     ->template RemoveIndex<THIS>(raw - data);
+                  if constexpr (REVERSE)
+                     next();
+                  else
+                     --dataEnd;
                }
-
-               initialCount = count;
-            }
-            else if (count < initialCount) {
-               // Something was removed at current position, so make    
-               // sure we don't advance the iterator - it's already on  
-               // the next relevant element. There is no danger for     
-               // memory moving in this case                            
-               const auto removed = initialCount - count;
-               if constexpr (not REVERSE)
-                  dataEnd -= removed;
-
-               initialCount = count;
-
-               // Skip incrementing/decrementing                        
-               continue;
+               else {
+                  // ...otherwise it acts like a Loop::Continue         
+                  next();
+               }
+               break;
             }
          }
-
-         // Next element                                                
-         if constexpr (REVERSE)
-            --data;
-         else
-            ++data;
+         else {
+            f(*data);
+            next();
+         }
       }
+
+      return Loop::Continue;
    }
    
    /// Get iterator to first element                                          

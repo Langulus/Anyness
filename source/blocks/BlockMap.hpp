@@ -295,13 +295,13 @@ namespace Langulus::Anyness
 
    protected:
       template<CT::Map, bool REVERSE>
-      Count ForEachElement(const CT::Block auto&, auto&&) const;
+      LoopControl ForEachElementInner(const CT::Block auto&, auto&&, Count&) const;
 
-      template<CT::Map, class R, CT::Data A, bool REVERSE>
-      Count ForEachInner(const CT::Block auto&, auto&&) const;
+      template<CT::Map, bool REVERSE>
+      LoopControl ForEachInner(const CT::Block auto&, auto&&, Count&) const;
 
-      template<CT::Map, class R, CT::Data A, bool REVERSE, bool SKIP>
-      Count ForEachDeepInner(const CT::Block auto&, auto&&) const;
+      template<CT::Map, bool REVERSE, bool SKIP>
+      LoopControl ForEachDeepInner(const CT::Block auto&, auto&&, Count&) const;
 
    public:
       ///                                                                     
