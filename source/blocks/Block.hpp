@@ -336,9 +336,9 @@ namespace Langulus::Anyness
       NOD() constexpr auto GetRawEnd() const noexcept;
 
       template<CT::BlockBased = Any>
-      NOD() auto GetRawSparse()       IF_UNSAFE(noexcept);
+      NOD() IF_UNSAFE(constexpr) auto GetRawSparse()       IF_UNSAFE(noexcept);
       template<CT::BlockBased = Any>
-      NOD() auto GetRawSparse() const IF_UNSAFE(noexcept);
+      NOD() IF_UNSAFE(constexpr) auto GetRawSparse() const IF_UNSAFE(noexcept);
 
       template<CT::Data T, CT::BlockBased = Any>
       NOD() T*       GetRawAs() noexcept;
@@ -658,6 +658,7 @@ namespace Langulus::Anyness
       template<CT::Block = Any>
       void Free();
 
+      IF_UNSAFE(constexpr)
       void SetMemory(const DataState&, DMeta, Count) IF_UNSAFE(noexcept);
       void SetMemory(const DataState&, DMeta, Count, const void*) IF_UNSAFE(noexcept);
       void SetMemory(const DataState&, DMeta, Count, void*) IF_UNSAFE(noexcept);
