@@ -156,7 +156,7 @@ namespace Langulus::Anyness
             ", using type `", NameOf<K>(), "` instead of `", GetKeyType(), '`');
          return GetKeys<THIS>().GetRaw() + i;
       }
-      else return GetKeys<THIS>().GetElement(i);
+      else return GetKeys<THIS>().GetElementInner(i);
    }
    
    template<CT::Map THIS> LANGULUS(INLINED)
@@ -198,7 +198,7 @@ namespace Langulus::Anyness
             ", using type `", NameOf<V>(), "` instead of `", GetValueType(), '`');
          return GetVals<THIS>().GetRaw() + i;
       }
-      else return GetVals<THIS>().GetElement(i);
+      else return GetVals<THIS>().GetElementInner(i);
    }
 
    template<CT::Map THIS> LANGULUS(INLINED)
@@ -241,7 +241,7 @@ namespace Langulus::Anyness
             ", using type `", NameOf<K>(), "` instead of `", GetKeyType(), '`');
          return GetKeys<THIS>().GetHandle(i);
       }
-      else return GetKeys<THIS>().GetElement(i);
+      else return GetKeys<THIS>().GetElementInner(i);
    }
    
    /// Get a value handle if THIS is typed, otherwise get a block             
@@ -262,7 +262,7 @@ namespace Langulus::Anyness
             ", using type `", NameOf<V>(), "` instead of `", GetValueType(), '`');
          return GetVals<THIS>().GetHandle(i);
       }
-      else return GetVals<THIS>().GetElement(i);
+      else return GetVals<THIS>().GetElementInner(i);
    }
 
 } // namespace Langulus::Anyness

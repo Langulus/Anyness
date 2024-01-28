@@ -51,7 +51,7 @@ namespace Langulus::Anyness
    ///   @tparam REUSE - true to reallocate, false to allocate fresh          
    ///   @param count - the new number of pairs                               
    template<CT::Set THIS, bool REUSE>
-   void BlockSet::AllocateData(Count count) {
+   void BlockSet::AllocateData(const Count count) {
       LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(count),
          "Table reallocation count is not a power-of-two");
       LANGULUS_ASSUME(DevAssumes, mKeys.mType,
@@ -85,19 +85,19 @@ namespace Langulus::Anyness
          // Check if keys were reused                                   
          if (mKeys.mEntry == old.mKeys.mEntry) {
             // Data was reused, but info always moves (null the rest)   
-            MoveMemory(mInfo, old.mInfo, old.GetCount());
-            ZeroMemory(mInfo + old.GetCount(), count - old.GetCount());
+            MoveMemory(mInfo, old.mInfo, old.GetReserved());
+            ZeroMemory(mInfo + old.GetReserved(), count - old.GetReserved());
 
             // Data was reused, but entries always move if sparse keys  
             if (me.IsSparse()) {
                MoveMemory(
                   mKeys.mRawSparse + count,
-                  mKeys.mRawSparse + old.GetCount(),
-                  old.GetCount()
+                  mKeys.mRawSparse + old.GetReserved(),
+                  old.GetReserved()
                );
             };
 
-            Rehash<THIS>(old.GetCount());
+            Rehash<THIS>(old.GetReserved());
             return;
          }
       }
@@ -161,7 +161,7 @@ namespace Langulus::Anyness
    ///   @attention assumes count is a power-of-two number                    
    ///   @param count - number of pairs to allocate                           
    template<CT::Set THIS> LANGULUS(INLINED)
-   void BlockSet::AllocateInner(Count count) {
+   void BlockSet::AllocateInner(const Count count) {
       // Shrinking is never allowed, you'll have to do it explicitly    
       // via Compact()                                                  
       if (count <= GetReserved())
@@ -177,7 +177,7 @@ namespace Langulus::Anyness
    /// Reference memory block if we own it                                    
    ///   @param times - number of references to add                           
    LANGULUS(INLINED)
-   void BlockSet::Reference(Count times) const noexcept {
+   void BlockSet::Reference(const Count times) const noexcept {
       mKeys.Reference(times);
    }
    
@@ -209,6 +209,8 @@ namespace Langulus::Anyness
          // Data is used from multiple locations, just deref            
          const_cast<Allocation*>(mKeys.mEntry)->Free();
       }
+
+      mKeys.mEntry = nullptr;
    }
 
 } // namespace Langulus::Anyness

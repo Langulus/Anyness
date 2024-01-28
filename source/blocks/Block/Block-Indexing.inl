@@ -219,21 +219,15 @@ namespace Langulus::Anyness
       return result;
    }
 
-   /// Get a specific element block (unsafe)                                  
+   /// Public function, to get a specific element block                       
+   /// The resulting container will be a static view                          
    ///   @param index - the element's index                                   
    ///   @return the element's block                                          
    LANGULUS(INLINED)
    Block Block::GetElement(Offset index) IF_UNSAFE(noexcept) {
-      LANGULUS_ASSUME(DevAssumes, mRaw,
-         "Invalid memory");
-      LANGULUS_ASSUME(DevAssumes, index < mReserved,
-         "Index out of range");
-
-      Block result {*this};
+      Block result = GetElementInner(index);
       result.mState += DataState::Static;
       result.mState -= DataState::Or;
-      result.mCount = 1;
-      result.mRaw += index * mType->mSize;
       return result;
    }
 
@@ -242,6 +236,28 @@ namespace Langulus::Anyness
       auto result = const_cast<Block*>(this)->GetElement(index);
       result.MakeConst();
       return result;
+   }
+   
+   /// Get a specific element block (inner, unsafe)                           
+   ///   @attention will not make the resulting block static or const         
+   ///   @param index - the element's index                                   
+   ///   @return the element's block                                          
+   LANGULUS(INLINED)
+   Block Block::GetElementInner(Offset index) IF_UNSAFE(noexcept) {
+      LANGULUS_ASSUME(DevAssumes, mRaw,
+         "Invalid memory");
+      LANGULUS_ASSUME(DevAssumes, index < mReserved,
+         "Index out of range");
+
+      Block result {*this};
+      result.mCount = 1;
+      result.mRaw += index * mType->mSize;
+      return result;
+   }
+
+   LANGULUS(INLINED)
+   Block Block::GetElementInner(Offset index) const IF_UNSAFE(noexcept) {
+      return const_cast<Block*>(this)->GetElementInner(index);
    }
 
    /// Get a deep memory sub-block                                            
@@ -393,8 +409,8 @@ namespace Langulus::Anyness
          SemanticAssign(data[from], Abandon(temp));
       }
       else {
-         auto fblock = GetElement(from);
-         auto tblock = GetElement(to);
+         auto fblock = GetElementInner(from);
+         auto tblock = GetElementInner(to);
          fblock.template Swap<THIS>(Abandon(tblock));
       }
    }

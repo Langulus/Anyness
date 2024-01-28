@@ -112,6 +112,7 @@ namespace Langulus::Anyness
       NOD() constexpr bool IsMissingDeep() const;
       NOD() constexpr bool IsConcatable(const CT::Block auto&) const noexcept;
       NOD() constexpr bool IsInsertable(DMeta) const noexcept;
+      template<CT::Data>
       NOD() constexpr bool IsInsertable() const noexcept;
 
    protected: IF_LANGULUS_TESTING(public:)
@@ -122,10 +123,10 @@ namespace Langulus::Anyness
       template<class THIS = TAny<T>>
       NOD() constexpr auto GetRawEnd() const noexcept;
 
+      template<class = TAny<T>>
+      NOD() IF_UNSAFE(constexpr) auto GetRawSparse()       IF_UNSAFE(noexcept);
       template<class = TAny<T>> IF_UNSAFE(constexpr)
-      NOD() auto GetRawSparse()       IF_UNSAFE(noexcept);
-      template<class = TAny<T>> IF_UNSAFE(constexpr)
-      NOD() auto GetRawSparse() const IF_UNSAFE(noexcept);
+      NOD() IF_UNSAFE(constexpr) auto GetRawSparse() const IF_UNSAFE(noexcept);
 
       template<CT::Data T1, class = TAny<T>>
       NOD() T1*       GetRawAs() noexcept;
@@ -363,7 +364,7 @@ namespace Langulus::Anyness
       using Any::FromBlock;
       using Any::FromState;
       using Any::From;
-      using Any::WrapAs;
+      using Any::Wrap;
       using Any::SetType;
       using Any::MakeTypeConstrained;
       using Any::GetResolved;

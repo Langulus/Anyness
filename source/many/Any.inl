@@ -51,17 +51,17 @@ namespace Langulus::Anyness
          using T = TypeOf<S>;
 
          if constexpr (CT::Deep<T>)
-            BlockTransfer<Any>(S::Nest(t1));
+            Block::BlockTransfer<Any>(S::Nest(t1));
          else
-            Insert<Any, Any, true>(IndexBack, Forward<T1>(t1));
+            Block::Insert<Any, Any, true>(IndexBack, Forward<T1>(t1));
       }
-      else Insert<Any, Any, true>(IndexBack, Forward<T1>(t1), Forward<TAIL>(tail)...);
+      else Block::Insert<Any, Any, true>(IndexBack, Forward<T1>(t1), Forward<TAIL>(tail)...);
    }
 
    /// Destruction                                                            
    LANGULUS(INLINED)
    Any::~Any() {
-      Free<Any>();
+      Block::Free<Any>();
    }
 
    /// Create an empty Any from a dynamic type and state                      
@@ -98,31 +98,6 @@ namespace Langulus::Anyness
    template<CT::Data T> LANGULUS(INLINED)
    Any Any::From(DataState state) noexcept {
       return Block {state, MetaDataOf<T>()};
-   }
-
-   /// Pack any number of similarly typed elements sequentially               
-   ///   @tparam AS - the type to wrap elements as                            
-   ///                use 'void' to deduce AS from the HEAD                   
-   ///                (void by default)                                       
-   ///   @tparam T1 - the first element type (deducible)                      
-   ///   @tparam T2 - the first element type (deducible)                      
-   ///   @tparam TN... - the rest of the element types (deducible)            
-   ///   @param t1 - first element                                            
-   ///   @param t2 - second element                                           
-   ///   @param tail... - the rest of the elements                            
-   ///   @returns the new container containing the data                       
-   template<class AS, CT::Data T1, CT::Data T2, CT::Data... TN>
-   LANGULUS(INLINED) Any Any::WrapAs(T1&& t1, T2&& t2, TN&&... tail) {
-      if constexpr (CT::Void<AS>) {
-         static_assert(CT::Exact<T1, T2, TN...>, "Type mismatch");
-         return {Forward<T1>(t1), Forward<T2>(t2), Forward<TN>(tail)...};
-      }
-      else {
-         static_assert(CT::DerivedFrom<T1, AS>, "T1 not related");
-         static_assert(CT::DerivedFrom<T2, AS>, "T2 not related");
-         static_assert((CT::DerivedFrom<TN, AS> and ...), "Tail not related");
-         return {Forward<AS>(t1), Forward<AS>(t2), Forward<AS>(tail)...};
-      }
    }
    
    /// Shallow-copy assignment                                                
@@ -172,7 +147,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container for chaining                   
    LANGULUS(INLINED)
    Any& Any::operator << (CT::Inner::UnfoldInsertable auto&& other) {
-      Insert<Any, Any, true>(IndexBack, Forward<decltype(other)>(other));
+      Block::Insert<Any, Any, true>(IndexBack, Forward<decltype(other)>(other));
       return *this;
    }
    
@@ -181,7 +156,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container for chaining                   
    LANGULUS(INLINED)
    Any& Any::operator >> (CT::Inner::UnfoldInsertable auto&& other) {
-      Insert<Any, Any, true>(IndexFront, Forward<decltype(other)>(other));
+      Block::Insert<Any, Any, true>(IndexFront, Forward<decltype(other)>(other));
       return *this;
    }
 
@@ -190,7 +165,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container for chaining                   
    LANGULUS(INLINED)
    Any& Any::operator <<= (CT::Inner::UnfoldInsertable auto&& other) {
-      Merge<Any, Any, true>(IndexBack, Forward<decltype(other)>(other));
+      Block::Merge<Any, Any, true>(IndexBack, Forward<decltype(other)>(other));
       return *this;
    }
 
@@ -199,7 +174,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container for chaining                   
    LANGULUS(INLINED)
    Any& Any::operator >>= (CT::Inner::UnfoldInsertable auto&& other) {
-      Merge<Any, Any, true>(IndexFront, Forward<decltype(other)>(other));
+      Block::Merge<Any, Any, true>(IndexFront, Forward<decltype(other)>(other));
       return *this;
    }
 

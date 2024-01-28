@@ -147,7 +147,7 @@ namespace Langulus::Anyness
             ", using type `", NameOf<K>(), "` instead of `", GetType(), '`');
          return GetValues<THIS>().GetRaw() + i;
       }
-      else return GetValues<THIS>().GetElement(i);
+      else return GetValues<THIS>().GetElementInner(i);
    }
 
    template<CT::Set THIS> LANGULUS(INLINED)
@@ -195,7 +195,7 @@ namespace Langulus::Anyness
    ///   @param i - the key index                                             
    ///   @return the handle                                                   
    template<CT::Set THIS> LANGULUS(INLINED)
-   auto BlockSet::GetHandle(const Offset i) const IF_UNSAFE(noexcept) {
+   auto BlockSet::GetHandle(const Offset i) IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, i < GetReserved(),
          "Index out of limits when accessing map key",
          ", index ", i, " is beyond the reserved ", GetReserved(), " elements");
@@ -207,7 +207,7 @@ namespace Langulus::Anyness
             ", using type `", NameOf<K>(), "` instead of `", GetType(), '`');
          return GetValues<THIS>().GetHandle(i);
       }
-      else return GetValues<THIS>().GetElement(i);
+      else return GetValues<THIS>().GetElementInner(i);
    }
 
 } // namespace Langulus::Anyness

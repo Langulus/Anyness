@@ -40,26 +40,26 @@ namespace Langulus::Anyness
    /// Unfold constructor                                                     
    /// If there's one set argument, it will be absorbed                       
    ///   @param t1 - first element (can be semantic)                          
-   ///   @param tail... - the rest of the elements (optional, can be semantic)
-   TEMPLATE() template<class T1, class...TAIL>
-   requires CT::Inner::UnfoldInsertable<T1, TAIL...>
-   LANGULUS(INLINED) TABLE()::Set(T1&& t1, TAIL&&...tail) {
-      if constexpr (sizeof...(TAIL) == 0) {
+   ///   @param tn... - the rest of the elements (optional, can be semantic)  
+   TEMPLATE() template<class T1, class...TN>
+   requires CT::Inner::UnfoldInsertable<T1, TN...> LANGULUS(INLINED)
+   TABLE()::Set(T1&& t1, TN&&...tn) {
+      if constexpr (sizeof...(TN) == 0) {
          using S = SemanticOf<T1>;
          using T = TypeOf<S>;
 
          if constexpr (CT::Set<T>)
-            BlockTransfer<Set>(S::Nest(t1));
+            BlockSet::BlockTransfer<Set>(S::Nest(t1));
          else
             Insert<Set>(Forward<T1>(t1));
       }
-      else Insert<Set>(Forward<T1>(t1), Forward<TAIL>(tail)...);
+      else Insert<Set>(Forward<T1>(t1), Forward<TN>(tn)...);
    }
 
    /// Set destructor                                                         
    TEMPLATE() LANGULUS(INLINED)
    TABLE()::~Set() {
-      Free<Set>();
+      BlockSet::Free<Set>();
    }
 
    /// Copy assignment                                                        
@@ -92,7 +92,7 @@ namespace Langulus::Anyness
           == static_cast<const BlockSet*>(&DesemCast(rhs)))
             return *this;
 
-         Free<Set>();
+         BlockSet::Free<Set>();
          new (this) Set {S::Nest(rhs)};
       }
       else {

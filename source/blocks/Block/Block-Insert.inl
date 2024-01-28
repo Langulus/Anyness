@@ -929,62 +929,6 @@ namespace Langulus::Anyness
       }
    }
 
-   /// Call a specific constructors in a region, initializing memory          
-   ///   @attention never modifies any block state                            
-   ///   @attention assumes elements are uninitialized, despite mCount being  
-   ///      set to the desired size                                           
-   ///   @tparam A... - arguments to pass to constructor (deducible)          
-   ///   @param arguments... - the arguments to forward to constructors       
-   /*template<CT::Block THIS, class...A> requires CT::Typed<THIS>
-   void Block::Create(A&&...arguments) const {
-      LANGULUS_ASSUME(DevAssumes, mCount and mCount <= mReserved,
-         "Count outside limits", '(', mCount, " > ", mReserved);
-      using T = TypeOf<THIS>;
-      auto mthis = const_cast<Block*>(this);
-
-      if constexpr (sizeof...(A) == 0) {
-         // No arguments, just fallback to default construction         
-         CallDefaultConstructors<THIS>(mCount);
-      }
-      else if constexpr (CT::Sparse<T>) {
-         static_assert(sizeof...(A) == 1, "Bad argument");
-         using AA = FirstOf<A...>;
-
-         // Construct pointers                                          
-         auto lhs = mthis->GetRaw<THIS>();
-         const auto lhsEnd = lhs + mCount;
-         auto lhsEntry = mthis->GetEntries<THIS>();
-
-         while (lhs != lhsEnd) {
-            if constexpr (CT::Handle<AA> and CT::Same<T, AA>) {
-               // Set pointer and entry from handle                     
-               (*lhs = ... = arguments.mPointer);
-               (*lhsEntry = ... = arguments.mEntry);
-            }
-            else if constexpr (CT::Inner::MakableFrom<T, AA>) {
-               // Set pointer and find entry                            
-               (*lhs = ... = arguments);
-               *lhsEntry = Allocator::Find(mType, *lhs);
-            }
-            else LANGULUS_ERROR("T is not constructible with these arguments");
-
-            ++lhs;
-            ++lhsEntry;
-         }
-      }
-      else {
-         // Construct dense stuff                                       
-         auto lhs = mthis->GetRaw<THIS>();
-         const auto lhsEnd = lhs + mCount;
-         while (lhs != lhsEnd) {
-            if constexpr (::std::constructible_from<T, A...>)
-               new (lhs++) T (arguments...);
-            else
-               LANGULUS_ERROR("T is not constructible with these arguments");
-         }
-      }
-   }*/
-
    /// Call semantic constructors in a region and initialize memory           
    ///   @attention never modifies any block state                            
    ///   @attention assumes none of the elements are constructed, despite     
@@ -1169,8 +1113,8 @@ namespace Langulus::Anyness
                // Clone each inner element by nesting this call         
                auto lhs = mthis->template GetHandle<Byte*, THIS>(0);
                const auto lhsEnd = lhs + mCount;
-               auto dst = clonedCoalescedSrc.GetElement();
-               auto src = source->GetElement();
+               auto dst = clonedCoalescedSrc.GetElementInner();
+               auto src = source->GetElementInner();
                while (lhs != lhsEnd) {
                   dst.CreateSemantic(Clone(src.template GetDense<1>()));
                   lhs.Create(dst.mRaw, clonedCoalescedSrc.mEntry);
@@ -1239,11 +1183,11 @@ namespace Langulus::Anyness
    ///   @param source - the source of pointers                               
    template<template<class> class S, CT::Block T> requires CT::Semantic<S<T>>
    void Block::ShallowBatchPointerConstruction(S<T>&& source) const {
-      const auto mthis = const_cast<Block*>(this);
-      const auto pointersDst = mthis->GetRawSparse();
-      const auto pointersSrc = source->GetRawSparse();
-      const auto entriesDst = mthis->GetEntries();
-      const auto entriesSrc = source->GetEntries();
+      const auto mthis       = const_cast<Block*>(this);
+      const auto pointersDst = mthis->template  GetRawSparse<T>();
+      const auto pointersSrc = source->template GetRawSparse<T>();
+      const auto entriesDst  = mthis->template  GetEntries<T>();
+      const auto entriesSrc  = source->template GetEntries<T>();
 
       if constexpr (S<T>::Move) {
          // Move/Abandon                                                
@@ -1310,14 +1254,14 @@ namespace Langulus::Anyness
             if constexpr (S<Block>::Shallow) {
                // Shallow pointer transfer                              
                Destroy<THIS>();
-               ShallowBatchPointerConstruction(mCount, source.Forward());
+               ShallowBatchPointerConstruction(source.Forward());
             }
             else if constexpr (CT::Unallocatable<Decay<T>> or not CT::CloneAssignable<T>) {
                // We early-return with an enforced shallow pointer      
                // transfer, because its requesting to clone             
                // unallocatable/unclonable/abstract data, such as metas 
                Destroy<THIS>();
-               ShallowBatchPointerConstruction(mCount, Copy(*source));
+               ShallowBatchPointerConstruction(Copy(*source));
             }
             else if constexpr (CT::Sparse<DT> or not CT::Resolvable<T>) {
                // If contained type is not resolvable, or its deptr     
@@ -1363,7 +1307,7 @@ namespace Langulus::Anyness
             auto rhs = source->template GetRaw<THIS>();
             const auto lhsEnd = lhs + mCount;
             while (lhs != lhsEnd) {
-               SemanticAssign(lhs, S<Block>::Nest(*rhs));
+               SemanticAssign(*lhs, S<Block>::Nest(*rhs));
                ++lhs;
                ++rhs;
             }

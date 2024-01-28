@@ -42,32 +42,41 @@ namespace Langulus::Anyness
       };
    }
 
-   /// Erase a pair via a key match                                           
+   /// Unfold-erase pairs by key                                              
    ///   @param key - the key to search for                                   
    ///   @return the number of removed pairs                                  
    template<CT::Map THIS> LANGULUS(INLINED)
    Count BlockMap::RemoveKey(const CT::NotSemantic auto& key) {
+      using K = Deref<decltype(key)>;
       if (IsEmpty())
          return 0;
 
-      using K = Deref<decltype(key)>;
-
-      if (IsKeySimilar<THIS, K>()
+      if constexpr (CT::Array<K>) {
+         if constexpr (CT::StringLiteral<K>) {
+            if (IsKeySimilar<THIS, Text>()) {
+               // Implicitly make a text container on string literal    
+               return RemoveKeyInner<THIS>(Text {Disown(key)});
+            }
+            else if (IsKeySimilar<THIS, char*, wchar_t*>()) {
+               // Cast away the extent, search for pointer              
+               return RemoveKeyInner<THIS>(static_cast<const Deext<K>*>(key));
+            }
+            else return 0;
+         }
+         else if (IsKeySimilar<THIS, Deext<K>>()
+         or (CT::Typed<THIS> and CT::Inner::Comparable<typename THIS::Key, Deext<K>>)) {
+            // Remove all matching keys in the array                    
+            Count removed = 0;
+            for (auto& element : key)
+               removed += RemoveKeyInner<THIS>(key);
+            return removed;
+         }
+      }
+      else if (IsKeySimilar<THIS, K>()
       or (CT::Typed<THIS> and CT::Inner::Comparable<typename THIS::Key, K>)) {
+         // Remove a single key                                         
          return RemoveKeyInner<THIS>(key);
       }
-      else if constexpr (CT::StringLiteral<K>) {
-         if (IsKeySimilar<THIS, Text>()) {
-            // Implicitly make a text container on string literal       
-            return RemoveKeyInner<THIS>(Text {Disown(key)});
-         }
-         else if (IsKeySimilar<THIS, char*, wchar_t*>()) {
-            // Cast away the extent, search for pointer                 
-            return RemoveKeyInner<THIS>(static_cast<const Deext<K>*>(key));
-         }
-         else return 0;
-      }
-
       return 0;
    }
    
@@ -87,32 +96,41 @@ namespace Langulus::Anyness
       return 0;
    }
 
-   /// Erase pairs via value                                                  
+   /// Unfold-erase pairs by value                                            
    ///   @param value - the values to search for                              
    ///   @return the number of removed pairs                                  
    template<CT::Map THIS> LANGULUS(INLINED)
    Count BlockMap::RemoveValue(const CT::NotSemantic auto& value) {
+      using V = Deref<decltype(value)>;
       if (IsEmpty())
          return 0;
 
-      using V = Deref<decltype(value)>;
-
-      if (IsValueSimilar<THIS, V>()
+      if constexpr (CT::Array<V>) {
+         if constexpr (CT::StringLiteral<V>) {
+            if (IsValueSimilar<THIS, Text>()) {
+               // Implicitly make a text container on string literal    
+               return RemoveValInner<THIS>(Text {Disown(value)});
+            }
+            else if (IsValueSimilar<THIS, char*, wchar_t*>()) {
+               // Cast away the extent, search for pointer instead      
+               return RemoveValInner<THIS>(static_cast<const Deext<V>*>(value));
+            }
+            else return 0;
+         }
+         else if (IsValueSimilar<THIS, Deext<V>>()
+         or (CT::Typed<THIS> and CT::Inner::Comparable<typename THIS::Value, Deext<V>>)) {
+            // Remove all matching values in the array                  
+            Count removed = 0;
+            for (auto& element : value)
+               removed += RemoveValInner<THIS>(value);
+            return removed;
+         }
+      }
+      else if (IsValueSimilar<THIS, V>()
       or (CT::Typed<THIS> and CT::Inner::Comparable<typename THIS::Value, V>)) {
+         // Remove a single value                                       
          return RemoveValInner<THIS>(value);
       }
-      else if constexpr (CT::StringLiteral<V>) {
-         if (IsValueSimilar<THIS, Text>()) {
-            // Implicitly make a text container on string literal       
-            return RemoveValInner<THIS>(Text {Disown(value)});
-         }
-         else if (IsValueSimilar<THIS, char*, wchar_t*>()) {
-            // Cast away the extent, search for pointer                 
-            return RemoveValInner<THIS>(static_cast<const Deext<V>*>(value));
-         }
-         else return 0;
-      }
-
       return 0;
    }
 
