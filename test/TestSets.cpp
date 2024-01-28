@@ -20,16 +20,20 @@ TEMPLATE_TEST_CASE(
    int,  Trait,  Traits::Count,  Any,
    int*, Trait*, Traits::Count*, Any*
 ) {
-   GIVEN("A single element initialized sets of all kinds") {
-      const auto element = CreateElement<TestType>(555);
+   const auto element = CreateElement<TestType>(555);
+   const auto elementHash = HashOf(element);
 
+   GIVEN("A single element initialized sets of all kinds") {
       TUnorderedSet<TestType> uset1 {element};
       UnorderedSet uset2 {element};
       TOrderedSet<TestType> oset1 {element};
       OrderedSet oset2 {element};
 
       WHEN("Their hashes are taken") {
-         const auto elementHash = HashOf(element);
+         REQUIRE(uset1.template IsExact<TestType>());
+         REQUIRE(uset2.template IsExact<TestType>());
+         REQUIRE(oset1.template IsExact<TestType>());
+         REQUIRE(oset2.template IsExact<TestType>());
 
          const auto uhash1 = uset1.GetHash();
          const auto uhash2 = uset2.GetHash();
@@ -41,10 +45,10 @@ TEMPLATE_TEST_CASE(
          REQUIRE(uhash1 == ohash1);
          REQUIRE(uhash1 == elementHash);
       }
-
-      if constexpr (CT::Sparse<TestType>)
-         delete element;
    }
+
+   if constexpr (CT::Sparse<TestType>)
+      delete element;
 }
 
 /// The main test for TOrderedSet/TUnorderedSet/OrderedSet/UnorderedSet       
@@ -93,7 +97,7 @@ TEMPLATE_TEST_CASE(
    GIVEN("A default-initialized set instance") {
       const auto element = CreateElement<K>(555);
 
-      T set {};
+      T set;
 
       WHEN("Given a default-constructed map") {
          if constexpr (CT::Typed<T>) {
@@ -130,7 +134,7 @@ TEMPLATE_TEST_CASE(
          T movable = element;
          set = ::std::move(movable);
 
-         REQUIRE((movable != element) != (CT::Fundamental<K> or CT::Sparse<K>));
+         REQUIRE(movable != element);
          REQUIRE(set.IsTypeConstrained() == CT::Typed<T>);
          REQUIRE(set.GetType()->template Is<K>());
          REQUIRE(set.template Is<K>());
@@ -185,7 +189,7 @@ TEMPLATE_TEST_CASE(
       }
    }
    
-   GIVEN("An array copy-initialized set instance") {
+   GIVEN("Five elements") {
       const K darray1[5] {
          CreateElement<K>(1),
          CreateElement<K>(2),
@@ -194,7 +198,7 @@ TEMPLATE_TEST_CASE(
          CreateElement<K>(5)
       };
 
-      WHEN("Given a preinitialized set with 5 elements") {
+      WHEN("Unfold-initialized using the five elements as an array") {
          T set {darray1};
 
          REQUIRE(set.GetCount() == 5);
@@ -229,7 +233,7 @@ TEMPLATE_TEST_CASE(
          CreateElement<K>(10)
       };
 
-      T set {};
+      T set;
       set << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
       auto memory = set.GetRawMemory();
 

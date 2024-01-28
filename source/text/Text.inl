@@ -91,10 +91,7 @@ namespace Langulus::Anyness
       else
          count = DesemCast(other).size();
 
-      SetMemory(
-         DataState::Constrained, GetType(),
-         DesemCast(other).size(), DesemCast(other).data()
-      );
+      SetMemory(DataState::Constrained, GetType(), count, DesemCast(other).data());
       if constexpr (S::Move or S::Keep)
          TakeAuthority<Text>();
    }
@@ -110,13 +107,13 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    Text::Text(const CT::Exception auto& from) {
       #if LANGULUS(DEBUG)
-         *this = TemplateRt("{}({} at {})",
+         new (this) Text{TemplateRt("{}({} at {})",
             from.GetName(),
             from.GetMessage(),
             from.GetLocation()
-         );
+         )};
       #else
-         *this = Disown(from.GetName());
+         new (this) Text {Disown(from.GetName())};
       #endif
    }
 
@@ -124,7 +121,7 @@ namespace Langulus::Anyness
    ///   @param number - the number to stringify                              
    LANGULUS(INLINED)
    Text::Text(const CT::HasNamedValues auto& named) {
-      *this = TemplateRt("{}", named);
+      new (this) Text {TemplateRt("{}", named)};
    }
 
    /// Convert a number type to text                                          
@@ -147,7 +144,7 @@ namespace Langulus::Anyness
             --lastChar;
          }
 
-         (*this) = Text::From(temp, static_cast<Count>(lastChar - temp));
+         new (this) Text {Text::From(temp, static_cast<Count>(lastChar - temp))};
       }
       else if constexpr (CT::Integer<T>) {
          // Stringify an integer                                        
@@ -157,7 +154,7 @@ namespace Langulus::Anyness
          LANGULUS_ASSERT(errorCode == ::std::errc(), Convert,
             "std::to_chars failure");
 
-         (*this) = Text::From(temp, static_cast<Count>(lastChar - temp));
+         new (this) Text {Text::From(temp, static_cast<Count>(lastChar - temp))};
       }
       else LANGULUS_ERROR("Unsupported number type");
    }

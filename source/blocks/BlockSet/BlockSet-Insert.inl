@@ -22,7 +22,7 @@ namespace Langulus::Anyness
             , TypeOf<decltype(val)>>;
          return HandleLocal<V> {val.Forward()};
       }
-      else return Any {val.Forward()};
+      else return Any::Wrap(val.Forward());
    }
 
    /// Insert an element, or an array of elements                             
@@ -70,6 +70,7 @@ namespace Langulus::Anyness
          }
          else {
             // Insert the array                                         
+            Mutate<THIS, Deext<T>>();
             Reserve(GetCount() + ExtentOf<T>);
             Count inserted = 0;
             for (auto& e : DesemCast(item)) {
@@ -85,6 +86,7 @@ namespace Langulus::Anyness
          if constexpr (CT::MakableFrom<E, T>) {
             // Some of the arguments might still be used directly to    
             // make an element, forward these to standard insertion here
+            mKeys.mType = MetaDataOf<E>();
             Reserve(GetCount() + 1);
             InsertInner<THIS, true>(
                GetBucket(GetReserved() - 1, DesemCast(item)),
@@ -139,6 +141,7 @@ namespace Langulus::Anyness
          // This set is type-erased                                     
          // Some of the arguments might still be used directly to       
          // make an element, forward these to standard insertion here   
+         Mutate<THIS, Decvq<T>>();
          Reserve(GetCount() + 1);
          return InsertInner<THIS, true>(
             GetBucket(GetReserved() - 1, DesemCast(item)),
@@ -162,8 +165,7 @@ namespace Langulus::Anyness
    /// Insert all elements of a set, semantically or not                      
    ///   @param item - the set to insert                                      
    ///   @return number of inserted elements                                  
-   template<CT::Set THIS, class T>
-   requires CT::Set<Desem<T>> LANGULUS(INLINED)
+   template<CT::Set THIS, class T> requires CT::Set<Desem<T>> LANGULUS(INLINED)
    Count BlockSet::InsertBlock(T&& item) {
       using S = SemanticOf<decltype(item)>;
       using ST = TypeOf<S>;
@@ -272,7 +274,7 @@ namespace Langulus::Anyness
                   InsertInner<THIS, false>(newBucket, Abandon(keyswap));
                }
                else {
-                  Block keyswap {GetState(), GetType(), 1};
+                  Block keyswap {DataState {}, GetType(), 1};
                   keyswap.AllocateFresh<Any>(keyswap.RequestSize<Any>(1));
                   keyswap.CreateSemantic(Abandon(oldKey));
 

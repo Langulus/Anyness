@@ -127,6 +127,10 @@ namespace Langulus::Anyness
       NOD() bool IsMissing() const noexcept;
       template<CT::Set = UnorderedSet>
       NOD() bool IsMissingDeep() const;
+      template<CT::Set = UnorderedSet>
+      NOD() constexpr bool IsInsertable(DMeta) const noexcept;
+      template<CT::Data, CT::Set = UnorderedSet>
+      NOD() constexpr bool IsInsertable() const noexcept;
       template<CT::Set>
       NOD() bool IsOrdered() const noexcept;
 
@@ -179,7 +183,7 @@ namespace Langulus::Anyness
       NOD() decltype(auto) GetRef(Offset) const IF_UNSAFE(noexcept);
 
       template<CT::Set = UnorderedSet>
-      NOD() auto GetHandle(Offset) const IF_UNSAFE(noexcept);
+      NOD() auto GetHandle(Offset) IF_UNSAFE(noexcept);
 
    public:
       ///                                                                     
@@ -239,7 +243,17 @@ namespace Langulus::Anyness
       template<CT::Set>
       NOD() bool IsExact(DMeta) const noexcept;
 
+      template<bool CONSTRAIN = false, CT::Set = UnorderedSet>
+      void SetType(DMeta);
+      template<CT::Data, bool CONSTRAIN = false, CT::Set = UnorderedSet>
+      void SetType();
+
    protected:
+      template<CT::Set, CT::Data, class FORCE = Any>
+      bool Mutate();
+      template<CT::Set, class FORCE = Any>
+      bool Mutate(DMeta);
+
       template<CT::Set = UnorderedSet>
       NOD() constexpr bool IsTypeCompatibleWith(CT::Set auto const&) const noexcept;
       
@@ -264,10 +278,6 @@ namespace Langulus::Anyness
       NOD() Iterator<const THIS> FindIt(const CT::NotSemantic auto&) const;
 
    protected:
-      template<CT::NotSemantic>
-      void Mutate();
-      void Mutate(DMeta);
-
       template<CT::Set>
       NOD() Offset FindInner(const CT::NotSemantic auto&) const;
       template<CT::Set>

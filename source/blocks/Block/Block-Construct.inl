@@ -45,12 +45,8 @@ namespace Langulus::A
    ///   @param count - initial element count and reserve                     
    ///   @param raw - pointer to the mutable memory                           
    LANGULUS(INLINED)
-   Block::Block(const DataState& state, DMeta meta, Count count, void* raw)
-      IF_UNSAFE(noexcept)
-      : Block {
-         state + DataState::Member,
-         meta, count, raw, Allocator::Find(meta, raw)
-      } {}
+   Block::Block(const DataState& state, DMeta meta, Count count, void* raw) IF_UNSAFE(noexcept)
+      : Block {state, meta, count, raw, Allocator::Find(meta, raw)} {}
 
    /// Manual construction from mutable data                                  
    ///   @attention assumes data is not sparse                                
@@ -58,12 +54,8 @@ namespace Langulus::A
    ///   @param meta - the type of the memory block                           
    ///   @param count - initial element count and reserve                     
    LANGULUS(INLINED)
-   Block::Block(const DataState& state, DMeta meta, Count count)
-      IF_UNSAFE(noexcept)
-      : Block {
-         state + DataState::Member,
-         meta, count, (void*) nullptr, nullptr
-      } {}
+   Block::Block(const DataState& state, DMeta meta, Count count) IF_UNSAFE(noexcept)
+      : Block {state, meta, count, (void*) nullptr, nullptr} {}
    
    /// Manual construction from constant data                                 
    /// This constructor has runtime overhead if managed memory is enabled     
@@ -79,7 +71,9 @@ namespace Langulus::A
    {}
 
    /// Manual construction from mutable data and known entry                  
-   ///   @attention assumes data is not sparse                                
+   ///   @attention assumes 'meta' is not sparse, if 'raw' is provided        
+   ///   @attention assumes a valid 'raw' pointer provided, if 'entry' is     
+   ///   @attention assumes 'meta' is always valid                            
    ///   @param state - the initial state of the container                    
    ///   @param meta - the type of the memory block                           
    ///   @param count - initial element count and reserve                     
@@ -94,9 +88,9 @@ namespace Langulus::A
       , mReserved {count}
       , mType {meta}
       , mEntry {entry} {
-      LANGULUS_ASSUME(DevAssumes, raw, "Invalid data pointer");
+      LANGULUS_ASSUME(DevAssumes, not entry or raw, "Invalid data pointer");
       LANGULUS_ASSUME(DevAssumes, meta, "Invalid data type");
-      LANGULUS_ASSUME(DevAssumes, not meta->mIsSparse,
+      LANGULUS_ASSUME(DevAssumes, not raw or not meta->mIsSparse,
          "Sparse raw data initialization is not allowed");
    }
    
@@ -186,7 +180,41 @@ namespace Langulus::Anyness
       else
          return {MetaDataOf<T>()};
    }
-   
+
+   /// Insert the provided elements, making sure to insert, and never absorb  
+   ///   @tparam AS - the type to wrap elements as, use void to auto-deduce   
+   ///   @param t1 - first element                                            
+   ///   @param tn... - the rest of the elements (optional)                   
+   ///   @returns the new container containing the data                       
+   template<class AS, CT::Data T1, CT::Data...TN>
+   LANGULUS(INLINED) auto Block::Wrap(T1&& t1, TN&&...tn) {
+      if constexpr (CT::TypeErased<AS>) {
+         using DT1 = Deref<Decvq<Desem<T1>>>;
+         if constexpr (sizeof...(TN) > 0) {
+            if constexpr (CT::Similar<DT1, DT1, Deref<Desem<TN>>...>) {
+               TAny<DT1> result;
+               result.Insert(IndexBack, Forward<T1>(t1), Forward<TN>(tn)...);
+               return result;
+            }
+            else {
+               TAny<Any> result;
+               result.Insert(IndexBack, Forward<T1>(t1), Forward<TN>(tn)...);
+               return result;
+            }
+         }
+         else {
+            TAny<DT1> result;
+            result.Insert(IndexBack, Forward<T1>(t1));
+            return result;
+         }
+      }
+      else {
+         TAny<AS> result;
+         result.Insert(IndexBack, Forward<T1>(t1), Forward<TN>(tn)...);
+         return result;
+      }
+   }
+
    /// Semantically transfer the members of one block onto another with the   
    /// smallest number of instructions possible                               
    ///   @attention will not set mType if TO is type-constrained              

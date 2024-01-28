@@ -59,7 +59,7 @@ namespace Langulus::Anyness
                using STT = TypeOf<ST>;
                if constexpr (CT::Similar<T, STT>) {
                   // Type is binary compatible, just transfer block     
-                  BlockTransfer<TAny>(S::Nest(t1));
+                  Block::BlockTransfer<TAny>(S::Nest(t1));
                }
                else if constexpr (CT::Sparse<T, STT>) {
                   if constexpr (CT::DerivedFrom<T, STT>) {
@@ -102,7 +102,7 @@ namespace Langulus::Anyness
    /// Destructor                                                             
    TEMPLATE() LANGULUS(INLINED)
    TAny<T>::~TAny() {
-      Free<TAny>();
+      Block::Free<TAny>();
    }
 
    /// Construct manually by interfacing memory directly                      
@@ -234,7 +234,7 @@ namespace Langulus::Anyness
           == static_cast<const Block*>(&DesemCast(rhs)))
             return *this;
 
-         Free<TAny>();
+         Block::Free<TAny>();
          new (this) TAny {S::Nest(rhs)};
       }
       else {
@@ -493,37 +493,6 @@ namespace Langulus::Anyness
       return Block::GetHandle<T, TAny>(index);
    }
 
-   /// Get a deep memory sub-block                                            
-   ///   @param index - the index to get, indices are mapped as the following:
-   ///      0 always refers to this block                                     
-   ///      [1; mCount] always refer to subblocks in this block               
-   ///      [mCount + 1; mCount + N] refer to subblocks in the first subblock 
-   ///                               N being the size of that subblock        
-   ///      ... and so on ...                                                 
-   ///   @return a pointer to the block or nullptr if index is invalid        
-   /*TEMPLATE() LANGULUS(INLINED)
-   Block* TAny<T>::GetBlockDeep(const Offset index) noexcept {
-      return Block::GetBlockDeep<TAny>(index);
-   }
-
-   TEMPLATE() LANGULUS(INLINED)
-   Block const* TAny<T>::GetBlockDeep(const Offset index) const noexcept {
-      return Block::GetBlockDeep<TAny>(index);
-   }
-
-   /// Get a deep element block                                               
-   ///   @param index - the index to get                                      
-   ///   @return the element block                                            
-   TEMPLATE() LANGULUS(INLINED)
-   Block TAny<T>::GetElementDeep(const Offset index) noexcept {
-      return Block::GetElementDeep<TAny>(index);
-   }
-
-   TEMPLATE() LANGULUS(INLINED)
-   Block TAny<T>::GetElementDeep(const Offset index) const noexcept {
-      return Block::GetElementDeep<TAny>(index);
-   }*/
-
    /// Get an element in the way you want (unsafe)                            
    /// This is a statically optimized variant of Block::Get                   
    ///   @tparam ALT_T - how to interpret data                                
@@ -685,9 +654,9 @@ namespace Langulus::Anyness
 
    /// Check if a static type can be inserted                                 
    ///   @return true if able to insert an instance of the type to this block 
-   TEMPLATE() LANGULUS(INLINED)
+   TEMPLATE() template<CT::Data T1> LANGULUS(INLINED)
    constexpr bool TAny<T>::IsInsertable() const noexcept {
-      return Block::IsInsertable<TAny>();
+      return Block::IsInsertable<T1, TAny>();
    }
 
    /// Unfold-insert item(s) at an index, semantically or not                 
@@ -1084,11 +1053,6 @@ namespace Langulus::Anyness
    typename TAny<T>::ConstIterator TAny<T>::last() const noexcept {
       return Block::last<TAny>();
    }
-
-
-   ///                                                                        
-   ///   Concatenation                                                        
-   ///                                                                        
 
    /// Concatenate anything, semantically or not                              
    ///   @param rhs - the element/block/array to copy-concatenate             

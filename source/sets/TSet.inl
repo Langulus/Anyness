@@ -43,7 +43,9 @@ namespace Langulus::Anyness
    ///   @param tail - tail of elements (optional)                            
    TEMPLATE() template<class T1, class...TAIL>
    requires CT::DeepSetMakable<T, T1, TAIL...> LANGULUS(INLINED)
-   TABLE()::TSet(T1&& t1, TAIL&&... tail) {
+   TABLE()::TSet(T1&& t1, TAIL&&...tail) {
+      mKeys.mType = MetaDataOf<T>();
+
       if constexpr (sizeof...(TAIL) == 0) {
          using S = SemanticOf<T1>;
          using ST = TypeOf<S>;
@@ -184,25 +186,19 @@ namespace Langulus::Anyness
       return sizeof(T); 
    }
 
-   /// Get a raw key entry                                                    
-   ///   @param index - the key index                                         
-   ///   @return a constant reference to the element                          
+   /// Check if a type can be inserted to this block                          
+   ///   @param type - check if a given type is insertable to this block      
+   ///   @return true if able to insert an instance of the type to this block 
    TEMPLATE() LANGULUS(INLINED)
-   constexpr const T& TABLE()::GetRaw(Offset index) const noexcept {
-      return GetValues().GetRaw()[index];
+   constexpr bool TABLE()::IsInsertable(DMeta type) const noexcept {
+      return BlockSet::IsInsertable<TSet>(type);
    }
 
-   TEMPLATE() LANGULUS(INLINED)
-   constexpr T& TABLE()::GetRaw(Offset index) noexcept {
-      return GetValues().GetRaw()[index];
-   }
-
-   /// Get a handle to a key                                                  
-   ///   @param index - the key index                                         
-   ///   @return the handle                                                   
-   TEMPLATE() LANGULUS(INLINED)
-   constexpr Handle<T> TABLE()::GetHandle(Offset index) noexcept {
-      return GetValues().GetHandle(index);
+   /// Check if a static type can be inserted                                 
+   ///   @return true if able to insert an instance of the type to this block 
+   TEMPLATE() template<CT::Data T1> LANGULUS(INLINED)
+   constexpr bool TABLE()::IsInsertable() const noexcept {
+      return BlockSet::IsInsertable<T1, TSet>();
    }
 
    /// Get the key meta data                                                  
@@ -294,7 +290,8 @@ namespace Langulus::Anyness
    }
 
    /// Unfold-insert elements, semantically or not                            
-   ///   @param t1, tail... - elements, or arrays of elements, to insert      
+   ///   @param t1 - element, or array of elements, to insert                 
+   ///   @param tail... - the rest of the elements (optional)                 
    ///   @return the number of inserted elements                              
    TEMPLATE() template<class T1, class...TAIL>
    requires CT::Inner::UnfoldMakableFrom<T, T1, TAIL...> LANGULUS(INLINED)
@@ -303,7 +300,7 @@ namespace Langulus::Anyness
    }
    
    /// Insert all elements of a set, semantically or not                      
-   ///   @param item - the set to insert                                      
+   ///   @param t1 - the set to insert                                        
    ///   @return number of inserted elements                                  
    TEMPLATE() template<class T1> requires CT::Set<Desem<T1>> LANGULUS(INLINED)
    Count TABLE()::InsertBlock(T1&& t1) {
@@ -352,7 +349,7 @@ namespace Langulus::Anyness
       if (offset >= sentinel)
          offset = 0;
 
-      return {mInfo + offset, index.mSentinel, &GetRaw(offset)};
+      return {mInfo + offset, index.mSentinel, &GetRaw<TSet>(offset)};
    }
 
    /// Erase a pair via key                                                   
@@ -421,18 +418,6 @@ namespace Langulus::Anyness
    requires CT::Inner::Comparable<T, T1> LANGULUS(INLINED)
    typename TABLE()::ConstIterator TABLE()::FindIt(T1 const& key) const {
       return const_cast<TABLE()*>(this)->FindIt(key);
-   }
-
-   /// Get the templated values container                                     
-   ///   @attention for internal use only, elements might not be initialized  
-   TEMPLATE() LANGULUS(INLINED)
-   const TAny<T>& TABLE()::GetValues() const noexcept {
-      return BlockSet::GetValues<T>();
-   }
-
-   TEMPLATE() LANGULUS(INLINED)
-   TAny<T>& TABLE()::GetValues() noexcept {
-      return BlockSet::GetValues<T>();
    }
 
    /// Get iterator to first element                                          

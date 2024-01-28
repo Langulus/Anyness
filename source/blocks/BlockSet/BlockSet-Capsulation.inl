@@ -90,14 +90,20 @@ namespace Langulus::Anyness
    ///   @attention for internal use only, elements might not be initialized  
    template<CT::Set THIS> LANGULUS(INLINED)
    auto& BlockSet::GetValues() const noexcept {
-      return reinterpret_cast<const TAny<TypeOf<THIS>>&>(mKeys);
+      if constexpr (CT::Typed<THIS>)
+         return reinterpret_cast<const TAny<TypeOf<THIS>>&>(mKeys);
+      else
+         return reinterpret_cast<const Any&>(mKeys);
    }
 
    /// Get the templated values container                                     
    ///   @attention for internal use only, elements might not be initialized  
    template<CT::Set THIS> LANGULUS(INLINED)
    auto& BlockSet::GetValues() noexcept {
-      return reinterpret_cast<TAny<TypeOf<THIS>>&>(mKeys);
+      if constexpr (CT::Typed<THIS>)
+         return reinterpret_cast<TAny<TypeOf<THIS>>&>(mKeys);
+      else
+         return reinterpret_cast<Any&>(mKeys);
    }
 
    /// Get the number of inserted pairs                                       
@@ -146,6 +152,22 @@ namespace Langulus::Anyness
       });
 
       return missing;
+   }
+   
+   /// Check if a type can be inserted to this block                          
+   ///   @param other - check if a given type is insertable to this block     
+   ///   @return true if able to insert an instance of the type to this block 
+   template<CT::Set THIS> LANGULUS(INLINED)
+   constexpr bool BlockSet::IsInsertable(DMeta other) const noexcept {
+      return GetValues<THIS>().IsInsertable(other);
+   }
+   
+   /// Check if a static type can be inserted                                 
+   ///   @tparam T - the type to check                                        
+   ///   @return true if able to insert an instance of the type to this block 
+   template<CT::Data T, CT::Set THIS> LANGULUS(INLINED)
+   constexpr bool BlockSet::IsInsertable() const noexcept {
+      return GetValues<THIS>().template IsInsertable<T>();
    }
 
    /// Check if the memory for the table is owned by us                       

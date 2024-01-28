@@ -246,8 +246,8 @@ namespace Langulus::Anyness
 
                for (Count i = 0; i < mCount; ++i) {
                   // Compare all elements by the binary compatible base 
-                  auto lhs = GetElement(i);
-                  auto rhs = right.GetElement(i);
+                  auto lhs = GetElementInner(i);
+                  auto rhs = right.GetElementInner(i);
 
                   if (not lhs.CallComparer(rhs, baseForComparison)) {
                      // Fail comparison on first mismatch               
@@ -422,7 +422,7 @@ namespace Langulus::Anyness
          // values                                                      
          Offset i = REVERSE ? mCount - 1 - cookie : cookie;
          while (i < mCount) {
-            if (GetElement(i) == item) {
+            if (GetElementInner(i) == item) {
                // Match found                                           
                return i;
             }

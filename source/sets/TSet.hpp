@@ -90,6 +90,9 @@ namespace Langulus::Anyness
       NOD() constexpr bool IsSparse() const noexcept;
       NOD() constexpr bool IsDense() const noexcept;
       NOD() constexpr Size GetStride() const noexcept;
+      NOD() constexpr bool IsInsertable(DMeta) const noexcept;
+      template<CT::Data>
+      NOD() constexpr bool IsInsertable() const noexcept;
 
       using Base::GetReserved;
       using Base::GetInfo;
@@ -105,14 +108,6 @@ namespace Langulus::Anyness
       NOD() T const& Get(CT::Index auto) const;
 
       NOD() T const& operator[] (CT::Index auto) const;
-
-   protected:
-      NOD() TAny<T> const& GetValues() const noexcept;
-      NOD() TAny<T>&       GetValues() noexcept;
-
-      NOD() constexpr T&        GetRaw(Offset) noexcept;
-      NOD() constexpr T const&  GetRaw(Offset) const noexcept;
-      NOD() constexpr Handle<T> GetHandle(Offset) noexcept;
 
    public:
       ///                                                                     

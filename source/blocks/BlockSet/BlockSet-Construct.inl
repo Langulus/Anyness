@@ -75,7 +75,7 @@ namespace Langulus::Anyness
 
          if constexpr (CT::Typed<FROM> or CT::Typed<TO>) {
             using B = Conditional<CT::Typed<FROM>, FROM, TO>;
-            auto asFrom = reinterpret_cast<const B*>(&*other);
+            auto asFrom = const_cast<B*>(reinterpret_cast<const B*>(&*other));
             AllocateFresh<B>(asFrom->GetReserved());
 
             // Clone info array                                         
@@ -84,7 +84,7 @@ namespace Langulus::Anyness
             auto info = GetInfo();
             const auto infoEnd = GetInfoEnd();
             auto dstKey = GetHandle<B>(0);
-            auto srcKey = asFrom->BlockSet::template GetHandle<B>(0);
+            auto srcKey = asFrom->template GetHandle<B>(0);
             while (info != infoEnd) {
                if (*info)
                   dstKey.CreateSemantic(Clone(srcKey));

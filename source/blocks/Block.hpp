@@ -231,6 +231,9 @@ namespace Langulus::Anyness
       template<CT::Data, bool CONSTRAIN_TYPE = false>
       NOD() static Block From();
 
+      template<class AS = void, CT::Data T1, CT::Data...TN>
+      NOD() static auto Wrap(T1&&, TN&&...);
+
       using A::Block::operator =;
          
    protected:
@@ -453,6 +456,9 @@ namespace Langulus::Anyness
       void Sort() noexcept;
 
    protected:
+      NOD() Block GetElementInner(Offset = 0)       IF_UNSAFE(noexcept);
+      NOD() Block GetElementInner(Offset = 0) const IF_UNSAFE(noexcept);
+
       NOD() IF_UNSAFE(constexpr)
       Byte* At(Offset = 0) IF_UNSAFE(noexcept);
       NOD() IF_UNSAFE(constexpr)
