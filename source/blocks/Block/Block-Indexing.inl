@@ -189,16 +189,17 @@ namespace Langulus::Anyness
 
    /// Get an element in container, and wrap it in a mutable dense block      
    ///   @attention the result will be empty if a sparse nullptr              
+   ///   @tparam COUNT - number of indirections to remove                     
    ///   @param index - index of the element inside the block                 
    ///   @return the dense mutable memory block for the element               
-   LANGULUS(INLINED)
+   template<Count COUNT, CT::BlockBased THIS> LANGULUS(INLINED)
    Block Block::GetElementDense(Offset index) {
-      return GetElement(index).GetDense();
+      return GetElement(index).template GetDense<COUNT, THIS>();
    }
 
-   LANGULUS(INLINED)
+   template<Count COUNT, CT::BlockBased THIS> LANGULUS(INLINED)
    Block Block::GetElementDense(Offset index) const {
-      auto result = const_cast<Block*>(this)->GetElementDense(index);
+      auto result = GetElement(index).template GetDense<COUNT, THIS>();
       result.MakeConst();
       return result;
    }
@@ -207,14 +208,14 @@ namespace Langulus::Anyness
    ///   @attention the element might be empty if resolved a sparse nullptr   
    ///   @param index - index of the element inside the block                 
    ///   @return the dense resolved memory block for the element              
-   LANGULUS(INLINED)
+   template<CT::BlockBased THIS> LANGULUS(INLINED)
    Block Block::GetElementResolved(Offset index) {
-      return GetElement(index).GetResolved();
+      return GetElement(index).template GetResolved<THIS>();
    }
 
-   LANGULUS(INLINED)
+   template<CT::BlockBased THIS> LANGULUS(INLINED)
    Block Block::GetElementResolved(Offset index) const {
-      auto result = const_cast<Block*>(this)->GetElementResolved(index);
+      auto result = GetElement(index).template GetResolved<THIS>();
       result.MakeConst();
       return result;
    }
@@ -337,59 +338,87 @@ namespace Langulus::Anyness
    ///   @attention assumes this block is valid and has at least one element  
    ///   @return the mutable resolved first element                           
    template<CT::BlockBased THIS> LANGULUS(INLINED)
-   Any Block::GetResolved() {
+   Block Block::GetResolved() {
       LANGULUS_ASSUME(DevAssumes, IsTyped<THIS>(),
          "Block is not typed");
       LANGULUS_ASSUME(DevAssumes, mCount > 0,
          "Block is empty");
 
       if (mType->mResolver)
-         return mType->mResolver(GetDense().mRaw);
+         return mType->mResolver(GetDense<CountMax, THIS>().mRaw);
       else
-         return GetDense();
+         return GetDense<CountMax, THIS>();
    }
 
    template<CT::BlockBased THIS> LANGULUS(INLINED)
-   Any Block::GetResolved() const {
-      auto result = const_cast<Block*>(this)->GetResolved<THIS>();
+   Block Block::GetResolved() const {
+      auto result = const_cast<Block*>(this)->template GetResolved<THIS>();
       result.MakeConst();
       return result;
    }
 
-   /// Get the mutable first element of this block, with pointers removed     
+   /// Dereference first contained pointer                                    
    ///   @attention throws if type is incomplete and origin was reached       
    ///   @attention assumes this block is valid and has exactly one element   
    ///   @tparam COUNT - how many levels of indirection to remove?            
    ///   @return the mutable denser first element                             
-   template<Count COUNT> LANGULUS(INLINED)
-   Any Block::GetDense() {
+   template<Count COUNT, CT::BlockBased THIS> LANGULUS(INLINED)
+   Block Block::GetDense() {
       static_assert(COUNT > 0, "COUNT must be greater than 0");
 
-      LANGULUS_ASSUME(DevAssumes, IsTyped<Block>(),
+      LANGULUS_ASSUME(DevAssumes, IsTyped<THIS>(),
          "Block is not typed");
       LANGULUS_ASSUME(DevAssumes, mCount > 0,
          "Block is empty");
 
-      Count counter = COUNT;
       Block copy {*this};
-      while (counter and copy.mType->mIsSparse) {
-         LANGULUS_ASSERT(copy.mType->mDeptr, Access,
+      copy.mCount = 1;
+
+      if constexpr (CT::Typed<THIS> and CT::Dense<TypeOf<THIS>>)
+         return copy;
+      else if constexpr (CT::Typed<THIS> and COUNT == 1) {
+         // Statically dereference once                                 
+         static_assert(CT::Complete<Deptr<TypeOf<THIS>>>,
             "Trying to interface incomplete data as dense");
 
-         copy.mEntry = *GetEntries<Block>();
+         copy.mEntry = *GetEntries<THIS>();
          copy.mRaw = *mRawSparse;
          copy.mType = copy.mType->mDeptr;
-         --counter;
+      }
+      else {
+         // Dereference as much as needed at runtime                    
+         Count counter = COUNT;
+         while (counter and copy.mType->mIsSparse) {
+            LANGULUS_ASSERT(copy.mType->mDeptr, Access,
+               "Trying to interface incomplete data as dense");
+
+            copy.mEntry = *GetEntries<THIS>();
+            copy.mRaw = *mRawSparse;
+            copy.mType = copy.mType->mDeptr;
+            --counter;
+         }
       }
 
       return copy;
    }
 
-   template<Count COUNT> LANGULUS(INLINED)
-   Any Block::GetDense() const {
-      auto result = const_cast<Block*>(this)->GetDense<COUNT>();
+   template<Count COUNT, CT::BlockBased THIS> LANGULUS(INLINED)
+   Block Block::GetDense() const {
+      auto result = const_cast<Block*>(this)->template GetDense<THIS, COUNT>();
       result.MakeConst();
       return result;
+   }
+
+   /// Dereference first contained pointer once                               
+   template<CT::BlockBased THIS> LANGULUS(INLINED)
+   Block Block::operator * () {
+      return GetDense<1, THIS>();
+   }
+
+   /// Dereference first contained pointer once                               
+   template<CT::BlockBased THIS> LANGULUS(INLINED)
+   Block Block::operator * () const {
+      return GetDense<1, THIS>();
    }
    
    /// Swap two elements inside this container                                

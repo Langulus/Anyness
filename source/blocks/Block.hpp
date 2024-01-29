@@ -411,10 +411,14 @@ namespace Langulus::Anyness
       template<CT::Block THIS> NOD() IF_UNSAFE(constexpr)
       THIS Crop(Offset, Count) const IF_UNSAFE(noexcept);
 
+      template<Count = CountMax, CT::BlockBased = Any>
       NOD() Block GetElementDense(Offset = 0);
+      template<Count = CountMax, CT::BlockBased = Any>
       NOD() Block GetElementDense(Offset = 0) const;
    
+      template<CT::BlockBased = Any>
       NOD() Block GetElementResolved(Offset = 0);
+      template<CT::BlockBased = Any>
       NOD() Block GetElementResolved(Offset = 0) const;
    
       NOD() Block GetElement(Offset = 0)       IF_UNSAFE(noexcept);
@@ -431,14 +435,19 @@ namespace Langulus::Anyness
       NOD() Block GetElementDeep(Offset) const noexcept;
 
       template<CT::BlockBased = Any>
-      NOD() Any GetResolved();
+      NOD() Block GetResolved();
       template<CT::BlockBased = Any>
-      NOD() Any GetResolved() const;
+      NOD() Block GetResolved() const;
 
-      template<Count = CountMax>
-      NOD() Any GetDense();
-      template<Count = CountMax>
-      NOD() Any GetDense() const;
+      template<Count = CountMax, CT::BlockBased = Any>
+      NOD() Block GetDense();
+      template<Count = CountMax, CT::BlockBased = Any>
+      NOD() Block GetDense() const;
+
+      template<CT::BlockBased = Any>
+      NOD() Block operator * ();
+      template<CT::BlockBased = Any>
+      NOD() Block operator * () const;
 
       template<CT::Block = Any>
       void SwapIndices(CT::Index auto, CT::Index auto);
