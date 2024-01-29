@@ -56,7 +56,7 @@ TEMPLATE_TEST_CASE(
 /// to complex, from flat to deep                                             
 TEMPLATE_TEST_CASE(
    "TOrderedSet/TUnorderedSet/OrderedSet/UnorderedSet", "[set]",
-   (TypePair<TUnorderedSet<Trait>, Trait>),
+   (TypePair<UnorderedSet, int*>),
 
    (TypePair<TUnorderedSet<int*>, int*>),
    (TypePair<TUnorderedSet<Trait*>, Trait*>),
@@ -66,7 +66,6 @@ TEMPLATE_TEST_CASE(
    (TypePair<TOrderedSet<Trait*>, Trait*>),
    (TypePair<TOrderedSet<Traits::Count*>, Traits::Count*>),
    (TypePair<TOrderedSet<Any*>, Any*>),
-   (TypePair<UnorderedSet, int*>),
    (TypePair<UnorderedSet, Trait*>),
    (TypePair<UnorderedSet, Traits::Count*>),
    (TypePair<UnorderedSet, Any*>),
@@ -77,6 +76,7 @@ TEMPLATE_TEST_CASE(
 
    (TypePair<UnorderedSet, Any>),
    (TypePair<TUnorderedSet<int>, int>),
+   (TypePair<TUnorderedSet<Trait>, Trait>),
    (TypePair<TUnorderedSet<Traits::Count>, Traits::Count>),
    (TypePair<TUnorderedSet<Any>, Any>),
    (TypePair<TOrderedSet<int>, int>),
@@ -633,7 +633,22 @@ TEMPLATE_TEST_CASE(
          REQUIRE(clone.GetCount() == set.GetCount());
          REQUIRE(clone.GetCount() == 5);
          REQUIRE(clone.GetRawMemory() != set.GetRawMemory());
-         REQUIRE((clone != set) == CT::Sparse<K>);
+
+         if constexpr (CT::Sparse<K>) {
+            for (auto item1 : clone) {
+               bool found = false;
+               for (auto item2 : set) {
+                  if (*item1 == *item2)
+                     found = true;
+               }
+
+               REQUIRE(found);
+            }
+         }
+         else {
+            for (auto& item : clone)
+               REQUIRE(set.Contains(item));
+         }
       }
 
       WHEN("Set is move-constructed") {
