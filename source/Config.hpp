@@ -80,7 +80,7 @@ namespace Langulus
    {
       using RTTI::AllocationRequest;
 
-      template<class, bool EMBED = true>
+      template<CT::Data, bool EMBED = true>
       struct Handle;
 
       class Any;

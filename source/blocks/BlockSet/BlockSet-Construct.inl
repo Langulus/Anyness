@@ -19,7 +19,7 @@ namespace Langulus::Anyness
    template<CT::Set TO, template<class> class S, CT::Set FROM>
    requires CT::Semantic<S<FROM>> LANGULUS(INLINED)
    void BlockSet::BlockTransfer(S<FROM>&& other) {
-      mKeys.mCount = other->mKeys.mCount;
+      using SS = S<FROM>;
 
       if constexpr (not CT::TypedSet<TO>) {
          // TO is not statically typed, so we can safely                
@@ -34,17 +34,18 @@ namespace Langulus::Anyness
          mKeys.mState = other->mKeys.mState + DataState::Typed;
       }
 
-      if constexpr (S<FROM>::Shallow) {
+      if constexpr (SS::Shallow) {
          // We're transferring via a shallow semantic                   
+         mKeys.mCount = other->mKeys.mCount;
          mKeys.mRaw = other->mKeys.mRaw;
          mKeys.mReserved = other->mKeys.mReserved;
          mInfo = other->mInfo;
 
-         if constexpr (S<FROM>::Keep) {
+         if constexpr (SS::Keep) {
             // Move/Copy other                                          
             mKeys.mEntry = other->mKeys.mEntry;
 
-            if constexpr (S<FROM>::Move) {
+            if constexpr (SS::Move) {
                if constexpr (not FROM::Ownership) {
                   // Since we are not aware if that block is referenced 
                   // or not we reference it just in case, and we also   
@@ -60,7 +61,7 @@ namespace Langulus::Anyness
             }
             else Keep();
          }
-         else if constexpr (S<FROM>::Move) {
+         else if constexpr (SS::Move) {
             // Abandon other                                            
             mKeys.mEntry = other->mKeys.mEntry;
             other->mKeys.mEntry = nullptr;
@@ -70,7 +71,7 @@ namespace Langulus::Anyness
          // We're cloning, so we guarantee, that data is no longer      
          // static and constant via state                               
          mKeys.mState -= DataState::Static | DataState::Constant;
-         if (0 == mKeys.mCount)
+         if (other->IsEmpty())
             return;
 
          // Always prefer statically typed set interface (if any)       
@@ -78,35 +79,73 @@ namespace Langulus::Anyness
          AllocateFresh<B>(other->GetReserved());
          auto asFrom = const_cast<B*>(reinterpret_cast<const B*>(&*other));
 
-         if (asFrom->IsDense()) {
+         if (not asFrom->mKeys.mType->mIsSparse) {
             // We're cloning dense elements, so we're 100% sure, that   
             // each element will end up in the same place               
             CopyMemory(mInfo, other->mInfo, GetReserved() + 1);
-            auto info = GetInfo();
-            const auto infoEnd = GetInfoEnd();
-            auto dstKey = GetHandle<B>(0);
-            auto srcKey = asFrom->template GetHandle<B>(0);
-            while (info != infoEnd) {
-               if (*info)
-                  dstKey.CreateSemantic(Clone(srcKey));
 
-               ++info;
-               ++dstKey;
-               ++srcKey;
+            if constexpr (CT::Typed<B> and CT::Inner::POD<TypeOf<B>>) {
+               // Data is POD, we can directly copy the entire table    
+               CopyMemory(
+                  mKeys.mRaw, asFrom->mKeys.mRaw,
+                  GetReserved() * sizeof(TypeOf<B>)
+               );
+            }
+            else if (asFrom->mKeys.mType->mIsPOD) {
+               // Data is POD, we can directly copy the entire table    
+               CopyMemory(
+                  mKeys.mRaw, asFrom->mKeys.mRaw,
+                  GetReserved() * asFrom->mKeys.mType->mSize
+               );
+            }
+            else {
+               // Data isn't pod, clone valid elements one by one       
+               auto info = GetInfo();
+               const auto infoEnd = GetInfoEnd();
+               auto dstKey = GetHandle<B>(0);
+               auto srcKey = asFrom->template GetHandle<B>(0);
+               while (info != infoEnd) {
+                  if (*info)
+                     dstKey.CreateSemantic(SS::Nest(srcKey));
+
+                  ++info;
+                  ++dstKey;
+                  ++srcKey;
+               }
             }
          }
          else {
             // We're cloning pointers, which will inevitably end up     
             // pointing elsewhere, which means that all elements must   
-            // be rehashed - so we reinsert them one by one             
-            auto info = other->GetInfo();
-            const auto infoEnd = other->GetInfoEnd();
-            auto srcKey = asFrom->template GetHandle<B>(0);
-            while (info != infoEnd) {
-               if (*info)
-                  Insert<TO>(Clone(srcKey));
-               ++info;
-               ++srcKey;
+            // be rehashed and reinserted                               
+            Conditional<CT::Typed<B>, Deptr<TypeOf<B>>, Any> coalesced;
+            if constexpr (not CT::Typed<B>)
+               coalesced.SetType(asFrom->mKeys.mType->mDeptr);
+            coalesced.Reserve(GetCount());
+
+            // Coalesce all densified elements, to avoid multiple       
+            // allocations                                              
+            for (auto& item : *asFrom) {
+               if constexpr (CT::Typed<B>)
+                  coalesced.Insert(IndexBack, SS::Nest(*item));
+               else
+                  coalesced.InsertBlock(IndexBack, SS::Nest(*item));
+            }
+            const_cast<Allocation*>(coalesced.mEntry)->Keep(GetCount());
+
+            // Zero info bytes and insert pointers                      
+            ZeroMemory(mInfo, mKeys.mReserved);
+            mInfo[mKeys.mReserved] = 1;
+
+            auto ptr = coalesced.GetRaw();
+            const auto ptrEnd = coalesced.GetRawEnd();
+            const Size stride = coalesced.GetStride();
+            while (ptr != ptrEnd) {
+               InsertInner<B, false>(
+                  GetBucket(GetReserved() - 1, ptr),
+                  Abandon(HandleLocal<void*> {Copy(ptr), coalesced.mEntry})
+               );
+               ptr += stride.mSize;
             }
          }
       }

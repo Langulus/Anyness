@@ -18,6 +18,8 @@ namespace Langulus::Anyness
    ///                                                                        
    template<bool ORDERED = false>
    struct Set : BlockSet {
+      using BlockType = Any;
+
       LANGULUS(POD) false;
       LANGULUS_BASES(BlockSet);
 

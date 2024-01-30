@@ -20,9 +20,11 @@ namespace Langulus::Anyness
    /// track of pointers inserted to containers. This does not have ownership 
    /// and can be used as iterator only when EMBEDed.                         
    ///                                                                        
-   template<class T, bool EMBED>
+   template<CT::Data T, bool EMBED>
    struct Handle : A::Handle {
       LANGULUS(TYPED) T;
+      LANGULUS(UNINSERTABLE) true;
+      LANGULUS(UNALLOCATABLE) true;
       LANGULUS_BASES(A::Handle);
 
    public:
@@ -109,9 +111,5 @@ namespace Langulus::Anyness
    
    template<CT::NotHandle T>
    using HandleLocal = Handle<T, false>;
-
-   /// A handle that has void T is just a type-erased Block                   
-   template<>
-   struct Handle<void> : Block {};
 
 } // namespace Langulus::Anyness

@@ -302,7 +302,7 @@ namespace Langulus::Anyness
    /// Insert all elements of a set, semantically or not                      
    ///   @param t1 - the set to insert                                        
    ///   @return number of inserted elements                                  
-   TEMPLATE() template<class T1> requires CT::Set<Desem<T1>> LANGULUS(INLINED)
+   TEMPLATE() template<class T1> requires CT::Block<Desem<T1>> LANGULUS(INLINED)
    Count TABLE()::InsertBlock(T1&& t1) {
       return BlockSet::InsertBlock<TSet>(Forward<T1>(t1));
    }
