@@ -312,8 +312,10 @@ namespace Langulus::Anyness
       template<CT::Set = UnorderedSet, class T1, class...TAIL>
       Count Insert(T1&&, TAIL&&...);
 
-      template<CT::Set = UnorderedSet, class T>
-      requires CT::Set<Desem<T>>
+      template<CT::Set = UnorderedSet, class T> requires CT::Set<Desem<T>>
+      Count InsertBlock(T&&);
+      
+      template<CT::Set = UnorderedSet, class T> requires CT::Block<Desem<T>>
       Count InsertBlock(T&&);
 
    protected:
@@ -389,7 +391,7 @@ namespace Langulus::Anyness
       using InnerT = Conditional<CT::Typed<SET>, T*, Block>;
 
       const InfoType* mInfo;
-      const InfoType* mSentinel;
+      const InfoType* mSentinel; 
       InnerT mKey;
 
       constexpr Iterator(const InfoType*, const InfoType*, const InnerT&) noexcept;

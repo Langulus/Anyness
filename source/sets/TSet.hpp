@@ -43,6 +43,7 @@ namespace Langulus::Anyness
       using Value = T;
       using Base = Set<ORDERED>;
       using Self = TSet<T, ORDERED>;
+      using BlockType = TAny<T>;
 
       LANGULUS(POD) false;
       LANGULUS(TYPED) T;
@@ -190,6 +191,9 @@ namespace Langulus::Anyness
       Count Insert(T1&&, TAIL&&...);
 
       template<class T1> requires CT::Set<Desem<T1>>
+      Count InsertBlock(T1&&);
+
+      template<class T1> requires CT::Block<Desem<T1>>
       Count InsertBlock(T1&&);
 
       template<class T1>

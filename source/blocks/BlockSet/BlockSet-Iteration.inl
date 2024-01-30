@@ -342,20 +342,7 @@ namespace Langulus::Anyness
       while (not *++mInfo)
          ;
 
-      const auto offset = mInfo - previous;
-      if constexpr (CT::Typed<SET>) {
-         const_cast<InnerT&>(mKey) += offset;
-      }
-      else {
-         const_cast<InnerT&>(mKey).mRaw += offset * mKey.GetStride();
-         // Notice we don't affect count for properly accessing entries 
-         // Any attempt at transferring these blocks will UB            
-         // Iterators are not intended for use as mediators of any      
-         // transfer of ownership. We just stick to them,               
-         // as a form of indexing, and nothing more. Otherwise,         
-         // accounting for avoiding potentially hazardous access will   
-         // cost twice as much per iteration                            
-      }
+      mKey += mInfo - previous;
       return *this;
    }
 

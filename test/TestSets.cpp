@@ -636,13 +636,13 @@ TEMPLATE_TEST_CASE(
 
          if constexpr (CT::Sparse<K>) {
             for (auto item1 : clone) {
-               bool found = false;
+               int found = 0;
                for (auto item2 : set) {
                   if (*item1 == *item2)
-                     found = true;
+                     ++found;
                }
 
-               REQUIRE(found);
+               REQUIRE(found == 1);
             }
          }
          else {

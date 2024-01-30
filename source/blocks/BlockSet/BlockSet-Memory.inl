@@ -22,7 +22,7 @@ namespace Langulus::Anyness
          Roof2(count < MinimalAllocation ? MinimalAllocation : count)
       );
    }
-    
+
    /// Allocate a fresh set of keys (for internal use only)                   
    ///   @attention doesn't initialize anything, but the memory state         
    ///   @attention doesn't modify count, doesn't set info sentinel           

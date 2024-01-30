@@ -63,10 +63,11 @@ namespace Langulus::Anyness
             // Implicitly convert string literals to Text containers    
             Reserve(GetCount() + 1);
             Text text {S::Nest(item)};
-            return InsertInner<THIS, true>(
+            InsertInner<THIS, true>(
                GetBucket(GetReserved() - 1, text),
                Abandon(text)
             );
+            return 1;
          }
          else {
             // Insert the array                                         
@@ -83,7 +84,16 @@ namespace Langulus::Anyness
          }
       }
       else if constexpr (not CT::TypeErased<E>) {
-         if constexpr (CT::MakableFrom<E, T>) {
+         if constexpr (CT::Handle<T> and CT::Similar<E, TypeOf<T>>) {
+            // Insert a handle                                          
+            Reserve(GetCount() + 1);
+            InsertInner<THIS, true>(
+               GetBucket(GetReserved() - 1, DesemCast(item).Get()),
+               S::Nest(item)
+            );
+            return 1;
+         }
+         else if constexpr (CT::MakableFrom<E, T>) {
             // Some of the arguments might still be used directly to    
             // make an element, forward these to standard insertion here
             mKeys.mType = MetaDataOf<E>();
@@ -139,14 +149,27 @@ namespace Langulus::Anyness
       }
       else {
          // This set is type-erased                                     
-         // Some of the arguments might still be used directly to       
-         // make an element, forward these to standard insertion here   
-         Mutate<THIS, Decvq<T>>();
-         Reserve(GetCount() + 1);
-         return InsertInner<THIS, true>(
-            GetBucket(GetReserved() - 1, DesemCast(item)),
-            S::Nest(item)
-         );
+         if constexpr (CT::Handle<T>) {
+            // Insert a handle                                          
+            Mutate<THIS, Decvq<TypeOf<T>>>();
+            Reserve(GetCount() + 1);
+            InsertInner<THIS, true>(
+               GetBucket(GetReserved() - 1, DesemCast(item).Get()),
+               S::Nest(item)
+            );
+         }
+         else {
+            // Some of the arguments might still be used directly to    
+            // make an element, forward these to standard insertion here
+            Mutate<THIS, Decvq<T>>();
+            Reserve(GetCount() + 1);
+            InsertInner<THIS, true>(
+               GetBucket(GetReserved() - 1, DesemCast(item)),
+               S::Nest(item)
+            );
+         }
+
+         return 1;
       }
    }
 
@@ -174,9 +197,9 @@ namespace Langulus::Anyness
       Reserve(GetCount() + count);
 
       if constexpr (CT::Typed<ST> or CT::Typed<THIS>) {
-         // Merging with a statically typed set                         
-         using SET = Conditional<CT::Typed<ST>, ST, THIS>;
-         for (auto& it : reinterpret_cast<const SET&>(DesemCast(item))) {
+         // Merging with a statically typed sets                        
+         using B = Conditional<CT::Typed<ST>, ST, THIS>;
+         for (auto& it : reinterpret_cast<const B&>(DesemCast(item))) {
             InsertInner<THIS, true>(
                GetBucket(GetReserved() - 1, it),
                S::Nest(it)
@@ -184,8 +207,42 @@ namespace Langulus::Anyness
          }
       }
       else {
-         // Merging with a type-erased set                              
-         for (Block it : static_cast<const BlockSet&>(DesemCast(item))) {
+         // Merging type-erased sets                                    
+         for (auto& it : DesemCast(item)) {
+            InsertBlockInner<THIS, true>(
+               GetBucketUnknown(GetReserved() - 1, it),
+               S::Nest(it)
+            );
+         }
+      }
+
+      return count;
+   }
+   
+   /// Insert all elements of a block, semantically or not                    
+   ///   @param item - the set to insert                                      
+   ///   @return number of inserted elements                                  
+   template<CT::Set THIS, class T> requires CT::Block<Desem<T>> LANGULUS(INLINED)
+   Count BlockSet::InsertBlock(T&& item) {
+      using S = SemanticOf<decltype(item)>;
+      using ST = TypeOf<S>;
+
+      const auto count = DesemCast(item).GetCount();
+      Reserve(GetCount() + count);
+
+      if constexpr (CT::Typed<ST> or CT::Typed<THIS>) {
+         // Merging with a statically typed set and/or block            
+         using B = Conditional<CT::Typed<ST>, ST, typename THIS::BlockType>;
+         for (auto& it : reinterpret_cast<const B&>(DesemCast(item))) {
+            InsertInner<THIS, true>(
+               GetBucket(GetReserved() - 1, it),
+               S::Nest(it)
+            );
+         }
+      }
+      else {
+         // Merging type-erased block with a type-erased set            
+         for (auto& it : DesemCast(item)) {
             InsertBlockInner<THIS, true>(
                GetBucketUnknown(GetReserved() - 1, it),
                S::Nest(it)
@@ -289,11 +346,7 @@ namespace Langulus::Anyness
             }
          }
 
-         if constexpr (CT::TypedSet<THIS>)
-            ++oldKey;
-         else
-            oldKey.Next();
-
+         ++oldKey;
          ++oldInfo;
       }
 
