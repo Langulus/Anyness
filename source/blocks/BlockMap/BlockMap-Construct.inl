@@ -78,55 +78,27 @@ namespace Langulus::Anyness
          mKeys.mState -= DataState::Static;
          mValues.mState -= DataState::Static;
 
-         if constexpr (CT::Typed<TO> or CT::Typed<FROM>) {
-            using B = Conditional<CT::Typed<FROM>, FROM, TO>;
-            auto asFrom = reinterpret_cast<const B*>(&*other);
-            AllocateFresh<B>(asFrom->GetReserved());
+         using B = Conditional<CT::Typed<FROM>, FROM, TO>;
+         auto asFrom = reinterpret_cast<const B*>(&*other);
+         AllocateFresh<B>(other->GetReserved());
+         CopyMemory(mInfo, other->mInfo, GetReserved() + 1);
 
-            // Clone info array                                         
-            CopyMemory(mInfo, asFrom->mInfo, GetReserved() + 1);
-
-            // Clone keys and values                                    
-            auto info = GetInfo();
-            const auto infoEnd = GetInfoEnd();
-            auto dstKey = GetKeyHandle<B>(0);
-            auto dstVal = GetValHandle<B>(0);
-            auto srcKey = asFrom->template GetKeyHandle<B>(0);
-            auto srcVal = asFrom->template GetValHandle<B>(0);
-            while (info != infoEnd) {
-               if (*info) {
-                  dstKey.CreateSemantic(Clone(srcKey));
-                  dstVal.CreateSemantic(Clone(srcVal));
-               }
-
-               ++info;
-               ++dstKey; ++dstVal;
-               ++srcKey; ++srcVal;
+         // Clone keys and values                                       
+         auto info = GetInfo();
+         const auto infoEnd = GetInfoEnd();
+         auto dstKey = GetKeyHandle<B>(0);
+         auto dstVal = GetValHandle<B>(0);
+         auto srcKey = asFrom->template GetKeyHandle<B>(0);
+         auto srcVal = asFrom->template GetValHandle<B>(0);
+         while (info != infoEnd) {
+            if (*info) {
+               dstKey.CreateSemantic(Clone(srcKey));
+               dstVal.CreateSemantic(Clone(srcVal));
             }
-         }
-         else {
-            // Use type-erased cloning                                  
-            AllocateFresh<TO>(other->GetReserved());
 
-            // Clone info array                                         
-            CopyMemory(mInfo, other->mInfo, GetReserved() + 1);
-
-            auto info = GetInfo();
-            const auto infoEnd = GetInfoEnd();
-            auto dstKey = GetRawKey<TO>(0);
-            auto dstVal = GetRawVal<TO>(0);
-            auto srcKey = other->GetKey(0);
-            auto srcVal = other->GetValue(0);
-            while (info != infoEnd) {
-               if (*info) {
-                  dstKey.CreateSemantic(Clone(srcKey));
-                  dstVal.CreateSemantic(Clone(srcVal));
-               }
-
-               ++info;
-               dstKey.Next(); dstVal.Next();
-               srcKey.Next(); srcVal.Next();
-            }
+            ++info;
+            ++dstKey; ++dstVal;
+            ++srcKey; ++srcVal;
          }
       }
    }

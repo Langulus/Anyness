@@ -1118,8 +1118,8 @@ namespace Langulus::Anyness
                while (lhs != lhsEnd) {
                   dst.CreateSemantic(Clone(src.template GetDense<1>()));
                   lhs.Create(dst.mRaw, clonedCoalescedSrc.mEntry);
-                  dst.Next();
-                  src.Next();
+                  ++dst;
+                  ++src;
                   ++lhs;
                }
 

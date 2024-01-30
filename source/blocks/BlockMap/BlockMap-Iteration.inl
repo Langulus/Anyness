@@ -48,13 +48,13 @@ namespace Langulus::Anyness
       const auto next = [&inf,&key,&val] {
          if constexpr (REVERSE) {
             --inf;
-            key.Prev();
-            val.Prev();
+            --key;
+            --val;
          }
          else {
             ++inf;
-            key.Next();
-            val.Next();
+            ++key;
+            ++val;
          }
       };
 

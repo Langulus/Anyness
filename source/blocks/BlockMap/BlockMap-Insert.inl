@@ -332,11 +332,7 @@ namespace Langulus::Anyness
             }
          }
 
-         if constexpr (CT::Typed<THIS>)
-            ++oldKey;
-         else
-            oldKey.Next();
-
+         ++oldKey;
          ++oldInfo;
       }
 
@@ -413,11 +409,7 @@ namespace Langulus::Anyness
             }
          }
 
-         if constexpr (CT::Typed<THIS>)
-            ++oldKey;
-         else
-            oldKey.Next();
-
+         ++oldKey;
          ++oldInfo;
       }
 
@@ -491,11 +483,7 @@ namespace Langulus::Anyness
             }
          }
 
-         if constexpr (CT::Typed<THIS>)
-            ++oldKey;
-         else
-            oldKey.Next();
-
+         ++oldKey;
          ++oldInfo;
       }
 

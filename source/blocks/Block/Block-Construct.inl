@@ -88,8 +88,10 @@ namespace Langulus::A
       , mReserved {count}
       , mType {meta}
       , mEntry {entry} {
-      LANGULUS_ASSUME(DevAssumes, not entry or raw, "Invalid data pointer");
-      LANGULUS_ASSUME(DevAssumes, meta, "Invalid data type");
+      LANGULUS_ASSUME(DevAssumes, not entry or raw,
+         "Invalid data pointer");
+      LANGULUS_ASSUME(DevAssumes, meta,
+         "Invalid data type");
       LANGULUS_ASSUME(DevAssumes, not raw or not meta->mIsSparse,
          "Sparse raw data initialization is not allowed");
    }
@@ -281,18 +283,6 @@ namespace Langulus::Anyness
          AllocateFresh<B>(RequestSize<B>(mCount));
          CreateSemantic<B>(from.Forward());
       }
-   }
-   
-   /// Helper function for constructing from a single item                    
-   ///   @attention if 'other' is CT::Deep, it will be absorbed               
-   ///   @param other - the element/container and semantic to initialize with 
-   LANGULUS(INLINED)
-   void Block::CreateFrom(CT::Semantic auto&& other) {
-      using T = TypeOf<decltype(other)>;
-      if constexpr (CT::Deep<T>)
-         BlockTransfer<Any>(other.Forward());
-      else
-         UnfoldInsert<false>(0, other.Forward());
    }
 
 } // namespace Langulus::Anyness
