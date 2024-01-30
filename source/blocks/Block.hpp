@@ -240,7 +240,6 @@ namespace Langulus::Anyness
       template<CT::Block TO, template<class> class S, CT::Block FROM>
       requires CT::Semantic<S<FROM>>
       void BlockTransfer(S<FROM>&&);
-      void CreateFrom(CT::Semantic auto&&);
 
    public:
       ///                                                                     
@@ -481,11 +480,6 @@ namespace Langulus::Anyness
 
       NOD() Block CropInner(Offset, Count) const IF_UNSAFE(noexcept);
 
-      void Next() IF_UNSAFE(noexcept);
-      void Prev() IF_UNSAFE(noexcept);
-      NOD() Block Next() const IF_UNSAFE(noexcept);
-      NOD() Block Prev() const IF_UNSAFE(noexcept);
-
       template<CT::Block, CT::Index INDEX>
       Offset SimplifyIndex(INDEX) const
       noexcept(not LANGULUS_SAFE() and CT::BuiltinInteger<INDEX>);
@@ -540,6 +534,19 @@ namespace Langulus::Anyness
 
       template<CT::Block, bool REVERSE = false>
       LoopControl IterateInner(Count, auto&& f) const noexcept(NoexceptIterator<decltype(f)>);
+
+      // Prefix operators                                               
+      Block& operator ++ () IF_UNSAFE(noexcept);
+      Block& operator -- () IF_UNSAFE(noexcept);
+
+      // Suffix operators                                               
+      NOD() Block operator ++ (int) const IF_UNSAFE(noexcept);
+      NOD() Block operator -- (int) const IF_UNSAFE(noexcept);
+
+      NOD() Block operator + (Offset) const IF_UNSAFE(noexcept);
+      NOD() Block operator - (Offset) const IF_UNSAFE(noexcept);
+      Block& operator += (Offset) IF_UNSAFE(noexcept);
+      Block& operator -= (Offset) IF_UNSAFE(noexcept);
 
    public:
       ///                                                                     

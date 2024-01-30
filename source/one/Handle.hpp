@@ -93,10 +93,11 @@ namespace Langulus::Anyness
       Handle& operator -- () noexcept requires Embedded;
 
       // Suffix operators                                               
-      NOD() Handle operator ++ (int) noexcept requires Embedded;
-      NOD() Handle operator -- (int) noexcept requires Embedded;
-      NOD() Handle operator + (Offset) noexcept requires Embedded;
-      NOD() Handle operator - (Offset) noexcept requires Embedded;
+      NOD() Handle operator ++ (int) const noexcept requires Embedded;
+      NOD() Handle operator -- (int) const noexcept requires Embedded;
+
+      NOD() Handle operator + (Offset) const noexcept requires Embedded;
+      NOD() Handle operator - (Offset) const noexcept requires Embedded;
       Handle& operator += (Offset) noexcept requires Embedded;
       Handle& operator -= (Offset) noexcept requires Embedded;
 

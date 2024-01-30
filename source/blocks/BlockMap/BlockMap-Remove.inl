@@ -156,11 +156,7 @@ namespace Langulus::Anyness
             --mValues.mCount;
          }
 
-         if constexpr (CT::Typed<THIS>)
-            ++val;
-         else
-            val.Next();
-
+         ++val;
          ++psl;
       }
 
@@ -180,19 +176,12 @@ namespace Langulus::Anyness
       // Destroy the key, info and value at the start                   
       // Use statically typed optimizations where possible              
       auto key = GetKeyHandle<THIS>(index);
+      key.Destroy();
+      ++key;
+
       auto val = GetValHandle<THIS>(index);
-
-      if constexpr (CT::Typed<THIS>) {
-         (key++).Destroy();
-         (val++).Destroy();
-      }
-      else {
-         key.Destroy();
-         key.Next();
-
-         val.Destroy();
-         val.Next();
-      }
+      val.Destroy();
+      ++val;
 
       *(psl++) = 0;
 
@@ -203,33 +192,13 @@ namespace Langulus::Anyness
       while (*psl > 1) {
          psl[-1] = (*psl) - 1;
 
-         #if LANGULUS_COMPILER_GCC()
-            #pragma GCC diagnostic push
-            #pragma GCC diagnostic ignored "-Wplacement-new"
-         #endif
+         (key--).CreateSemantic(Abandon(key));
+         key.Destroy();
+         ++key;
 
-         if constexpr (CT::Typed<THIS>) {
-            (key - 1).CreateSemantic(Abandon(key));
-            (key++).Destroy();
-
-            (val - 1).CreateSemantic(Abandon(val));
-            (val++).Destroy();
-         }
-         else {
-            const_cast<const Block&>(key).Prev()
-               .CreateSemantic(Abandon(key));
-            key.Destroy();
-            key.Next();
-
-            const_cast<const Block&>(val).Prev()
-               .CreateSemantic(Abandon(val));
-            val.Destroy();
-            val.Next();
-         }
-
-         #if LANGULUS_COMPILER_GCC()
-            #pragma GCC diagnostic pop
-         #endif
+         (val--).CreateSemantic(Abandon(val));
+         val.Destroy();
+         ++val;
 
          *(psl++) = 0;
       }
@@ -242,26 +211,15 @@ namespace Langulus::Anyness
          GetInfo()[last] = (*psl) - 1;
 
          // Shift first pair to the back                                
-         if constexpr (CT::Typed<THIS>) {
-            key = GetKeyHandle<THIS>(0);
-            GetKeyHandle<THIS>(last).CreateSemantic(Abandon(key));
-            (key++).Destroy();
+         key = GetKeyHandle<THIS>(0);
+         GetKeyHandle<THIS>(last).CreateSemantic(Abandon(key));
+         key.Destroy();
+         ++key;
 
-            val = GetValHandle<THIS>(0);
-            GetValHandle<THIS>(last).CreateSemantic(Abandon(val));
-            (val++).Destroy();
-         }
-         else {
-            key = GetKeyHandle<THIS>(0);
-            GetKeyHandle<THIS>(last).CreateSemantic(Abandon(key));
-            key.Destroy();
-            key.Next();
-
-            val = GetValHandle<THIS>(0);
-            GetValHandle<THIS>(last).CreateSemantic(Abandon(val));
-            val.Destroy();
-            val.Next();
-         }
+         val = GetValHandle<THIS>(0);
+         GetValHandle<THIS>(last).CreateSemantic(Abandon(val));
+         val.Destroy();
+         ++val;
 
          *(psl++) = 0;
 

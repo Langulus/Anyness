@@ -633,56 +633,6 @@ namespace Langulus::Anyness
       result.mRaw += start * mType->mSize;
       return result;
    }
-   
-   /// Get next element by incrementing data pointer (for inner use)          
-   LANGULUS(INLINED)
-   void Block::Next() IF_UNSAFE(noexcept) {
-      LANGULUS_ASSUME(DevAssumes, mRaw,
-         "Block is not allocated");
-      LANGULUS_ASSUME(DevAssumes, IsTyped(),
-         "Block is not typed");
-
-      mRaw += mType->mSize;
-   }
-
-   /// Get previous element by decrementing data pointer (for inner use)      
-   LANGULUS(INLINED)
-   void Block::Prev() IF_UNSAFE(noexcept) {
-      LANGULUS_ASSUME(DevAssumes, mRaw,
-         "Block is not allocated");
-      LANGULUS_ASSUME(DevAssumes, IsTyped(),
-         "Block is not typed");
-
-      mRaw -= mType->mSize;
-   }
-
-   /// Get next element by incrementing data pointer (for inner use)          
-   ///   @return a new block with the incremented pointer                     
-   LANGULUS(INLINED)
-   Block Block::Next() const IF_UNSAFE(noexcept) {
-      LANGULUS_ASSUME(DevAssumes, mRaw,
-         "Block is not allocated");
-      LANGULUS_ASSUME(DevAssumes, IsTyped(),
-         "Block is not typed");
-
-      Block copy {*this};
-      copy.mRaw += mType->mSize;
-      return copy;
-   }
-
-   /// Get previous element by decrementing data pointer (for inner use)      
-   ///   @return a new block with the decremented pointer                     
-   LANGULUS(INLINED)
-   Block Block::Prev() const IF_UNSAFE(noexcept) {
-      LANGULUS_ASSUME(DevAssumes, mRaw,
-         "Block is not allocated");
-      LANGULUS_ASSUME(DevAssumes, IsTyped(),
-         "Block is not typed");
-
-      Block copy {*this};
-      copy.mRaw -= mType->mSize;
-      return copy;
-   }
 
    /// Convert an index to an offset                                          
    /// Complex indices will be fully constrained                              

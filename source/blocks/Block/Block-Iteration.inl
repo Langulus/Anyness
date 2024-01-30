@@ -375,6 +375,96 @@ namespace Langulus::Anyness
    constexpr Block::Iterator<const THIS> Block::last() const noexcept {
       return const_cast<Block*>(this)->last<THIS>();
    }
+   
+   /// Prefix increment - get next element by incrementing data pointer       
+   LANGULUS(INLINED)
+   Block& Block::operator ++ () IF_UNSAFE(noexcept) {
+      LANGULUS_ASSUME(DevAssumes, mRaw,
+         "Block is not allocated");
+      LANGULUS_ASSUME(DevAssumes, IsTyped(),
+         "Block is not typed");
+      LANGULUS_ASSUME(DevAssumes, mRaw + mType->mSize <= mEntry->GetBlockEnd(),
+         "Block limit breached");
+
+      mRaw += mType->mSize;
+      return *this;
+   }
+
+   /// Prefix decrement - get previous element by decrementing data pointer   
+   LANGULUS(INLINED)
+   Block& Block::operator -- () IF_UNSAFE(noexcept) {
+      LANGULUS_ASSUME(DevAssumes, mRaw,
+         "Block is not allocated");
+      LANGULUS_ASSUME(DevAssumes, IsTyped(),
+         "Block is not typed");
+      LANGULUS_ASSUME(DevAssumes, mRaw - mType->mSize >= mEntry->GetBlockStart(),
+         "Block limit breached");
+
+      mRaw -= mType->mSize;
+      return *this;
+   }
+
+   /// Suffic increment - get next element by incrementing data pointer       
+   LANGULUS(INLINED)
+   Block Block::operator ++ (int) const IF_UNSAFE(noexcept) {
+      Block copy {*this};
+      return ++copy;
+   }
+
+   /// Suffic decrement - get previous element by decrementing data pointer   
+   LANGULUS(INLINED)
+   Block Block::operator -- (int) const IF_UNSAFE(noexcept) {
+      Block copy {*this};
+      return --copy;
+   }
+   
+   /// Offset the handle                                                      
+   ///   @param offset - the offset to apply                                  
+   ///   @return the offsetted handle                                         
+   LANGULUS(INLINED)
+   Block Block::operator + (Offset offset) const IF_UNSAFE(noexcept) {
+      auto copy {*this};
+      return copy += offset;
+   }
+
+   /// Offset the handle                                                      
+   ///   @param offset - the offset to apply                                  
+   ///   @return the offsetted handle                                         
+   LANGULUS(INLINED)
+   Block Block::operator - (Offset offset) const IF_UNSAFE(noexcept) {
+      auto copy {*this};
+      return copy -= offset;
+   }
+   
+   /// Prefix increment operator                                              
+   ///   @return the next handle                                              
+   LANGULUS(INLINED)
+   Block& Block::operator += (Offset offset) IF_UNSAFE(noexcept) {
+      LANGULUS_ASSUME(DevAssumes, mRaw,
+         "Block is not allocated");
+      LANGULUS_ASSUME(DevAssumes, IsTyped(),
+         "Block is not typed");
+      LANGULUS_ASSUME(DevAssumes, mRaw + offset * mType->mSize <= mEntry->GetBlockEnd(),
+         "Block limit breached");
+
+      mRaw += offset * mType->mSize;
+      return *this;
+   }
+
+   /// Prefix decrement operator                                              
+   ///   @return the next handle                                              
+   LANGULUS(INLINED)
+   Block& Block::operator -= (Offset offset) IF_UNSAFE(noexcept) {
+      LANGULUS_ASSUME(DevAssumes, mRaw,
+         "Block is not allocated");
+      LANGULUS_ASSUME(DevAssumes, IsTyped(),
+         "Block is not typed");
+      LANGULUS_ASSUME(DevAssumes, mRaw - offset * mType->mSize >= mEntry->GetBlockStart(),
+         "Block limit breached");
+
+      mRaw -= offset * mType->mSize;
+      return *this;
+   }
 
    /// Construct an iterator                                                  
    ///   @param start - the current iterator position                         
@@ -437,10 +527,7 @@ namespace Langulus::Anyness
    ///   @return the modified iterator                                        
    template<class T> LANGULUS(INLINED)
    constexpr Block::Iterator<T>& Block::Iterator<T>::operator ++ () noexcept {
-      if constexpr (CT::Typed<T>)
-         ++mValue;
-      else
-         mValue.Next();
+      ++mValue;
       return *this;
    }
 

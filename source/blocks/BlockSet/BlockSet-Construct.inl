@@ -15,7 +15,7 @@ namespace Langulus::Anyness
    
    /// Semantically transfer the members of one set onto another              
    ///   @tparam TO - the type of set we're transferring to                   
-   ///   @param from - the set and semantic to transfer from                  
+   ///   @param other - the set and semantic to transfer from                 
    template<CT::Set TO, template<class> class S, CT::Set FROM>
    requires CT::Semantic<S<FROM>> LANGULUS(INLINED)
    void BlockSet::BlockTransfer(S<FROM>&& other) {
@@ -68,19 +68,20 @@ namespace Langulus::Anyness
       }
       else {
          // We're cloning, so we guarantee, that data is no longer      
-         // static and constant (unless mType is constant)              
+         // static and constant via state                               
          mKeys.mState -= DataState::Static | DataState::Constant;
          if (0 == mKeys.mCount)
             return;
 
-         if constexpr (CT::Typed<FROM> or CT::Typed<TO>) {
-            using B = Conditional<CT::Typed<FROM>, FROM, TO>;
-            auto asFrom = const_cast<B*>(reinterpret_cast<const B*>(&*other));
-            AllocateFresh<B>(asFrom->GetReserved());
+         // Always prefer statically typed set interface (if any)       
+         using B = Conditional<CT::Typed<FROM>, FROM, TO>;
+         AllocateFresh<B>(other->GetReserved());
+         auto asFrom = const_cast<B*>(reinterpret_cast<const B*>(&*other));
 
-            // Clone info array                                         
-            CopyMemory(mInfo, asFrom->mInfo, GetReserved() + 1);
-
+         if (asFrom->IsDense()) {
+            // We're cloning dense elements, so we're 100% sure, that   
+            // each element will end up in the same place               
+            CopyMemory(mInfo, other->mInfo, GetReserved() + 1);
             auto info = GetInfo();
             const auto infoEnd = GetInfoEnd();
             auto dstKey = GetHandle<B>(0);
@@ -95,22 +96,17 @@ namespace Langulus::Anyness
             }
          }
          else {
-            AllocateFresh<TO>(other->GetReserved());
-
-            // Clone info array                                         
-            CopyMemory(mInfo, other->mInfo, GetReserved() + 1);
-
-            auto info = GetInfo();
-            const auto infoEnd = GetInfoEnd();
-            auto dstKey = GetRaw<TO>(0);
-            auto srcKey = other->GetRaw(0);
+            // We're cloning pointers, which will inevitably end up     
+            // pointing elsewhere, which means that all elements must   
+            // be rehashed - so we reinsert them one by one             
+            auto info = other->GetInfo();
+            const auto infoEnd = other->GetInfoEnd();
+            auto srcKey = asFrom->template GetHandle<B>(0);
             while (info != infoEnd) {
                if (*info)
-                  dstKey.CreateSemantic(Clone(srcKey));
-
+                  Insert<TO>(Clone(srcKey));
                ++info;
-               dstKey.Next();
-               srcKey.Next();
+               ++srcKey;
             }
          }
       }

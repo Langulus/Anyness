@@ -143,7 +143,41 @@ namespace Langulus::Anyness
          --mEntry;
       return *this;
    }
-      
+
+   /// Suffix increment operator                                              
+   ///   @return the previous value of the handle                             
+   TEMPLATE() LANGULUS(INLINED)
+   HAND() HAND()::operator ++ (int) const noexcept requires Embedded {
+      auto backup = *this;
+      return ++backup;
+   }
+
+   /// Suffix decrement operator                                              
+   ///   @return the previous value of the handle                             
+   TEMPLATE() LANGULUS(INLINED)
+   HAND() HAND()::operator -- (int) const noexcept requires Embedded {
+      auto backup = *this;
+      return --backup;
+   }
+
+   /// Offset the handle                                                      
+   ///   @param offset - the offset to apply                                  
+   ///   @return the offsetted handle                                         
+   TEMPLATE() LANGULUS(INLINED)
+   HAND() HAND()::operator + (Offset offset) const noexcept requires Embedded {
+      auto backup = *this;
+      return backup += offset;
+   }
+
+   /// Offset the handle                                                      
+   ///   @param offset - the offset to apply                                  
+   ///   @return the offsetted handle                                         
+   TEMPLATE() LANGULUS(INLINED)
+   HAND() HAND()::operator - (Offset offset) const noexcept requires Embedded {
+      auto backup = *this;
+      return backup -= offset;
+   }
+   
    /// Prefix increment operator                                              
    ///   @return the next handle                                              
    TEMPLATE() LANGULUS(INLINED)
@@ -162,42 +196,6 @@ namespace Langulus::Anyness
       if constexpr (CT::Sparse<T>)
          mEntry -= offset;
       return *this;
-   }
-
-   /// Suffix increment operator                                              
-   ///   @return the previous value of the handle                             
-   TEMPLATE() LANGULUS(INLINED)
-   HAND() HAND()::operator ++ (int) noexcept requires Embedded {
-      const auto backup = *this;
-      operator ++ ();
-      return backup;
-   }
-
-   /// Suffix decrement operator                                              
-   ///   @return the previous value of the handle                             
-   TEMPLATE() LANGULUS(INLINED)
-   HAND() HAND()::operator -- (int) noexcept requires Embedded {
-      const auto backup = *this;
-      operator -- ();
-      return backup;
-   }
-      
-   /// Offset the handle                                                      
-   ///   @param offset - the offset to apply                                  
-   ///   @return the offsetted handle                                         
-   TEMPLATE() LANGULUS(INLINED)
-   HAND() HAND()::operator + (Offset offset) noexcept requires Embedded {
-      auto backup = *this;
-      return backup += offset;
-   }
-
-   /// Offset the handle                                                      
-   ///   @param offset - the offset to apply                                  
-   ///   @return the offsetted handle                                         
-   TEMPLATE() LANGULUS(INLINED)
-   HAND() HAND()::operator - (Offset offset) noexcept requires Embedded {
-      auto backup = *this;
-      return backup -= offset;
    }
 
    /// Get a reference to the contents                                        

@@ -198,15 +198,8 @@ namespace Langulus::Anyness
             }
          }
 
-         if constexpr (CT::TypedMap<THIS>) {
-            ++key;
-            ++val;
-         }
-         else {
-            key.Next();
-            val.Next();
-         }
-
+         ++key;
+         ++val;
          ++old.mInfo;
       }
 

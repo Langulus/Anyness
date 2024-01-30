@@ -138,11 +138,7 @@ namespace Langulus::Anyness
             }
          }
 
-         if constexpr (CT::TypedSet<THIS>)
-            ++key;
-         else
-            key.Next();
-
+         ++key;
          ++old.mInfo;
       }
 

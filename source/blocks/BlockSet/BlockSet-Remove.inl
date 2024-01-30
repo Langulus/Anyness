@@ -69,12 +69,8 @@ namespace Langulus::Anyness
       // Destroy the key and info at the start                          
       // Use statically typed optimizations where possible              
       auto key = GetHandle<THIS>(index);
-      if constexpr (CT::Typed<THIS>)
-         (key++).Destroy();
-      else {
-         key.Destroy();
-         key.Next();
-      }
+      key.Destroy();
+      ++key;
 
       *(psl++) = 0;
 
@@ -90,16 +86,9 @@ namespace Langulus::Anyness
             #pragma GCC diagnostic ignored "-Wplacement-new"
          #endif
 
-         if constexpr (CT::Typed<THIS>) {
-            (key - 1).CreateSemantic(Abandon(key));
-            (key++).Destroy();
-         }
-         else {
-            const_cast<const Block&>(key)
-               .Prev().CreateSemantic(Abandon(key));
-            key.Destroy();
-            key.Next();
-         }
+         (key--).CreateSemantic(Abandon(key));
+         key.Destroy();
+         ++key;
 
          #if LANGULUS_COMPILER_GCC()
             #pragma GCC diagnostic pop
@@ -118,16 +107,9 @@ namespace Langulus::Anyness
          // Shift first entry to the back                               
          key = GetHandle<THIS>(0);
          auto lastkey = GetHandle<THIS>(last);
-
-         if constexpr (CT::Typed<THIS>) {
-            lastkey.CreateSemantic(Abandon(key));
-            (key++).Destroy();
-         }
-         else {
-            lastkey.CreateSemantic(Abandon(key));
-            key.Destroy();
-            key.Next();
-         }
+         lastkey.CreateSemantic(Abandon(key));
+         key.Destroy();
+         ++key;
 
          *(psl++) = 0;
 
