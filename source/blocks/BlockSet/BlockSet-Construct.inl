@@ -79,73 +79,123 @@ namespace Langulus::Anyness
          AllocateFresh<B>(other->GetReserved());
          auto asFrom = const_cast<B*>(reinterpret_cast<const B*>(&*other));
 
-         if (not asFrom->mKeys.mType->mIsSparse) {
-            // We're cloning dense elements, so we're 100% sure, that   
-            // each element will end up in the same place               
-            CopyMemory(mInfo, other->mInfo, GetReserved() + 1);
+         if constexpr (CT::Typed<B>) {
+            if constexpr (CT::Dense<TypeOf<B>>) {
+               // We're cloning dense elements, so we're 100% sure, that
+               // each element will end up in the same place            
+               CopyMemory(mInfo, other->mInfo, GetReserved() + 1);
 
-            if constexpr (CT::Typed<B> and CT::Inner::POD<TypeOf<B>>) {
-               // Data is POD, we can directly copy the entire table    
-               CopyMemory(
-                  mKeys.mRaw, asFrom->mKeys.mRaw,
-                  GetReserved() * sizeof(TypeOf<B>)
-               );
-            }
-            else if (asFrom->mKeys.mType->mIsPOD) {
-               // Data is POD, we can directly copy the entire table    
-               CopyMemory(
-                  mKeys.mRaw, asFrom->mKeys.mRaw,
-                  GetReserved() * asFrom->mKeys.mType->mSize
-               );
+               if constexpr (CT::Inner::POD<TypeOf<B>>) {
+                  // Data is POD, we can directly copy the entire table 
+                  CopyMemory(
+                     mKeys.mRaw, asFrom->mKeys.mRaw,
+                     GetReserved() * sizeof(TypeOf<B>)
+                  );
+               }
+               else {
+                  // Data isn't pod, clone valid elements one by one    
+                  auto info = GetInfo();
+                  const auto infoEnd = GetInfoEnd();
+                  auto dstKey = GetHandle<B>(0);
+                  auto srcKey = asFrom->template GetHandle<B>(0);
+                  while (info != infoEnd) {
+                     if (*info)
+                        dstKey.CreateSemantic(SS::Nest(srcKey));
+
+                     ++info;
+                     ++dstKey;
+                     ++srcKey;
+                  }
+               }
+
+               mKeys.mCount = other->GetCount();
             }
             else {
-               // Data isn't pod, clone valid elements one by one       
-               auto info = GetInfo();
-               const auto infoEnd = GetInfoEnd();
-               auto dstKey = GetHandle<B>(0);
-               auto srcKey = asFrom->template GetHandle<B>(0);
-               while (info != infoEnd) {
-                  if (*info)
-                     dstKey.CreateSemantic(SS::Nest(srcKey));
+               // We're cloning pointers, which will inevitably end up  
+               // pointing elsewhere, which means that all elements must
+               // be rehashed and reinserted                            
+               TAny<Deptr<TypeOf<B>>> coalesced;
+               coalesced.Reserve(asFrom->GetCount());
 
-                  ++info;
-                  ++dstKey;
-                  ++srcKey;
+               // Coalesce all densified elements, to avoid multiple    
+               // allocations                                           
+               for (auto& item : *asFrom)
+                  coalesced.Insert(IndexBack, SS::Nest(*item));
+               const_cast<Allocation*>(coalesced.mEntry)->Keep(asFrom->GetCount());
+
+               // Zero info bytes and insert pointers                   
+               ZeroMemory(mInfo, mKeys.mReserved);
+               mInfo[mKeys.mReserved] = 1;
+
+               auto ptr = coalesced.GetRaw();
+               const auto ptrEnd = coalesced.GetRawEnd();
+               while (ptr != ptrEnd) {
+                  InsertInner<B, false>(
+                     GetBucket(GetReserved() - 1, ptr),
+                     Abandon(HandleLocal<TypeOf<B>> {Copy(ptr), coalesced.mEntry})
+                  );
+                  ++ptr;
                }
             }
          }
          else {
-            // We're cloning pointers, which will inevitably end up     
-            // pointing elsewhere, which means that all elements must   
-            // be rehashed and reinserted                               
-            Conditional<CT::Typed<B>, Deptr<TypeOf<B>>, Any> coalesced;
-            if constexpr (not CT::Typed<B>)
-               coalesced.SetType(asFrom->mKeys.mType->mDeptr);
-            coalesced.Reserve(GetCount());
+            if (not asFrom->mKeys.mType->mIsSparse) {
+               // We're cloning dense elements, so we're 100% sure, that
+               // each element will end up in the same place            
+               CopyMemory(mInfo, other->mInfo, GetReserved() + 1);
 
-            // Coalesce all densified elements, to avoid multiple       
-            // allocations                                              
-            for (auto& item : *asFrom) {
-               if constexpr (CT::Typed<B>)
-                  coalesced.Insert(IndexBack, SS::Nest(*item));
-               else
-                  coalesced.InsertBlock(IndexBack, SS::Nest(*item));
+               if (asFrom->mKeys.mType->mIsPOD) {
+                  // Data is POD, we can directly copy the entire table 
+                  CopyMemory(
+                     mKeys.mRaw, asFrom->mKeys.mRaw,
+                     GetReserved() * asFrom->mKeys.mType->mSize
+                  );
+               }
+               else {
+                  // Data isn't pod, clone valid elements one by one    
+                  auto info = GetInfo();
+                  const auto infoEnd = GetInfoEnd();
+                  auto dstKey = GetHandle<B>(0);
+                  auto srcKey = asFrom->template GetHandle<B>(0);
+                  while (info != infoEnd) {
+                     if (*info)
+                        dstKey.CreateSemantic(SS::Nest(srcKey));
+
+                     ++info;
+                     ++dstKey;
+                     ++srcKey;
+                  }
+               }
+
+               mKeys.mCount = other->GetCount();
             }
-            const_cast<Allocation*>(coalesced.mEntry)->Keep(GetCount());
+            else {
+               // We're cloning pointers, which will inevitably end up  
+               // pointing elsewhere, which means that all elements must
+               // be rehashed and reinserted                            
+               auto coalesced = Any::FromMeta(asFrom->mKeys.mType->mDeptr);
+               coalesced.Reserve(asFrom->GetCount());
 
-            // Zero info bytes and insert pointers                      
-            ZeroMemory(mInfo, mKeys.mReserved);
-            mInfo[mKeys.mReserved] = 1;
+               // Coalesce all densified elements, to avoid multiple    
+               // allocations                                           
+               for (auto& item : *asFrom)
+                  coalesced.InsertBlock(IndexBack, SS::Nest(*item));
+               const_cast<Allocation*>(coalesced.mEntry)->Keep(asFrom->GetCount());
 
-            auto ptr = coalesced.GetRaw();
-            const auto ptrEnd = coalesced.GetRawEnd();
-            const Size stride = coalesced.GetStride();
-            while (ptr != ptrEnd) {
-               InsertInner<B, false>(
-                  GetBucket(GetReserved() - 1, ptr),
-                  Abandon(HandleLocal<void*> {Copy(ptr), coalesced.mEntry})
-               );
-               ptr += stride.mSize;
+               // Zero info bytes and insert pointers                   
+               ZeroMemory(mInfo, mKeys.mReserved);
+               mInfo[mKeys.mReserved] = 1;
+
+               auto ptr = coalesced.mRaw;
+               const auto ptrEnd = coalesced.mRaw + coalesced.GetBytesize();
+               const Size stride = coalesced.GetStride();
+               while (ptr != ptrEnd) {
+                  InsertInner<B, false>(
+                     GetBucket(GetReserved() - 1, ptr),
+                     Abandon(HandleLocal<void*> {Copy(ptr), coalesced.mEntry})
+                  );
+                  ptr += stride.mSize;
+               }
             }
          }
       }

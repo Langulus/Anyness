@@ -937,7 +937,7 @@ namespace Langulus::Anyness
    ///   @attention assumes source has at least mCount items                  
    ///   @tparam REVERSE - calls constructors in reverse, to let you          
    ///                     account for potential memory overlap               
-   ///   @param source - the source of the elements to move                   
+   ///   @param source - the source of the elements to initialize with        
    template<CT::Block THIS, bool REVERSE, template<class> class S, CT::Block OTHER>
    requires CT::Semantic<S<OTHER>>
    void Block::CreateSemantic(S<OTHER>&& source) const {
@@ -945,9 +945,11 @@ namespace Langulus::Anyness
          "Count outside limits", '(', mCount, " > ", mReserved);
       LANGULUS_ASSUME(DevAssumes, mCount <= source->mCount,
          "Count mismatch");
-      LANGULUS_ASSUME(DevAssumes, source->GetType() |= GetType<THIS>(),
-         "T doesn't match RHS type",
-         ": ", source->GetType(), " != ", GetType<THIS>());
+      // Type-erased pointers (void*) are acceptable                    
+      LANGULUS_ASSUME(DevAssumes, (source->GetType()->IsSimilar(GetType<THIS>())
+         or (source->GetType()->template IsSimilar<void*>() and IsSparse<THIS>())
+         or (source->GetType()->mIsSparse and GetType<THIS>()->template IsSimilar<void*>())),
+         "Type mismatch on creation", ": ", source->GetType(), " != ", GetType<THIS>());
 
       using B = Conditional<CT::Typed<THIS>, THIS, OTHER>;
       using T = Conditional<CT::Typed<B>, TypeOf<B>, void>;

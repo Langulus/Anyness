@@ -56,7 +56,7 @@ TEMPLATE_TEST_CASE(
 /// to complex, from flat to deep                                             
 TEMPLATE_TEST_CASE(
    "TOrderedSet/TUnorderedSet/OrderedSet/UnorderedSet", "[set]",
-   (TypePair<UnorderedSet, int*>),
+   (TypePair<UnorderedSet, Any>),
 
    (TypePair<TUnorderedSet<int*>, int*>),
    (TypePair<TUnorderedSet<Trait*>, Trait*>),
@@ -66,6 +66,7 @@ TEMPLATE_TEST_CASE(
    (TypePair<TOrderedSet<Trait*>, Trait*>),
    (TypePair<TOrderedSet<Traits::Count*>, Traits::Count*>),
    (TypePair<TOrderedSet<Any*>, Any*>),
+   (TypePair<UnorderedSet, int*>),
    (TypePair<UnorderedSet, Trait*>),
    (TypePair<UnorderedSet, Traits::Count*>),
    (TypePair<UnorderedSet, Any*>),
@@ -74,7 +75,6 @@ TEMPLATE_TEST_CASE(
    (TypePair<OrderedSet, Traits::Count*>),
    (TypePair<OrderedSet, Any*>),
 
-   (TypePair<UnorderedSet, Any>),
    (TypePair<TUnorderedSet<int>, int>),
    (TypePair<TUnorderedSet<Trait>, Trait>),
    (TypePair<TUnorderedSet<Traits::Count>, Traits::Count>),
@@ -86,6 +86,7 @@ TEMPLATE_TEST_CASE(
    (TypePair<UnorderedSet, int>),
    (TypePair<UnorderedSet, Trait>),
    (TypePair<UnorderedSet, Traits::Count>),
+
    (TypePair<OrderedSet, int>),
    (TypePair<OrderedSet, Trait>),
    (TypePair<OrderedSet, Traits::Count>),
@@ -673,6 +674,22 @@ TEMPLATE_TEST_CASE(
             REQUIRE(moved.Contains(comparer));
             REQUIRE(set.Contains(comparer));
             REQUIRE_FALSE(movable.Contains(comparer));
+         }
+
+         if constexpr (CT::Sparse<K>) {
+            for (auto item1 : moved) {
+               int found = 0;
+               for (auto item2 : set) {
+                  if (*item1 == *item2)
+                     ++found;
+               }
+
+               REQUIRE(found == 1);
+            }
+         }
+         else {
+            for (auto& item : moved)
+               REQUIRE(set.Contains(item));
          }
       }
 

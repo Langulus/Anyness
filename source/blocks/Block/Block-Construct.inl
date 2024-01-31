@@ -204,6 +204,11 @@ namespace Langulus::Anyness
                return result;
             }
          }
+         else if constexpr (CT::Handle<DT1>) {
+            TAny<TypeOf<DT1>> result;
+            result.Insert(IndexBack, Forward<T1>(t1));
+            return result;
+         }
          else {
             TAny<DT1> result;
             result.Insert(IndexBack, Forward<T1>(t1));

@@ -7,8 +7,33 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #pragma once
-#include "../blocks/Block.hpp"
+#include "../Config.hpp"
 
+
+namespace Langulus
+{
+   namespace A
+   {
+
+      struct Handle {
+         LANGULUS(ABSTRACT) true;
+         LANGULUS(UNINSERTABLE) true;
+         LANGULUS(UNALLOCATABLE) true;
+      };
+
+   }
+
+   namespace CT
+   {
+
+      template<class...T>
+      concept Handle = (DerivedFrom<T, A::Handle> and ...);
+
+      template<class...T>
+      concept NotHandle = not Handle<T...>;
+
+   }
+}
 
 namespace Langulus::Anyness
 {
@@ -23,6 +48,7 @@ namespace Langulus::Anyness
    template<CT::Data T, bool EMBED>
    struct Handle : A::Handle {
       LANGULUS(TYPED) T;
+      LANGULUS(ABSTRACT) false;
       LANGULUS(UNINSERTABLE) true;
       LANGULUS(UNALLOCATABLE) true;
       LANGULUS_BASES(A::Handle);
@@ -113,3 +139,56 @@ namespace Langulus::Anyness
    using HandleLocal = Handle<T, false>;
 
 } // namespace Langulus::Anyness
+
+namespace Langulus
+{
+   namespace CT::Inner
+   {
+
+      /// Unfolds T, if it is a bounded array, or std::range, and returns     
+      /// a nullptr pointer of the type, contained inside. Nested for ranges  
+      /// containing other ranges, or arrays containing ranges. Removes       
+      /// semantics and handles, too                                          
+      ///   @tparam T - type to unfold                                        
+      ///   @return a pointer of the most inner type                          
+      template<class T>
+      constexpr auto Unfold() noexcept {//TODO nest for semantics?
+         if constexpr (CT::Sparse<T>) {
+            if constexpr (CT::Array<T>)
+               return Unfold<Deext<T>>();
+            else
+               return (Deref<T>*) nullptr;
+         }
+         else if constexpr (CT::Handle<Desem<T>>)
+            return (TypeOf<Desem<T>>*) nullptr;
+         else if constexpr (::std::ranges::range<T>)
+            return Unfold<TypeOf<T>>();
+         else
+            return (Deref<T>*) nullptr;
+      }
+
+   } // namespace Langulus::CT::Inner
+
+   /// Nest-unfold any bounded array or std::range, and get most inner type   
+   template<class T>
+   using Unfold = Deptr<decltype(CT::Inner::Unfold<T>())>;
+
+   namespace CT::Inner
+   {
+
+      /// Check if T is constructible with each of the provided arguments,    
+      /// either directly, or by unfolding that argument                      
+      template<class T, class...A>
+      concept UnfoldMakableFrom = ((
+               ::std::constructible_from<T, A>
+            or ::std::constructible_from<T, Langulus::Unfold<A>>
+         ) and ...);
+
+      /// Check if T is insertable to containers, either directly, or while   
+      /// wrapped in a semantic                                               
+      template<class T1, class...TAIL>
+      concept UnfoldInsertable = Insertable<Desem<T1>, Desem<TAIL>...>;
+
+   } // namespace Langulus::CT::Inner
+
+} // namespace Langulus

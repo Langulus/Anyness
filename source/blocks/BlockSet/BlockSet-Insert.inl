@@ -16,10 +16,10 @@ namespace Langulus::Anyness
 
    template<CT::Set THIS>
    auto BlockSet::CreateValHandle(CT::Semantic auto&& val) {
+      using T = Deref<decltype(val)>;
+
       if constexpr (CT::Typed<THIS>) {
-         using V = Conditional<CT::Typed<THIS>
-            , TypeOf<THIS>
-            , TypeOf<decltype(val)>>;
+         using V = Conditional<CT::Typed<THIS>, TypeOf<THIS>, TypeOf<T>>;
          return HandleLocal<V> {val.Forward()};
       }
       else return Any::Wrap(val.Forward());

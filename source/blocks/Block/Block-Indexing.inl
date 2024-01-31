@@ -404,7 +404,7 @@ namespace Langulus::Anyness
 
    template<Count COUNT, CT::BlockBased THIS> LANGULUS(INLINED)
    Block Block::GetDense() const {
-      auto result = const_cast<Block*>(this)->template GetDense<THIS, COUNT>();
+      auto result = const_cast<Block*>(this)->template GetDense<COUNT, THIS>();
       result.MakeConst();
       return result;
    }
@@ -415,7 +415,6 @@ namespace Langulus::Anyness
       return GetDense<1, THIS>();
    }
 
-   /// Dereference first contained pointer once                               
    template<CT::BlockBased THIS> LANGULUS(INLINED)
    Block Block::operator * () const {
       return GetDense<1, THIS>();
@@ -452,8 +451,10 @@ namespace Langulus::Anyness
       using S = SemanticOf<T>;
       LANGULUS_ASSUME(DevAssumes, mCount and DesemCast(rhs).mCount == mCount,
          "Invalid count");
-      LANGULUS_ASSUME(DevAssumes, GetType<THIS>() |= DesemCast(rhs).GetType(),
-         "Type mismatch");
+      // Type-erased pointers (void*) are acceptable                    
+      LANGULUS_ASSUME(DevAssumes, (DesemCast(rhs).GetType()->IsSimilar(GetType<THIS>())
+         or (DesemCast(rhs).GetType()->template IsSimilar<void*>() and IsSparse<THIS>())),
+         "Type mismatch on swap", ": ", DesemCast(rhs).GetType(), " != ", GetType<THIS>());
 
       using B = Conditional<CT::Typed<THIS>, THIS, TypeOf<S>>;
       Block temporary {mState, mType};
