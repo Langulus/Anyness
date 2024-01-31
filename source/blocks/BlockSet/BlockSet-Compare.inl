@@ -108,8 +108,8 @@ namespace Langulus::Anyness
       return const_cast<BlockSet*>(this)->template FindIt<THIS>(key);
    }
 
-   /// Find the index of a pair by key                                        
-   /// The key may not match the contained key type                           
+   /// Find the index of a key                                                
+   /// The key may not match the contained key type, if THIS is typed         
    ///   @param match - the key to search for                                 
    ///   @return the index, or InvalidOffset if not found                     
    template<CT::Set THIS>
@@ -131,7 +131,14 @@ namespace Langulus::Anyness
          else return InvalidOffset;
       }
       else {
-         if (not me.template IsSimilar<K>())
+         if constexpr (CT::Typed<THIS>) {
+            // Types known at compile-time                              
+            static_assert(CT::Inner::Comparable<TypeOf<THIS>, K>,
+               "Types not comparable");            
+         }
+         else if (not CT::Deep<K>
+              and not me.IsDeep()
+              and not me.template IsSimilar<K>())
             return InvalidOffset;
 
          // Get the starting index based on the key hash                

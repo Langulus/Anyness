@@ -11,14 +11,13 @@
 #include "../Compare.hpp"
 #include "../Index.hpp"
 #include "../Iterator.hpp"
+#include "../one/Handle.hpp"
 
 
 namespace Langulus
 {
    namespace A
    {
-
-      struct Handle {};
 
       ///                                                                     
       /// An abstract Block structure                                         
@@ -74,12 +73,6 @@ namespace Langulus
 
    namespace CT
    {
-
-      template<class...T>
-      concept Handle = (DerivedFrom<T, A::Handle> and ...);
-
-      template<class...T>
-      concept NotHandle = not Handle<T...>;
 
       template<class...T>
       concept Iteratable = requires (T...a) {
