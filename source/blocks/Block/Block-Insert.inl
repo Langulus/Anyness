@@ -665,6 +665,8 @@ namespace Langulus::Anyness
       else if (rhs->IsEmpty())
          return lhs;
 
+      TODO needs to set result type in case THIS is type-erased
+
       //TODO just insert rhs back here, if this container has exactly 1 use?
       // the old view will remain valid, and will eventually diverge if it has to, right?
       // on a second thought, this should also probably be implemented on a lower level
@@ -673,9 +675,9 @@ namespace Langulus::Anyness
       result.Block::template AllocateFresh<THIS>(
          result.Block::template RequestSize<THIS>(mCount + rhs->GetCount()));
       result.Block::template InsertBlock<THIS, void, false>(
-         0, Copy(lhs));
+         IndexBack, Copy(lhs));
       result.Block::template InsertBlock<THIS, void, false>(
-         mCount, rhs.Forward());
+         IndexBack, rhs.Forward());
       return Abandon(result);
    }
 

@@ -44,6 +44,7 @@ namespace Langulus::Anyness
    template<class T> requires CT::DenseCharacter<Desem<T>> LANGULUS(INLINED)
    Text::Text(T&& other) {
       Block::AllocateFresh<Text>(Block::RequestSize<Text>(1));
+      mCount = 1;
       (*this)[0] = DesemCast(other);
    }
 
@@ -174,8 +175,17 @@ namespace Langulus::Anyness
    ///   @param count - number of characters inside text                      
    template<class T> requires CT::String<Desem<T>> LANGULUS(INLINED)
    Text Text::From(T&& text, Count count) {
-      auto temp = Base::From(Forward<T>(text), count);
-      return Abandon(reinterpret_cast<Text&>(temp));
+      using S = SemanticOf<T>;
+      using ST = TypeOf<S>;
+
+      if constexpr (CT::Array<ST>) {
+         auto temp = Base::From(S::Nest(&DesemCast(text)[0]), count);
+         return Abandon(reinterpret_cast<Text&>(temp));
+      }
+      else {
+         auto temp = Base::From(Forward<T>(text), count);
+         return Abandon(reinterpret_cast<Text&>(temp));
+      }
    }
 
    /// Shallow copy assignment                                                
@@ -440,7 +450,7 @@ namespace Langulus::Anyness
          if constexpr (CT::Similar<Letter, TypeOf<B>>) {
             // Comparing with another Text or TAny<Letter> - we can     
             // compare directly                                         
-            return Base::operator == (rhs);
+            return Base::operator == (static_cast<const Base&>(rhs));
          }
          else if constexpr (CT::DenseCharacter<TypeOf<B>>) {
             // We're comparing with a different type of characters -    
@@ -468,6 +478,13 @@ namespace Langulus::Anyness
    ///   @return true if this container contains this exact string            
    LANGULUS(INLINED)
    bool Text::operator == (const CT::String auto& rhs) const noexcept {
+      using T = Deref<decltype(rhs)>;
+      if constexpr (not CT::Array<T>) {
+         if (rhs == nullptr or *rhs == 0)
+            return IsEmpty();
+      }
+      else if (rhs[0] == 0)
+         return IsEmpty();
       return operator == (Text {Disown(rhs)});
    }
 
