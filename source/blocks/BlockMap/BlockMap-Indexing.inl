@@ -103,7 +103,7 @@ namespace Langulus::Anyness
       if (IsEmpty())
          LANGULUS_OOPS(OutOfRange, "Map is empty");
 
-      auto idx = SimplifyIndex<THIS>(index);
+      const auto idx = SimplifyIndex<THIS>(index);
       if (not mInfo[idx])
          LANGULUS_OOPS(OutOfRange, "No pair at given index");
 

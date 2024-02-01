@@ -131,11 +131,10 @@ namespace Langulus::Anyness
 
       // If reached, then we have binary compatible type, so allocate   
       const auto count = data->GetCount();
-      Offset idx;
+      const auto idx = SimplifyIndex<THIS, false>(index);
 
       if constexpr (MOVE_ASIDE) {
          AllocateMore<THIS>(mCount + count);
-         idx = SimplifyIndex<THIS>(index);
 
          if (idx < mCount) {
             // Move memory if required                                  
@@ -150,7 +149,6 @@ namespace Langulus::Anyness
                   Abandon(CropInner(idx, moved)));
          }
       }
-      else idx = SimplifyIndex<THIS>(index);
 
       // Construct data in place                                        
       CropInner(idx, count).template CreateSemantic<THIS>(data.Forward());
@@ -178,10 +176,10 @@ namespace Langulus::Anyness
          LANGULUS_ASSERT(type->mDescriptorConstructor, Meta,
             "Type is not descriptor-constructible");
 
-         Offset idx;
+         const auto idx = SimplifyIndex<THIS, false>(index);
+
          if constexpr (MOVE_ASIDE) {
             AllocateMore<THIS>(mCount + 1);
-            idx = SimplifyIndex<THIS>(index);
 
             if (idx < mCount) {
                // Move memory if required                               
@@ -196,7 +194,6 @@ namespace Langulus::Anyness
                      Abandon(CropInner(idx, moved)));
             }
          }
-         else idx = SimplifyIndex<THIS>(index);
 
          CropInner(idx, 1).template CreateDescribe<THIS>(*item);
       }
@@ -221,12 +218,11 @@ namespace Langulus::Anyness
             );
          }
 
-         Offset idx;
+         const auto idx = SimplifyIndex<THIS, false>(index);
 
          // If reached, we have compatible type, so allocate            
          if constexpr (MOVE_ASIDE) {
             AllocateMore<THIS>(mCount + 1);
-            idx = SimplifyIndex<THIS>(index);
 
             if (idx < mCount) {
                // Move memory if required                               
@@ -241,7 +237,6 @@ namespace Langulus::Anyness
                      Abandon(CropInner(idx, moved)));
             }
          }
-         else idx = SimplifyIndex<THIS>(index);
 
          GetHandle<T, THIS>(idx).CreateSemantic(S::Nest(item));
       }
@@ -430,10 +425,11 @@ namespace Langulus::Anyness
    template<CT::Block THIS, class FORCE, bool MOVE_ASIDE, class T>
    requires CT::Block<Desem<T>> LANGULUS(INLINED)
    Count Block::MergeBlock(CT::Index auto index, T&& other) {
+      using S = SemanticOf<decltype(other)>;
       Count inserted = 0;
       if (not FindBlock(DesemCast(other), IndexFront)) {
          inserted += InsertBlock<THIS, FORCE, MOVE_ASIDE>(
-            index, SemanticOf<T>::Nest(other));
+            index, S::Nest(other));
       }
       return inserted;
    }
@@ -458,7 +454,7 @@ namespace Langulus::Anyness
    ///   @return 1 if the element was emplaced successfully                   
    template<CT::Block THIS, bool MOVE_ASIDE, class...A> LANGULUS(INLINED)
    Count Block::Emplace(CT::Index auto idx, A&&...arguments) {
-      const auto offset = SimplifyIndex<THIS>(idx);
+      const auto offset = SimplifyIndex<THIS, false>(idx);
 
       if constexpr (MOVE_ASIDE) {
          AllocateMore<THIS>(mCount + 1);
@@ -665,13 +661,23 @@ namespace Langulus::Anyness
       else if (rhs->IsEmpty())
          return lhs;
 
-      TODO needs to set result type in case THIS is type-erased
+      if (GetUses() == 1) {
+         // Silently append rhs to this block's memory, to save on a    
+         // reallocation. This block will remain the same, but it will  
+         // diverge, if changed in the future                           
+         const auto countBackup = mCount;
+         const_cast<Block*>(this)->template
+            InsertBlock<THIS, void>(IndexBack, rhs.Forward());
+         Block result = *this;
+         const_cast<Block*>(this)->mCount = countBackup;
+         return reinterpret_cast<THIS&>(result);
+      }
 
-      //TODO just insert rhs back here, if this container has exactly 1 use?
-      // the old view will remain valid, and will eventually diverge if it has to, right?
-      // on a second thought, this should also probably be implemented on a lower level
-      // inside inner insertion, when inserting at the back
+      // Allocate a new concatenated container, and push inside         
       THIS result;
+      if constexpr (CT::Untyped<THIS>)
+         result.template SetType<false>(rhs->GetType());
+
       result.Block::template AllocateFresh<THIS>(
          result.Block::template RequestSize<THIS>(mCount + rhs->GetCount()));
       result.Block::template InsertBlock<THIS, void, false>(

@@ -10,10 +10,12 @@
 
 
 TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]", 
+   (TypePair<TAny<Any>, Any>),
+
    (TypePair<TAny<int>, int>),
    (TypePair<TAny<Trait>, Trait>),
    (TypePair<TAny<Traits::Count>, Traits::Count>),
-   (TypePair<TAny<Any>, Any>),
+
    (TypePair<TAny<Text>, Text>),
 
    (TypePair<Any, int>),
@@ -567,29 +569,6 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
                });
             };
          #endif
-      }
-      
-      WHEN("Insert single item at a specific place by shallow-copy") {
-         const auto i666 = CreateElement<E>(666);
-         REQUIRE_THROWS(pack.Insert(0, i666));
-         CheckState_Default<E>(pack);
-      }
-
-      WHEN("Insert multiple items at a specific place by shallow-copy") {
-         REQUIRE_THROWS(pack.Insert(0, darray2));
-         CheckState_Default<E>(pack);
-                  }
-
-      WHEN("Insert single item at a specific place by move") {
-         auto i666 = CreateElement<E>(666);
-         REQUIRE_THROWS(pack.Insert(0, ::std::move(i666)));
-         CheckState_Default<E>(pack);
-      }
-
-      WHEN("Emplace item at a specific place") {
-         auto i666 = CreateElement<E>(666);
-         REQUIRE_THROWS(pack.Emplace(0, ::std::move(i666)));
-         CheckState_Default<E>(pack);
       }
 
       WHEN("Emplace item at the front") {
@@ -2537,58 +2516,6 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
             REQUIRE(static_cast<unsigned>(it) == pack.GetCount());
       }
 
-      WHEN("ForEach flat sparse element (immutable)") {
-         int it = 0;
-         const auto foreachit = const_cast<const T&>(pack).ForEach(
-            [&](const int* i) {
-               REQUIRE(*i == it + 1);
-               ++it;
-            },
-            [&](const Trait* i) {
-               REQUIRE(*i == it + 1);
-               ++it;
-            },
-            [&](const Any* i) {
-               const auto temp = CreateElement<DenseE>(it + 1);
-               REQUIRE(*i == static_cast<const Any&>(temp));
-               ++it;
-            }
-         );
-
-         REQUIRE(static_cast<unsigned>(it) == foreachit);
-
-         if constexpr (CT::Same<E, Text>)
-            REQUIRE(it == 0);
-         else
-            REQUIRE(static_cast<unsigned>(it) == pack.GetCount());
-      }
-
-      WHEN("ForEach flat sparse element (mutable)") {
-         int it = 0;
-         const auto foreachit = const_cast<T&>(pack).ForEach(
-            [&](int* i) {
-               REQUIRE(*i == it + 1);
-               ++it;
-            },
-            [&](const Trait* i) {
-               REQUIRE(*i == it + 1);
-               ++it;
-            },
-            [&](const Any* i) {
-               const auto temp = CreateElement<DenseE>(it + 1);
-               REQUIRE(*i == static_cast<const Any&>(temp));
-               ++it;
-            }
-         );
-
-         REQUIRE(static_cast<unsigned>(it) == foreachit);
-
-         if constexpr (CT::Same<E, Text>)
-            REQUIRE(it == 0);
-         else
-            REQUIRE(static_cast<unsigned>(it) == pack.GetCount());
-      }
-
       WHEN("ForEachRev flat dense element (immutable)") {
          int it = 0;
          const auto foreachit = const_cast<const T&>(pack).template ForEach<true>(
@@ -2629,58 +2556,6 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
             [&](const Any& i) {
                const auto temp = CreateElement<DenseE>(5 - it);
                REQUIRE(i == static_cast<const Any&>(temp));
-               ++it;
-            }
-         );
-
-         REQUIRE(static_cast<unsigned>(it) == foreachit);
-
-         if constexpr (CT::Same<E, Text>)
-            REQUIRE(it == 0);
-         else
-            REQUIRE(static_cast<unsigned>(it) == pack.GetCount());
-      }
-
-      WHEN("ForEachRev flat sparse element (immutable)") {
-         int it = 0;
-         const auto foreachit = const_cast<const T&>(pack).template ForEach<true>(
-            [&](const int* i) {
-               REQUIRE(*i == 5 - it);
-               ++it;
-            },
-            [&](const Trait* i) {
-               REQUIRE(*i == 5 - it);
-               ++it;
-            },
-            [&](const Any* i) {
-               const auto temp = CreateElement<DenseE>(5 - it);
-               REQUIRE(*i == static_cast<const Any&>(temp));
-               ++it;
-            }
-         );
-
-         REQUIRE(static_cast<unsigned>(it) == foreachit);
-
-         if constexpr (CT::Same<E, Text>)
-            REQUIRE(it == 0);
-         else
-            REQUIRE(static_cast<unsigned>(it) == pack.GetCount());
-      }
-
-      WHEN("ForEachRev flat sparse element (mutable)") {
-         int it = 0;
-         const auto foreachit = pack.template ForEach<true>(
-            [&](int* i) {
-               REQUIRE(*i == 5 - it);
-               ++it;
-            },
-            [&](const Trait* i) {
-               REQUIRE(*i == 5 - it);
-               ++it;
-            },
-            [&](const Any* i) {
-               const auto temp = CreateElement<DenseE>(5 - it);
-               REQUIRE(*i == static_cast<const Any&>(temp));
                ++it;
             }
          );

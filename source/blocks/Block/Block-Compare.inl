@@ -78,7 +78,7 @@ namespace Langulus::Anyness
       else if constexpr (CT::Typed<THIS> or CT::Typed<RHS>) {
          // One of the blocks is statically typed - a runtime type      
          // check is required                                           
-         if (not IsSimilar(right.GetType()))
+         if ((mCount or right.mCount) and not mType->IsSimilar(right.GetType()))
             return false;
 
          if constexpr (CT::Typed<THIS>)
@@ -96,7 +96,7 @@ namespace Langulus::Anyness
             return false;
          }
 
-         if (mCount and mType != right.mType) {
+         if (mCount and not mType->IsSimilar(right.mType)) {
             if (IsUntyped<THIS>() or right.IsUntyped()) {
                // Cheap early return if differing undefined types, when 
                // packs are not empty                                   
@@ -118,7 +118,7 @@ namespace Langulus::Anyness
             return false;
          }
 
-         if (mType->IsExact(right.mType)) {
+         if (mType->IsSimilar(right.mType)) {
             // Types are exactly the same                               
             if (mRaw == right.mRaw) {
                // Quickly return if memory is exactly the same          
@@ -172,8 +172,7 @@ namespace Langulus::Anyness
          }
 
          if ((IsSparse<THIS>() and baseForComparison.mBinaryCompatible)
-            or (baseForComparison.mType->mIsPOD and baseForComparison.mBinaryCompatible)
-            ) {
+         or (baseForComparison.mType->mIsPOD and baseForComparison.mBinaryCompatible)) {
             // Just compare the memory directly (optimization)          
             // Regardless if types are sparse or dense, as long as they 
             // are of the same density, of course                       
@@ -445,7 +444,7 @@ namespace Langulus::Anyness
    ///   @return the index of the found item, or IndexNone if not found       
    template<bool REVERSE, CT::Block THIS>
    Index Block::FindBlock(const CT::Block auto& item, CT::Index auto index) const noexcept {
-      Offset cookie = SimplifyIndex<THIS>(index);
+      auto cookie = SimplifyIndex<THIS>(index);
       if (cookie >= mCount or item.mCount > mCount - cookie)
          return IndexNone;
 

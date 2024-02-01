@@ -50,7 +50,7 @@ namespace Langulus::Anyness
    requires CT::DeepMakable<T, T1, TAIL...> LANGULUS(INLINED)
    TAny<T>::TAny(T1&& t1, TAIL&&...tail) {
       if constexpr (sizeof...(TAIL) == 0) {
-         using S = SemanticOf<T1>;
+         using S = SemanticOf<decltype(t1)>;
          using ST = TypeOf<S>;
 
          if constexpr (CT::Block<ST>) {
@@ -83,16 +83,24 @@ namespace Langulus::Anyness
                }
                else Insert(IndexBack, Forward<T1>(t1));
             }
-            else {
+            else if constexpr (CT::Deep<ST>) {
                // Type-erased block, do run-time type checks            
-               if (mType == DesemCast(t1).GetType()) {
-                  // If types are exactly the same, it is safe to       
+               if (IsSimilar(DesemCast(t1).GetType())) {
+                  // If types are similar, it is safe to                
                   // absorb the block, essentially converting a type-   
                   // erased Any back to its TAny equivalent             
                   BlockTransfer<TAny>(S::Nest(t1));
                }
-               else InsertBlock(IndexBack, Forward<T1>(t1));
+               else if constexpr (CT::Deep<T>) {
+                  // This TAny accepts any kind of deep element         
+                  Insert(IndexBack, Forward<T1>(t1));
+               }
+               else {
+                  // Attempt converting all elements to T               
+                  InsertBlock(IndexBack, Forward<T1>(t1));
+               }
             }
+            else LANGULUS_ERROR("Can't construct this TAny from this kind of Block");
          }
          else Insert(IndexBack, Forward<T1>(t1));
       }
@@ -225,7 +233,7 @@ namespace Langulus::Anyness
    TEMPLATE() template<class T1>
    requires CT::DeepAssignable<T, T1> LANGULUS(INLINED)
    TAny<T>& TAny<T>::operator = (T1&& rhs) {
-      using S = SemanticOf<T1>;
+      using S = SemanticOf<decltype(rhs)>;
       using ST = TypeOf<S>;
 
       if constexpr (CT::Block<ST>) {
@@ -240,7 +248,7 @@ namespace Langulus::Anyness
       else {
          // Unfold-insert                                               
          Clear();
-         Block::UnfoldInsert<TAny, void, true>(0, S::Nest(rhs));
+         Block::UnfoldInsert<TAny, void, true>(IndexBack, S::Nest(rhs));
       }
 
       return *this;

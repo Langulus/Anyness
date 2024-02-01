@@ -44,6 +44,10 @@ SCENARIO("Data normalization", "[neat]") {
 
 
    static_assert(CT::Exact<typename SemanticOf<Cloned<const int>>::template As<float>, Cloned<float>>);
+   static_assert(CT::Exact<typename SemanticOf<Cloned<const int>&>::template As<float>, Cloned<float>>);
+   static_assert(CT::Exact<typename SemanticOf<Cloned<const int>&&>::template As<float>, Cloned<float>>);
+   static_assert(CT::Exact<typename SemanticOf<const Cloned<const int>&>::template As<float>, Cloned<float>>);
+
    static_assert(CT::Pair<Desem<Cloned<TPair<TMeta, TAny<Any>>>>>);
    static_assert(CT::PairMakable<TMeta, TAny<Any>, Cloned<TPair<TMeta, TAny<Any>>>>);
    static_assert(CT::PairAssignable<TMeta, TAny<Any>, Cloned<TPair<TMeta, TAny<Any>>>>);

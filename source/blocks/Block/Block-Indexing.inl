@@ -448,7 +448,7 @@ namespace Langulus::Anyness
    ///   @param rhs - the block to swap with                                  
    template<CT::Block THIS, class T> requires CT::Block<Desem<T>>
    void Block::Swap(T&& rhs) {
-      using S = SemanticOf<T>;
+      using S = SemanticOf<decltype(rhs)>;
       LANGULUS_ASSUME(DevAssumes, mCount and DesemCast(rhs).mCount == mCount,
          "Invalid count");
       // Type-erased pointers (void*) are acceptable                    
@@ -639,27 +639,32 @@ namespace Langulus::Anyness
    /// Complex indices will be fully constrained                              
    /// Unsigned/signed integers are directly forwarded without any overhead   
    ///   @attention assumes T is correct for type-erased containers           
+   ///   @tparam SAFE - whether to throw if index is beyond initialized count 
    ///   @param index - the index to simplify                                 
    ///   @return the simplified index, as a simple offset                     
-   template<CT::Block THIS, CT::Index INDEX> LANGULUS(INLINED)
+   template<CT::Block THIS, bool SAFE, CT::Index INDEX> LANGULUS(INLINED)
    Offset Block::SimplifyIndex(const INDEX index) const
    noexcept(not LANGULUS_SAFE() and CT::BuiltinInteger<INDEX>) {
       if constexpr (CT::Same<INDEX, Index>) {
          // This is the most safe path, throws on errors                
-         return Constrain<THIS>(index).GetOffset();
+         if constexpr (SAFE)
+            return Constrain<THIS>(index).GetOffset();
+         else
+            return Constrain<THIS>(index).GetOffsetUnsafe();
       }
       else {
          // Unsafe, works only on assumptions                           
          // Using an integer index explicitly makes a statement, that   
          // you know what you're doing                                  
          LANGULUS_ASSUME(UserAssumes, 
-            index < static_cast<INDEX>(mCount),
+            not SAFE or index < static_cast<INDEX>(mCount),
             "Integer index out of range"
          );
 
          if constexpr (CT::Signed<INDEX>) {
             LANGULUS_ASSUME(UserAssumes, index >= 0, 
-               "Integer index is below zero, use Index for reverse indices instead"
+               "Integer index is below zero, "
+               "use Index for reverse indices instead"
             );
          }
 

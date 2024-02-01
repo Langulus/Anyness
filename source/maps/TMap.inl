@@ -50,7 +50,7 @@ namespace Langulus::Anyness
    requires CT::DeepMapMakable<K, V, T1, TAIL...> LANGULUS(INLINED)
    TABLE()::TMap(T1&& t1, TAIL&&...tail) {
       if constexpr (sizeof...(TAIL) == 0) {
-         using S = SemanticOf<T1>;
+         using S = SemanticOf<decltype(t1)>;
          using ST = TypeOf<S>;
 
          if constexpr (CT::Map<ST>) {
@@ -108,7 +108,7 @@ namespace Langulus::Anyness
    TEMPLATE() template<class T1>
    requires CT::DeepMapAssignable<K, V, T1> LANGULUS(INLINED)
    TABLE()& TABLE()::operator = (T1&& rhs) {
-      using S = SemanticOf<T1>;
+      using S = SemanticOf<decltype(rhs)>;
       using ST = TypeOf<S>;
        
       if constexpr (CT::Map<ST>) {

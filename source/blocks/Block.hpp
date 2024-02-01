@@ -473,7 +473,7 @@ namespace Langulus::Anyness
 
       NOD() Block CropInner(Offset, Count) const IF_UNSAFE(noexcept);
 
-      template<CT::Block, CT::Index INDEX>
+      template<CT::Block, bool SAFE = true, CT::Index INDEX>
       Offset SimplifyIndex(INDEX) const
       noexcept(not LANGULUS_SAFE() and CT::BuiltinInteger<INDEX>);
 

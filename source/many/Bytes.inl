@@ -30,7 +30,7 @@ namespace Langulus::Anyness
    ///   @param other - the text container to use semantically                
    template<class T> requires CT::Bytes<Desem<T>> LANGULUS(INLINED)
    Bytes::Bytes(T&& other)
-      : Base {SemanticOf<T>(other).template Forward<Base>()} {}
+      : Base {SemanticOf<decltype(other)>(other).template Forward<Base>()} {}
 
    /// Serialize a single POD item                                            
    ///   @param item - the item to serialize                                  
@@ -183,7 +183,7 @@ namespace Langulus::Anyness
    ///   @return the concatenated byte container                              
    template<CT::Bytes THIS, class T>
    THIS Bytes::ConcatInner(T&& rhs) const {
-      using S = SemanticOf<T>;
+      using S = SemanticOf<decltype(rhs)>;
       using B = TypeOf<S>;
 
       if constexpr (CT::Block<B>) {
@@ -210,7 +210,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container                                
    template<CT::Bytes THIS, class T>
    THIS& Bytes::ConcatRelativeInner(T&& rhs) {
-      using S = SemanticOf<T>;
+      using S = SemanticOf<decltype(rhs)>;
       using B = TypeOf<S>;
 
       if constexpr (CT::Block<B>) {

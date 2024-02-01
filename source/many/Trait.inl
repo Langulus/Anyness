@@ -35,7 +35,7 @@ namespace Langulus::Anyness
    requires CT::Inner::UnfoldInsertable<T1, TAIL...> LANGULUS(INLINED)
    Trait::Trait(T1&& t1, TAIL&&...tail) {
       if constexpr (sizeof...(TAIL) == 0 and not CT::Array<T1>) {
-         using S = SemanticOf<T1>;
+         using S = SemanticOf<decltype(t1)>;
          using T = TypeOf<S>;
 
          if constexpr (CT::TraitBased<T>) {
