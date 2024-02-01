@@ -425,7 +425,7 @@ TEMPLATE_TEST_CASE("Reflected coverters to text", "[text]", Stringifiable, Strin
          meta->mConverters.at(debugMeta).mFunction(&instance, &rttiConverted);
 
          REQUIRE(staticallyConverted == rttiConverted);
-         REQUIRE(staticallyConverted == "Stringifiable converted to Debug");
+         REQUIRE(staticallyConverted == "Stringifiable converted to Text");
       }
    }
 }
