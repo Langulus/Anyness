@@ -21,7 +21,7 @@ namespace Langulus::Anyness
    /// Compare to any other kind of deep container, or single custom element  
    ///   @param rhs - element to compare against                              
    ///   @return true if containers match                                     
-   template<CT::Block THIS> LANGULUS(INLINED)
+   template<CT::Block THIS>
    bool Block::operator == (const CT::NotSemantic auto& rhs) const {
       if constexpr (CT::Deep<decltype(rhs)>)
          return Compare<true, THIS>(rhs) or CompareSingleValue<THIS>(rhs);
@@ -78,7 +78,7 @@ namespace Langulus::Anyness
       else if constexpr (CT::Typed<THIS> or CT::Typed<RHS>) {
          // One of the blocks is statically typed - a runtime type      
          // check is required                                           
-         if ((mCount or right.mCount) and not mType->IsSimilar(right.GetType()))
+         if ((mCount or right.mCount) and not IsSimilar<THIS>(right.GetType()))
             return false;
 
          if constexpr (CT::Typed<THIS>)
