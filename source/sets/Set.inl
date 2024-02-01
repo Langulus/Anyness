@@ -45,7 +45,7 @@ namespace Langulus::Anyness
    requires CT::Inner::UnfoldInsertable<T1, TN...> LANGULUS(INLINED)
    TABLE()::Set(T1&& t1, TN&&...tn) {
       if constexpr (sizeof...(TN) == 0) {
-         using S = SemanticOf<T1>;
+         using S = SemanticOf<decltype(t1)>;
          using T = TypeOf<S>;
 
          if constexpr (CT::Set<T>)

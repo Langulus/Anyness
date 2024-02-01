@@ -123,10 +123,10 @@ namespace Langulus::Anyness
       template<class THIS = TAny<T>>
       NOD() constexpr auto GetRawEnd() const noexcept;
 
-      template<class = TAny<T>>
-      NOD() IF_UNSAFE(constexpr) auto GetRawSparse()       IF_UNSAFE(noexcept);
-      template<class = TAny<T>> IF_UNSAFE(constexpr)
-      NOD() IF_UNSAFE(constexpr) auto GetRawSparse() const IF_UNSAFE(noexcept);
+      template<class = TAny<T>> NOD() IF_UNSAFE(constexpr)
+      auto GetRawSparse()       IF_UNSAFE(noexcept);
+      template<class = TAny<T>> NOD() IF_UNSAFE(constexpr)
+      auto GetRawSparse() const IF_UNSAFE(noexcept);
 
       template<CT::Data T1, class = TAny<T>>
       NOD() T1*       GetRawAs() noexcept;

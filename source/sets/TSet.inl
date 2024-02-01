@@ -47,7 +47,7 @@ namespace Langulus::Anyness
       mKeys.mType = MetaDataOf<T>();
 
       if constexpr (sizeof...(TAIL) == 0) {
-         using S = SemanticOf<T1>;
+         using S = SemanticOf<decltype(t1)>;
          using ST = TypeOf<S>;
 
          if constexpr (CT::Set<ST>) {
@@ -126,7 +126,7 @@ namespace Langulus::Anyness
    TEMPLATE() template<class T1>
    requires CT::DeepSetAssignable<T, T1> LANGULUS(INLINED)
    TABLE()& TABLE()::operator = (T1&& rhs) {
-      using S = SemanticOf<T1>;
+      using S = SemanticOf<decltype(rhs)>;
       using ST = TypeOf<S>;
        
       if constexpr (CT::Set<ST>) {
@@ -301,6 +301,14 @@ namespace Langulus::Anyness
    
    /// Insert all elements of a set, semantically or not                      
    ///   @param t1 - the set to insert                                        
+   ///   @return number of inserted elements                                  
+   TEMPLATE() template<class T1> requires CT::Set<Desem<T1>> LANGULUS(INLINED)
+   Count TABLE()::InsertBlock(T1&& t1) {
+      return BlockSet::InsertBlock<TSet>(Forward<T1>(t1));
+   }
+   
+   /// Insert all elements of a block, semantically or not                    
+   ///   @param t1 - the block to insert                                      
    ///   @return number of inserted elements                                  
    TEMPLATE() template<class T1> requires CT::Block<Desem<T1>> LANGULUS(INLINED)
    Count TABLE()::InsertBlock(T1&& t1) {

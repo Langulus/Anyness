@@ -37,7 +37,7 @@ namespace Langulus::Anyness
    ///   @param other - the text container to use semantically                
    template<class T> requires CT::TextBased<Desem<T>> LANGULUS(INLINED)
    Text::Text(T&& other)
-      : Base {SemanticOf<T>(other).template Forward<Base>()} {}
+      : Base {SemanticOf<decltype(other)>(other).template Forward<Base>()} {}
 
    /// Construct from single character                                        
    ///   @param other - the character to copy                                 
@@ -55,7 +55,7 @@ namespace Langulus::Anyness
    ///   @param other - the string and semantic                               
    template<class T> requires CT::String<Desem<T>> LANGULUS(INLINED)
    Text::Text(T&& other) {
-      using S = SemanticOf<T>;
+      using S = SemanticOf<decltype(other)>;
       Count count;
 
       if constexpr (CT::StringLiteral<Desem<T>>) {
@@ -82,7 +82,7 @@ namespace Langulus::Anyness
    ///   @param other - the string and semantic                               
    template<class T> requires CT::StdString<Desem<T>>
    LANGULUS(INLINED) Text::Text(T&& other) {
-      using S = SemanticOf<T>;
+      using S = SemanticOf<decltype(other)>;
       if (DesemCast(other).empty())
          return;
 
@@ -175,7 +175,7 @@ namespace Langulus::Anyness
    ///   @param count - number of characters inside text                      
    template<class T> requires CT::String<Desem<T>> LANGULUS(INLINED)
    Text Text::From(T&& text, Count count) {
-      using S = SemanticOf<T>;
+      using S = SemanticOf<decltype(text)>;
       using ST = TypeOf<S>;
 
       if constexpr (CT::Array<ST>) {
@@ -526,7 +526,7 @@ namespace Langulus::Anyness
    ///   @return the concatenated text container                              
    template<CT::TextBased THIS, class T>
    THIS Text::ConcatInner(T&& rhs) const {
-      using S = SemanticOf<T>;
+      using S = SemanticOf<decltype(rhs)>;
       using B = TypeOf<S>;
 
       if constexpr (CT::Block<B>) {
@@ -558,7 +558,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container                                
    template<CT::TextBased THIS, class T>
    THIS& Text::ConcatRelativeInner(T&& rhs) {
-      using S = SemanticOf<T>;
+      using S = SemanticOf<decltype(rhs)>;
       using B = TypeOf<S>;
 
       if constexpr (CT::Block<B>) {

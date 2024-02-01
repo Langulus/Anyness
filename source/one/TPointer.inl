@@ -72,7 +72,7 @@ namespace Langulus::Anyness
    TEMPLATE() template<class A>
    requires CT::MakableFrom<T*, A> LANGULUS(INLINED)
    constexpr TME()::TPointer(A&& other) {
-      using S = SemanticOf<A>;
+      using S = SemanticOf<decltype(other)>;
       using ST = TypeOf<S>;
 
       if constexpr (CT::Nullptr<ST>) {
@@ -179,7 +179,7 @@ namespace Langulus::Anyness
    TEMPLATE() template<CT::NotOwned A>
    requires CT::AssignableFrom<T*, A> LANGULUS(INLINED)
    TME()& TME()::operator = (A&& rhs) {
-      using S = SemanticOf<A>;
+      using S = SemanticOf<decltype(rhs)>;
       using ST = TypeOf<S>;
 
       if constexpr (CT::Nullptr<ST>) {

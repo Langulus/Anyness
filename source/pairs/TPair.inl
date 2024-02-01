@@ -21,8 +21,8 @@ namespace Langulus::Anyness
    TEMPLATE() template<class P>
    requires CT::PairMakable<K, V, P> LANGULUS(INLINED)
    PAIR()::TPair(P&& pair)
-      : mKey   {SemanticOf<P>::Nest(DesemCast(pair).mKey)}
-      , mValue {SemanticOf<P>::Nest(DesemCast(pair).mValue)} {}
+      : mKey   {SemanticOf<decltype(pair)>::Nest(DesemCast(pair).mKey)}
+      , mValue {SemanticOf<decltype(pair)>::Nest(DesemCast(pair).mValue)} {}
 
    /// Semantic constructor from key and value (if K and V aren't references) 
    ///   @param key - the key                                                 
@@ -31,8 +31,8 @@ namespace Langulus::Anyness
    requires (CT::MakableFrom<K, K1> and CT::MakableFrom<V, V1>
      and not CT::Reference<K, V>) LANGULUS(INLINED)
    PAIR()::TPair(K1&& key, V1&& val)
-      : mKey   {SemanticOf<K1>::Nest(key)}
-      , mValue {SemanticOf<V1>::Nest(val)} {}
+      : mKey   {SemanticOf<decltype(key)>::Nest(key)}
+      , mValue {SemanticOf<decltype(val)>::Nest(val)} {}
 
    /// Semantic constructor from key and value (if K and V are references)    
    ///   @param key - the key                                                 
@@ -47,8 +47,9 @@ namespace Langulus::Anyness
    TEMPLATE() template<class P>
    requires CT::PairAssignable<K, V, P> LANGULUS(INLINED)
    PAIR()& PAIR()::operator = (P&& pair) {
-      mKey   = SemanticOf<P>::Nest(DesemCast(pair).mKey);
-      mValue = SemanticOf<P>::Nest(DesemCast(pair).mValue);
+      using S = SemanticOf<decltype(pair)>;
+      mKey   = S::Nest(DesemCast(pair).mKey);
+      mValue = S::Nest(DesemCast(pair).mValue);
       return *this;
    }
 

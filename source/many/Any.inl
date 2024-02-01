@@ -45,9 +45,9 @@ namespace Langulus::Anyness
    ///   @param tail... - the rest of the elements (optional, can be semantic)
    template<class T1, class...TAIL>
    requires CT::Inner::UnfoldInsertable<T1, TAIL...>
-   LANGULUS(INLINED) Any::Any(T1&& t1, TAIL&&... tail) {
+   LANGULUS(INLINED) Any::Any(T1&& t1, TAIL&&...tail) {
       if constexpr (sizeof...(TAIL) == 0) {
-         using S = SemanticOf<T1>;
+         using S = SemanticOf<decltype(t1)>;
          using T = TypeOf<S>;
 
          if constexpr (CT::Deep<T>)

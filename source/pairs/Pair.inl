@@ -18,24 +18,24 @@ namespace Langulus::Anyness
    ///   @param other - the pair to construct with                            
    template<class P> requires CT::Pair<Desem<P>> LANGULUS(INLINED)
    Pair::Pair(P&& other)
-      : mKey   {SemanticOf<P> {DesemCast(other).mKey}}
-      , mValue {SemanticOf<P> {DesemCast(other).mValue}} {}
+      : mKey   {SemanticOf<decltype(other)> {DesemCast(other).mKey}}
+      , mValue {SemanticOf<decltype(other)> {DesemCast(other).mValue}} {}
 
    /// Construct pair manually                                                
    ///   @param key - the key                                                 
    ///   @param value - the value                                             
    template<class K, class V>
    requires CT::Inner::UnfoldInsertable<K, V> LANGULUS(INLINED)
-   Pair::Pair(K&& key, V&& value)
-      : mKey   {Forward<K>(key)}
-      , mValue {Forward<V>(value)} {}
+   Pair::Pair(K&& key, V&& val)
+      : mKey   {Forward<decltype(key)>(key)}
+      , mValue {Forward<decltype(val)>(val)} {}
 
    /// Assign any kind of pair                                                
    ///   @param rhs - the pair to assign                                      
    template<class P> requires CT::Pair<Desem<P>> LANGULUS(INLINED)
    Pair& Pair::operator = (P&& rhs) {
-      mKey   = SemanticOf<P> {DesemCast(rhs).mKey};
-      mValue = SemanticOf<P> {DesemCast(rhs).mValue};
+      mKey   = SemanticOf<decltype(rhs)> {DesemCast(rhs).mKey};
+      mValue = SemanticOf<decltype(rhs)> {DesemCast(rhs).mValue};
       return *this;
    }
 
