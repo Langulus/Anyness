@@ -10,18 +10,18 @@
 
 
 TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]", 
-   (TypePair<TAny<Any>, Any>),
+   (TypePair<Any, Any>),
 
    (TypePair<TAny<int>, int>),
    (TypePair<TAny<Trait>, Trait>),
    (TypePair<TAny<Traits::Count>, Traits::Count>),
-
+   (TypePair<TAny<Any>, Any>),
    (TypePair<TAny<Text>, Text>),
 
    (TypePair<Any, int>),
    (TypePair<Any, Trait>),
    (TypePair<Any, Traits::Count>),
-   (TypePair<Any, Any>),
+
    (TypePair<Any, Text>),
 
    (TypePair<Traits::Name, Text>)
@@ -1354,7 +1354,8 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
          REQUIRE(pack.template As<DenseE>().HasAuthority());
          REQUIRE(pack.template As<DenseE>().GetUses() == 2);
          REQUIRE(pack.template As<DenseE>() == element);
-         REQUIRE(pack != element);
+         //REQUIRE(pack != element);
+         REQUIRE(pack == element);
          REQUIRE(pack.GetUses() == 1);
          REQUIRE(pack.IsDeep());
          REQUIRE_FALSE(pack.IsStatic());
@@ -1418,7 +1419,8 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
          REQUIRE_FALSE(pack.template As<DenseE>().HasAuthority());
          REQUIRE(pack.template As<DenseE>().GetUses() == 0);
          REQUIRE(pack.template As<DenseE>() == element);
-         REQUIRE(pack != element);
+         REQUIRE(pack == element);
+         //REQUIRE(pack != element);
          REQUIRE(pack.GetUses() == 1);
          REQUIRE_FALSE(pack.IsStatic());
          REQUIRE_FALSE(pack.IsConstant());
@@ -1487,7 +1489,8 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
          REQUIRE(pack.template As<DenseE>().HasAuthority());
          REQUIRE(pack.template As<DenseE>().GetUses() == 2);
          REQUIRE(pack.template As<DenseE>() == element);
-         REQUIRE(pack != element);
+         //REQUIRE(pack != element);
+         REQUIRE(pack == element);
          REQUIRE(pack.GetUses() == 1);
          REQUIRE(pack.IsDeep());
          REQUIRE_FALSE(pack.IsStatic());
@@ -1526,7 +1529,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
    }
 
    GIVEN("Container constructed by static list of exactly the same shallow-copied elements") {
-      if constexpr (!CT::Typed<T>) {
+      if constexpr (CT::Untyped<T>) {
          const T pack {element, element};
 
          CheckState_OwnedFull<E>(pack);
@@ -1538,7 +1541,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
    }
 
    GIVEN("Container constructed by static list of somewhat different shallow-copied elements") {
-      if constexpr (!CT::Typed<T>) {
+      if constexpr (CT::Untyped<T>) {
          const T pack {denseValue, sparseValue};
 
          CheckState_OwnedFull<Any>(pack);

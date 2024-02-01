@@ -22,6 +22,15 @@ CATCH_TRANSLATE_EXCEPTION(::Langulus::Exception const& ex) {
    return ::std::string {Token {serialized}};
 }
 
+namespace Catch
+{
+   /// Save catch2 from doing infinite recursions with Block types            
+   template<CT::Block T>
+   struct is_range<T> {
+      static const bool value = false;
+   };
+}
+
 using timer = Catch::Benchmark::Chronometer;
 
 template<class T>

@@ -130,13 +130,18 @@ namespace Langulus::Anyness
           == static_cast<const Block*>(&DesemCast(rhs)))
             return *this;
 
-         Free<Any>();
+         Block::Free();
          new (this) Any {S::Nest(rhs)};
       }
-      else {
-         // Unfold-insert                                               
-         Clear();
+      else if (IsSimilar<Unfold<T>>()) {
+         // Unfold-insert by reusing memory                             
+         Block::Clear();
          Block::UnfoldInsert<Any, void, true>(IndexFront, S::Nest(rhs));
+      }
+      else {
+         // Allocate anew and unfold-insert                             
+         Block::Free();
+         new (this) Any {S::Nest(rhs)};
       }
 
       return *this;

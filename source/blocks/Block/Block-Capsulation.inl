@@ -276,7 +276,7 @@ namespace Langulus::Anyness
       if constexpr (CT::Typed<THIS>)
          return CT::Dense<TypeOf<THIS>>;
       else
-         return mType ? not mType->mIsSparse : false;
+         return mType ? not mType->mIsSparse : true;
    }
 
    /// Check if block contains pointers                                       
@@ -443,6 +443,7 @@ namespace Langulus::Anyness
    template<CT::Block THIS> LANGULUS(INLINED)
    constexpr bool Block::IsInsertable(DMeta other) const noexcept {
       return other and not IsStatic() and not IsConstant()
+         and IsSparse() == other->mIsSparse
          and ((IsDeep<THIS>() and other->mIsDeep) or CastsToMeta(other));
    }
    
@@ -452,7 +453,8 @@ namespace Langulus::Anyness
    template<CT::Data T, CT::Block THIS> LANGULUS(INLINED)
    constexpr bool Block::IsInsertable() const noexcept {
       if constexpr (CT::Typed<THIS> and (CT::Similar<TypeOf<THIS>, T>
-                                     or  CT::Deep<TypeOf<THIS>, T>))
+      or  (CT::Deep<Decay<TypeOf<THIS>>, Decay<T>>
+       and CT::Dense<TypeOf<THIS>> == CT::Dense<T>)))
          return not IsStatic() and not IsConstant();
       else
          return IsInsertable<THIS>(MetaDataOf<T>());
