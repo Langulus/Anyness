@@ -1140,7 +1140,7 @@ namespace Langulus::Anyness
                const auto lhsEnd = lhs + mCount;
                auto dst = clonedCoalescedSrc.GetElementInner();
                auto src = source->GetElementInner();
-               while (lhs != lhsEnd) {
+               while (lhs.mValue != lhsEnd.mValue) {
                   dst.CreateSemantic(Clone(src.template GetDense<1>()));
                   lhs.Create(dst.mRaw, clonedCoalescedSrc.mEntry);
                   ++dst;

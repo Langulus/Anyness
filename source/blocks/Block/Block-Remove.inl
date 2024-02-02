@@ -312,7 +312,7 @@ namespace Langulus::Anyness
             // 1, and destroy the dense element, if it has destructor   
             auto handle = GetHandle<T, THIS>(0);
             const auto handleEnd = handle + mCount;
-            while (handle != handleEnd) {
+            while (handle.mValue != handleEnd.mValue) {
                handle.Destroy();
                ++handle;
             }
@@ -334,7 +334,7 @@ namespace Langulus::Anyness
             // 1, and destroy the dense element, if it has destructor   
             auto handle = mthis->template GetHandle<Byte*, THIS>(0);
             const auto handleEnd = handle + mCount;
-            while (handle != handleEnd) {
+            while (handle.mValue != handleEnd.mValue) {
                handle.DestroyUnknown(mType);
                ++handle;
             }

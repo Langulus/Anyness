@@ -97,6 +97,7 @@ namespace Langulus::Anyness
    }
 
    /// Compare a handle with a comparable value                               
+   ///   @attention this compares contents and isn't suitable for iteration   
    TEMPLATE() template<class T1>
    requires CT::Inner::Comparable<T, T1> LANGULUS(INLINED)
    constexpr bool HAND()::operator == (const T1& rhs) const noexcept {
@@ -107,6 +108,7 @@ namespace Langulus::Anyness
    }
       
    /// Compare handles                                                        
+   ///   @attention this compares contents and isn't suitable for iteration   
    TEMPLATE() template<class T1, bool EMBED1>
    requires CT::Inner::Comparable<T, T1> LANGULUS(INLINED)
    constexpr bool HAND()::operator == (const Handle<T1, EMBED1>& rhs) const noexcept {
