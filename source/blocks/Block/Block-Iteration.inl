@@ -148,12 +148,15 @@ namespace Langulus::Anyness
       using F = Deref<decltype(f)>;
       using A = ArgumentOf<F>;
       using R = ReturnOf<F>;
-      constexpr auto NOE = NoexceptIterator<decltype(f)>;
+      UNUSED() constexpr auto NOE = NoexceptIterator<decltype(f)>;
 
       if constexpr (CT::Typed<THIS>) {
          using T = TypeOf<THIS>;
 
-         if constexpr (CT::Deep<Decay<A>, Decay<T>> or CT::Same<T, A>) {
+         if constexpr (    CT::Deep<Decay<A>, Decay<T>>
+                   or (not CT::Deep<Decay<A>> and CT::DerivedFrom<T, A>)
+                   or (CT::Same<A, T>)
+         ) {
             using IT = Conditional<CT::Mutable<THIS>, T&, const T&>;
             return IterateInner<THIS, REVERSE>(mCount,
                [&index, &f](IT element) noexcept(NOE) -> R {

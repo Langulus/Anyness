@@ -233,6 +233,7 @@ namespace Langulus::Anyness
    template<CT::Block TO, template<class> class S, CT::Block FROM>
    requires CT::Semantic<S<FROM>> LANGULUS(INLINED)
    void Block::BlockTransfer(S<FROM>&& from) {
+      using SS = S<FROM>;
       mCount = from->mCount;
 
       if constexpr (not CT::Typed<TO>) {
@@ -247,16 +248,16 @@ namespace Langulus::Anyness
          mState = from->mState + DataState::Typed;
       }
 
-      if constexpr (S<FROM>::Shallow) {
+      if constexpr (SS::Shallow) {
          // We're transferring via a shallow semantic                   
          mRaw = from->mRaw;
          mReserved = from->mReserved;
 
-         if constexpr (S<FROM>::Keep) {
+         if constexpr (SS::Keep) {
             // Move/Copy other                                          
             mEntry = from->mEntry;
 
-            if constexpr (S<FROM>::Move) {
+            if constexpr (SS::Move) {
                if constexpr (not FROM::Ownership) {
                   // Since we are not aware if that block is referenced 
                   // or not we reference it just in case, and we also   
@@ -272,7 +273,7 @@ namespace Langulus::Anyness
             }
             else Keep();
          }
-         else if constexpr (S<FROM>::Move) {
+         else if constexpr (SS::Move) {
             // Abandon other                                            
             mEntry = from->mEntry;
             from->mEntry = nullptr;
