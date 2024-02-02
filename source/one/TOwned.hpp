@@ -28,7 +28,7 @@ namespace Langulus
 
       /// Anything not derived from A::Owned                                  
       template<class...T>
-      concept NotOwned = CT::Data<T...> and not Owned<T...>;
+      concept NotOwned = CT::Data<T...> and ((not Owned<T>) and ...);
 
       /// Any owned pointer                                                   
       template<class...T>

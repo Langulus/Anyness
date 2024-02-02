@@ -9,8 +9,8 @@
 #include "TestAnyCommon.hpp"
 
 
-TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]", 
-   (TypePair<Any, Any>),
+TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
+   (TypePair<Traits::Name, Text>),
 
    (TypePair<TAny<int>, int>),
    (TypePair<TAny<Trait>, Trait>),
@@ -21,10 +21,9 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
    (TypePair<Any, int>),
    (TypePair<Any, Trait>),
    (TypePair<Any, Traits::Count>),
+   (TypePair<Any, Any>),
+   (TypePair<Any, Text>)
 
-   (TypePair<Any, Text>),
-
-   (TypePair<Traits::Name, Text>)
 ) {
    using T = typename TestType::LHS;
    using E = typename TestType::RHS;

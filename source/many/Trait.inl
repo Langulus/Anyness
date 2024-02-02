@@ -156,10 +156,12 @@ namespace Langulus::Anyness
    }
 
    /// Compare traits with other traits, or by contents                       
+   ///   @attention function signature must match Block::operator ==          
+   ///      otherwise function resolution doesn't work properly on MSVC       
    ///   @param other - the thing to compare with                             
    ///   @return true if things are the same                                  
    LANGULUS(INLINED)
-   bool Trait::operator == (const auto& rhs) const {
+   bool Trait::operator == (const CT::NotSemantic auto& rhs) const {
       using T = Deref<decltype(rhs)>;
 
       if constexpr (CT::TraitBased<T>) {
@@ -253,6 +255,12 @@ namespace Langulus::Anyness
    #define TME() StaticTrait<TRAIT>
 
    TEMPLATE() LANGULUS(INLINED)
+   TME()::StaticTrait()
+      : Trait {} {
+      mTraitType = MetaTraitOf<TRAIT>();
+   }
+
+   TEMPLATE() LANGULUS(INLINED)
    TME()::StaticTrait(const StaticTrait& other)
       : Trait {Copy(other)} {}
 
@@ -286,7 +294,7 @@ namespace Langulus::Anyness
    ///   @return the trait type                                               
    TEMPLATE() LANGULUS(INLINED)
    TMeta TME()::GetTrait() const noexcept {
-      return (mTraitType = MetaTraitOf<TRAIT>());
+      return mTraitType;
    }
 
    /// Check if trait is valid, that is, it's typed and has contents          
@@ -331,6 +339,23 @@ namespace Langulus::Anyness
    TEMPLATE() LANGULUS(INLINED)
    constexpr bool TME()::HasCorrectData() const {
       return CastsToMeta(GetTrait()->mDataType);
+   }
+   
+   /// Compare traits with other traits, or by contents                       
+   ///   @attention function signature must match Block::operator ==          
+   ///      otherwise function resolution doesn't work properly on MSVC       
+   ///   @param other - the thing to compare with                             
+   ///   @return true if things are the same                                  
+   TEMPLATE() LANGULUS(INLINED)
+   bool TME()::operator == (const CT::NotSemantic auto& rhs) const {
+      using T = Deref<decltype(rhs)>;
+
+      if constexpr (CT::Similar<T, TRAIT> or CT::Similar<T, TME()>)
+         return Any::operator == (static_cast<const Any&>(rhs));
+      else if constexpr (CT::Trait<T>)
+         return false;
+      else
+         return Trait::operator == (rhs);
    }
 
    #undef TME

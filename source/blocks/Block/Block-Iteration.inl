@@ -150,25 +150,60 @@ namespace Langulus::Anyness
       using R = ReturnOf<F>;
       constexpr auto NOE = NoexceptIterator<decltype(f)>;
 
-      if (   (CT::Deep<A> and IsDeep<THIS>())
-      or (not CT::Deep<A> and CastsTo<A>())) {
+      if constexpr (CT::Typed<THIS>) {
+         using T = TypeOf<THIS>;
+
+         if constexpr (CT::Deep<Decay<A>, Decay<T>> or CT::Same<T, A>) {
+            using IT = Conditional<CT::Mutable<THIS>, T&, const T&>;
+            return IterateInner<THIS, REVERSE>(mCount,
+               [&index, &f](IT element) noexcept(NOE) -> R {
+                  ++index;
+
+                  //TODO this does only one dereference if needed, but it should actually
+                  // check the difference of sparseness between A and T, and dereference as
+                  // many times as needed. that way we can iterate int*** for example,
+                  // even if int***** is contained
+                  // it can be done on compile time without any cost whatsoever
+                  if constexpr (CT::Dense<A, T> or CT::Sparse<A, T>)
+                     return f(element);
+                  else if constexpr (CT::Dense<A>)
+                     return f(*element);
+                  else
+                     return f(&element);
+               }
+            );
+         }
+         else return Loop::NextLoop;
+      }
+      else if (   (CT::Deep<Decay<A>> and IsDeep<THIS>())
+           or (not CT::Deep<Decay<A>> and CastsTo<A>())
+      ) {
          if (mType->mIsSparse) {
-            // Iterate using pointers of A                              
-            using DA = Conditional<CT::Mutable<THIS>, Deref<A>*, const Deref<A>*>;
+            // Iterate sparse container                                 
+            using DA = Conditional<CT::Mutable<THIS>, void*&, const void* const&>;
             return IterateInner<THIS, REVERSE>(mCount,
                [&index, &f](DA element) noexcept(NOE) -> R {
                   ++index;
-                  return f(*element);
+                  if constexpr (CT::Dense<A>) {
+                     if constexpr (CT::Mutable<THIS>)
+                        return f(*static_cast<Deref<A>*>(element));
+                     else
+                        return f(*static_cast<const Deref<A>*>(element));
+                  }
+                  else return f( static_cast<A>(element));
                }
             );
          }
          else {
-            // Iterate using references of A                            
-            using DA = Conditional<CT::Mutable<THIS>, Deref<A>&, const Deref<A>&>;
+            // Iterate dense container                                  
+            using DA = Conditional<CT::Mutable<THIS>, Decay<A>&, const Decay<A>&>;
             return IterateInner<THIS, REVERSE>(mCount,
                [&index, &f](DA element) noexcept(NOE) -> R {
                   ++index;
-                  return f(element);
+                  if constexpr (CT::Dense<A>)
+                     return f(element);
+                  else
+                     return f(&element);
                }
             );
          }

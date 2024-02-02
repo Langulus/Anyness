@@ -84,7 +84,7 @@ namespace Langulus
 
       /// Check if a type is a type-erased map                                
       template<class... T>
-      concept TypeErasedMap = Map<T...> and not Typed<T...>;
+      concept TypeErasedMap = Map<T...> and ((not Typed<T>) and ...);
 
    } // namespace Langulus::CT
 

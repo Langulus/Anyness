@@ -13,8 +13,10 @@
 namespace Langulus::Anyness
 {
 
-   template<class T>
-   concept DenseTypedBlock = CT::Block<T> && CT::Dense<T> && CT::Typed<T>;
+   template<class...T>
+   concept DenseTypedBlock = CT::Block<T...>
+       and CT::Dense<T...> and CT::Typed<T...>;
+
 
    ///                                                                        
    /// Interface for editing containers of any kind                           

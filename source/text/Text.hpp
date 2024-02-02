@@ -71,13 +71,13 @@ namespace Langulus::CT
       /// defined by {fmt}, as well as other types, like CT::Exception, which 
       /// are defined by Langulus::Logger, etc.                               
       template<class...T>
-      concept FmtStringifiable = not BuiltinText<T...>
-          and not Meta<T...>
-          and not Exception<T...>
-          and not DenseBuiltinNumber<T...>
-          and not HasNamedValues<T...>
-          and ((StringifiableByOperator<T> or StringifiableByConstructor<T>)
-        and ...);
+      concept FmtStringifiable = ((not BuiltinText<T>
+          and not Meta<T>
+          and not Exception<T>
+          and not DenseBuiltinNumber<T>
+          and not HasNamedValues<T>
+          and (StringifiableByOperator<T> or StringifiableByConstructor<T>))
+         and ...);
 
    } // namespace Langulus::CT::Inner
 

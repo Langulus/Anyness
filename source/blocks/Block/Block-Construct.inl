@@ -92,8 +92,10 @@ namespace Langulus::A
          "Invalid data pointer");
       LANGULUS_ASSUME(DevAssumes, meta,
          "Invalid data type");
-      LANGULUS_ASSUME(DevAssumes, not raw or not meta->mIsSparse,
-         "Sparse raw data initialization is not allowed");
+      LANGULUS_ASSUME(DevAssumes, not raw or not meta->mIsSparse or not mEntry,
+         "Sparse raw data initialization is not allowed, "
+         "unless mEntry is zero");
+
    }
    
    /// Manual construction from constant data and known entry                 

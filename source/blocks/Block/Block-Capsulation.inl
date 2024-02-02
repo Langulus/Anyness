@@ -235,6 +235,8 @@ namespace Langulus::Anyness
    }
 
    /// Check if block is static (size-constrained)                            
+   ///   @attention static containers don't contain entries when sparse       
+   ///   @attention static containers can't be resized                        
    ///   @return true if the contents are static (size-constrained)           
    LANGULUS(INLINED)
    constexpr bool Block::IsStatic() const noexcept {
@@ -644,6 +646,8 @@ namespace Langulus::Anyness
          "Getting sparse data entries, but contains dense data");
       LANGULUS_ASSUME(DevAssumes, IsSparse<THIS>(),
          "Entries do not exist for dense container");
+      LANGULUS_ASSUME(DevAssumes, mEntry,
+         "Entries do not exist for sparse containers which are out of jurisdiction");
       return const_cast<const Allocation**>(
          reinterpret_cast<Allocation**>(mRawSparse + mReserved));
    }

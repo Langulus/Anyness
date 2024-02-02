@@ -30,7 +30,7 @@ namespace Langulus
       concept Handle = (DerivedFrom<T, A::Handle> and ...);
 
       template<class...T>
-      concept NotHandle = not Handle<T...>;
+      concept NotHandle = ((not Handle<T>) and ...);
 
    }
 }

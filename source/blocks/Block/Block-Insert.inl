@@ -901,6 +901,21 @@ namespace Langulus::Anyness
             const auto lhsEnd = lhs + mCount;
             while (lhs != lhsEnd)
                new (lhs++) T (Forward<A>(arguments)...);
+
+            if constexpr (sizeof...(A) == 1 and CT::Sparse<T>) {
+               // We just copied a pointer multiple times, make sure    
+               // we reference the memory behind it, if we own it       
+               const Allocation* allocation = nullptr;
+               auto ent = mthis->template GetEntries<THIS>();
+               const auto entEnd = ent + mCount;
+
+               allocation = Allocator::Find(MetaDataOf<Deptr<T>>(), *(--lhs));
+               if (allocation)
+                  const_cast<Allocation*>(allocation)->Keep(mCount);
+
+               while (ent != entEnd)
+                  *(ent++) = allocation;
+            }
          }
          else CreateDescribe<THIS>(Forward<A>(arguments)...);
       }
@@ -928,10 +943,10 @@ namespace Langulus::Anyness
                else
                   CreateDescribe<THIS>(Forward<A>(arguments)...);
             }
-            else if (IsSimilar<THIS, F>()) {
+            else if (IsSimilar<THIS, F>())
                Create<TAny<F>>(Forward<A>(arguments)...);
-            }
-            else CreateDescribe<THIS>(Forward<A>(arguments)...);
+            else
+               CreateDescribe<THIS>(Forward<A>(arguments)...);
          }
          else CreateDescribe<THIS>(Forward<A>(arguments)...);
       }
@@ -1193,19 +1208,30 @@ namespace Langulus::Anyness
    ///   @param source - the source of pointers                               
    template<template<class> class S, CT::Block T> requires CT::Semantic<S<T>>
    void Block::ShallowBatchPointerConstruction(S<T>&& source) const {
+      static_assert(S<T>::Shallow,
+         "This function works only for shallow semantics");
+
       const auto mthis       = const_cast<Block*>(this);
       const auto pointersDst = mthis->template  GetRawSparse<T>();
       const auto pointersSrc = source->template GetRawSparse<T>();
       const auto entriesDst  = mthis->template  GetEntries<T>();
-      const auto entriesSrc  = source->template GetEntries<T>();
+      const auto entriesSrc = source->mEntry
+         ? source->template GetEntries<T>()
+         : nullptr;
 
       if constexpr (S<T>::Move) {
          // Move/Abandon                                                
          MoveMemory(pointersDst, pointersSrc, mCount);
-         MoveMemory(entriesDst, entriesSrc, mCount);
 
-         // Reset source ownership                                      
-         ZeroMemory(entriesSrc, mCount);
+         if (entriesSrc) {
+            // Transfer entries, if available                           
+            MoveMemory(entriesDst, entriesSrc, mCount);
+            ZeroMemory(entriesSrc, mCount);
+         }
+         else {
+            // Otherwise make sure all entries are zero                 
+            ZeroMemory(entriesDst, mCount);
+         }
 
          // Reset source pointers, too, if not abandoned                
          if constexpr (S<T>::Keep)
@@ -1214,16 +1240,22 @@ namespace Langulus::Anyness
       else {
          // Copy/Disown                                                 
          CopyMemory(pointersDst, pointersSrc, mCount);
-         CopyMemory(entriesDst, entriesSrc, mCount);
 
          if constexpr (S<T>::Keep) {
             // Reference each entry, if not disowned                    
-            auto entry = entriesDst;
-            const auto entryEnd = entry + mCount;
-            while (entry != entryEnd) {
-               if (*entry)
-                  const_cast<Allocation*>(*entry)->Keep();
-               ++entry;
+            if (entriesSrc) {
+               CopyMemory(entriesDst, entriesSrc, mCount);
+               auto entry = entriesDst;
+               const auto entryEnd = entry + mCount;
+               while (entry != entryEnd) {
+                  if (*entry)
+                     const_cast<Allocation*>(*entry)->Keep();
+                  ++entry;
+               }
+            }
+            else {
+               // Otherwise make sure all entries are zero              
+               ZeroMemory(entriesDst, mCount);
             }
          }
          else {
