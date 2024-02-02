@@ -272,6 +272,54 @@ namespace Langulus::Anyness
       }
    }
    
+   /// Compare with one single value, if exactly one element is contained     
+   ///   @param rhs - the value to compare against                            
+   ///   @return true if elements are the same                                
+   template<CT::Block THIS> LANGULUS(INLINED)
+   bool Block::CompareSingleValue(const CT::NotSemantic auto& rhs) const {
+      using T = Deref<decltype(rhs)>;
+      if (mCount != 1)
+         return false;
+
+      if constexpr (CT::Typed<THIS>) {
+         // Both sides are statically typed                             
+         if constexpr (CT::Inner::Comparable<TypeOf<THIS>, T>)
+            return *GetRaw<THIS>() == rhs;
+         else
+            return false;
+      }
+      else {
+         // THIS is type-erased, do runtime type checks                 
+         if (IsUntyped<THIS>())
+            return false;
+
+         if constexpr (CT::Deep<T>) {
+            // Deep types can be more loosely compared                  
+            if (mType->mIsSparse or not mType->mIsDeep)
+               return false;
+            return *GetRawAs<Block, THIS>() == rhs;
+         }
+         else if constexpr (CT::StringLiteral<T>) {
+            if (mType->template IsSimilar<Text>()) {
+               // Implicitly make a text container on string literal    
+               return *GetRawAs<Text, THIS>() == Text {Disown(rhs)};
+            }
+            else if (mType->template IsSimilar<char*, wchar_t*>()) {
+               // Cast away the extent, compare against pointer         
+               return *GetRawSparse<THIS>() == static_cast<const void*>(rhs);
+            }
+            else return false;
+         }
+         else if constexpr (CT::Inner::Comparable<T>) {
+            // Non-deep element compare                                 
+            if (not mType->template IsSimilar<T>())
+               return false;
+            return *GetRawAs<T, THIS>() == rhs;
+         }
+         else return false;
+      }
+   }
+   
    /// Hash data inside memory block                                          
    ///   @attention order matters, so you might want to Neat data first       
    ///   @return the hash                                                     
@@ -555,54 +603,6 @@ namespace Langulus::Anyness
       }
    }
 
-   /// Compare with one single value, if exactly one element is contained     
-   ///   @param rhs - the value to compare against                            
-   ///   @return true if elements are the same                                
-   template<CT::Block THIS> LANGULUS(INLINED)
-   bool Block::CompareSingleValue(const CT::NotSemantic auto& rhs) const {
-      using T = Deref<decltype(rhs)>;
-      if (mCount != 1)
-         return false;
-
-      if constexpr (CT::Typed<THIS>) {
-         // Both sides are statically typed                             
-         if constexpr (CT::Inner::Comparable<TypeOf<THIS>, T>)
-            return *GetRaw<THIS>() == rhs;
-         else
-            return false;
-      }
-      else {
-         // THIS is type-erased, do runtime type checks                 
-         if (IsUntyped<THIS>())
-            return false;
-
-         if constexpr (CT::Deep<T>) {
-            // Deep types can be more loosely compared                  
-            if (mType->mIsSparse or not mType->mIsDeep)
-               return false;
-            return GetRawAs<Block, THIS>()->Compare(rhs);
-         }
-         else if constexpr (CT::StringLiteral<T>) {
-            if (mType->template IsSimilar<Text>()) {
-               // Implicitly make a text container on string literal    
-               return *GetRawAs<Text, THIS>() == Text {Disown(rhs)};
-            }
-            else if (mType->template IsSimilar<char*, wchar_t*>()) {
-               // Cast away the extent, compare against pointer         
-               return *GetRawSparse<THIS>() == static_cast<const void*>(rhs);
-            }
-            else return false;
-         }
-         else if constexpr (CT::Inner::Comparable<T>) {
-            // Non-deep element compare                                 
-            if (not mType->template IsSimilar<T>())
-               return false;
-            return *GetRawAs<T, THIS>() == rhs;
-         }
-         else return false;
-      }
-   }
-   
    /// Compare the relevant states of two blocks                              
    ///   @param rhs - the memory block to compare against                     
    ///   @return true if the two memory blocks' revelant states are identical 

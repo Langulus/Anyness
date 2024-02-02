@@ -443,17 +443,18 @@ namespace Langulus::Anyness
    void Block::SetMemory(const DataState& state
       , DMeta meta, Count count, void* raw, const Allocation* entry
    ) {
-      LANGULUS_ASSUME(DevAssumes, raw, "Invalid data pointer");
-      LANGULUS_ASSUME(DevAssumes, meta, "Invalid data type");
-      LANGULUS_ASSUME(DevAssumes, not meta->mIsSparse,
-         "Sparse raw data initialization is not allowed");
-
       mRaw = static_cast<Byte*>(raw);
       mState = state;
       mCount = count;
       mReserved = count;
       mType = meta;
       mEntry = entry;
+
+      LANGULUS_ASSUME(DevAssumes, raw, "Invalid data pointer");
+      LANGULUS_ASSUME(DevAssumes, meta, "Invalid data type");
+      LANGULUS_ASSUME(DevAssumes, not mRaw or IsDense() or not mEntry,
+         "Sparse raw data initialization is not allowed, "
+         "unless mEntry is zero");
    }
 
 } // namespace Langulus::Anyness

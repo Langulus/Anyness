@@ -107,7 +107,7 @@ namespace Langulus::Anyness
       NOD() bool IsTraitSimilar(const CT::TraitBased auto&) const noexcept;
       NOD() bool HasCorrectData() const;
 
-      NOD() bool operator == (const auto&) const;
+      NOD() bool operator == (const CT::NotSemantic auto&) const;
 
    public:
       ///                                                                     
@@ -131,6 +131,7 @@ namespace Langulus::Anyness
 
    public:
       using Trait::Trait;
+      StaticTrait();
       StaticTrait(const StaticTrait&);
       StaticTrait(StaticTrait&&);
 
@@ -154,6 +155,8 @@ namespace Langulus::Anyness
       NOD() constexpr bool IsTraitValid() const noexcept;
       NOD() constexpr bool IsTraitSimilar(const CT::TraitBased auto&) const noexcept;
       NOD() constexpr bool HasCorrectData() const;
+
+      NOD() bool operator == (const CT::NotSemantic auto&) const;
 
    private:
       using Trait::SetTrait;

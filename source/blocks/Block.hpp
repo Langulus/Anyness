@@ -102,7 +102,7 @@ namespace Langulus
       concept TypedBlock = Block<T...> and Typed<T...>;
 
       template<class...T>
-      concept UntypedBlock = Block<T...> and not Typed<T...>;
+      concept UntypedBlock = Block<T...> and ((not Typed<T>) and ...);
 
       /// A deep type is any type with a true static member T::CTTI_Deep,     
       /// is binary compatible with Block, and having the same interface      
@@ -129,7 +129,7 @@ namespace Langulus
 
       /// Check if origin of T(s) aren't Neat(s)                              
       template<class...T>
-      concept Messy = not Neat<T...>;
+      concept Messy = ((not Neat<T>) and ...);
 
       /// Check if origin of T(s) are Construct(s)                            
       template<class...T>
@@ -137,7 +137,7 @@ namespace Langulus
 
       /// Check if origin of T(s) aren't Construct(s)                         
       template<class...T>
-      concept NotConstruct = not Construct<T...>;
+      concept NotConstruct = ((not Construct<T>) and ...);
 
       /// A serializer is any Block type, that has an inner type called       
       /// SerializationRules, which holds settings on how data is assembled   
