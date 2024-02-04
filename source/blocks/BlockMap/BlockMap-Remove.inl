@@ -153,7 +153,7 @@ namespace Langulus::Anyness
             val.Destroy();
             *psl = 0;
             ++removed;
-            --mValues.mCount;
+            --mKeys.mCount;
          }
 
          ++val;
@@ -206,7 +206,7 @@ namespace Langulus::Anyness
       // Be aware, that iterator might loop around                      
       const auto pslEnd = GetInfoEnd();
       if (psl == pslEnd and *GetInfo() > 1) {
-         const auto last = mValues.mReserved - 1;
+         const auto last = mKeys.mReserved - 1;
          psl = GetInfo();
          GetInfo()[last] = (*psl) - 1;
 
@@ -228,7 +228,7 @@ namespace Langulus::Anyness
       }
 
       // Success                                                        
-      --mValues.mCount;
+      --mKeys.mCount;
    }
 
    /// Clears all data, but doesn't deallocate                                
@@ -237,19 +237,19 @@ namespace Langulus::Anyness
       if (IsEmpty())
          return;
 
-      if (mValues.mEntry->GetUses() == 1) {
+      if (mKeys.mEntry->GetUses() == 1) {
          // Remove all used keys and values, they're used only here     
          ClearInner<THIS>();
 
          // Clear all info to zero                                      
          ZeroMemory(mInfo, GetReserved());
-         mValues.mCount = 0;
+         mKeys.mCount = 0;
       }
       else {
          // Data is used from multiple locations, don't change data     
          // We're forced to dereference and reset memory pointers       
          mInfo = nullptr;
-         const_cast<Allocation*>(mValues.mEntry)->Free();
+         const_cast<Allocation*>(mKeys.mEntry)->Free();
          mKeys.ResetMemory();
          mValues.ResetMemory();
       }
@@ -258,21 +258,21 @@ namespace Langulus::Anyness
    /// Clears all data and deallocates                                        
    template<CT::Map THIS> LANGULUS(INLINED)
    void BlockMap::Reset() {
-      if (mValues.mEntry) {
-         if (mValues.mEntry->GetUses() == 1) {
+      if (mKeys.mEntry) {
+         if (mKeys.mEntry->GetUses() == 1) {
             // Remove all used keys and values, they're used only here  
             if (not IsEmpty())
                ClearInner<THIS>();
 
             // No point in resetting info, we'll be deallocating it     
-            LANGULUS_ASSUME(DevAssumes, mKeys.mEntry->GetUses() == 1,
-               "Bad assumption");
+            LANGULUS_ASSUME(DevAssumes, mValues.mEntry->GetUses() == 1,
+               "Only mKeys.mEntry should carry the reference count");
             Allocator::Deallocate(const_cast<Allocation*>(mKeys.mEntry));
             Allocator::Deallocate(const_cast<Allocation*>(mValues.mEntry));
          }
          else {
             // Data is used from multiple locations, just deref values  
-            const_cast<Allocation*>(mValues.mEntry)->Free();
+            const_cast<Allocation*>(mKeys.mEntry)->Free();
          }
 
          mInfo = nullptr;

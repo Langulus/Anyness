@@ -148,6 +148,20 @@ namespace Langulus::Anyness
    }
 
    /// Templated tables are always typed                                      
+   ///   @return true                                                         
+   TEMPLATE() LANGULUS(INLINED)
+   constexpr bool TABLE()::IsKeyTyped() const noexcept {
+      return true;
+   }
+   
+   /// Templated tables are always typed                                      
+   ///   @return true                                                         
+   TEMPLATE() LANGULUS(INLINED)
+   constexpr bool TABLE()::IsValueTyped() const noexcept {
+      return true;
+   }
+   
+   /// Templated tables are always typed                                      
    ///   @return false                                                        
    TEMPLATE() LANGULUS(INLINED)
    constexpr bool TABLE()::IsKeyUntyped() const noexcept {
@@ -256,8 +270,15 @@ namespace Langulus::Anyness
    /// Check if the map contains at least one missing entry (nested)          
    ///   @return true if the map has missing entries                          
    TEMPLATE() LANGULUS(INLINED)
-   bool TABLE()::IsMissingDeep() const {
-      return BlockMap::IsMissingDeep<TMap>();
+   bool TABLE()::IsKeyMissingDeep() const {
+      return BlockMap::IsKeyMissingDeep<TMap>();
+   }
+   
+   /// Check if the map contains at least one missing entry (nested)          
+   ///   @return true if the map has missing entries                          
+   TEMPLATE() LANGULUS(INLINED)
+   bool TABLE()::IsValueMissingDeep() const {
+      return BlockMap::IsValueMissingDeep<TMap>();
    }
 
    /// Check if key origin type matches any of the list                       

@@ -54,7 +54,7 @@ TEMPLATE_TEST_CASE("Map corner cases", "[map]",
       T map {pairs};
 
       WHEN("Removing around-the-end elements by value (corner case)") {
-         Count removed {};
+         Count removed = 0;
          removed += map.RemoveValue("VulkanRenderer");
          removed += map.RemoveValue("VulkanCamera");
          removed += map.RemoveValue("Vulkan");
@@ -62,25 +62,23 @@ TEMPLATE_TEST_CASE("Map corner cases", "[map]",
          removed += map.RemoveValue("VulkanLight");
          removed += map.RemoveValue("VulkanLayer");
 
-         THEN("The map should be correct") {
-            REQUIRE(removed == 6);
-            REQUIRE(map.GetCount() == 4);
+         REQUIRE(removed == 6);
+         REQUIRE(map.GetCount() == 4);
 
-            REQUIRE_THROWS(map[MetaOf<VulkanLayer>()] == "");
-            REQUIRE_THROWS(map[MetaOf<VulkanRenderer>()] == "");
-            REQUIRE_THROWS(map[MetaOf<VulkanCamera>()] == "");
-            REQUIRE       (map[MetaOf<Platform>()] == "Platform");
-            REQUIRE_THROWS(map[MetaOf<Vulkan>()] == "");
-            REQUIRE       (map[MetaOf<Window>()] == "Window");
-            REQUIRE_THROWS(map[MetaOf<VulkanLight>()] == "");
-            REQUIRE       (map[MetaOf<Monitor>()] == "Monitor");
-            REQUIRE_THROWS(map[MetaOf<VulkanRenderable>()] == "");
-            REQUIRE       (map[MetaOf<Cursor>()] == "Cursor");
-         }
+         REQUIRE_THROWS(map[MetaOf<VulkanLayer>()] == "");
+         REQUIRE_THROWS(map[MetaOf<VulkanRenderer>()] == "");
+         REQUIRE_THROWS(map[MetaOf<VulkanCamera>()] == "");
+         REQUIRE       (map[MetaOf<Platform>()] == "Platform");
+         REQUIRE_THROWS(map[MetaOf<Vulkan>()] == "");
+         REQUIRE       (map[MetaOf<Window>()] == "Window");
+         REQUIRE_THROWS(map[MetaOf<VulkanLight>()] == "");
+         REQUIRE       (map[MetaOf<Monitor>()] == "Monitor");
+         REQUIRE_THROWS(map[MetaOf<VulkanRenderable>()] == "");
+         REQUIRE       (map[MetaOf<Cursor>()] == "Cursor");
       }
 
       WHEN("Removing around-the-end elements by key (corner case)") {
-         Count removed {};
+         Count removed = 0;
          removed += map.RemoveKey(MetaOf<VulkanRenderer>());
          removed += map.RemoveKey(MetaOf<VulkanCamera>());
          removed += map.RemoveKey(MetaOf<Vulkan>());
@@ -88,21 +86,19 @@ TEMPLATE_TEST_CASE("Map corner cases", "[map]",
          removed += map.RemoveKey(MetaOf<VulkanLight>());
          removed += map.RemoveKey(MetaOf<VulkanLayer>());
 
-         THEN("The map should be correct") {
-            REQUIRE(removed == 6);
-            REQUIRE(map.GetCount() == 4);
+         REQUIRE(removed == 6);
+         REQUIRE(map.GetCount() == 4);
 
-            REQUIRE_THROWS(map[MetaOf<VulkanLayer>()] == "");
-            REQUIRE_THROWS(map[MetaOf<VulkanRenderer>()] == "");
-            REQUIRE_THROWS(map[MetaOf<VulkanCamera>()] == "");
-            REQUIRE       (map[MetaOf<Platform>()] == "Platform");
-            REQUIRE_THROWS(map[MetaOf<Vulkan>()] == "");
-            REQUIRE       (map[MetaOf<Window>()] == "Window");
-            REQUIRE_THROWS(map[MetaOf<VulkanLight>()] == "");
-            REQUIRE       (map[MetaOf<Monitor>()] == "Monitor");
-            REQUIRE_THROWS(map[MetaOf<VulkanRenderable>()] == "");
-            REQUIRE       (map[MetaOf<Cursor>()] == "Cursor");
-         }
+         REQUIRE_THROWS(map[MetaOf<VulkanLayer>()] == "");
+         REQUIRE_THROWS(map[MetaOf<VulkanRenderer>()] == "");
+         REQUIRE_THROWS(map[MetaOf<VulkanCamera>()] == "");
+         REQUIRE       (map[MetaOf<Platform>()] == "Platform");
+         REQUIRE_THROWS(map[MetaOf<Vulkan>()] == "");
+         REQUIRE       (map[MetaOf<Window>()] == "Window");
+         REQUIRE_THROWS(map[MetaOf<VulkanLight>()] == "");
+         REQUIRE       (map[MetaOf<Monitor>()] == "Monitor");
+         REQUIRE_THROWS(map[MetaOf<VulkanRenderable>()] == "");
+         REQUIRE       (map[MetaOf<Cursor>()] == "Cursor");
       }
    }
 }

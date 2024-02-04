@@ -226,6 +226,9 @@ namespace Langulus::Anyness
    ///   @return the element's block                                          
    LANGULUS(INLINED)
    Block Block::GetElement(Offset index) IF_UNSAFE(noexcept) {
+      LANGULUS_ASSUME(DevAssumes, index < mReserved,
+         "Index out of range");
+
       Block result = GetElementInner(index);
       result.mState += DataState::Static;
       result.mState -= DataState::Or;
@@ -247,8 +250,6 @@ namespace Langulus::Anyness
    Block Block::GetElementInner(Offset index) IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, mRaw,
          "Invalid memory");
-      LANGULUS_ASSUME(DevAssumes, index < mReserved,
-         "Index out of range");
 
       Block result {*this};
       result.mCount = 1;

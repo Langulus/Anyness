@@ -8,6 +8,8 @@
 ///                                                                           
 #include <Anyness/Text.hpp>
 #include <Anyness/Path.hpp>
+#include <Anyness/TMap.hpp>
+#include <Anyness/TSet.hpp>
 #include "Common.hpp"
 
 
@@ -31,4 +33,89 @@ SCENARIO("Hashing different kinds of containers", "[hash]") {
       REQUIRE(HashOf(same1) == HashOf(sape1arr));
       REQUIRE(HashOf(same1) == HashBytes("Same1", 5));
    }
+}
+
+
+/// Cross-container consistency tests                                         
+TEMPLATE_TEST_CASE(
+   "Cross-container consistency tests for TOrderedMap/TUnorderedMap/OrderedMap/UnorderedMap", "[map]",
+   (MapPair2<Text, int*>),
+
+   (MapPair2<Text, int>),
+   (MapPair2<Text, Trait>),
+   (MapPair2<Text, Any>),
+   (MapPair2<Text, Traits::Count>),
+
+   (MapPair2<Text, Trait*>),
+   (MapPair2<Text, Traits::Count*>),
+   (MapPair2<Text, Any*>)
+) {
+   Allocator::State memoryState;
+
+   GIVEN("A single element initialized maps of all kinds") {
+      using K = typename TestType::Key;
+      using V = typename TestType::Value;
+
+      const auto pair = CreatePair<TPair<K, V>, K, V>(
+         "five hundred", 555);
+
+      TUnorderedMap<K, V> uset1 {pair};
+      UnorderedMap uset2 {pair};
+      TOrderedMap<K, V> oset1 {pair};
+      OrderedMap oset2 {pair};
+
+      WHEN("Their hashes are taken") {
+         const auto elementHash = HashOf(pair);
+
+         const auto uhash1 = uset1.GetHash();
+         const auto uhash2 = uset2.GetHash();
+         const auto ohash1 = oset1.GetHash();
+         const auto ohash2 = oset2.GetHash();
+
+         REQUIRE(uhash1 == uhash2);
+         REQUIRE(ohash1 == ohash2);
+         REQUIRE(uhash1 == ohash1);
+         REQUIRE(uhash1 == elementHash);
+      }
+
+      // Check for memory leaks after each cycle                        
+      REQUIRE(memoryState.Assert());
+   }
+}
+
+/// Cross-container consistency tests                                         
+TEMPLATE_TEST_CASE(
+   "Cross-container consistency tests for TOrderedSet/TUnorderedSet/OrderedSet/UnorderedSet", "[set]",
+   int,  Trait,  Traits::Count,  Any,
+   int*, Trait*, Traits::Count*, Any*
+) {
+   const auto element = CreateElement<TestType>(555);
+   const auto elementHash = HashOf(element);
+
+   GIVEN("A single element initialized sets of all kinds") {
+      TUnorderedSet<TestType> uset1 {element};
+      UnorderedSet uset2 {element};
+      TOrderedSet<TestType> oset1 {element};
+      OrderedSet oset2 {element};
+
+      WHEN("Their hashes are taken") {
+         REQUIRE(uset1.template IsExact<TestType>());
+         REQUIRE(uset2.template IsExact<TestType>());
+         REQUIRE(oset1.template IsExact<TestType>());
+         REQUIRE(oset2.template IsExact<TestType>());
+
+         const auto uhash1 = uset1.GetHash();
+         const auto uhash2 = uset2.GetHash();
+         const auto ohash1 = oset1.GetHash();
+         const auto ohash2 = oset2.GetHash();
+
+         REQUIRE(uhash1 == uhash2);
+         REQUIRE(ohash1 == ohash2);
+         REQUIRE(uhash1 == ohash1);
+         REQUIRE(uhash1 == elementHash);
+      }
+   }
+
+   if constexpr (CT::Sparse<TestType>)
+      delete element;
 }

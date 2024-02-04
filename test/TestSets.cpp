@@ -14,43 +14,6 @@
 #include "Common.hpp"
 
 
-/// Cross-container consistency tests                                         
-TEMPLATE_TEST_CASE(
-   "Cross-container consistency tests for TOrderedSet/TUnorderedSet/OrderedSet/UnorderedSet", "[set]",
-   int,  Trait,  Traits::Count,  Any,
-   int*, Trait*, Traits::Count*, Any*
-) {
-   const auto element = CreateElement<TestType>(555);
-   const auto elementHash = HashOf(element);
-
-   GIVEN("A single element initialized sets of all kinds") {
-      TUnorderedSet<TestType> uset1 {element};
-      UnorderedSet uset2 {element};
-      TOrderedSet<TestType> oset1 {element};
-      OrderedSet oset2 {element};
-
-      WHEN("Their hashes are taken") {
-         REQUIRE(uset1.template IsExact<TestType>());
-         REQUIRE(uset2.template IsExact<TestType>());
-         REQUIRE(oset1.template IsExact<TestType>());
-         REQUIRE(oset2.template IsExact<TestType>());
-
-         const auto uhash1 = uset1.GetHash();
-         const auto uhash2 = uset2.GetHash();
-         const auto ohash1 = oset1.GetHash();
-         const auto ohash2 = oset2.GetHash();
-
-         REQUIRE(uhash1 == uhash2);
-         REQUIRE(ohash1 == ohash2);
-         REQUIRE(uhash1 == ohash1);
-         REQUIRE(uhash1 == elementHash);
-      }
-   }
-
-   if constexpr (CT::Sparse<TestType>)
-      delete element;
-}
-
 /// The main test for TOrderedSet/TUnorderedSet/OrderedSet/UnorderedSet       
 /// containers, with all kinds of items, from sparse to dense, from trivial   
 /// to complex, from flat to deep                                             

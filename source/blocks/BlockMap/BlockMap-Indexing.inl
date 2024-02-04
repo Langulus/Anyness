@@ -198,7 +198,13 @@ namespace Langulus::Anyness
             ", using type `", NameOf<V>(), "` instead of `", GetValueType(), '`');
          return GetVals<THIS>().GetRaw() + i;
       }
-      else return GetVals<THIS>().GetElementInner(i);
+      else {
+         // We use mReserved for different purpose in this map, so we   
+         // have to compensate for that here                            
+         auto e = GetVals<THIS>().GetElementInner(i);
+         e.mReserved = mKeys.mReserved;
+         return e;
+      }
    }
 
    template<CT::Map THIS> LANGULUS(INLINED)
@@ -256,13 +262,32 @@ namespace Langulus::Anyness
          ", index ", i, " is beyond the reserved ", GetReserved(), " elements");
 
       if constexpr (CT::Typed<THIS>) {
-         IF_SAFE(using V = typename THIS::Value);
+         using V = typename THIS::Value;
          LANGULUS_ASSUME(DevAssumes, (IsValueSimilar<THIS, V>()),
             "Wrong type when accessing map value",
             ", using type `", NameOf<V>(), "` instead of `", GetValueType(), '`');
-         return GetVals<THIS>().GetHandle(i);
+
+         // We can't rely on Block::GetHandle, because it uses mReserved
+         const auto mthis = const_cast<Block*>(&mValues);
+         if constexpr (CT::Sparse<V>) {
+            return Handle<V> {
+               mthis->template GetRawAs<V, TAny<V>>()[i],
+               const_cast<const Allocation**>(
+                  reinterpret_cast<Allocation**>(mthis->mRawSparse + mKeys.mReserved))[i]
+            };
+         }
+         else return Handle<V> {
+            mthis->template GetRawAs<V, TAny<V>>()[i],
+            mthis->mEntry
+         };
       }
-      else return GetVals<THIS>().GetElementInner(i);
+      else {
+         // We use mReserved for different purpose in this map, so we   
+         // have to compensate for that here                            
+         auto e = GetVals<THIS>().GetElementInner(i);
+         e.mReserved = mKeys.mReserved;
+         return e;
+      }
    }
 
 } // namespace Langulus::Anyness
