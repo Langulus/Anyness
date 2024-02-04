@@ -19,13 +19,14 @@
 /// to complex, from flat to deep                                             
 TEMPLATE_TEST_CASE(
    "Sparse TOrderedMap/TUnorderedMap/OrderedMap/UnorderedMap", "[map]",
+   (MapPair<TOrderedMap<Text, Trait*>, Text, Trait*>),
+
    (MapPair<TUnorderedMap<Text, Trait*>, Text, Trait*>),
    (MapPair<TUnorderedMap<Text, int*>, Text, int*>),
    (MapPair<TUnorderedMap<Text, Traits::Count*>, Text, Traits::Count*>),
    (MapPair<TUnorderedMap<Text, Any*>, Text, Any*>),
 
    (MapPair<TOrderedMap<Text, int*>, Text, int*>),
-   (MapPair<TOrderedMap<Text, Trait*>, Text, Trait*>),
    (MapPair<TOrderedMap<Text, Traits::Count*>, Text, Traits::Count*>),
    (MapPair<TOrderedMap<Text, Any*>, Text, Any*>),
 
@@ -679,6 +680,7 @@ TEMPLATE_TEST_CASE(
       }
       
       WHEN("More capacity is reserved") {
+         TODO this causes the Leftover exception
          map.Reserve(20);
 
          THEN("The capacity changes but not the size, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
