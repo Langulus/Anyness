@@ -648,6 +648,10 @@ namespace Langulus::Anyness
          "Entries do not exist for dense container");
       LANGULUS_ASSUME(DevAssumes, mEntry,
          "Entries do not exist for sparse containers which are out of jurisdiction");
+      LANGULUS_ASSUME(DevAssumes, mRawSparse,
+         "No memory available");
+      LANGULUS_ASSUME(DevAssumes, mReserved,
+         "Invalid reserved count - don't use it from maps!");
       return const_cast<const Allocation**>(
          reinterpret_cast<Allocation**>(mRawSparse + mReserved));
    }

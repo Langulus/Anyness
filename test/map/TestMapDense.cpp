@@ -6,12 +6,7 @@
 /// Distributed under GNU General Public License v3+                          
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
-#include <Anyness/Text.hpp>
-#include <Anyness/Trait.hpp>
-#include <Anyness/TMap.hpp>
-#include <Anyness/Map.hpp>
-#include <unordered_map>
-#include "../Common.hpp"
+#include "TestMapCommon.hpp"
 
 
 /// The main test for TOrderedMap/TUnorderedMap/OrderedMap/UnorderedMap       
@@ -52,19 +47,7 @@ TEMPLATE_TEST_CASE(
       T map {};
 
       WHEN("Given a default-constructed map") {
-         if constexpr (CT::Typed<T>) {
-            REQUIRE(map.template IsKey<K>());
-            REQUIRE(map.template IsValue<V>());
-            REQUIRE(map.GetKeyType()->template Is<K>());
-            REQUIRE(map.GetValueType()->template Is<V>());
-         }
-
-         REQUIRE(map.IsKeyTypeConstrained() == CT::Typed<T>);
-         REQUIRE(map.IsValueTypeConstrained() == CT::Typed<T>);
-         REQUIRE(!map);
-         REQUIRE(map.GetUses() == 0);
-         REQUIRE_FALSE(map.IsAllocated());
-         REQUIRE_FALSE(map.HasAuthority());
+         CheckState_Default<K, V>(map);
 
          #ifdef LANGULUS_STD_BENCHMARK
             BENCHMARK_ADVANCED("Anyness::map::default construction") (timer meter) {
@@ -416,12 +399,11 @@ TEMPLATE_TEST_CASE(
             darray2[4]
          };
 
-         map
-            << ::std::move(movableDarray2[0])
-            << ::std::move(movableDarray2[1])
-            << ::std::move(movableDarray2[2])
-            << ::std::move(movableDarray2[3])
-            << ::std::move(movableDarray2[4]);
+         map << ::std::move(movableDarray2[0])
+             << ::std::move(movableDarray2[1])
+             << ::std::move(movableDarray2[2])
+             << ::std::move(movableDarray2[3])
+             << ::std::move(movableDarray2[4]);
 
          REQUIRE(map.HasAuthority());
          REQUIRE(map.GetUses() == 1);
@@ -692,21 +674,7 @@ TEMPLATE_TEST_CASE(
       WHEN("Map is reset") {
          map.Reset();
 
-         REQUIRE(map.GetCount() == 0);
-         REQUIRE_FALSE(map.IsAllocated());
-         REQUIRE_FALSE(map.HasAuthority());
-         if constexpr (CT::Typed<T>) {
-            REQUIRE(map.template IsKey<K>());
-            REQUIRE(map.template IsValue<V>());
-            REQUIRE(map.GetKeyType()->template Is<K>());
-            REQUIRE(map.GetValueType()->template Is<V>());
-         }
-         REQUIRE(map.IsKeyTypeConstrained() == CT::Typed<T>);
-         REQUIRE(map.IsValueTypeConstrained() == CT::Typed<T>);
-         REQUIRE(!map);
-         REQUIRE(map.GetRawKeysMemory() != keyMemory);
-         REQUIRE(map.GetRawValsMemory() != valueMemory);
-         REQUIRE(map.GetUses() == 0);
+         CheckState_Default<K, V>(map);
       }
 
       WHEN("Map is shallow-copied") {
@@ -767,6 +735,8 @@ TEMPLATE_TEST_CASE(
          T movable = map;
          T moved = ::std::move(movable);
 
+         CheckState_Default<K, V>(movable);
+
          REQUIRE(moved == map);
          REQUIRE(moved != movable);
          REQUIRE(moved.GetKeyType()->template Is<K>());
@@ -779,12 +749,6 @@ TEMPLATE_TEST_CASE(
          REQUIRE(moved.GetUses() == 2);
          for (auto& comparer : darray1)
             REQUIRE(moved[comparer.mKey] == comparer.mValue);
-         REQUIRE_FALSE(movable.IsAllocated());
-         REQUIRE(!movable);
-         REQUIRE(movable.GetRawValsMemory() == nullptr);
-         REQUIRE(movable.GetCount() == 0);
-         REQUIRE(movable.IsValueTypeConstrained() == CT::Typed<T>);
-         REQUIRE(movable.IsKeyTypeConstrained() == CT::Typed<T>);
       }
 
       WHEN("Maps are compared") {

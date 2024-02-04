@@ -135,6 +135,11 @@ namespace Langulus::Anyness
       NOD() DMeta GetValueType() const noexcept;
 
       template<CT::Map = UnorderedMap>
+      NOD() constexpr bool IsKeyTyped() const noexcept;
+      template<CT::Map = UnorderedMap>
+      NOD() constexpr bool IsValueTyped() const noexcept;
+
+      template<CT::Map = UnorderedMap>
       NOD() constexpr bool IsKeyUntyped() const noexcept;
       template<CT::Map = UnorderedMap>
       NOD() constexpr bool IsValueUntyped() const noexcept;
@@ -173,13 +178,26 @@ namespace Langulus::Anyness
       template<CT::Map = UnorderedMap>
       NOD() Count GetValueCountElementsDeep() const noexcept;
 
+      NOD() constexpr DataState GetKeyState() const noexcept;
+      NOD() constexpr DataState GetValueState() const noexcept;
+      NOD() constexpr bool IsKeyCompressed() const noexcept;
+      NOD() constexpr bool IsValueCompressed() const noexcept;
+      NOD() constexpr bool IsKeyEncrypted() const noexcept;
+      NOD() constexpr bool IsValueEncrypted() const noexcept;
+      NOD() constexpr bool IsKeyConstant() const noexcept;
+      NOD() constexpr bool IsValueConstant() const noexcept;
       NOD() constexpr Count GetCount() const noexcept;
       NOD() constexpr Count GetReserved() const noexcept;
       NOD() constexpr bool IsEmpty() const noexcept;
+      NOD() constexpr bool IsValid() const noexcept;
+      NOD() constexpr bool IsInvalid() const noexcept;
       NOD() constexpr bool IsAllocated() const noexcept;
-      NOD() bool IsMissing() const noexcept;
+      NOD() bool IsKeyMissing() const noexcept;
+      NOD() bool IsValueMissing() const noexcept;
       template<CT::Map = UnorderedMap>
-      NOD() bool IsMissingDeep() const;
+      NOD() bool IsKeyMissingDeep() const;
+      template<CT::Map = UnorderedMap>
+      NOD() bool IsValueMissingDeep() const;
 
       NOD() constexpr bool HasAuthority() const noexcept;
       NOD() constexpr Count GetUses() const noexcept;

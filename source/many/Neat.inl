@@ -189,9 +189,9 @@ namespace Langulus::Anyness
    ///   @return true if there's at least one missing entry                   
    LANGULUS(INLINED)
    bool Neat::IsMissingDeep() const {
-      return mTraits.IsMissingDeep()
-          or mConstructs.IsMissingDeep()
-          or mAnythingElse.IsMissingDeep();
+      return mTraits.IsKeyMissingDeep() or mTraits.IsValueMissingDeep()
+          or mConstructs.IsKeyMissingDeep() or mConstructs.IsValueMissingDeep()
+          or mAnythingElse.IsKeyMissingDeep() or mAnythingElse.IsValueMissingDeep();
    }
 
    /// Check if the container is not empty                                    

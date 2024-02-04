@@ -976,6 +976,7 @@ namespace Langulus::Anyness
 
       using B = Conditional<CT::Typed<THIS>, THIS, OTHER>;
       using T = Conditional<CT::Typed<B>, TypeOf<B>, void>;
+      using SS = S<B>;
       const auto mthis = reinterpret_cast<B*>(const_cast<Block*>(this));
       const auto other = reinterpret_cast<B*>(const_cast<OTHER*>(&(*source)));
 
@@ -983,7 +984,7 @@ namespace Langulus::Anyness
          // Leverage the fact, that containers are statically typed     
          if constexpr (CT::Sparse<T>) {
             using DT = Deptr<T>;
-            if constexpr (S<B>::Shallow) {
+            if constexpr (SS::Shallow) {
                // Shallow pointer transfer                              
                ShallowBatchPointerConstruction(source.Forward());
             }
@@ -1046,7 +1047,7 @@ namespace Langulus::Anyness
             }
             const auto lhsEnd = REVERSE ? lhs - mCount : lhs + mCount;
             while (lhs != lhsEnd) {
-               if constexpr (CT::Abandoned<S<B>> and not CT::AbandonMakable<T>) {
+               if constexpr (CT::Abandoned<SS> and not CT::AbandonMakable<T>) {
                   if constexpr (CT::MoveMakable<T>) {
                      // We can fallback to move-construction, but report
                      // a performance warning                           
@@ -1059,7 +1060,7 @@ namespace Langulus::Anyness
                   }
                   else LANGULUS_ERROR("T is not movable, nor abandon-constructible");
                }
-               else SemanticNew(lhs, S<B>::Nest(*rhs));
+               else SemanticNew(lhs, SS::Nest(*rhs));
 
                if constexpr (REVERSE) {
                   --lhs;
@@ -1076,8 +1077,8 @@ namespace Langulus::Anyness
          // Containers are type-erased                                  
          // First make sure that reflected constructors are available   
          // There's no point in iterating anything otherwise            
-         if constexpr (S<B>::Move) {
-            if constexpr (S<B>::Keep) {
+         if constexpr (SS::Move) {
+            if constexpr (SS::Keep) {
                LANGULUS_ASSERT(
                   mType->mIsSparse or mType->mMoveConstructor, Construct,
                   "Can't move-construct elements "
@@ -1092,8 +1093,8 @@ namespace Langulus::Anyness
                );
             }
          }
-         else if constexpr (S<B>::Shallow) {
-            if constexpr (S<B>::Keep) {
+         else if constexpr (SS::Shallow) {
+            if constexpr (SS::Keep) {
                LANGULUS_ASSERT(
                   mType->mIsSparse or mType->mCopyConstructor, Construct,
                   "Can't copy-construct elements"
@@ -1115,7 +1116,7 @@ namespace Langulus::Anyness
 
          if (mType->mIsSparse) {
             // Both LHS and RHS are sparse                              
-            if constexpr (S<B>::Shallow) {
+            if constexpr (SS::Shallow) {
                // Shallow pointer transfer                              
                ShallowBatchPointerConstruction(source.Forward());
             }
@@ -1148,7 +1149,8 @@ namespace Langulus::Anyness
                   ++lhs;
                }
 
-               const_cast<Allocation*>(clonedCoalescedSrc.mEntry)->Keep(mCount - 1);
+               const_cast<Allocation*>(clonedCoalescedSrc.mEntry)
+                  ->Keep(mCount - 1);
             }
             else {
                // Type is resolved to dense elements of varying size,   
@@ -1175,14 +1177,14 @@ namespace Langulus::Anyness
             const auto rhsEnd = REVERSE ? rhs - mCount * stride : rhs + mCount * stride;
 
             while (rhs != rhsEnd) {
-               if constexpr (S<B>::Move) {
-                  if constexpr (S<B>::Keep)
+               if constexpr (SS::Move) {
+                  if constexpr (SS::Keep)
                      mType->mMoveConstructor(rhs, lhs);
                   else
                      mType->mAbandonConstructor(rhs, lhs);
                }
-               else if constexpr (S<B>::Shallow) {
-                  if constexpr (S<B>::Keep)
+               else if constexpr (SS::Shallow) {
+                  if constexpr (SS::Keep)
                      mType->mCopyConstructor(rhs, lhs);
                   else
                      mType->mDisownConstructor(rhs, lhs);
@@ -1272,28 +1274,30 @@ namespace Langulus::Anyness
    ///   @attention assumes blocks are binary compatible                      
    ///   @attention assumes source has at least mCount items                  
    ///   @param source - the elements to assign                               
-   template<CT::Block THIS, template<class> class S, CT::Block B>
-   requires CT::Semantic<S<B>>
-   void Block::AssignSemantic(S<B>&& source) const {
-      const auto mthis = reinterpret_cast<THIS*>(const_cast<Block*>(this));
-
+   template<CT::Block THIS, template<class> class S, CT::Block OTHER>
+   requires CT::Semantic<S<OTHER>>
+   void Block::AssignSemantic(S<OTHER>&& source) const {
       LANGULUS_ASSUME(DevAssumes, mCount and mCount <= mReserved,
          "Count outside limits", '(', mCount, " > ", mReserved);
       LANGULUS_ASSUME(DevAssumes, mCount <= source->mCount,
          "Count mismatch");
-      LANGULUS_ASSUME(DevAssumes, source->GetType() |= mthis->GetType(),
-         "T doesn't match RHS type",
-         ": ", source->GetType(), " != ", mthis->GetType());
+      // Type-erased pointers (void*) are acceptable                    
+      LANGULUS_ASSUME(DevAssumes, (source->GetType()->IsSimilar(GetType<THIS>())
+         or (source->GetType()->template IsSimilar<void*>() and IsSparse<THIS>())
+         or (source->GetType()->mIsSparse and GetType<THIS>()->template IsSimilar<void*>())),
+         "Type mismatch on assignment", ": ", source->GetType(), " != ", GetType<THIS>());
 
+      using B = Conditional<CT::Typed<THIS>, THIS, OTHER>;
+      using T = Conditional<CT::Typed<B>, TypeOf<B>, void>;
+      using SS = S<B>;
+      const auto mthis = reinterpret_cast<B*>(const_cast<Block*>(this));
+      const auto other = reinterpret_cast<B*>(const_cast<OTHER*>(&(*source)));
 
-      if constexpr (CT::Typed<THIS> or CT::Typed<B>) {
-         using T = Conditional<CT::Typed<THIS>, TypeOf<THIS>, TypeOf<B>>;
-
+      if constexpr (not CT::TypeErased<T>) {
          if constexpr (CT::Sparse<T>) {
             // We're reassigning pointers                               
             using DT = Deptr<T>;
-
-            if constexpr (S<Block>::Shallow) {
+            if constexpr (SS::Shallow) {
                // Shallow pointer transfer                              
                Destroy<THIS>();
                ShallowBatchPointerConstruction(source.Forward());
@@ -1317,11 +1321,12 @@ namespace Langulus::Anyness
                // Clone each inner element                              
                auto handle = GetHandle<T, THIS>(0);
                auto dst = clonedCoalescedSrc.template GetRawAs<DT, Any>();
-               auto src = source->template GetRawAs<THIS>();
+               auto src = source->GetRaw();
                const auto srcEnd = src + mCount;
                while (src != srcEnd) {
                   SemanticNew(dst, Clone(**src));
                   handle.Assign(dst, clonedCoalescedSrc.mEntry);
+
                   ++dst;
                   ++src;
                   ++handle;
@@ -1340,26 +1345,44 @@ namespace Langulus::Anyness
          else if constexpr (CT::POD<T>) {
             // Both RHS and LHS are dense and POD                       
             // So we batch-overwrite them at once                       
-            CopyMemory(mRaw, source->mRaw, GetBytesize<THIS>());
+            auto lhs = mthis->GetRaw();
+            auto rhs = other->GetRaw();
+            CopyMemory(lhs, rhs, mCount);
          }
          else {
             // Both RHS and LHS are dense and non POD                   
             // Assign to each element                                   
-            auto lhs = mthis->template GetRaw<THIS>();
-            auto rhs = source->template GetRaw<THIS>();
+            auto lhs = mthis->GetRaw();
+            auto rhs = other->GetRaw();
             const auto lhsEnd = lhs + mCount;
             while (lhs != lhsEnd) {
-               SemanticAssign(*lhs, S<Block>::Nest(*rhs));
+               if constexpr (CT::Abandoned<SS> and not CT::AbandonAssignable<T>) {
+                  if constexpr (CT::MoveAssignable<T>) {
+                     // We can fallback to move-assignment, but report  
+                     // a performance warning                           
+                     IF_SAFE(Logger::Warning(
+                        "Move used, instead of abandon - implement an "
+                        "abandon-assignment for type ", NameOf<T>(),
+                        " to fix this warning"
+                     ));
+                     SemanticAssign(*lhs, Move(*rhs));
+                  }
+                  else LANGULUS_ERROR("T is not movable, nor abandon-assignable");
+               }
+               else SemanticAssign(*lhs, SS::Nest(*rhs));
+
+               //SemanticAssign(*lhs, S<Block>::Nest(*rhs));
                ++lhs;
                ++rhs;
             }
          }
       }
       else {
+         // Containers are type-erased                                  
          // First make sure that reflected assigners are available      
          // There's no point in iterating anything otherwise            
-         if constexpr (S<Block>::Move) {
-            if constexpr (S<Block>::Keep) {
+         if constexpr (SS::Move) {
+            if constexpr (SS::Keep) {
                LANGULUS_ASSERT(
                   mType->mIsSparse or mType->mMoveAssigner, Construct,
                   "Can't move-assign elements "
@@ -1374,8 +1397,8 @@ namespace Langulus::Anyness
                );
             }
          }
-         else if constexpr (S<Block>::Shallow) {
-            if constexpr (S<Block>::Keep) {
+         else if constexpr (SS::Shallow) {
+            if constexpr (SS::Keep) {
                LANGULUS_ASSERT(
                   mType->mIsSparse or mType->mCopyAssigner, Construct,
                   "Can't copy-assign elements"
@@ -1414,22 +1437,22 @@ namespace Langulus::Anyness
                   else const_cast<Allocation*>(*lhsEntry)->Free();
                }
 
-               if constexpr (S<Block>::Move) {
+               if constexpr (SS::Move) {
                   // Move/Abandon RHS in LHS                            
                   *lhs = const_cast<Byte*>(*rhs);
                   *lhsEntry = *rhsEntry;
                   *rhsEntry = nullptr;
 
-                  if constexpr (S<Block>::Keep) {
+                  if constexpr (SS::Keep) {
                      // We're not abandoning RHS, make sure it's cleared
                      *rhs = nullptr;
                   }
                }
-               else if constexpr (S<Block>::Shallow) {
+               else if constexpr (SS::Shallow) {
                   // Copy/Disown RHS in LHS                             
                   *lhs = const_cast<Byte*>(*rhs);
 
-                  if constexpr (S<Block>::Keep) {
+                  if constexpr (SS::Keep) {
                      *lhsEntry = *rhsEntry;
                      if (*lhsEntry)
                         const_cast<Allocation*>(*lhsEntry)->Keep();
@@ -1461,14 +1484,14 @@ namespace Langulus::Anyness
             const auto rhsEnd = rhs + mCount * stride;
 
             while (rhs != rhsEnd) {
-               if constexpr (S<Block>::Move) {
-                  if constexpr (S<Block>::Keep)
+               if constexpr (SS::Move) {
+                  if constexpr (SS::Keep)
                      mType->mMoveAssigner(rhs, lhs);
                   else
                      mType->mAbandonAssigner(rhs, lhs);
                }
-               else if constexpr (S<Block>::Shallow) {
-                  if constexpr (S<Block>::Keep)
+               else if constexpr (SS::Shallow) {
+                  if constexpr (SS::Keep)
                      mType->mCopyAssigner(rhs, lhs);
                   else
                      mType->mDisownAssigner(rhs, lhs);

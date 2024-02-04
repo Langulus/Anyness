@@ -17,12 +17,26 @@ namespace Langulus::Anyness
    /// Check if map has its key type set                                      
    ///   @return true if type is available                                    
    template<CT::Map THIS> LANGULUS(INLINED)
+   constexpr bool BlockMap::IsKeyTyped() const noexcept {
+      return GetKeys<THIS>().IsTyped();
+   }
+   
+   /// Check if map has its value type set                                    
+   ///   @return true if type is available                                    
+   template<CT::Map THIS> LANGULUS(INLINED)
+   constexpr bool BlockMap::IsValueTyped() const noexcept {
+      return GetVals<THIS>().IsTyped();
+   }
+
+   /// Check if map has its key type set                                      
+   ///   @return true if type is not available                                
+   template<CT::Map THIS> LANGULUS(INLINED)
    constexpr bool BlockMap::IsKeyUntyped() const noexcept {
       return GetKeys<THIS>().IsUntyped();
    }
    
    /// Check if map has its value type set                                    
-   ///   @return true if type is available                                    
+   ///   @return true if type is not available                                
    template<CT::Map THIS> LANGULUS(INLINED)
    constexpr bool BlockMap::IsValueUntyped() const noexcept {
       return GetVals<THIS>().IsUntyped();
@@ -218,6 +232,62 @@ namespace Langulus::Anyness
       return GetCountElementsDeep(GetVals<THIS>());
    }
 
+   /// Get the key block's state                                              
+   ///   @return the key block state                                          
+   LANGULUS(INLINED)
+   constexpr DataState BlockMap::GetKeyState() const noexcept {
+      return mKeys.GetState();
+   }
+   
+   /// Get the value block's state                                            
+   ///   @return the value block state                                        
+   LANGULUS(INLINED)
+   constexpr DataState BlockMap::GetValueState() const noexcept {
+      return mValues.GetState();
+   }
+   
+   /// Is key data compressed?                                                
+   ///   @return the true if compressed                                       
+   LANGULUS(INLINED)
+   constexpr bool BlockMap::IsKeyCompressed() const noexcept {
+      return mKeys.IsCompressed();
+   }
+   
+   /// Is value data compressed?                                              
+   ///   @return the true if compressed                                       
+   LANGULUS(INLINED)
+   constexpr bool BlockMap::IsValueCompressed() const noexcept {
+      return mValues.IsCompressed();
+   }
+   
+   /// Is key data constant?                                                  
+   ///   @return the true if constant                                         
+   LANGULUS(INLINED)
+   constexpr bool BlockMap::IsKeyConstant() const noexcept {
+      return mKeys.IsConstant();
+   }
+   
+   /// Is value data constant?                                                
+   ///   @return the true if constant                                         
+   LANGULUS(INLINED)
+   constexpr bool BlockMap::IsValueConstant() const noexcept {
+      return mValues.IsConstant();
+   }
+   
+   /// Is key data encrypted?                                                 
+   ///   @return the true if encrypted                                        
+   LANGULUS(INLINED)
+   constexpr bool BlockMap::IsKeyEncrypted() const noexcept {
+      return mKeys.IsEncrypted();
+   }
+   
+   /// Is value data encrypted?                                               
+   ///   @return the true if encrypted                                        
+   LANGULUS(INLINED)
+   constexpr bool BlockMap::IsValueEncrypted() const noexcept {
+      return mValues.IsEncrypted();
+   }
+
    /// Inner function, for counting nested containers in key or value blocks  
    ///   @param what - the block to scan                                      
    ///   @return the number of found blocks                                   
@@ -274,6 +344,21 @@ namespace Langulus::Anyness
       return mKeys.IsEmpty();
    }
 
+   /// Check if block contains either created elements, or relevant state     
+   ///   @return true if block either contains state, or has inserted stuff   
+   LANGULUS(INLINED)
+   constexpr bool BlockMap::IsValid() const noexcept {
+      return not IsEmpty() or mKeys.GetUnconstrainedState()
+                           or mValues.GetUnconstrainedState();
+   }
+
+   /// Check if block contains no elements and no relevant state              
+   ///   @return true if this is an empty stateless container                 
+   LANGULUS(INLINED)
+   constexpr bool BlockMap::IsInvalid() const noexcept {
+      return not IsValid();
+   }
+
    /// Check if the map has been allocated                                    
    ///   @return true if the map uses dynamic memory                          
    LANGULUS(INLINED)
@@ -281,24 +366,42 @@ namespace Langulus::Anyness
       return mKeys.IsAllocated();
    }
    
-   /// Check if keys or values are marked missing                             
-   ///   @return true if the map is marked missing                            
+   /// Check if keys marked missing                                           
+   ///   @return true if the keys are marked missing                          
    LANGULUS(INLINED)
-   bool BlockMap::IsMissing() const noexcept {
-      return mKeys.IsMissing() or mValues.IsMissing();
+   bool BlockMap::IsKeyMissing() const noexcept {
+      return mKeys.IsMissing();
+   }
+   
+   /// Check if values are marked missing                                     
+   ///   @return true if the values are marked missing                        
+   LANGULUS(INLINED)
+   bool BlockMap::IsValueMissing() const noexcept {
+      return mValues.IsMissing();
    }
    
    /// Check if the map contains at least one missing entry (nested)          
    ///   @return true if the map has missing entries                          
    template<CT::Map THIS> LANGULUS(INLINED)
-   bool BlockMap::IsMissingDeep() const {
-      if (IsMissing())
+   bool BlockMap::IsKeyMissingDeep() const {
+      if (IsKeyMissing())
          return true;
 
       bool missing = false;
       ForEachKeyDeep<false, false, THIS>([&](const Block& key) {
          return not (missing = key.IsMissing());
       });
+      return missing;
+   }
+   
+   /// Check if the map contains at least one missing entry (nested)          
+   ///   @return true if the map has missing entries                          
+   template<CT::Map THIS> LANGULUS(INLINED)
+   bool BlockMap::IsValueMissingDeep() const {
+      if (IsValueMissing())
+         return true;
+
+      bool missing = false;
       ForEachValueDeep<false, false, THIS>([&](const Block& val) {
          return not (missing = val.IsMissing());
       });

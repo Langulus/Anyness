@@ -16,24 +16,24 @@ namespace Langulus::Anyness
 
    template<CT::Map THIS>
    auto BlockMap::CreateKeyHandle(CT::Semantic auto&& key) {
+      using T = Deref<decltype(key)>;
+
       if constexpr (CT::Typed<THIS>) {
-         using K = Conditional<CT::Typed<THIS>
-            , typename THIS::Key
-            , TypeOf<decltype(key)>>;
+         using K = Conditional<CT::Typed<THIS>, typename THIS::Key, TypeOf<T>>;
          return HandleLocal<K> {key.Forward()};
       }
-      else return Any {key.Forward()};
+      else return Any::Wrap(key.Forward());
    }
 
    template<CT::Map THIS>
    auto BlockMap::CreateValHandle(CT::Semantic auto&& val) {
+      using T = Deref<decltype(val)>;
+
       if constexpr (CT::Typed<THIS>) {
-         using V = Conditional<CT::Typed<THIS>
-            , typename THIS::Value
-            , TypeOf<decltype(val)>>;
+         using V = Conditional<CT::Typed<THIS>, typename THIS::Value, TypeOf<T>>;
          return HandleLocal<V> {val.Forward()};
       }
-      else return Any {val.Forward()};
+      else return Any::Wrap(val.Forward());
    }
 
    /// Insert a pair, or an array of pairs                                    
@@ -44,10 +44,15 @@ namespace Langulus::Anyness
       using E = Conditional<CT::Typed<THIS>, typename THIS::Pair, Anyness::Pair>;
       using S = SemanticOf<decltype(item)>;
       using T = TypeOf<S>;
-      Count inserted = 0;
 
+      if constexpr (CT::Typed<THIS>) {
+         mKeys.mType = MetaDataOf<typename THIS::Key>();
+         mValues.mType = MetaDataOf<typename THIS::Value>();
+      }
+
+      Count inserted = 0;
       if constexpr (CT::Array<T>) {
-         if constexpr (not CT::TypeErased<E>) {
+         if constexpr (CT::Typed<THIS>) {
             if constexpr (CT::MakableFrom<E, Deext<T>>) {
                // Construct from an array of elements, each of which    
                // can be used to initialize a pair, nesting any         
@@ -67,13 +72,17 @@ namespace Langulus::Anyness
          }
          else {
             // Insert the array                                         
+            const auto& firstPair = DesemCast(item)[0];
+            Mutate<THIS>(firstPair.GetKeyType(), firstPair.GetValueType());
             Reserve<THIS>(GetCount() + ExtentOf<T>);
             const auto mask = GetReserved() - 1;
-            for (auto& pair : DesemCast(item))
+            for (auto& pair : DesemCast(item)) {
+               Mutate<THIS>(pair.GetKeyType(), pair.GetValueType());
                inserted += InsertPairInner<THIS, true>(mask, S::Nest(pair));
+            }
          }
       }
-      else if constexpr (not CT::TypeErased<E>) {
+      else if constexpr (CT::Typed<THIS>) {
          if constexpr (CT::MakableFrom<E, T>) {
             // Some of the arguments might still be used directly to    
             // make a pair, forward these to standard insertion here    
@@ -103,11 +112,10 @@ namespace Langulus::Anyness
             }
             else {
                // The rhs map is type-erased                            
-               LANGULUS_ASSERT(IsKeySimilar(DesemCast(item).GetKeyType()), Meta,
-                  "Key type mismatch");
-               LANGULUS_ASSERT(IsValueSimilar(DesemCast(item).GetValueType()), Meta,
-                  "Value type mismatch");
-
+               Mutate<THIS>(
+                  DesemCast(item).GetKeyType(),
+                  DesemCast(item).GetValueType()
+               );
                Reserve<THIS>(GetCount() + DesemCast(item).GetCount());
                const auto mask = GetReserved() - 1;
                for (auto& pair : DesemCast(item))
@@ -116,14 +124,19 @@ namespace Langulus::Anyness
          }
          else LANGULUS_ERROR("Can't insert argument");
       }
-      else {
+      else if constexpr (CT::Pair<T>) {
          // This map is type-erased                                     
          // Some of the arguments might still be used directly to       
          // make pairs, forward these to standard insertion here        
+         Mutate<THIS>(
+            DesemCast(item).GetKeyType(),
+            DesemCast(item).GetValueType()
+         );
          Reserve<THIS>(GetCount() + 1);
          const auto mask = GetReserved() - 1;
          inserted += InsertPairInner<THIS, true>(mask, S::Nest(item));
       }
+      else LANGULUS_ERROR("T isn't a pair/map, or an array of pairs/maps");
 
       return inserted;
    }
@@ -261,9 +274,9 @@ namespace Langulus::Anyness
    ///   @param oldCount - the old number of pairs                            
    template<CT::Map THIS>
    void BlockMap::Rehash(const Count oldCount) {
-      LANGULUS_ASSUME(DevAssumes, mValues.mReserved > oldCount,
+      LANGULUS_ASSUME(DevAssumes, mKeys.mReserved > oldCount,
          "New count is not larger than oldCount");
-      LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(mValues.mReserved),
+      LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(mKeys.mReserved),
          "New count is not a power-of-two");
       LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(oldCount),
          "Old count is not a power-of-two");
@@ -271,7 +284,7 @@ namespace Langulus::Anyness
       auto oldKey = GetKeyHandle<THIS>(0);
       auto oldInfo = GetInfo();
       const auto oldInfoEnd = oldInfo + oldCount;
-      const auto hashmask = mValues.mReserved - 1;
+      const auto hashmask = mKeys.mReserved - 1;
 
       // First run: move elements closer to their new buckets           
       while (oldInfo != oldInfoEnd) {
@@ -299,7 +312,7 @@ namespace Langulus::Anyness
                   oldKey.Destroy();
                   oldValue.Destroy();
                   *oldInfo = 0;
-                  --mValues.mCount;
+                  --mKeys.mCount;
 
                   // Reinsert at the new bucket                         
                   InsertInner<THIS, false>(
@@ -320,7 +333,7 @@ namespace Langulus::Anyness
                   oldKey.Destroy();
                   oldValue.Destroy();
                   *oldInfo = 0;
-                  --mValues.mCount;
+                  --mKeys.mCount;
 
                   InsertBlockInner<THIS, false>(
                      newBucket, Abandon(keyswap), Abandon(valswap)
@@ -379,7 +392,7 @@ namespace Langulus::Anyness
                   // Destroy the key, info and value                    
                   oldKey.Destroy();
                   *oldInfo = 0;
-                  --mValues.mCount;
+                  --mKeys.mCount;
 
                   // Reinsert at the new bucket                         
                   InsertInner<THIS, false>(
@@ -396,7 +409,7 @@ namespace Langulus::Anyness
                   // Destroy the pair and info at old index             
                   oldKey.Destroy();
                   *oldInfo = 0;
-                  --mValues.mCount;
+                  --mKeys.mCount;
 
                   InsertBlockInner<THIS, false>(
                      newBucket,
@@ -458,7 +471,7 @@ namespace Langulus::Anyness
                   // Destroy the key, info and value                    
                   oldValue.Destroy();
                   *oldInfo = 0;
-                  --mValues.mCount;
+                  --mKeys.mCount;
 
                   // Reinsert at the new bucket                         
                   InsertInner<THIS, false>(
@@ -473,7 +486,7 @@ namespace Langulus::Anyness
                   // Destroy the pair and info at old index             
                   oldValue.Destroy();
                   *oldInfo = 0;
-                  --mValues.mCount;
+                  --mKeys.mCount;
 
                   InsertBlockInner<THIS, false>(
                      newBucket, Copy(oldKey), Abandon(valswap));
@@ -503,15 +516,15 @@ namespace Langulus::Anyness
 
             // Might loop around                                        
             Offset to = (mKeys.mReserved + oldIndex) - *oldInfo + 1;
-            if (to >= mValues.mReserved)
-               to -= mValues.mReserved;
+            if (to >= mKeys.mReserved)
+               to -= mKeys.mReserved;
 
             InfoType attempt = 1;
             while (mInfo[to] and attempt < *oldInfo) {
                // Might loop around                                     
                ++to;
-               if (to >= mValues.mReserved)
-                  to -= mValues.mReserved;
+               if (to >= mKeys.mReserved)
+                  to -= mKeys.mReserved;
                ++attempt;
             }
 
@@ -553,7 +566,7 @@ namespace Langulus::Anyness
       auto psl = GetInfo() + start;
       const auto pslEnd = GetInfoEnd();
       InfoType attempts = 1;
-      Offset insertedAt = mValues.mReserved;
+      Offset insertedAt = mKeys.mReserved;
       while (*psl) {
          const auto index = psl - GetInfo();
 
@@ -570,7 +583,7 @@ namespace Langulus::Anyness
             GetKeyHandle<THIS>(index).Swap(keyswapper);
             GetValHandle<THIS>(index).Swap(valswapper);
             ::std::swap(attempts, *psl);
-            if (insertedAt == mValues.mReserved)
+            if (insertedAt == mKeys.mReserved)
                insertedAt = index;
          }
 
@@ -589,11 +602,11 @@ namespace Langulus::Anyness
       const auto index = psl - GetInfo();
       GetKeyHandle<THIS>(index).CreateSemantic(Abandon(keyswapper));
       GetValHandle<THIS>(index).CreateSemantic(Abandon(valswapper));
-      if (insertedAt == mValues.mReserved)
+      if (insertedAt == mKeys.mReserved)
          insertedAt = index;
 
       *psl = attempts;
-      ++mValues.mCount;
+      ++mKeys.mCount;
       return insertedAt;
    }
    
@@ -610,7 +623,7 @@ namespace Langulus::Anyness
       auto psl = GetInfo() + start;
       const auto pslEnd = GetInfoEnd();
       InfoType attempts = 1;
-      Offset insertedAt = mValues.mReserved;
+      Offset insertedAt = mKeys.mReserved;
       while (*psl) {
          const auto index = psl - GetInfo();
          if constexpr (CHECK_FOR_MATCH) {
@@ -634,7 +647,7 @@ namespace Langulus::Anyness
             GetValHandle<THIS>(index).Swap(val.Forward());
 
             ::std::swap(attempts, *psl);
-            if (insertedAt == mValues.mReserved)
+            if (insertedAt == mKeys.mReserved)
                insertedAt = index;
          }
 
@@ -655,7 +668,7 @@ namespace Langulus::Anyness
       GetKeyHandle<THIS>(index).CreateSemantic(key.Forward());
       GetValHandle<THIS>(index).CreateSemantic(val.Forward());
 
-      if (insertedAt == mValues.mReserved)
+      if (insertedAt == mKeys.mReserved)
          insertedAt = index;
 
       if constexpr (S1<T>::Move) {
@@ -669,7 +682,7 @@ namespace Langulus::Anyness
       }
 
       *psl = attempts;
-      ++mValues.mCount;
+      ++mKeys.mCount;
       return insertedAt;
    }
    

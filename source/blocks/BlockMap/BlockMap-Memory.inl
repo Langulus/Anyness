@@ -48,7 +48,7 @@ namespace Langulus::Anyness
       }
 
       mValues.mRaw = const_cast<Byte*>(mValues.mEntry->GetBlockStart());
-      mKeys.mReserved = mValues.mReserved = count;
+      mKeys.mReserved /*= mValues.mReserved*/ = count;
 
       // Precalculate the info pointer, it's costly                     
       mKeys.mRaw = const_cast<Byte*>(mKeys.mEntry->GetBlockStart());
@@ -97,7 +97,7 @@ namespace Langulus::Anyness
       }
 
       mValues.mRaw = const_cast<Byte*>(mValues.mEntry->GetBlockStart());
-      mKeys.mReserved = mValues.mReserved = count;
+      mKeys.mReserved = /*mValues.mReserved =*/ count;
 
       // Precalculate the info pointer, it's costly                     
       mKeys.mRaw = const_cast<Byte*>(mKeys.mEntry->GetBlockStart());
@@ -162,7 +162,7 @@ namespace Langulus::Anyness
 
       // If reached, then keys or values (or both) moved                
       // Reinsert all pairs to rehash                                   
-      mValues.mCount = 0;
+      mKeys.mCount = 0;
 
       UNUSED() auto& me = reinterpret_cast<const THIS&>(*this);
       auto key = old.GetKeyHandle<THIS>(0);
@@ -207,29 +207,24 @@ namespace Langulus::Anyness
       if constexpr (REUSE) {
          // When reusing, keys and values can potentially remain same   
          // Avoid deallocating them if that's the case                  
-         if (old.mValues.mEntry != mValues.mEntry) {
-            LANGULUS_ASSUME(DevAssumes, old.mValues.mEntry->GetUses() == 1,
-               "Bad assumption");
-            Allocator::Deallocate(const_cast<Allocation*>(old.mValues.mEntry));
-         }
+         LANGULUS_ASSUME(DevAssumes, old.mValues.mEntry->GetUses() == 1,
+            "Only mKeys.mEntry should carry the reference count");
 
-         if (old.mKeys.mEntry != mKeys.mEntry) {
-            LANGULUS_ASSUME(DevAssumes, old.mKeys.mEntry->GetUses() == 1,
-               "Bad assumption");
+         if (old.mValues.mEntry != mValues.mEntry)
+            Allocator::Deallocate(const_cast<Allocation*>(old.mValues.mEntry));
+
+         if (old.mKeys.mEntry != mKeys.mEntry)
             Allocator::Deallocate(const_cast<Allocation*>(old.mKeys.mEntry));
-         }
       }
-      else if (old.mValues.mEntry) {
+      else if (old.mKeys.mEntry) {
          // Not reusing, so either deallocate, or dereference           
          // (keys are always present, if values are present)            
-         if (old.mValues.mEntry->GetUses() > 1) {
-            const_cast<Allocation*>(old.mValues.mEntry)->Free();
-            LANGULUS_ASSUME(DevAssumes, old.mKeys.mEntry->GetUses() == 1,
-               "Bad assumption");
-         }
+         LANGULUS_ASSUME(DevAssumes, old.mValues.mEntry->GetUses() == 1,
+            "Only mKeys.mEntry should carry the reference count");
+
+         if (old.mKeys.mEntry->GetUses() > 1)
+            const_cast<Allocation*>(old.mKeys.mEntry)->Free();
          else {
-            LANGULUS_ASSUME(DevAssumes, old.mKeys.mEntry->GetUses() == 1,
-               "Bad assumption");
             Allocator::Deallocate(const_cast<Allocation*>(old.mValues.mEntry));
             Allocator::Deallocate(const_cast<Allocation*>(old.mKeys.mEntry));
          }
@@ -258,7 +253,7 @@ namespace Langulus::Anyness
    ///   @param times - number of references to add                           
    LANGULUS(INLINED)
    void BlockMap::Reference(Count times) const noexcept {
-      mValues.Reference(times);
+      mKeys.Reference(times);
    }
    
    /// Reference memory block once                                            
@@ -272,19 +267,19 @@ namespace Langulus::Anyness
    ///   @attention this doesn't modify any immediate map state               
    template<CT::Map THIS> LANGULUS(INLINED)
    void BlockMap::Free() {
-      if (not mValues.mEntry)
+      if (not mKeys.mEntry)
          return;
 
       LANGULUS_ASSUME(DevAssumes,
-         mValues.mEntry->GetUses() >= 1, "Bad memory dereferencing");
+         mKeys.mEntry->GetUses() >= 1, "Bad memory dereferencing");
 
-      if (mValues.mEntry->GetUses() == 1) {
+      if (mKeys.mEntry->GetUses() == 1) {
          if (not IsEmpty())
             ClearInner<THIS>();
 
          // Deallocate stuff                                            
-         LANGULUS_ASSUME(DevAssumes, mKeys.mEntry->GetUses() == 1,
-            "Bad assumption");
+         LANGULUS_ASSUME(DevAssumes, mValues.mEntry->GetUses() == 1,
+            "Only mKeys.mEntry should carry the reference count");
          Allocator::Deallocate(const_cast<Allocation*>(mKeys.mEntry));
          Allocator::Deallocate(const_cast<Allocation*>(mValues.mEntry));
       }
@@ -292,10 +287,10 @@ namespace Langulus::Anyness
          // Data is used from multiple locations, just deref values     
          // Notice how we don't dereference keys, since we use only the 
          // values' references to save on some redundancy               
-         const_cast<Allocation*>(mValues.mEntry)->Free();
+         const_cast<Allocation*>(mKeys.mEntry)->Free();
       }
 
-      mValues.mEntry = nullptr;
+      mKeys.mEntry = nullptr;
    }
 
 } // namespace Langulus::Anyness

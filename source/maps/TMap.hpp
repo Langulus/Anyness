@@ -91,6 +91,8 @@ namespace Langulus::Anyness
       ///                                                                     
       NOD() DMeta GetKeyType() const noexcept;
       NOD() DMeta GetValueType() const noexcept;
+      NOD() constexpr bool IsKeyTyped() const noexcept;
+      NOD() constexpr bool IsValueTyped() const noexcept;
       NOD() constexpr bool IsKeyUntyped() const noexcept;
       NOD() constexpr bool IsValueUntyped() const noexcept;
       NOD() constexpr bool IsKeyTypeConstrained() const noexcept;
@@ -107,7 +109,8 @@ namespace Langulus::Anyness
       NOD() Count GetKeyCountElementsDeep() const noexcept;
       NOD() Count GetValueCountDeep() const noexcept;
       NOD() Count GetValueCountElementsDeep() const noexcept;
-      NOD() bool IsMissingDeep() const;
+      NOD() bool IsKeyMissingDeep() const;
+      NOD() bool IsValueMissingDeep() const;
 
       using Base::GetCount;
       using Base::GetReserved;
