@@ -154,7 +154,7 @@ namespace Langulus::Anyness
 
       // If reached, then both keys and values are newly allocated      
       ZeroMemory(mInfo, count);
-      if (not old.mValues) {
+      if (old.IsEmpty()) {
          // There are no old values, the previous map was empty         
          // Just do an early return right here                          
          return;
