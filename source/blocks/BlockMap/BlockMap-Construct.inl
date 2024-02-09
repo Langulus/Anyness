@@ -121,26 +121,49 @@ namespace Langulus::Anyness
                   }
                }
 
-               if constexpr (CT::Inner::POD<V>) {
-                  // Data is POD, we can directly copy all values       
-                  CopyMemory(
-                     mValues.mRaw, asFrom->mValues.mRaw,
-                     GetReserved() * sizeof(V)
-                  );
+               if constexpr (CT::Dense<V>) {
+                  if constexpr (CT::Inner::POD<V>) {
+                     // Data is POD, we can directly copy all values    
+                     CopyMemory(
+                        mValues.mRaw, asFrom->mValues.mRaw,
+                        GetReserved() * sizeof(V)
+                     );
+                  }
+                  else {
+                     // Data isn't pod, clone valid values one by one   
+                     auto info = GetInfo();
+                     const auto infoEnd = GetInfoEnd();
+                     auto dstKey = GetValHandle<B>(0);
+                     auto srcKey = asFrom->template GetValHandle<B>(0);
+                     while (info != infoEnd) {
+                        if (*info)
+                           dstKey.CreateSemantic(SS::Nest(srcKey));
+
+                        ++info;
+                        ++dstKey;
+                        ++srcKey;
+                     }
+                  }
                }
                else {
-                  // Data isn't pod, clone valid values one by one      
+                  // Values are sparse, too - treat them the same       
+                  TAny<Deptr<V>> coalescedValues;
+                  coalescedValues.Reserve(asFrom->GetCount());
+                  for (auto item : *asFrom)
+                     coalescedValues.Insert(IndexBack, SS::Nest(*item.mValue));
+                  const_cast<Allocation*>(coalescedValues.mEntry)->Keep(asFrom->GetCount());
+                  auto ptrVal = coalescedValues.GetRaw();
+
                   auto info = GetInfo();
                   const auto infoEnd = GetInfoEnd();
                   auto dstKey = GetValHandle<B>(0);
-                  auto srcKey = asFrom->template GetValHandle<B>(0);
                   while (info != infoEnd) {
                      if (*info)
-                        dstKey.CreateSemantic(SS::Nest(srcKey));
+                        dstKey.Create(ptrVal, coalescedValues.mEntry);
 
                      ++info;
                      ++dstKey;
-                     ++srcKey;
+                     ++ptrVal;
                   }
                }
 
@@ -208,7 +231,7 @@ namespace Langulus::Anyness
             }
          }
          else {
-            // Bot maps are type-erased                                 
+            // Both maps are type-erased                                
             if (not asFrom->mKeys.mType->mIsSparse) {
                // We're cloning dense elements, so we're 100% sure, that
                // each element will end up in the same place            
@@ -237,26 +260,48 @@ namespace Langulus::Anyness
                   }
                }
                
-               if (asFrom->mValues.mType->mIsPOD) {
-                  // Values are POD, we can directly copy them all      
-                  CopyMemory(
-                     mValues.mRaw, asFrom->mValues.mRaw,
-                     GetReserved() * asFrom->mValues.mType->mSize
-                  );
+               if (not asFrom->mValues.mType->mIsSparse) {
+                  if (asFrom->mValues.mType->mIsPOD) {
+                     // Values are POD, we can directly copy them all   
+                     CopyMemory(
+                        mValues.mRaw, asFrom->mValues.mRaw,
+                        GetReserved() * asFrom->mValues.mType->mSize
+                     );
+                  }
+                  else {
+                     // Values aren't POD, clone valid keys one by one  
+                     auto info = GetInfo();
+                     const auto infoEnd = GetInfoEnd();
+                     auto dstKey = GetValHandle<B>(0);
+                     auto srcKey = asFrom->template GetValHandle<B>(0);
+                     while (info != infoEnd) {
+                        if (*info)
+                           dstKey.CreateSemantic(SS::Nest(srcKey));
+
+                        ++info;
+                        ++dstKey;
+                        ++srcKey;
+                     }
+                  }
                }
                else {
-                  // Values aren't POD, clone valid keys one by one     
+                  // Values are sparse, too - treat them the same       
+                  auto coalescedValues = Any::FromMeta(asFrom->mValues.mType->mDeptr);
+                  coalescedValues.Reserve(asFrom->GetCount());
+                  for (auto item : *asFrom)
+                     coalescedValues.Insert(IndexBack, SS::Nest(*item.mValue));
+                  const_cast<Allocation*>(coalescedValues.mEntry)->Keep(asFrom->GetCount());
+                  auto ptrVal = coalescedValues.mRaw;
+                  const Size valstride = coalescedValues.GetStride();
+
                   auto info = GetInfo();
                   const auto infoEnd = GetInfoEnd();
-                  auto dstKey = GetValHandle<B>(0);
-                  auto srcKey = asFrom->template GetValHandle<B>(0);
                   while (info != infoEnd) {
                      if (*info)
-                        dstKey.CreateSemantic(SS::Nest(srcKey));
+                        GetValHandle<B>(info - GetInfo()).template Create<Any>(ptrVal, coalescedValues.mEntry);
 
                      ++info;
-                     ++dstKey;
-                     ++srcKey;
+                     ptrVal += valstride.mSize;
                   }
                }
 
