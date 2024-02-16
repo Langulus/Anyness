@@ -7,4 +7,4 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #pragma once
-#include "../../source/many/Trait.inl"
+#include "../../source/many/TTrait.inl"

@@ -92,7 +92,8 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Capsulation                                                       
       ///                                                                     
-      NOD() DMeta    GetType() const noexcept;
+      NOD() DMeta GetType() const noexcept;
+      NOD() constexpr Token GetToken() const noexcept;
       constexpr void ResetState() noexcept;
 
       NOD() constexpr bool IsTyped() const noexcept;
@@ -160,8 +161,8 @@ namespace Langulus::Anyness
       NOD() const T& operator [] (CT::Index auto) const;
       NOD()       T& operator [] (CT::Index auto);
 
-      NOD() decltype(auto) GetHandle(Offset)       IF_UNSAFE(noexcept);
-      NOD() decltype(auto) GetHandle(Offset) const IF_UNSAFE(noexcept);
+      //NOD() decltype(auto) GetHandle(Offset)       IF_UNSAFE(noexcept);
+      //NOD() decltype(auto) GetHandle(Offset) const IF_UNSAFE(noexcept);
 
       NOD() TAny Crop(Offset, Count) const;
       NOD() TAny Crop(Offset, Count);

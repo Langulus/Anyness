@@ -192,12 +192,22 @@ namespace Langulus::Anyness
       NOD() constexpr bool IsValid() const noexcept;
       NOD() constexpr bool IsInvalid() const noexcept;
       NOD() constexpr bool IsAllocated() const noexcept;
+
       NOD() bool IsKeyMissing() const noexcept;
       NOD() bool IsValueMissing() const noexcept;
       template<CT::Map = UnorderedMap>
       NOD() bool IsKeyMissingDeep() const;
       template<CT::Map = UnorderedMap>
       NOD() bool IsValueMissingDeep() const;
+
+      template<CT::Map = UnorderedMap>
+      NOD() bool IsKeyExecutable() const noexcept;
+      template<CT::Map = UnorderedMap>
+      NOD() bool IsValueExecutable() const noexcept;
+      template<CT::Map = UnorderedMap>
+      NOD() bool IsKeyExecutableDeep() const;
+      template<CT::Map = UnorderedMap>
+      NOD() bool IsValueExecutableDeep() const;
 
       NOD() constexpr bool HasAuthority() const noexcept;
       NOD() constexpr Count GetUses() const noexcept;

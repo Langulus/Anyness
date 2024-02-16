@@ -15,6 +15,20 @@
 #include <Anyness/TAny.hpp>
 #include "../Common.hpp"
 
+template<class T, class E>
+decltype(auto) FromHelper() {
+   if constexpr (not CT::Typed<T>) {
+      if constexpr (CT::TraitBased<T>) {
+         if constexpr (CT::Trait<T>)
+            return T::template OfType<E>();
+         else
+            return T::template From<Traits::Count, E>();
+      }
+      else return T::template From<E>();
+   }
+   else return T {};
+}
+
 
 ///                                                                           
 /// Possible states:                                                          

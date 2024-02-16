@@ -29,8 +29,7 @@ namespace Langulus::Anyness
    /// Semantic constructor                                                   
    ///   @tparam S - semantic (deducible)                                     
    ///   @param other - the construct and semantic                            
-   template<template<class> class S>
-   LANGULUS(INLINED)
+   template<template<class> class S> LANGULUS(INLINED)
    Construct::Construct(S<Construct>&& other)
    requires CT::Semantic<S<Construct>>
       : mType {other->mType}
@@ -53,13 +52,11 @@ namespace Langulus::Anyness
    ///   @param type - the type of the construct                              
    ///   @param arguments - the arguments for construction                    
    ///   @param charge - the charge for the construction                      
-   template<CT::NotSemantic T>
-   LANGULUS(INLINED)
+   template<CT::NotSemantic T> LANGULUS(INLINED)
    Construct::Construct(DMeta type, const T& arguments, const Charge& charge)
       : Construct {type, Copy(arguments), charge} {}
 
-   template<CT::NotSemantic T>
-   LANGULUS(INLINED)
+   template<CT::NotSemantic T> LANGULUS(INLINED)
    Construct::Construct(DMeta type, T& arguments, const Charge& charge)
       : Construct {type, Copy(arguments), charge} {}
 
@@ -68,8 +65,7 @@ namespace Langulus::Anyness
    ///   @param type - the type of the construct                              
    ///   @param arguments - the arguments for construction                    
    ///   @param charge - the charge for the construction                      
-   template<CT::NotSemantic T>
-   LANGULUS(INLINED)
+   template<CT::NotSemantic T> LANGULUS(INLINED)
    Construct::Construct(DMeta type, T&& arguments, const Charge& charge)
       : Construct {type, Move(arguments), charge} {}
    
@@ -90,18 +86,15 @@ namespace Langulus::Anyness
    Construct::Construct(const Token& token)
       : mType {RTTI::GetMetaData(token)->mOrigin} {}
 
-   template<CT::NotSemantic T>
-   LANGULUS(INLINED)
+   template<CT::NotSemantic T> LANGULUS(INLINED)
    Construct::Construct(const Token& token, const T& arguments, const Charge& charge)
       : Construct {token, Copy(arguments), charge} {}
 
-   template<CT::NotSemantic T>
-   LANGULUS(INLINED)
+   template<CT::NotSemantic T> LANGULUS(INLINED)
    Construct::Construct(const Token& token, T& arguments, const Charge& charge)
       : Construct {token, Copy(arguments), charge} {}
 
-   template<CT::NotSemantic T>
-   LANGULUS(INLINED)
+   template<CT::NotSemantic T> LANGULUS(INLINED)
    Construct::Construct(const Token& token, T&& arguments, const Charge& charge)
       : Construct {token, Move(arguments), charge} {}
 
@@ -130,8 +123,7 @@ namespace Langulus::Anyness
    ///   @tparam S - semantic to use (deducible)                              
    ///   @param rhs - the right hand side                                     
    ///   @return a reference to this construct                                
-   template<template<class> class S>
-   LANGULUS(INLINED)
+   template<template<class> class S> LANGULUS(INLINED)
    Construct& Construct::operator = (S<Construct>&& rhs)
    requires CT::Semantic<S<Construct>> {
       mType = rhs->mType;
@@ -150,22 +142,20 @@ namespace Langulus::Anyness
    ///   @tparam HEAD, TAIL - types of the arguments (deducible)              
    ///   @param head, tail  - the constructor arguments                       
    ///   @return the request                                                  
-   template<CT::Data T, CT::Data HEAD, CT::Data... TAIL>
-   LANGULUS(INLINED)
-   Construct Construct::From(HEAD&& head, TAIL&&... tail) {
+   template<CT::Data T, CT::Data T1, CT::Data...TN> LANGULUS(INLINED)
+   Construct Construct::From(T1&& head, TN&&...tail) {
       static_assert(CT::Decayed<T>, "T must be fully decayed");
       const auto meta = MetaDataOf<T>();
       if constexpr (sizeof...(tail) == 0)
-         return Construct {meta, Forward<HEAD>(head)};
+         return Construct {meta, Forward<T1>(head)};
       else
-         return Construct {meta, Any {Forward<HEAD>(head), Forward<TAIL>(tail)...}};
+         return Construct {meta, Any {Forward<T1>(head), Forward<TN>(tail)...}};
    }
 
    /// Create content descriptor from a static type (without arguments)       
    ///   @tparam T - type of the construct                                    
    ///   @return the request                                                  
-   template<CT::Data T>
-   LANGULUS(INLINED)
+   template<CT::Data T> LANGULUS(INLINED)
    Construct Construct::From() {
       static_assert(CT::Decayed<T>, "T must be fully decayed");
       return Construct {MetaDataOf<T>()};
@@ -177,14 +167,13 @@ namespace Langulus::Anyness
    ///   @param token - the type name for the construct                       
    ///   @param head, tail  - the constructor arguments                       
    ///   @return the request                                                  
-   template<CT::Data HEAD, CT::Data... TAIL>
-   LANGULUS(INLINED)
-   Construct Construct::FromToken(const Token& token, HEAD&& head, TAIL&&... tail) {
+   template<CT::Data T1, CT::Data...TN> LANGULUS(INLINED)
+   Construct Construct::FromToken(const Token& token, T1&& head, TN&&...tail) {
       const auto meta = RTTI::DisambiguateMeta(token);
       if constexpr (sizeof...(tail) == 0)
-         return Construct {meta, Forward<HEAD>(head)};
+         return Construct {meta, Forward<T1>(head)};
       else
-         return Construct {meta, Any {Forward<HEAD>(head), Forward<TAIL>(tail)...}};
+         return Construct {meta, Any {Forward<T1>(head), Forward<TN>(tail)...}};
    }
 
    /// Create content descriptor from a type token (without arguments)        
@@ -253,8 +242,7 @@ namespace Langulus::Anyness
 
    /// Check if construct type can be interpreted as a given static type      
    ///   @tparam T - type of the construct to compare against                 
-   template<CT::Data T>
-   LANGULUS(INLINED)
+   template<CT::Data T> LANGULUS(INLINED)
    bool Construct::CastsTo() const {
       if (not mType)
          return false;
@@ -263,8 +251,7 @@ namespace Langulus::Anyness
 
    /// Check if construct type fully matches a given static type              
    ///   @tparam T - type of the construct to compare against                 
-   template<CT::Data T>
-   LANGULUS(INLINED)
+   template<CT::Data T> LANGULUS(INLINED)
    bool Construct::Is() const {
       if (not mType)
          return false;
@@ -322,10 +309,17 @@ namespace Langulus::Anyness
       return nullptr;
    }
 
+   /// Check if construct contains executable elements                        
+   LANGULUS(INLINED)
+   bool Construct::IsExecutable() const noexcept {
+      return mDescriptor.IsExecutable();
+   }
+
    /// Push anything to the descriptor                                        
    ///   @attention resets hash                                               
    ///   @param rhs - stuff to push                                           
    ///   @return a reference to this construct for chaining                   
+   LANGULUS(INLINED)
    Construct& Construct::operator << (auto&& rhs) {
       using T = decltype(rhs);
       if constexpr (requires {mDescriptor << Forward<T>(rhs); }) {
@@ -339,6 +333,7 @@ namespace Langulus::Anyness
    ///   @attention resets hash                                               
    ///   @param rhs - stuff to merge                                          
    ///   @return a reference to this construct for chaining                   
+   LANGULUS(INLINED)
    Construct& Construct::operator <<= (auto&& rhs) {
       using T = decltype(rhs);
       if constexpr (requires {mDescriptor <<= Forward<T>(rhs); }) {
@@ -346,6 +341,19 @@ namespace Langulus::Anyness
          return *this;
       }
       else LANGULUS_ERROR("Can't merge that into descriptor");
+   }
+
+   /// Serialize the construct to anything text-based                         
+   LANGULUS(INLINED)
+   Count Construct::Serialize(CT::Serial auto& to) const {
+      const auto initial = to.GetCount();
+      using OUT = Deref<decltype(to)>;
+      to += GetType();
+      to += static_cast<Text>(GetCharge());
+      to += OUT::SerializationRules::Operator::OpenScope;
+      GetDescriptor().Serialize(to);
+      to += OUT::SerializationRules::Operator::CloseScope;
+      return to.GetCount() - initial;
    }
 
 } // namespace Langulus::Anyness

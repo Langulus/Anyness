@@ -209,7 +209,7 @@ namespace Langulus::Anyness
 
       friend struct ::Langulus::Flow::Verb;
       template<class>
-      friend struct ::Langulus::Flow::StaticVerb;
+      friend struct ::Langulus::Flow::TVerb;
       template<class, bool>
       friend struct ::Langulus::Flow::ArithmeticVerb;
 
@@ -296,6 +296,7 @@ namespace Langulus::Anyness
       NOD() constexpr bool CanFitOrAnd(const Block&) const noexcept;
       template<CT::BlockBased = Any>
       NOD() constexpr Size GetBytesize() const noexcept;
+      template<CT::BlockBased = Any>
       NOD() constexpr Token GetToken() const noexcept;
       template<CT::BlockBased = Any>
       NOD() constexpr Size GetStride() const noexcept;
@@ -309,6 +310,10 @@ namespace Langulus::Anyness
       NOD() constexpr bool IsInsertable(DMeta) const noexcept;
       template<CT::Data, CT::Block = Any>
       NOD() constexpr bool IsInsertable() const noexcept;
+      template<CT::Block = Any>
+      NOD() bool IsExecutable() const noexcept;
+      template<CT::Block = Any>
+      NOD() bool IsExecutableDeep() const noexcept;
 
       constexpr void MakeStatic(bool enable = true) noexcept;
       constexpr void MakeConst(bool enable = true) noexcept;
@@ -321,7 +326,7 @@ namespace Langulus::Anyness
 
       template<CT::Block = Any>
       constexpr void ResetState() noexcept;
-
+      
    protected: IF_LANGULUS_TESTING(public:)
       template<CT::BlockBased = Any>
       NOD() constexpr auto GetRaw() noexcept;
@@ -468,7 +473,7 @@ namespace Langulus::Anyness
       template<CT::Block>
       NOD() Index Constrain(Index) const IF_UNSAFE(noexcept);
 
-      template<CT::Data T, CT::Block = Any>
+      template<CT::Data T, CT::Block>
       NOD() Handle<T> GetHandle(Offset) const IF_UNSAFE(noexcept);
 
       NOD() Block CropInner(Offset, Count) const IF_UNSAFE(noexcept);
@@ -672,15 +677,6 @@ namespace Langulus::Anyness
       void Keep() const noexcept;
       template<CT::Block = Any>
       void Free();
-
-      IF_UNSAFE(constexpr)
-      void SetMemory(const DataState&, DMeta, Count) IF_UNSAFE(noexcept);
-      void SetMemory(const DataState&, DMeta, Count, const void*) IF_UNSAFE(noexcept);
-      void SetMemory(const DataState&, DMeta, Count, void*) IF_UNSAFE(noexcept);
-      IF_UNSAFE(constexpr)
-      void SetMemory(const DataState&, DMeta, Count, const void*, const Allocation*);
-      IF_UNSAFE(constexpr)
-      void SetMemory(const DataState&, DMeta, Count, void*, const Allocation*);
       /// @endcond                                                            
 
    public:
@@ -761,6 +757,10 @@ namespace Langulus::Anyness
       requires CT::Semantic<S<T>>
       void CreateSemantic(S<T>&&) const;
 
+      template<CT::Block = Any, template<class> class S, CT::Handle T>
+      requires CT::Semantic<S<T>>
+      void CreateSemantic(S<T>&&) const;
+
       template<template<class> class S, CT::Block T>
       requires CT::Semantic<S<T>>
       void ShallowBatchPointerConstruction(S<T>&&) const;
@@ -816,23 +816,44 @@ namespace Langulus::Anyness
       ///   Conversion                                                        
       ///                                                                     
       template<CT::Block = Any>
-      NOD() Count Convert(CT::Block auto&) const;
-
-      template<CT::Block TO, CT::Block = Any>
-      NOD() TO Convert() const;
+      Count Convert(CT::Block auto&) const;
 
       template<CT::Block = Any>
-      NOD() Count Serialize(CT::Serial auto&) const;
+      Count Serialize(CT::Serial auto&) const;
 
-      template<CT::Serial TO, CT::Block = Any>
-      NOD() TO Serialize() const;
+   protected:
+      #pragma pack(push, 1)
+      struct Header {
+         enum { Default, BigEndian };
 
-      template<CT::Serial THIS>
-      NOD() Count Deserialize(CT::Data auto&) const;
+         ::std::uint8_t  mAtomSize {sizeof(Offset)};
+         ::std::uint8_t  mFlags {BigEndianMachine ? BigEndian : Default};
+         ::std::uint16_t mVersion {0};
+         ::std::uint32_t mDefinitionCount {0};
+      };
+      #pragma pack(pop)
 
-      template<CT::Data TO, CT::Serial THIS>
-      NOD() TO Deserialize() const;
+      using Loader = void(*)(Block&, Count);
 
+      template<CT::Block, class>
+      Count SerializeToText(CT::Serial auto&) const;
+      template<CT::Block, class>
+      Count SerializeToBinary(CT::Serial auto&) const;
+      template<CT::Block, class, class...RULES>
+      Count SerializeByRules(CT::Serial auto&, Types<RULES...>) const;
+      template<CT::Block, class, class RULE>
+      Count SerializeApplyRule(CT::Serial auto&) const;
+
+      template<CT::Block, class>
+      Offset DeserializeBinary(CT::Block auto&, const Header&, Offset = 0, Loader = nullptr) const;
+      template<CT::Block>
+      void ReadInner(Offset, Count, Loader) const;
+      template<CT::Block>
+      NOD() Offset DeserializeAtom(Offset&, Offset, const Header&, Loader) const;
+      template<CT::Block>
+      NOD() Offset DeserializeMeta(CT::Meta auto&, Offset, const Header&, Loader) const;
+
+   public:
       ///                                                                     
       ///   Flow                                                              
       ///                                                                     

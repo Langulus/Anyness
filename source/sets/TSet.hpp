@@ -68,9 +68,9 @@ namespace Langulus::Anyness
       TSet(const TSet&);
       TSet(TSet&&);
 
-      template<class T1, class...TAIL>
-      requires CT::DeepSetMakable<T, T1, TAIL...>
-      TSet(T1&&, TAIL&&...);
+      template<class T1, class...TN>
+      requires CT::DeepSetMakable<T, T1, TN...>
+      TSet(T1&&, TN&&...);
 
       ~TSet();
 
@@ -91,9 +91,15 @@ namespace Langulus::Anyness
       NOD() constexpr bool IsSparse() const noexcept;
       NOD() constexpr bool IsDense() const noexcept;
       NOD() constexpr Size GetStride() const noexcept;
+
       NOD() constexpr bool IsInsertable(DMeta) const noexcept;
       template<CT::Data>
       NOD() constexpr bool IsInsertable() const noexcept;
+
+      NOD() bool IsMissingDeep() const;
+
+      NOD() bool IsExecutable() const;
+      NOD() bool IsExecutableDeep() const;
 
       using Base::GetReserved;
       using Base::GetInfo;
@@ -186,9 +192,9 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Insertion                                                         
       ///                                                                     
-      template<class T1, class...TAIL>
-      requires CT::Inner::UnfoldMakableFrom<T, T1, TAIL...>
-      Count Insert(T1&&, TAIL&&...);
+      template<class T1, class...TN>
+      requires CT::Inner::UnfoldMakableFrom<T, T1, TN...>
+      Count Insert(T1&&, TN&&...);
 
       template<class T1> requires CT::Set<Desem<T1>>
       Count InsertBlock(T1&&);

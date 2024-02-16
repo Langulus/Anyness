@@ -17,6 +17,7 @@ namespace Langulus::Anyness
    ///   A multipurpose index, used to access common elements in containers   
    ///                                                                        
    struct Index {
+      LANGULUS(NAME) "Index";
       LANGULUS(POD) true;
       LANGULUS(NULLIFIABLE) true;
       LANGULUS(SUFFIX) "i";
@@ -60,20 +61,25 @@ namespace Langulus::Anyness
          First = 0
       };
 
-      LANGULUS_NAMED_VALUES(SpecialIndices) {
-         {"All", SpecialIndices::All},
-         {"Many", SpecialIndices::Many},
-         {"Single", SpecialIndices::Single},
-         {"None", SpecialIndices::None},
-         {"Front", SpecialIndices::Front},
-         {"Middle", SpecialIndices::Middle},
-         {"Back", SpecialIndices::Back},
-         {"Mode", SpecialIndices::Mode},
-         {"Biggest", SpecialIndices::Biggest},
-         {"Smallest", SpecialIndices::Smallest},
-         {"Auto", SpecialIndices::Auto},
-         {"Random", SpecialIndices::Random}
-      };
+      LANGULUS_NAMED_VALUES(
+         All,
+         Many,
+         Single,
+
+         None,
+         Front,
+         Middle, 
+         Back,
+
+         Mode,
+         Biggest,
+         Smallest,
+         Auto,
+         Random,
+
+         Last,
+         First
+      );
 
       #if LANGULUS_DEBUG()
          union {

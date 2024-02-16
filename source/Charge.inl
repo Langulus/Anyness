@@ -107,16 +107,16 @@ namespace Langulus::Anyness
    inline Charge::operator Text() const {
       Text text;
       if (mMass != Charge::DefaultMass)
-         text += Text {" *", mMass};
+         text += Text {Text::Operator::Mass, mMass};
 
       if (mRate != Charge::DefaultRate)
-         text += Text {" ^", mRate};
+         text += Text {Text::Operator::Rate, mRate};
 
       if (mTime != Charge::DefaultTime)
-         text += Text {" @", mTime};
+         text += Text {Text::Operator::Time, mTime};
 
       if (mPriority != Charge::DefaultPriority)
-         text += Text {" !", mPriority};
+         text += Text {Text::Operator::Priority, mPriority};
 
       return text;
    }

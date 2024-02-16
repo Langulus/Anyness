@@ -211,11 +211,9 @@ namespace Langulus::Anyness
             }
          }
          else {
-            // Type can't mutate, but we still have to check it         
-            LANGULUS_ASSERT(me.template IsSimilar<T>(), Meta,
-               "Inserting incompatible type `", MetaDataOf<T>(),
-               "` to container of type `", me.GetType(), '`'
-            );
+            // We still have to mutate if untyped - this also acts      
+            // as a runtime type-check                                  
+            Mutate<THIS, T, void>();
          }
 
          const auto idx = SimplifyIndex<THIS, false>(index);
@@ -952,7 +950,8 @@ namespace Langulus::Anyness
       }
    }
 
-   /// Call semantic constructors in a region and initialize memory           
+   /// Call semantic constructors in a region and initialize memory, by       
+   /// using a Block as a source                                              
    ///   @attention never modifies any block state                            
    ///   @attention assumes none of the elements are constructed, despite     
    ///      having a valid mCount                                             
@@ -969,7 +968,8 @@ namespace Langulus::Anyness
       LANGULUS_ASSUME(DevAssumes, mCount <= source->mCount,
          "Count mismatch");
       // Type-erased pointers (void*) are acceptable                    
-      LANGULUS_ASSUME(DevAssumes, (source->GetType()->IsSimilar(GetType<THIS>())
+      LANGULUS_ASSUME(DevAssumes, 
+            (source->GetType()->IsSimilar(GetType<THIS>())
          or (source->GetType()->template IsSimilar<void*>() and IsSparse<THIS>())
          or (source->GetType()->mIsSparse and GetType<THIS>()->template IsSimilar<void*>())),
          "Type mismatch on creation", ": ", source->GetType(), " != ", GetType<THIS>());
@@ -1108,8 +1108,7 @@ namespace Langulus::Anyness
             }
          }
          else {
-            LANGULUS_ASSERT(
-               mType->mIsSparse or mType->mCloneConstructor, Construct,
+            LANGULUS_ASSERT(mType->mCloneConstructor, Construct,
                "Can't clone-construct elements"
                " - no clone-constructor was reflected");
          }
@@ -1202,6 +1201,37 @@ namespace Langulus::Anyness
             }
          }
       }
+   }
+   
+   /// Call a single semantic constructor by using a Handle as a source       
+   ///   @attention never modifies any block state                            
+   ///   @attention assumes none of the elements are constructed, despite     
+   ///      having a valid mCount                                             
+   ///   @attention assumes blocks types are similar                          
+   ///   @param source - the handle to initialize with                        
+   template<CT::Block THIS, template<class> class S, CT::Handle OTHER>
+   requires CT::Semantic<S<OTHER>>
+   void Block::CreateSemantic(S<OTHER>&& source) const {
+      static_assert(CT::Sparse<TypeOf<OTHER>>,
+         "Handle isn't sparse");
+      LANGULUS_ASSUME(DevAssumes, mCount and mCount <= mReserved,
+         "Count outside limits", '(', mCount, " > ", mReserved);
+      LANGULUS_ASSUME(DevAssumes, mCount == 1,
+         "Count mismatch");
+      LANGULUS_ASSUME(DevAssumes, IsSparse(),
+         "Container is not sparse");
+
+      // Type-erased pointers (void*) are acceptable, because they're   
+      // required for some internal stuff, although not recommended     
+      LANGULUS_ASSUME(DevAssumes, (
+         CT::Similar<TypeOf<OTHER>, void*>
+      or GetType<THIS>()->template IsSimilar<TypeOf<OTHER>>()),
+         "Type mismatch on creation from handle", ": ", GetType<THIS>(),
+         " instead of ", MetaDataOf<TypeOf<OTHER>>());
+
+      using T = Conditional<CT::Typed<THIS>, TypeOf<THIS>, TypeOf<OTHER>>;
+      auto handle = GetHandle<T, THIS>(0);
+      handle.CreateSemantic(source.Forward());
    }
    
    /// Batch-optimized semantic pointer constructions                         
@@ -1412,8 +1442,7 @@ namespace Langulus::Anyness
             }
          }
          else {
-            LANGULUS_ASSERT(
-               mType->mIsSparse or mType->mCloneAssigner, Construct,
+            LANGULUS_ASSERT(mType->mCloneAssigner, Construct,
                "Can't clone-assign elements"
                " - no clone-assigner was reflected");
          }

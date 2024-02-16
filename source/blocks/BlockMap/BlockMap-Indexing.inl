@@ -241,11 +241,11 @@ namespace Langulus::Anyness
          ", index ", i, " is beyond the reserved ", GetReserved(), " elements");
 
       if constexpr (CT::Typed<THIS>) {
-         IF_SAFE(using K = typename THIS::Key);
+         using K = typename THIS::Key;
          LANGULUS_ASSUME(DevAssumes, (IsKeySimilar<THIS, K>()),
             "Wrong type when accessing map key",
             ", using type `", NameOf<K>(), "` instead of `", GetKeyType(), '`');
-         return GetKeys<THIS>().GetHandle(i);
+         return GetKeys<THIS>().template GetHandle<K, TAny<K>>(i);
       }
       else return GetKeys<THIS>().GetElementInner(i);
    }

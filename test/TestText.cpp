@@ -12,18 +12,18 @@
 #include "Common.hpp"
 
 
-/// A type that is reflected, as convertible to Debug                         
+/// A type that is reflected, as convertible to Text                          
 struct Stringifiable {
-   LANGULUS_CONVERSIONS(Text);
+   LANGULUS_CONVERTS_TO(Text);
    
    explicit operator Text() {
       return "Stringifiable converted to Text";
    }
 };
 
-/// A type that is reflected, as convertible to Debug                         
+/// A type that is reflected, as convertible to Text                          
 struct StringifiableConst {
-   LANGULUS_CONVERSIONS(Text);
+   LANGULUS_CONVERTS_TO(Text);
    
    explicit operator Text() const {
       return "Stringifiable converted to Text";
@@ -422,7 +422,7 @@ TEMPLATE_TEST_CASE("Reflected coverters to text", "[text]", Stringifiable, Strin
          const auto staticallyConverted = instance.operator Text();
          
          Text rttiConverted;
-         meta->mConverters.at(debugMeta).mFunction(&instance, &rttiConverted);
+         meta->GetConverter(debugMeta)(&instance, &rttiConverted);
 
          REQUIRE(staticallyConverted == rttiConverted);
          REQUIRE(staticallyConverted == "Stringifiable converted to Text");

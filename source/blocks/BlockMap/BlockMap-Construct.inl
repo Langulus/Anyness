@@ -297,8 +297,11 @@ namespace Langulus::Anyness
                   auto info = GetInfo();
                   const auto infoEnd = GetInfoEnd();
                   while (info != infoEnd) {
-                     if (*info)
-                        GetValHandle<B>(info - GetInfo()).template Create<Any>(ptrVal, coalescedValues.mEntry);
+                     if (*info) {
+                        GetValHandle<B>(info - GetInfo()).CreateSemantic(
+                           Abandon(HandleLocal<void*> {Copy(ptrVal), coalescedValues.mEntry})
+                        );
+                     }
 
                      ++info;
                      ptrVal += valstride.mSize;

@@ -42,8 +42,8 @@ namespace Langulus::Anyness
    Byte* Block::At(const Offset byteOffset) IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, mRaw,
          "Invalid memory");
-      LANGULUS_ASSUME(DevAssumes, byteOffset < GetReservedSize<Block>(),
-         "Byte offset out of range");
+      /*LANGULUS_ASSUME(DevAssumes, byteOffset < GetReservedSize<Block>(),
+         "Byte offset out of range");*/ //TODO cases problems when getting map values, due to lack of mReserved
       return mRaw + byteOffset;
    }
 

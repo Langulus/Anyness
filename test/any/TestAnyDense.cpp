@@ -313,13 +313,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
       }
 
       WHEN("Populated using Any::New") {
-         if constexpr (not CT::Typed<T>) {
-            if constexpr (CT::Trait<T>)
-               pack = T::template From<Traits::Count, E>();
-            else
-               pack = T::template From<E>();
-         }
-
+         pack = FromHelper<T, E>();
          const auto created = pack.New(3, darray2[0]);
 
          CheckState_OwnedFull<E>(pack);
@@ -2669,7 +2663,4 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
             REQUIRE(pack3[i] == darray2[i - 5]);
       }
    }
-
-   if constexpr (CT::Sparse<E>)
-      delete element;
 }
