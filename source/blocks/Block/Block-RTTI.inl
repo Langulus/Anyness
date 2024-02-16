@@ -319,8 +319,10 @@ namespace Langulus::Anyness
          if constexpr (not CT::Void<FORCE>) {
             if (not IsTypeConstrained<THIS>()) {
                // Container is not type-constrained, so we can safely   
-               // deepen it, to incorporate the new data                
-               Deepen<FORCE, true, THIS>();
+               // deepen it, to incorporate the new data, unless it is  
+               // already deep, that is                                 
+               if (not IsDeep<THIS>())
+                  Deepen<FORCE, true, THIS>();
                return true;
             }
 

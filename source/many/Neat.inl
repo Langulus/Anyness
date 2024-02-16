@@ -177,14 +177,6 @@ namespace Langulus::Anyness
          and mAnythingElse.IsEmpty();
    }
    
-   /// Check if the container has missing entries                             
-   ///   @return true if there's at least one missing entry                   
-   LANGULUS(INLINED)
-   bool Neat::IsMissing() const {
-      // Buckets are flattened anyways, so same as IsMissingDeep        
-      return IsMissingDeep();
-   }
-   
    /// Check if the container has missing entries, nest-scan                  
    ///   @return true if there's at least one missing entry                   
    LANGULUS(INLINED)
@@ -192,6 +184,15 @@ namespace Langulus::Anyness
       return mTraits.IsKeyMissingDeep() or mTraits.IsValueMissingDeep()
           or mConstructs.IsKeyMissingDeep() or mConstructs.IsValueMissingDeep()
           or mAnythingElse.IsKeyMissingDeep() or mAnythingElse.IsValueMissingDeep();
+   }
+
+   /// Check if construct contains executable elements                        
+   ///   @return true if there's at least one executable entry                
+   LANGULUS(INLINED)
+   bool Neat::IsExecutable() const noexcept {
+      return mTraits.IsKeyExecutableDeep() or mTraits.IsValueExecutableDeep()
+          or mConstructs.IsKeyExecutableDeep() or mConstructs.IsValueExecutableDeep()
+          or mAnythingElse.IsKeyExecutableDeep() or mAnythingElse.IsValueExecutableDeep();
    }
 
    /// Check if the container is not empty                                    
@@ -600,11 +601,11 @@ namespace Langulus::Anyness
    /// Push and sort anything, semantically or not                            
    ///   @param key - the key to add                                          
    ///   @return 1 if pair was inserted, zero otherwise                       
-   template<class T1, class... TAIL> LANGULUS(INLINED)
-   Count Neat::Insert(T1&& t1, TAIL&&...tail) {
+   template<class T1, class...TN> LANGULUS(INLINED)
+   Count Neat::Insert(T1&& t1, TN&&...tail) {
       Count inserted = 0;
       inserted   += UnfoldInsert(Forward<T1>(t1));
-      ((inserted += UnfoldInsert(Forward<TAIL>(tail))), ...);
+      ((inserted += UnfoldInsert(Forward<TN>(tail))), ...);
       return inserted;
    }
    
@@ -820,8 +821,8 @@ namespace Langulus::Anyness
    ///   @tparam F - the function(s) signature(s) (deducible)                 
    ///   @param call - the function(s) to execute for each element            
    ///   @return the number of executions of 'call'                           
-   template<bool MUTABLE, class... F>
-   Count Neat::ForEach(F&&... call) {
+   template<bool MUTABLE, class...F>
+   Count Neat::ForEach(F&&...call) {
       if (IsEmpty())
          return 0;
 
@@ -833,8 +834,8 @@ namespace Langulus::Anyness
    }
 
    ///                                                                        
-   template<class... F>
-   Count Neat::ForEach(F&&... call) const {
+   template<class...F>
+   Count Neat::ForEach(F&&...call) const {
       return const_cast<Neat*>(this)->template 
          ForEach<false>(Forward<F>(call)...);
    }
@@ -848,16 +849,16 @@ namespace Langulus::Anyness
    ///   @tparam F - the function(s) signature(s) (deducible)                 
    ///   @param call - the function(s) to execute for each element            
    ///   @return the number of executions of all calls                        
-   template<bool MUTABLE, class... F>
-   Count Neat::ForEachDeep(F&&... call) {
+   template<bool MUTABLE, class...F>
+   Count Neat::ForEachDeep(F&&...call) {
       Count executions = 0;
       ((executions += ForEachInner<MUTABLE>(Forward<F>(call))), ...);
       return executions;
    }
 
    /// Neat containers are always flat, so deep iteration is same as flat one 
-   template<class... F>
-   Count Neat::ForEachDeep(F&&... call) const {
+   template<class...F>
+   Count Neat::ForEachDeep(F&&...call) const {
       return const_cast<Neat*>(this)->template
          ForEachDeep<false>(Forward<F>(call)...);
    }
@@ -1249,9 +1250,8 @@ namespace Langulus::Anyness
 
    /// Remove traits, that match the given trait type                         
    ///   @tparam T - type of trait to remove                                  
-   ///   @tparam EMPTY_TOO - use true, to remove all empty trait entries, that
-   ///                       are usually produced, by pushing TMeta           
-   ///                       (disabled by default)                            
+   ///   @tparam EMPTY_TOO - use true, to remove all empty trait entries,     
+   ///      that are usually made by pushing a TMeta (disabled by default)    
    ///   @return the number of removed trait entries                          
    template<CT::Trait T, bool EMPTY_TOO>
    Count Neat::RemoveTrait() {
@@ -1281,7 +1281,56 @@ namespace Langulus::Anyness
          mTraits.RemoveIt(found);
       return count;
    }
+   
+   /// Serialize the neat to anything text-based                              
+   LANGULUS(INLINED)
+   Count Neat::Serialize(CT::Serial auto& to) const {
+      const auto initial = to.GetCount();
+      using OUT = Deref<decltype(to)>;
 
+      bool separator = false;
+      for (auto pair : mAnythingElse) {
+         for (auto& group : pair.mValue) {
+            if (separator)
+               to += ", ";
+
+            if (group.IsValid())
+               group.SerializeToText<Block, void>(to);
+            else
+               to += static_cast<OUT>(pair.mKey);
+            separator = true;
+         }
+      }
+
+      for (auto pair : mTraits) {
+         for (auto& trait : pair.mValue) {
+            if (separator)
+               to += ", ";
+
+            if (trait.IsValid())
+               to += Trait::From(pair.mKey, trait).Serialize(to);
+            else
+               to += static_cast<OUT>(pair.mKey);
+            separator = true;
+         }
+      }
+
+      for (auto pair : mConstructs) {
+         for (auto& construct : pair.mValue) {
+            if (separator)
+               to += ", ";
+
+            if (construct.mData.IsValid() or not construct.mCharge.IsDefault()) {
+               to += Construct(pair.mKey, construct.mData, construct.mCharge)
+                  .Serialize(to);
+            }
+            else to += static_cast<OUT>(pair.mKey);
+            separator = true;
+         }
+      }
+
+      return to.GetCount() - initial;
+   }
 
 
    template<template<class> class S>

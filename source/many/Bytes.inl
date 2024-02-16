@@ -49,12 +49,13 @@ namespace Langulus::Anyness
    ///   @param meta - the definition to serialize                            
    LANGULUS(INLINED)
    Bytes::Bytes(const CT::Meta auto& meta) {
-      const auto tokensize = meta->mToken.size();
-      const auto count = sizeof(Count) + tokensize;
+      const auto token = meta.GetToken();
+      const Count tokensize = static_cast<Count>(token.size());
+      const Count count = sizeof(Count) + tokensize;
       Block::AllocateFresh<Bytes>(Block::RequestSize<Bytes>(count));
-      CopyMemory(GetRaw(), &tokensize, sizeof(tokensize));
+      CopyMemory(GetRaw(), reinterpret_cast<const Byte*>(&tokensize), sizeof(tokensize));
       if (tokensize)
-         CopyMemory(GetRaw() + sizeof(Count), meta->mToken.data(), tokensize);
+         CopyMemory(GetRaw() + sizeof(Count), reinterpret_cast<const Byte*>(token.data()), tokensize);
       mCount = count;
    }
  
@@ -300,121 +301,13 @@ namespace Langulus::Anyness
       }
       else LANGULUS_ERROR("Unable to insert as bytes");
    }
-
-   /// Default header constructor                                             
-   LANGULUS(INLINED)
-   Bytes::Header::Header() noexcept {
-      mAtomSize = sizeof(Size);
-
-      // First bit of the flag means the file was written by a big      
-      // endian machine                                                 
-      mFlags = Default;
-      if constexpr (BigEndianMachine)
-         mFlags = BigEndian;
-      mUnused = 0;
-   }
-
-   LANGULUS(INLINED)
-   bool Bytes::Header::operator == (const Header& rhs) const noexcept {
-      return mAtomSize == rhs.mAtomSize and mFlags == rhs.mFlags;
-   }
    
-   template<class T>
-   T Bytes::Deserialize() const {
-      TODO();
-      return {};
+   /// Deserialize a byte container to a desired type                         
+   ///   @tparam result - [out] data/container to deserialize into            
+   ///   @return the number of parsed bytes                                   
+   Count Bytes::Deserialize(CT::Data auto& result) const {
+      Header header;
+      return Block::DeserializeBinary<Bytes, void>(result, header);
    }
-
-/*#if LANGULUS_FEATURE(MANAGED_REFLECTION)
-
-   ///                                                                        
-   LANGULUS(INLINED)
-   void Bytes::RequestMoreBytes(
-      Offset read, Size byteCount, const Loader& loader
-   ) const {
-      if (read >= GetCount() or GetCount() - read < byteCount) {
-         if (not loader)
-            LANGULUS_THROW(Access, "Deserializer has no loader");
-         loader(const_cast<Bytes&>(*this), byteCount - (GetCount() - read));
-      }
-   }
-
-   /// Read an atom-sized unsigned integer, based on the provided header      
-   ///   @param result - [out] the resulting deserialized number              
-   ///   @param read - offset to apply to serialized byte array               
-   ///   @param header - environment header                                   
-   ///   @param loader - loader for streaming                                 
-   ///   @return the number of read bytes from byte container                 
-   inline Size Bytes::DeserializeAtom(
-      Offset& result, Offset read, const Header& header, const Loader& loader
-   ) const {
-      if (header.mAtomSize == 4) {
-         // We're deserializing data, that was serialized on a 32-bit   
-         // architecture                                                
-         uint32_t count4 = 0;
-         RequestMoreBytes(read, 4, loader);
-         ::std::memcpy(&count4, At(read), 4);
-         read += 4;
-         result = static_cast<Offset>(count4);
-      }
-      else if (header.mAtomSize == 8) {
-         // We're deserializing data, that was serialized on a 64-bit   
-         // architecture                                                
-         uint64_t count8 = 0;
-         RequestMoreBytes(read, 8, loader);
-         ::std::memcpy(&count8, At(read), 8);
-         read += 8;
-         if (count8 > std::numeric_limits<Offset>::max()) {
-            LANGULUS_THROW(Convert,
-               "Deserialized atom contains a value "
-               "too powerful for your architecture"
-            );
-         }
-         result = static_cast<Offset>(count8);
-      }
-      else {
-         LANGULUS_THROW(Convert,
-            "An unknown atomic size was deserialized "
-            "from source - is the source corrupted?"
-         );
-      }
-
-      return read;
-   }
-
-   /// A snippet for conveniently deserializing a meta from binary            
-   ///   @tparam META - type of meta we're deserializing (deducible)          
-   ///   @param result - [out] the deserialized meta goes here                
-   ///   @param read - byte offset inside 'from'                              
-   ///   @param header - environment header                                   
-   ///   @param loader - loader for streaming                                 
-   ///   @return number of read bytes                                         
-   template<class META>
-   Size Bytes::DeserializeMeta(
-      META& result, Offset read, const Header& header, const Loader& loader
-   ) const {
-      Count count = 0;
-      read = DeserializeAtom(count, read, header, loader);
-      if (count) {
-         RequestMoreBytes(read, count, loader);
-         const Token token {GetRawAs<Letter, Bytes>() + read, count};
-         if constexpr (CT::Same<META, DMeta>)
-            result = RTTI::GetMetaData(token);
-         else if constexpr (CT::Same<META, VMeta>)
-            result = RTTI::GetMetaVerb(token);
-         else if constexpr (CT::Same<META, TMeta>)
-            result = RTTI::GetMetaTrait(token);
-         else if constexpr (CT::Same<META, CMeta>)
-            result = RTTI::GetMetaConstant(token);
-         else
-            LANGULUS_ERROR("Unsupported meta deserialization");
-         return read + count;
-      }
-
-      result = {};
-      return read;
-   }
-
-#endif*/
 
 } // namespace Langulus::Anyness

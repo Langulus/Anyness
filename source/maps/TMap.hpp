@@ -109,8 +109,14 @@ namespace Langulus::Anyness
       NOD() Count GetKeyCountElementsDeep() const noexcept;
       NOD() Count GetValueCountDeep() const noexcept;
       NOD() Count GetValueCountElementsDeep() const noexcept;
+
       NOD() bool IsKeyMissingDeep() const;
       NOD() bool IsValueMissingDeep() const;
+
+      NOD() bool IsKeyExecutable() const;
+      NOD() bool IsValueExecutable() const;
+      NOD() bool IsKeyExecutableDeep() const;
+      NOD() bool IsValueExecutableDeep() const;
 
       using Base::GetCount;
       using Base::GetReserved;

@@ -49,6 +49,8 @@ namespace Langulus::Anyness
    TEMPLATE() template<class T1, class...TAIL>
    requires CT::DeepMakable<T, T1, TAIL...> LANGULUS(INLINED)
    TAny<T>::TAny(T1&& t1, TAIL&&...tail) {
+      mType = MetaDataOf<T>();
+
       if constexpr (sizeof...(TAIL) == 0) {
          using S = SemanticOf<decltype(t1)>;
          using ST = TypeOf<S>;
@@ -89,7 +91,7 @@ namespace Langulus::Anyness
                   // If types are similar, it is safe to                
                   // absorb the block, essentially converting a type-   
                   // erased Any back to its TAny equivalent             
-                  BlockTransfer<TAny>(S::Nest(t1));
+                  Block::BlockTransfer<TAny>(S::Nest(t1));
                }
                else if constexpr (CT::Deep<T>) {
                   // This TAny accepts any kind of deep element         
@@ -124,8 +126,8 @@ namespace Langulus::Anyness
    TAny<T> TAny<T>::From(auto&& what, Count count) {
       using S = SemanticOf<decltype(what)>;
       using ST = TypeOf<S>;
-      TAny<T> result;
 
+      TAny<T> result;
       if constexpr (CT::Dense<T>) {
          // We're creating a dense block...                             
          if constexpr (CT::Array<ST>) {
@@ -137,11 +139,11 @@ namespace Langulus::Anyness
             count = count2 / sizeof(T);
 
             if constexpr (CT::Similar<T, DST> or CT::POD<T, DST>) {
-               result.SetMemory(
+               new (&result) Block {
                   DataState::Constrained,
                   result.GetType(), count,
                   DesemCast(what), nullptr
-               );
+               };
             }
             else {
                LANGULUS_ERROR(
@@ -159,11 +161,11 @@ namespace Langulus::Anyness
             count = count2 / sizeof(T);
 
             if constexpr (CT::Similar<T, DST> or CT::POD<T, DST>) {
-               result.SetMemory(
+               new (&result) Block {
                   DataState::Constrained,
                   result.GetType(), count,
                   DesemCast(what), nullptr
-               );
+               };
             }
             else {
                LANGULUS_ERROR(
@@ -179,11 +181,11 @@ namespace Langulus::Anyness
             count = sizeof(ST) / sizeof(T);
 
             if constexpr (CT::Similar<T, ST> or CT::POD<T, ST>) {
-               result.SetMemory(
+               new (&result) Block {
                   DataState::Constrained,
                   result.GetType(), count,
                   &DesemCast(what), nullptr
-               );
+               };
             }
             else {
                LANGULUS_ERROR(
@@ -207,6 +209,13 @@ namespace Langulus::Anyness
    TEMPLATE() LANGULUS(INLINED)
    DMeta TAny<T>::GetType() const noexcept {
       return Block::GetType<TAny>();
+   }
+
+   /// Get the name of the contained type                                     
+   ///   @return the name of the contained type                               
+   TEMPLATE() LANGULUS(INLINED)
+   constexpr Token TAny<T>::GetToken() const noexcept {
+      return Block::GetToken<TAny>();
    }
 
    /// Shallow-copy assignment                                                
@@ -486,19 +495,6 @@ namespace Langulus::Anyness
    TEMPLATE() template<class THIS> LANGULUS(INLINED)
    const Allocation** TAny<T>::GetEntries() IF_UNSAFE(noexcept) {
       return Block::GetEntries<THIS>();
-   }
-
-   /// Return a handle to a sparse element, or a pointer to dense one         
-   ///   @param index - the element index                                     
-   ///   @return the handle/pointer                                           
-   TEMPLATE() LANGULUS(INLINED)
-   decltype(auto) TAny<T>::GetHandle(const Offset index) IF_UNSAFE(noexcept) {
-      return Block::GetHandle<T, TAny>(index);
-   }
-
-   TEMPLATE() LANGULUS(INLINED)
-   decltype(auto) TAny<T>::GetHandle(const Offset index) const IF_UNSAFE(noexcept) {
-      return Block::GetHandle<T, TAny>(index);
    }
 
    /// Get an element in the way you want (unsafe)                            

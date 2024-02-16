@@ -12,6 +12,100 @@
 #include <string>
 
 
+namespace Langulus::Anyness::Serial
+{
+   enum RuleEnum {
+      Skip = 0,
+      Wrap = 1
+   };
+
+   enum MatchEnum {
+      Exact = 0,
+      BasedOn = 2,
+   };
+
+   enum Operator {
+      OpenScope = 0,
+      CloseScope,
+      OpenCode,
+      CloseCode,
+      OpenComment,
+      CloseComment,
+      OpenString,
+      CloseString,
+      OpenStringAlt,
+      CloseStringAlt,
+      OpenCharacter,
+      CloseCharacter,
+      OpenByte,
+      CloseByte,
+
+      Future,
+      Past,
+
+      Constant,
+      Long,
+      Mono,
+      Null,
+
+      Mass,
+      Rate,
+      Time,
+      Priority,
+
+      OpCounter,
+      NoOperator = OpCounter,
+      ReflectedOperator,
+      ReflectedVerb
+   };
+
+   struct OperatorProperties {
+      Token mToken;
+      bool mCharge = false;
+   };
+
+   /// Built-in operator properties                                           
+   static constexpr std::array<OperatorProperties, Operator::OpCounter> Operators {
+      OperatorProperties { "(" },         // OpenScope                  
+      OperatorProperties { ")" },         // CloseScope                 
+      OperatorProperties { "[" },         // OpenCode                   
+      OperatorProperties { "]" },         // CloseCode                  
+      OperatorProperties { "/*" },        // OpenComment                
+      OperatorProperties { "*/" },        // CloseComment               
+      OperatorProperties { "\"" },        // OpenString                 
+      OperatorProperties { "\"" },        // CloseString                
+      OperatorProperties { "`" },         // OpenStringAlt              
+      OperatorProperties { "`" },         // CloseStringAlt             
+      OperatorProperties { "'" },         // OpenCharacter              
+      OperatorProperties { "'" },         // CloseCharacter             
+      OperatorProperties { "#" },         // OpenByte                   
+      OperatorProperties { "" },          // CloseByte                  
+
+      OperatorProperties { "??" },        // Future                     
+      OperatorProperties { "?" },         // Past                       
+
+      OperatorProperties { "const" },     // Constant                   
+      OperatorProperties { "long" },      // Long                       
+      OperatorProperties { "mono" },      // Mono                       
+      OperatorProperties { "null" },      // Null                       
+
+      OperatorProperties { "*", true },   // Mass                       
+      OperatorProperties { "^", true },   // Rate                       
+      OperatorProperties { "@", true },   // Time                       
+      OperatorProperties { "!", true }    // Priority                   
+   };
+
+   template<RuleEnum RULE, MatchEnum MATCH, class T, Operator START, Operator END>
+   struct Rule {
+      using Type = T;
+      static constexpr RuleEnum  sRule = RULE;
+      static constexpr MatchEnum sMatch = MATCH;
+      static constexpr Operator  sStart = START;
+      static constexpr Operator  sEnd = END;
+   };
+
+} // namespace Langulus::Anyness::Serial
+
 namespace Langulus::CT
 {
    
@@ -63,8 +157,11 @@ namespace Langulus::CT
            or DenseBuiltinNumber<T>
            or Exception<T>
            or Meta<T>
+           or Bytes<T>
            or HasNamedValues<T>
-           or Inner::StringifiableByOperator<T>) and ...);
+           or Similar<T, Anyness::Serial::Operator>
+           or Inner::StringifiableByOperator<T>
+         ) and ...);
 
       /// Used internally for specializing fmt::formatter without causing     
       /// ambiguities - excludes CT::BuiltinText, as those are already        
@@ -76,8 +173,8 @@ namespace Langulus::CT
           and not Exception<T>
           and not DenseBuiltinNumber<T>
           and not HasNamedValues<T>
-          and (StringifiableByOperator<T> or StringifiableByConstructor<T>))
-         and ...);
+          and (StringifiableByOperator<T> or StringifiableByConstructor<T>)
+         ) and ...);
 
    } // namespace Langulus::CT::Inner
 
@@ -90,6 +187,10 @@ namespace Langulus::CT
 
 } // namespace Langulus::CT
 
+namespace Langulus::Flow
+{
+   struct Code;
+}
 
 namespace Langulus::Anyness
 {
@@ -110,8 +211,14 @@ namespace Langulus::Anyness
 
       LANGULUS(DEEP) false;
       LANGULUS(POD) false;
-      LANGULUS_BASES(A::Text, Base);
       LANGULUS(FILES) "txt";
+      LANGULUS_BASES(A::Text, Base);
+      LANGULUS_CONVERTS_FROM(
+         Index, Byte, bool, float, double,
+         uint8_t, uint16_t, uint32_t, uint64_t,
+         int8_t, int16_t, int32_t, int64_t,
+         DMeta, TMeta, VMeta, CMeta, AMeta
+      );
 
       /// The presence of this structure makes Text a serializer              
       struct SerializationRules {
@@ -124,7 +231,26 @@ namespace Langulus::Anyness
             static constexpr Count MaxIterations
                = LANGULUS(DEBUG) or LANGULUS(SAFE) ? 32 : 8;
          #endif
+
+         using Operator = Serial::Operator;
+
+         static constexpr auto Operators = Serial::Operators;
+         static constexpr bool CriticalFailure = false;
+         static constexpr bool SkipElements = true;
+
+         static bool BeginScope(const Block&, Text&);
+         static bool EndScope(const Block&, Text&);
+         static bool Separate(const Block&, Text&);
+         
+         using Rules = Types<
+            Serial::Rule<Serial::Wrap, Serial::BasedOn, Flow::Code,  Operator::OpenCode,      Operator::CloseCode>,
+            Serial::Rule<Serial::Wrap, Serial::BasedOn, Text,        Operator::OpenString,    Operator::CloseString>,
+            Serial::Rule<Serial::Wrap, Serial::BasedOn, Bytes,       Operator::OpenByte,      Operator::CloseByte>,
+            Serial::Rule<Serial::Wrap, Serial::Exact,   Letter,      Operator::OpenCharacter, Operator::CloseCharacter>
+         >;
       };
+
+      using Operator = SerializationRules::Operator;
 
       ///                                                                     
       ///   Construction                                                      
@@ -148,6 +274,10 @@ namespace Langulus::Anyness
 
       Text(const CT::Meta auto&);
       Text(const CT::Exception auto&);
+      Text(const CT::Bytes auto&);
+      Text(Byte);
+      
+      explicit Text(Operator);
 
       explicit Text(const CT::HasNamedValues auto&);
       explicit Text(const CT::DenseBuiltinNumber auto&);
@@ -202,7 +332,8 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Removal                                                           
       ///                                                                     
-      NOD() Text Strip(Letter) const;
+      NOD() Text Strip(const CT::Text auto&) const;
+      NOD() Text Replace(const CT::Text auto& what, const CT::Text auto& with) const;
 
       ///                                                                     
       ///   Concatenation                                                     

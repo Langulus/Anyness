@@ -8,6 +8,7 @@
 ///                                                                           
 #pragma once
 #include "Neat.hpp"
+#include "TTrait.hpp"
 
 
 namespace Langulus::Anyness
@@ -68,14 +69,14 @@ namespace Langulus::Anyness
    public:
       NOD() Hash GetHash() const;
 
-      template<CT::Data T, CT::Data HEAD, CT::Data... TAIL>
-      NOD() static Construct From(HEAD&&, TAIL&&...);
-      template<CT::Data T>
+      template<CT::Data, CT::Data T1, CT::Data...TN>
+      NOD() static Construct From(T1&&, TN&&...);
+      template<CT::Data>
       NOD() static Construct From();
 
       #if LANGULUS_FEATURE(MANAGED_REFLECTION)
-         template<CT::Data HEAD, CT::Data... TAIL>
-         NOD() static Construct FromToken(const Token&, HEAD&&, TAIL&&...);
+         template<CT::Data T1, CT::Data...TN>
+         NOD() static Construct FromToken(const Token&, T1&&, TN&&...);
          NOD() static Construct FromToken(const Token&);
       #endif
 
@@ -87,35 +88,34 @@ namespace Langulus::Anyness
       NOD() bool operator == (const Construct&) const;
 
       NOD() bool CastsTo(DMeta type) const;
-      template<CT::Data T>
+      template<CT::Data>
       NOD() bool CastsTo() const;
 
       NOD() bool Is(DMeta) const;
-      template<CT::Data T>
+      template<CT::Data>
       NOD() bool Is() const;
 
-      NOD() const Neat& GetDescriptor() const noexcept;
-      NOD()       Neat& GetDescriptor()       noexcept;
-      NOD() const Charge& GetCharge() const noexcept;
-      NOD()       Charge& GetCharge()       noexcept;
+      NOD() Neat const& GetDescriptor() const noexcept;
+      NOD() Neat&       GetDescriptor()       noexcept;
+      NOD() Charge const& GetCharge() const noexcept;
+      NOD() Charge&       GetCharge()       noexcept;
 
       NOD() DMeta GetType() const noexcept;
       NOD() Token GetToken() const noexcept;
       NOD() DMeta GetProducer() const noexcept;
+      NOD() bool IsExecutable() const noexcept;
 
       void Clear();
       void Reset();
       void ResetCharge() noexcept;
 
-      // Intentionally left undefined                                   
-      template<CT::TextBased T>
-      NOD() T SerializeAs() const;
-
-      // Intentionally left undefined                                   
-      NOD() explicit operator Text() const;
-
-      Construct& operator << (auto&&);
+      Construct& operator <<  (auto&&);
       Construct& operator <<= (auto&&);
+
+      ///                                                                     
+      ///   Conversion                                                        
+      ///                                                                     
+      Count Serialize(CT::Serial auto&) const;
    };
 
 } // namespace Langulus::Anyness

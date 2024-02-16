@@ -83,9 +83,9 @@ namespace Langulus::Anyness
       template<template<class> class S>
       Neat(S<Neat>&&) requires CT::Semantic<S<Neat>>;
 
-      template<class T1, class...TAIL>
-      Neat(T1&&, TAIL&&...)
-      requires CT::Inner::UnfoldInsertable<T1, TAIL...>;
+      template<class T1, class...TN>
+      Neat(T1&&, TN&&...)
+      requires CT::Inner::UnfoldInsertable<T1, TN...>;
 
       ///                                                                     
       ///   Assignment                                                        
@@ -110,14 +110,10 @@ namespace Langulus::Anyness
       ///                                                                     
       NOD() Hash GetHash() const;
       NOD() bool IsEmpty() const noexcept;
-      NOD() bool IsMissing() const;
       NOD() bool IsMissingDeep() const;
+      NOD() bool IsExecutable() const noexcept;
 
       NOD() explicit operator bool() const noexcept;
-
-      // Intentionally left undefined                                   
-      template<CT::TextBased T>
-      NOD() T SerializeAs() const;
 
       template<CT::Trait>
       TAny<Any>* GetTraits();
@@ -132,7 +128,6 @@ namespace Langulus::Anyness
 
       template<CT::Data>
       const TAny<Messy>* GetData() const;
-      
             TAny<Messy>* GetData(DMeta);
       const TAny<Messy>* GetData(DMeta) const;
       
@@ -141,7 +136,6 @@ namespace Langulus::Anyness
 
       template<CT::Data>
       const TAny<Inner::DeConstruct>* GetConstructs() const;
-
             TAny<Inner::DeConstruct>* GetConstructs(DMeta);
       const TAny<Inner::DeConstruct>* GetConstructs(DMeta) const;
 
@@ -173,14 +167,14 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Iteration                                                         
       ///                                                                     
-      template<bool MUTABLE = true, class... F>
+      template<bool MUTABLE = true, class...F>
       Count ForEach(F&&...);
-      template<class... F>
+      template<class...F>
       Count ForEach(F&&...) const;
 
-      template<bool MUTABLE = true, class... F>
+      template<bool MUTABLE = true, class...F>
       Count ForEachDeep(F&&...);
-      template<class... F>
+      template<class...F>
       Count ForEachDeep(F&&...) const;
 
       template<bool MUTABLE = true, class F>
@@ -242,6 +236,11 @@ namespace Langulus::Anyness
       Count RemoveConstructs();
       template<CT::Trait, bool EMPTY_TOO = false>
       Count RemoveTrait();
+
+      ///                                                                     
+      ///   Conversion                                                        
+      ///                                                                     
+      Count Serialize(CT::Serial auto&) const;
    };
 
 } // namespace Langulus::Anyness

@@ -407,6 +407,48 @@ namespace Langulus::Anyness
       });
       return missing;
    }
+   
+   /// Check if keys are executable                                           
+   ///   @return true if the keys are executable                              
+   template<CT::Map THIS> LANGULUS(INLINED)
+   bool BlockMap::IsKeyExecutable() const noexcept {
+      return GetKeys<THIS>().IsExecutable();
+   }
+   
+   /// Check if values are executable                                         
+   ///   @return true if the values are executable                            
+   template<CT::Map THIS> LANGULUS(INLINED)
+   bool BlockMap::IsValueExecutable() const noexcept {
+      return GetVals<THIS>().IsExecutable();
+   }
+   
+   /// Check if the map contains at least one executable key (nested)         
+   ///   @return true if the map has executable entries                       
+   template<CT::Map THIS> LANGULUS(INLINED)
+   bool BlockMap::IsKeyExecutableDeep() const {
+      if (IsKeyExecutable<THIS>())
+         return true;
+
+      bool exec = false;
+      ForEachKeyDeep<false, true, THIS>([&](const Block& key) {
+         return not (exec = key.IsExecutable());
+      });
+      return exec;
+   }
+   
+   /// Check if the map contains at least one executable value (nested)       
+   ///   @return true if the map has executable entries                       
+   template<CT::Map THIS> LANGULUS(INLINED)
+   bool BlockMap::IsValueExecutableDeep() const {
+      if (IsValueExecutable<THIS>())
+         return true;
+
+      bool exec = false;
+      ForEachValueDeep<false, true, THIS>([&](const Block& val) {
+         return not (exec = val.IsExecutable());
+      });
+      return exec;
+   }
 
    /// Check if the memory for the table is owned by us                       
    /// This is always true, since the map can't be initialized with outside   

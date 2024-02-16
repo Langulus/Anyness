@@ -36,6 +36,9 @@ namespace Langulus::Anyness
 
       NOD() Path operator / (const Text&) const;
       Path& operator /= (const Text&);
+
+   private:
+      using Text::SerializationRules;
    };
 
 } // namespace Langulus::Anyness

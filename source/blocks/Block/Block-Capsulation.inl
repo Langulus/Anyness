@@ -9,6 +9,7 @@
 #pragma once
 #include "Block-Iteration.inl"
 #include "../../DataState.inl"
+#include "../../many/Construct.hpp"
 
 
 namespace Langulus::Anyness
@@ -377,9 +378,9 @@ namespace Langulus::Anyness
 
    /// Get the token of the contained type                                    
    ///   @return the token                                                    
-   LANGULUS(INLINED)
+   template<CT::BlockBased THIS> LANGULUS(INLINED)
    constexpr Token Block::GetToken() const noexcept {
-      return mType.GetToken();
+      return GetType<THIS>()->GetShortestUnambiguousToken();
    }
    
    /// Get the size of a single element (in bytes)                            
@@ -659,6 +660,53 @@ namespace Langulus::Anyness
    template<CT::BlockBased THIS> LANGULUS(INLINED)
    const Allocation* const* Block::GetEntries() const IF_UNSAFE(noexcept) {
       return const_cast<Block*>(this)->template GetEntries<THIS>();
+   }
+   
+   /// Flat check if block contains verbs                                     
+   ///   @return true if the block contains immediate verbs                   
+   template<CT::Block THIS>
+   bool Block::IsExecutable() const noexcept {
+      if (IsEmpty())
+         return false;
+
+      if (mType->mIsExecutable)
+         return true;
+
+      bool exe = false;
+      ForEach<false, THIS>(
+         [&exe](const Trait& trait) noexcept {
+            // Scan deeper into traits, because they're not deep,       
+            // unless they're being executed                            
+            exe = trait.IsExecutable();
+            return not exe;
+         },
+         [&exe](const Construct& cst) noexcept {
+            // Scan deeper into constructs, because they're not deep    
+            // They are deep only with respect to execution             
+            exe = cst.IsExecutable();
+            return not exe;
+         }
+      );
+
+      return exe;
+   }
+
+   /// Deep (nested and slower) check if block contains verbs                 
+   ///   @return true if the block contains anything executable deeply        
+   template<CT::Block THIS>
+   bool Block::IsExecutableDeep() const noexcept {
+      if (IsExecutable())
+         return true;
+
+      bool exe = false;
+      ForEachDeep<false, true, THIS>(
+         [&exe](const Block& group) noexcept {
+            exe = group.IsExecutable();
+            return not exe;
+         }
+      );
+
+      return exe;
    }
 
 } // namespace Langulus::Anyness

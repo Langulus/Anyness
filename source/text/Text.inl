@@ -70,9 +70,19 @@ namespace Langulus::Anyness
       if (not count)
          return;
 
-      SetMemory(DataState::Constrained, GetType(), count, DesemCast(other));
-      if constexpr (S::Move or S::Keep)
+      if constexpr (S::Move or S::Keep) {
+         // Will perform search and take authority if not owned by us   
+         new (this) Block {
+            DataState::Constrained, GetType(), count, DesemCast(other)
+         };
          TakeAuthority<Text>();
+      }
+      else {
+         // We're disowning it, so no transfer, just a static view      
+         new (this) Block {
+            DataState::Constrained, GetType(), count, DesemCast(other), nullptr
+         };
+      }
    }
 
    /// Construct from any standard contiguous range statically typed with     
@@ -92,9 +102,19 @@ namespace Langulus::Anyness
       else
          count = DesemCast(other).size();
 
-      SetMemory(DataState::Constrained, GetType(), count, DesemCast(other).data());
-      if constexpr (S::Move or S::Keep)
+      if constexpr (S::Move or S::Keep) {
+         // Will perform search and take authority if not owned by us   
+         new (this) Block {
+            DataState::Constrained, GetType(), count, DesemCast(other).data()
+         };
          TakeAuthority<Text>();
+      }
+      else {
+         // We're disowning it, so no transfer, just a static view      
+         new (this) Block {
+            DataState::Constrained, GetType(), count, DesemCast(other).data(), nullptr
+         };
+      }
    }
    
    /// Stringify meta                                                         
@@ -117,6 +137,37 @@ namespace Langulus::Anyness
          new (this) Text {Disown(from.GetName())};
       #endif
    }
+   
+   /// Stringify a byte sequence, by writing it in a hexadecimal form         
+   ///   @param from - the byte container to stringify                        
+   LANGULUS(INLINED)
+   Text::Text(const CT::Bytes auto& from) {
+      mType = MetaDataOf<Letter>();
+      const auto count = from.GetCount() * 2;
+      AllocateFresh<Text>(RequestSize<Text>(count));
+      auto to_bytes = mRaw;
+      for (auto& byte : from) {
+         fmt::format_to_n(to_bytes, 2, "{:X}", byte.mValue);
+         to_bytes += 2;
+      }
+      mCount = count;
+   }
+      
+   /// Stringify a single byte, by writing it in a hexadecimal form           
+   ///   @param from - the byte to stringify                                  
+   LANGULUS(INLINED)
+   Text::Text(Byte from) {
+      mType = MetaDataOf<Letter>();
+      AllocateFresh<Text>(RequestSize<Text>(2));
+      fmt::format_to_n(mRaw, 2, "{:X}", from.mValue);
+      mCount = 2;
+   }
+
+   /// Stringify a serialization operator                                     
+   ///   @param from - the op to stringify                                    
+   LANGULUS(INLINED)
+   Text::Text(Operator from)
+      : Text {Disown(SerializationRules::Operators[from].mToken)} {}
 
    /// Convert anything that has named values reflected                       
    ///   @param number - the number to stringify                              
@@ -379,26 +430,88 @@ namespace Langulus::Anyness
       return Crop(index, mCount - index);
    }
 
-   /// Remove all instances of a symbol from the text container               
-   ///   @param symbol - the character to remove                              
+   /// Remove all instances of 'what' from the text container                 
+   ///   @param what - the character/string to remove                         
    ///   @return a new container with the text stripped                       
-   LANGULUS(INLINED)
-   Text Text::Strip(const Letter symbol) const {
+   inline Text Text::Strip(const CT::Text auto& what) const {
+      const Text pattern = Disowned(what);
+      if (IsEmpty() or pattern.IsEmpty())
+         return *this;
+
       Text result;
-      Count start = 0, end = 0;
-      for (Count i = 0; i <= mCount; ++i) {
-         if (i == mCount or (*this)[i] == symbol) {
-            const auto size = end - start;
-            if (size) {
-               auto segment = result.Extend(size);
-               CopyMemory(segment.GetRaw(), GetRaw() + start, size);
+      result.Reserve(mCount);
+
+      Count copyStart = 0, copyEnd = 0;
+      for (Count i = 0; i <= mCount - pattern.mCount; ++i) {
+         const auto matches = Block::CropInner(i, mCount - i)
+            .template Matches<Text>(pattern);
+
+         if (matches == pattern.mCount) {
+            // Found a match, skip it                                   
+            // Copy any text that was skipped                           
+            const auto copy = copyEnd - copyStart;
+            if (copy) {
+               CopyMemory(result.GetRaw() + result.mCount, GetRaw() + copyStart, copy);
+               result.mCount += copy;
             }
 
-            start = end = i + 1;
+            copyStart = copyEnd = i + matches;
+            i += matches - 1;
          }
-         else ++end;
+         else ++copyEnd;
       }
 
+      // Account for any leftover                                       
+      const auto copy = copyEnd - copyStart;
+      if (copy) {
+         CopyMemory(result.GetRaw() + result.mCount, GetRaw() + copyStart, copy);
+         result.mCount += copy;
+      }
+
+      return result;
+   }
+   
+   /// Replace every occurence of 'what' with the provided string             
+   ///   @param what - characters/strings to search for                       
+   ///   @param with - characters/strings to replace with                     
+   ///   @return a new container with the text replaced                       
+   inline Text Text::Replace(const CT::Text auto& what, const CT::Text auto& with) const {
+      const Text pattern = Disowned(what);
+      const Text replacement = Disowned(with);
+      if (IsEmpty() or pattern.IsEmpty())
+         return *this;
+
+      Text result;
+      result.Reserve(mCount); // Not exact, but a good heuristic        
+
+      Count copyStart = 0, copyEnd = 0;
+      for (Count i = 0; i <= mCount - pattern.mCount; ++i) {
+         const auto matches = Block::CropInner(i, mCount - i)
+            .template Matches<Text>(pattern);
+
+         if (matches == pattern.mCount) {
+            // Found a match, replace it                                
+            const auto copy = copyEnd - copyStart;
+            auto segment = result.Extend(copy + replacement.mCount);
+
+            if (copy) {
+               CopyMemory(segment.GetRaw(), GetRaw() + copyStart, copy);
+               CopyMemory(segment.GetRaw() + copy, replacement.GetRaw(), replacement.mCount);
+            }
+            else CopyMemory(segment.GetRaw(), replacement.GetRaw(), replacement.mCount);
+
+            copyStart = copyEnd = i + matches;
+            i += matches - 1;
+         }
+         else ++copyEnd;
+      }
+
+      // Account for any leftover                                       
+      const auto copy = copyEnd - copyStart;
+      if (copy) {
+         CopyMemory(result.GetRaw() + result.mCount, GetRaw() + copyStart, copy);
+         result.mCount += copy;
+      }
       return result;
    }
 
@@ -494,7 +607,8 @@ namespace Langulus::Anyness
    /// their data strnlen'd                                                   
    ///   @param rhs - the string to compare with                              
    ///   @return true if this container contains this exact string            
-   LANGULUS(INLINED) bool Text::operator == (const CT::StdString auto& rhs) const noexcept {
+   LANGULUS(INLINED)
+   bool Text::operator == (const CT::StdString auto& rhs) const noexcept {
       return operator == (Text {Disown(rhs)});
    }
 
@@ -645,8 +759,7 @@ namespace Langulus::Anyness
 
    /// Should complain at compile-time if format string has mismatching       
    /// number of arguments                                                    
-   template<::std::size_t...N>
-   LANGULUS(INLINED)
+   template<::std::size_t...N> LANGULUS(INLINED)
    constexpr auto Text::CheckPattern(const Token& f, ::std::index_sequence<N...>) {
       return fmt::format_string<decltype(N)...> {fmt::runtime(f)};
    }
@@ -659,10 +772,49 @@ namespace Langulus::Anyness
    ///   @tparam ...ARGS - arguments for the template                         
    ///   @param format - the template string                                  
    ///   @param args... - the arguments                                       
-   template<class...ARGS>
-   LANGULUS(INLINED)
+   template<class...ARGS> LANGULUS(INLINED)
    constexpr auto Text::TemplateCheck(const Token& f, ARGS&&...) {
       return CheckPattern(f, ::std::make_index_sequence<sizeof...(ARGS)> {});
+   }
+
+   /// Begins a content scope, decides whether to wrap contents in parentheses
+   ///   @param from - the data to serialize                                  
+   ///   @param to - the serialized data                                      
+   ///   @return the number of written characters                             
+   inline bool Text::SerializationRules::BeginScope(const Block& from, Text& to) {
+      const bool scoped = from.GetCount() > 1 or from.IsInvalid() or from.IsExecutable(); //TODO could check verb precedence to avoid scoping in some cases
+      if (scoped) {
+         if (from.IsPast())
+            to += Operator::Past;
+         else if (from.IsFuture())
+            to += Operator::Future;
+
+         to += Operator::OpenScope;
+      }
+
+      return scoped;
+   }
+
+   /// Ends a content scope, decides whether to wrap contents in parentheses  
+   ///   @param from - the data to serialize                                  
+   ///   @param to - the serialized data                                      
+   ///   @return the number of written characters                             
+   inline bool Text::SerializationRules::EndScope(const Block& from, Text& to) {
+      const bool scoped = from.GetCount() > 1 or from.IsInvalid() or from.IsExecutable(); //TODO could check verb precedence to avoid scoping in some cases
+      if (scoped)
+         to += Operator::CloseScope;
+      return scoped;
+   }
+
+   /// Adds a separator between elements inside a scope, depending on the     
+   /// block state - can be OR/AND separator                                  
+   ///   @param from - the data to serialize                                  
+   ///   @param to - the serialized data                                      
+   ///   @return the number of written characters                             
+   inline bool Text::SerializationRules::Separate(const Block& from, Text& to) {
+      const auto initial = to.GetCount();
+      to += (from.IsOr() ? " or " : ", ");
+      return to.GetCount() - initial;
    }
 
 } // namespace Langulus::Anyness

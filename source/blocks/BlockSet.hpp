@@ -124,13 +124,21 @@ namespace Langulus::Anyness
       NOD() constexpr Count GetReserved() const noexcept;
       NOD() constexpr bool IsEmpty() const noexcept;
       NOD() constexpr bool IsAllocated() const noexcept;
+
       NOD() bool IsMissing() const noexcept;
       template<CT::Set = UnorderedSet>
       NOD() bool IsMissingDeep() const;
+
+      template<CT::Set = UnorderedSet>
+      NOD() bool IsExecutable() const noexcept;
+      template<CT::Set = UnorderedSet>
+      NOD() bool IsExecutableDeep() const;
+
       template<CT::Set = UnorderedSet>
       NOD() constexpr bool IsInsertable(DMeta) const noexcept;
       template<CT::Data, CT::Set = UnorderedSet>
       NOD() constexpr bool IsInsertable() const noexcept;
+
       template<CT::Set>
       NOD() bool IsOrdered() const noexcept;
 

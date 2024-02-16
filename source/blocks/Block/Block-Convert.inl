@@ -8,6 +8,8 @@
 ///                                                                           
 #pragma once
 #include "../Block.hpp"
+#include "../BlockMap.hpp"
+#include "../BlockSet.hpp"
 
 
 namespace Langulus::Anyness
@@ -18,718 +20,579 @@ namespace Langulus::Anyness
    ///   @param out - what are we converting to?                              
    ///   @return the number of converted elements inserted in 'out'           
    template<CT::Block THIS>
-   Count Block::Convert(CT::Block auto&) const {
-      TODO();
-      return 0;
-   }
+   Count Block::Convert(CT::Block auto& out) const {
+      if (IsEmpty())
+         return 0;
 
-   template<CT::Block TO, CT::Block THIS>
-   TO Block::Convert() const {
-      TO result;
-      (void)Convert<THIS>(result);
-      return result;
+      using OUT = Deref<decltype(out)>;
+      const auto initial = out.mCount;
+      const auto& me = *reinterpret_cast<const THIS*>(this);
+
+      if constexpr (CT::Typed<THIS> and CT::Typed<OUT>) {
+         // Both containers are statically typed, so leverage it to     
+         // generate a well inlined routine for conversion              
+         using FROM = TypeOf<THIS>;
+         using TO = TypeOf<OUT>;
+
+         if constexpr (CT::Similar<FROM, TO>) {
+            // Types are already the same, just copy elements           
+            out.template AllocateMore<OUT>(out.mCount + mCount);
+            out.template InsertBlockInner<OUT, void, false>(
+               IndexBack, Copy(me));
+         }
+         else if constexpr (CT::Inner::Convertible<FROM, TO>) {
+            // Types are statically convertible                         
+            out.template AllocateMore<OUT>(out.mCount + mCount);
+            for (auto& from : me) {
+               out.template InsertInner<OUT, void, false>(
+                  IndexBack, static_cast<TO>(from));
+            }
+         }         
+      }
+      else if (me.IsSimilar(out.GetType())) {
+         // Types are already the same, just copy elements              
+         out.template AllocateMore<OUT>(out.mCount + mCount);
+         out.template InsertBlockInner<OUT, void, false>(
+            IndexBack, Copy(*this));
+      }
+      else {
+         // Search for a reflected conversion routine                   
+         LANGULUS_ASSERT(out.GetType(),
+            Meta, "Can't convert to unknown type");
+         LANGULUS_ASSERT(out.GetType()->mOrigin,
+            Meta, "Can't convert to incomplete type `", out.GetType(), '`');
+
+         const auto converter = mType->GetConverter(out.GetType()->mOrigin);
+         if (not converter)
+            return 0;
+
+         out.template AllocateMore<OUT, false, true>(out.mCount + mCount);
+
+         if constexpr (CT::Typed<OUT>) {
+            using TO = TypeOf<OUT>;
+
+            if constexpr (CT::Sparse<TO>) {
+               static_assert(CT::Dense<Deptr<TO>>);
+
+               // We're converting to sparse container                  
+               Block coalesced {mType->mOrigin};
+               coalesced.AllocateFresh<Any>(
+                  coalesced.RequestSize<Any>(mCount));
+               coalesced.mCount = mCount;
+               auto temp = coalesced.GetElementInner();
+               auto to = out.template GetHandle<TO, OUT>(0);
+
+               for (Count i = 0; i < mCount; ++i) {
+                  auto from = GetElementDense<CountMax, THIS>(i);
+                  converter(from.mRaw, temp.mRaw);
+                  to.Create(temp.mRaw, coalesced.mEntry);
+                  ++to;
+                  ++temp;
+               }
+
+               const_cast<Allocation*>(coalesced.mEntry)
+                  ->Keep(mCount - 1);
+            }
+            else {
+               // Both RHS and LHS are dense and non-POD                
+               // We invoke reflected constructors for each element     
+               auto from = mRaw;
+               auto to = out.mRaw;
+               const auto toEnd = to + mCount * out.GetType()->mSize;
+
+               while (to != toEnd) {
+                  // Construct each element                             
+                  converter(from, to);
+                  to += out.GetType()->mSize;
+                  from += mType->mSize;
+               }
+            }
+         }
+         else {
+            if (out.GetType()->mIsSparse) {
+               if (out.GetType()->mDeptr->mIsSparse)
+                  TODO();
+
+               // We're converting to sparse container                  
+               Block coalesced {mType->mOrigin};
+               coalesced.AllocateFresh<Any>(
+                  coalesced.RequestSize<Any>(mCount));
+               coalesced.mCount = mCount;
+               auto temp = coalesced.GetElementInner();
+               auto to = out.template GetHandle<Byte*, OUT>(0);
+
+               for (Count i = 0; i < mCount; ++i) {
+                  auto from = GetElementDense<CountMax, THIS>(i);
+                  converter(from.mRaw, temp.mRaw);
+                  to.Create(temp.mRaw, coalesced.mEntry);
+                  ++to;
+                  ++temp;
+               }
+
+               const_cast<Allocation*>(coalesced.mEntry)
+                  ->Keep(mCount - 1);
+            }
+            else {
+               // Both RHS and LHS are dense and non-POD                
+               // We invoke reflected constructors for each element     
+               auto from = mRaw;
+               auto to = out.mRaw;
+               const auto toEnd = to + mCount * out.GetType()->mSize;
+
+               while (to != toEnd) {
+                  // Construct each element                             
+                  converter(from, to);
+                  to += out.GetType()->mSize;
+                  from += mType->mSize;
+               }
+            }
+         }
+      }
+
+      return out.mCount - initial;
    }
 
    /// Serialize a block into a desired serial format, by following the       
    /// serializer's rules                                                     
    ///   @param out - the resulting serialized data                           
-   ///   @return the number of elements (usually bytes/chars) written to 'out'
+   ///   @return the number of bytes/chars written to 'out'                   
    template<CT::Block THIS>
-   Count Block::Serialize(CT::Serial auto&) const {
-      TODO();
-      return 0;
+   Count Block::Serialize(CT::Serial auto& out) const {
+      using OUT = Deref<decltype(out)>;
+      if constexpr (CT::Bytes<OUT>)
+         return SerializeToBinary<THIS, void>(out);
+      else
+         return SerializeToText<THIS, void>(out);
    }
-
-   template<CT::Serial TO, CT::Block THIS>
-   TO Block::Serialize() const {
-      TO result;
-      (void)Serialize<THIS>(result);
-      return result;
-   }
-
-   /// Deserialize from this block, to a value/block of values                
-   ///   @param resulting value/block of values                               
-   ///   @return the number of elements written to 'out'                      
-   template<CT::Serial THIS>
-   Count Block::Deserialize(CT::Data auto&) const {
-      TODO();
-      return 0;
-   }
-
-   template<CT::Data TO, CT::Serial THIS>
-   TO Block::Deserialize() const {
-      TO result;
-      (void)Deserialize<THIS>(result);
-      return result;
-   }
-
-   /// Conversion routine, that is specialized for serialization              
-   ///   @tparam TO - the type we're serializing to                           
-   ///   @tparam HEADER - ignored when serializing to text formats            
-   ///      -  when serializing to binary formats: true if you want to write  
-   ///         a portability header for the data (useful for serializing      
-   ///         standalone data). The serializer uses this internally when     
-   ///         nesting, to reduce redundant writes                            
-   ///   @tparam FROM - the type of the item (deducible)                      
-   ///   @param item - the item to serialize                                  
-   ///   @return the serialized item                                          
-   /*template<CT::Block TO, bool HEADER, CT::Sparse FROM, CT::Block TO_ORIGINAL>
-   TO Serialize(FROM item) {
-      if (not item)
-         return "<null>";
-      return Serialize<TO, HEADER, Deptr<FROM>, TO_ORIGINAL>(*item);
-   }*/
-
-   /// Conversion routine, that is specialized for serialization              
-   ///   @tparam TO - the type we're serializing to                           
-   ///   @tparam HEADER - ignored when serializing to text formats            
-   ///      -  when serializing to binary formats: true if you want to write  
-   ///         a portability header for the data (useful for serializing      
-   ///         standalone data). The serializer uses this internally when     
-   ///         nesting, to reduce redundant writes                            
-   ///   @tparam FROM - the type of the item (deducible)                      
-   ///   @param item - the item to serialize                                  
-   ///   @return the serialized item                                          
-   /*template<CT::Block TO, bool HEADER, CT::Dense FROM, CT::Block TO_ORIGINAL>
-   TO Serialize(const FROM& item) {
-      Block block = Block::From(const_cast<FROM&>(item));
-
-      if constexpr (CT::SameAsOneOf<TO_ORIGINAL, Debug, Text>) {
-         ///   DEBUG SERIALIZER                                         
-         // Debug serializer doesn't have any restrictions. It is       
-         // useful for omitting redundant or irrelevant data, and is    
-         // a one-way process. Extensively used by the logger           
-         // Crop it down if block is too big                            
-         constexpr auto countCap = LANGULUS_MAX_DEBUGGABLE_ELEMENTS;
-         const auto originalCount = block.GetCount();
-         if (block.GetCount() > countCap)
-            block = block.Crop<Block>(0, countCap);
-
-         try {
-            // Attempt converting to debug via reflected converters     
-            Debug result;
-            (void) block.template Serialize<HEADER, Debug, TO_ORIGINAL, Any>(result);
-            if (block.GetCount() != originalCount) {
-               result += Text::TemplateRt(
-                  " ({} more elements omitted)", originalCount - block.GetCount());
-            }
-            return result;
-         }
-         catch (const Except::Convert&) {}
-
-         // Direct serialization to Debug failed if this is reached, but
-         // we can still attempt to serialize to something readable     
-
-         try {
-            // Debug serializer also employs the Code serializer as     
-            // an alternative stringifier - it might include a lot      
-            // of redundant and irrelevant data, but better something   
-            // than nothing...                                          
-            Code result;
-            (void) block.template Serialize<HEADER, Code, TO_ORIGINAL, Any>(result);
-            if (block.GetCount() != originalCount) {
-               result += Text::TemplateRt(
-                  " ({} more elements omitted)", originalCount - block.GetCount());
-            }
-            return result;
-         }
-         catch (const Except::Convert&) {}
-
-         // If reached, then no debug serialization was available       
-         return "<not debuggable>";
-      }
-      else if constexpr (CT::Text<TO_ORIGINAL>) {
-         ///   CODE SERIALIZER                                          
-         // Code serializer is strict to allow for deserialization      
-         try {
-            TO_ORIGINAL result;
-            (void) block.template Serialize<HEADER, TO_ORIGINAL, TO_ORIGINAL, Any>(result);
-            return result;
-         }
-         catch (const Except::Convert&) {}
-      }
-      else if constexpr (CT::Bytes<TO_ORIGINAL>) {
-         ///   BINARY SERIALIZER                                        
-         // Byte serializer is strict to allow for deserialization      
-         try {
-            TO_ORIGINAL result;
-            (void) block.template Serialize<HEADER, TO_ORIGINAL, TO_ORIGINAL, Any>(result);
-            return result;
-         }
-         catch (const Except::Convert&) {}
-      }
-      else LANGULUS_ERROR("Serializer not implemented");
-
-      // If this is reached, then we weren't able to serialize the item 
-      // to the desired type                                            
-      LANGULUS_OOPS(Convert, "Can't serialize ",
-         " type `", NameOf<FROM>(), "` as `", NameOf<TO>(),
-         "` (final target being `", NameOf<TO_ORIGINAL>(), "`)"
-      );
-      return {};
-   }*/
-
-#if LANGULUS_FEATURE(MANAGED_REFLECTION)
-   /// Deserialize from text or binary                                        
-   ///   @tparam FROM - the type we're deserializing from (deducible)         
-   ///   @param item - the item to deserialize                                
-   ///   @return the deserialized contents inside a container                 
-   /*template<CT::Block FROM>
-   Any Deserialize(const FROM& from) {
-      if constexpr (CT::Text<FROM>) {
-         // Assume it's code and attempt to parse it                    
-         return Code {from}.Parse();
-      }
-      else if constexpr (CT::Same<FROM, Bytes>) {
-         // Deserialize from binary                                     
-         Bytes::Header header;
-         Any result;
-         (void) from.template Deserialize<true>(result, header);
-         return Abandon(result);
-      }
-      else LANGULUS_ERROR("Deserializer not implemented");
-   }*/
-#endif
-
-} // namespace Langulus::Flow
-
-
-namespace Langulus::Anyness
-{
    
-   /// Serialize any block to any string/binary format                        
-   ///   @tparam ENSCOPED - whether or not the block is already enscoped, if  
-   ///           text, or true if you want to write a portability header, if  
-   ///           serializing to binary (useful for standalone data)           
-   ///   @tparam TO - what are we serializing to (deducible)                  
-   ///   @tparam TO_ORIGINAL - keeps track what was the original TO           
-   ///   @param to - [out] the serialized block goes here                     
-   ///   @return the number of written characters/bytes                       
-   /*template<bool ENSCOPED, CT::Block TO, CT::Block TO_ORIGINAL, CT::Block THIS>
-   Count Block::Serialize(TO& to) const {
-      using namespace Flow;
-      using namespace Serial;
+   /// Serialize block to any string serializer                               
+   ///   @tparam NEXT - the type we're serializing - void for type-erasure    
+   ///      if both NEXT is type-erased, block header will be serialized      
+   ///   @param to - [out] the serialized data goes here                      
+   ///   @return the number of written characters                             
+   template<CT::Block THIS, class NEXT>
+   Count Block::SerializeToText(CT::Serial auto& to) const {
+      using OUT = Deref<decltype(to)>;
       const auto initial = to.GetCount();
 
-      if constexpr (CT::Text<TO>) {
-         //                                                             
-         //  Serialize to text                                          
-         //                                                             
-         bool stateWritten = false;
+      if (IsEmpty()) {
+         if (IsPast())
+            to += OUT::Operator::Past;
+         else if (IsFuture())
+            to += OUT::Operator::Future;
+         return to.GetCount() - initial;
+      }
 
-         UNUSED() bool scoped;
-         if constexpr (not ENSCOPED) {
-            if (IsConstant()) {
-               to += Code {Code::Constant};
-               stateWritten = true;
-            }
+      if (IsConstant()) {
+         to += OUT::Operator::Constant;
+         to += ' ';
+      }
 
-            scoped = Serial::NeedsScope(*this);
-            if (scoped) {
-               if (IsPast())
-                  to += Code {Code::Past};
-               else if (IsFuture())
-                  to += Code {Code::Future};
+      if (IsDeep<THIS>()) {
+         // Nested serialization, wrap it in content scope              
+         for (Offset i = 0; i < GetCount(); ++i) {
+            auto& subblock = As<Block>(i);
+            OUT::SerializationRules::BeginScope(subblock, to);
+            subblock.SerializeToText<Block, void>(to);
+            OUT::SerializationRules::EndScope(subblock, to);
 
-               to += Code {Code::OpenScope};
-               stateWritten = false;
+            if (i < GetCount() - 1)
+               OUT::SerializationRules::Separate(*this, to);
+         }
+      }
+      else if (CastsTo<Trait, false, THIS>()) {
+         // Nest inside traits                                          
+         for (Offset i = 0; i < GetCount(); ++i) {
+            As<Trait>(i).Serialize(to);
+
+            if (i < GetCount() - 1)
+               OUT::SerializationRules::Separate(*this, to);
+         }
+      }
+      else if (CastsTo<BlockMap, false, THIS>()) {
+         // Nest inside maps                                            
+         for (Offset i = 0; i < GetCount(); ++i) {
+            //auto& map = As<BlockMap>(i);
+            TODO();
+         }
+      }
+      else if (CastsTo<BlockSet, false, THIS>()) {
+         // Nest inside sets                                            
+         for (Offset i = 0; i < GetCount(); ++i) {
+            //auto& set = As<BlockSet>(i);
+            TODO();
+         }
+      }
+      else if (CastsTo<Construct, false, THIS>()) {
+         // Nest inside sets                                            
+         for (Offset i = 0; i < GetCount(); ++i) {
+            As<Construct>(i).Serialize(to);
+
+            if (i < GetCount() - 1)
+               OUT::SerializationRules::Separate(*this, to);
+         }
+      }
+      else if (CastsTo<Neat, false, THIS>()) {
+         // Nest inside sets                                            
+         for (Offset i = 0; i < GetCount(); ++i) {
+            As<Neat>(i).Serialize(to);
+
+            if (i < GetCount() - 1)
+               OUT::SerializationRules::Separate(*this, to);
+         }
+      }
+      else {
+         // If reached, then contents are no longer nested              
+         if constexpr (requires { typename OUT::SerializationRules::Rules; }) {
+            // Abide by serializer's rules and wrap things accordingly  
+            const auto satisfied = SerializeByRules<THIS, NEXT>(
+               to, typename OUT::SerializationRules::Rules {});
+            if (satisfied) {
+               // Early exit, if conversion was satisfied by rule       
+               //OUT::SerializationRules::EndScope(*this, to);
+               return to.GetCount() - initial;
             }
          }
-
-         if (not IsEmpty()) {
-            // Add a bit of spacing                                     
-            if (stateWritten)
-               to += Text {' '};
-
-            if (IsDeep<THIS>()) {
-               // Nested serialization, wrap it in content scope        
-               for (Offset i = 0; i < GetCount(); ++i) {
-                  to += Flow::Serialize<TO, false, Block, TO_ORIGINAL>(
-                     As<Block>(i));
-                  if (i < GetCount() - 1)
-                     to += Separator(IsOr());
-               }
-            }
-            else if (Is<THIS, bool>()) {
-               // Contained type is boolean                             
-               for (Offset i = 0; i < GetCount(); ++i) {
-                  to += As<bool>(i) ? TO {"yes"} : TO {"no"};
-                  if (i < GetCount() - 1)
-                     to += Separator(IsOr());
-               }
-            }
-            else if (Is<THIS, Letter>()) {
-               // Contained type is a character                         
-               for (Offset i = 0; i < GetCount(); ++i) {
-                  to += Code {Code::OpenCharacter};
-                  to += Text {As<Letter>(i)};
-                  to += Code {Code::CloseCharacter};
-                  if (i < GetCount() - 1)
-                     to += Separator(IsOr());
-               }
-            }
-            else if (Is<THIS, Float>()) {
-               SerializeNumber<Float>(*this, to);
-            }
-            else if (Is<THIS, Double>()) {
-               SerializeNumber<Double>(*this, to);
-            }
-            else if (Is<THIS, uint8_t>()) {
-               SerializeNumber<uint8_t>(*this, to);
-            }
-            else if (Is<THIS, uint16_t>()) {
-               SerializeNumber<uint16_t>(*this, to);
-            }
-            else if (Is<THIS, uint32_t>()) {
-               SerializeNumber<uint32_t>(*this, to);
-            }
-            else if (Is<THIS, uint64_t>()) {
-               SerializeNumber<uint64_t>(*this, to);
-            }
-            else if (Is<THIS, int8_t>()) {
-               SerializeNumber<int8_t>(*this, to);
-            }
-            else if (Is<THIS, int16_t>()) {
-               SerializeNumber<int16_t>(*this, to);
-            }
-            else if (Is<THIS, int32_t>()) {
-               SerializeNumber<int32_t>(*this, to);
-            }
-            else if (Is<THIS, int64_t>()) {
-               SerializeNumber<int64_t>(*this, to);
-            }
-            else if (CastsTo<Code, false, THIS>()) {
-               // Contained type is code, wrap it in code scope         
-               for (Offset i = 0; i < GetCount(); ++i) {
-                  auto& text = As<Code>(i);
-                  to += Code {Code::OpenCode};
-                  to += text;
-                  to += Code {Code::CloseCode};
-                  if (i < GetCount() - 1)
-                     to += Separator(IsOr());
-               }
-            }
-            else if (CastsTo<Text, false, THIS>()) {
-               // Contained type is text, wrap it in string scope       
-               for (Offset i = 0; i < GetCount(); ++i) {
-                  auto& text = As<Text>(i);
-                  to += Code {Code::OpenString};
-                  to += text;
-                  to += Code {Code::CloseString};
-                  if (i < GetCount() - 1)
-                     to += Separator(IsOr());
-               }
-            }
-            else if (CastsTo<Trait, false, THIS>()) {
-               // Contained type is trait, serialize it                 
-               for (Offset i = 0; i < GetCount(); ++i) {
-                  auto& trait = As<Trait>(i);
-                  to += trait.GetTrait()
-                     ? trait.GetTrait()->mToken
-                     : RTTI::MetaTrait::DefaultToken;
-                  to += Code {Code::OpenScope};
-                  to += Flow::Serialize<TO, false, Block, TO_ORIGINAL>(trait);
-                  to += Code {Code::CloseScope};
-                  if (i < GetCount() - 1)
-                     to += Separator(IsOr());
-               }
-            }
-            else if (CastsTo<DMeta, false, THIS>()) {
-               // Contained type is meta definitions, write the token   
-               for (Offset i = 0; i < GetCount(); ++i) {
-                  to += TO {As<DMeta>(i)};
-                  if (i < GetCount() - 1)
-                     to += Separator(IsOr());
-               }
-            }
-            else if (CastsTo<TMeta, false, THIS>()) {
-               // Contained type is meta definitions, write the token   
-               for (Offset i = 0; i < GetCount(); ++i) {
-                  to += TO {As<TMeta>(i)};
-                  if (i < GetCount() - 1)
-                     to += Separator(IsOr());
-               }
-            }
-            else if (CastsTo<VMeta, false, THIS>()) {
-               // Contained type is meta definitions, write the token   
-               for (Offset i = 0; i < GetCount(); ++i) {
-                  to += TO {As<VMeta>(i)};
-                  if (i < GetCount() - 1)
-                     to += Separator(IsOr());
-               }
-            }
-            else if (CastsTo<CMeta, false, THIS>()) {
-               // Contained type is meta definitions, write the token   
-               for (Offset i = 0; i < GetCount(); ++i) {
-                  to += TO {As<CMeta>(i)};
-                  if (i < GetCount() - 1)
-                     to += Separator(IsOr());
-               }
-            }
-            else if (CastsTo<AMeta, false, THIS>()) {
-               // Contained type is meta definitions, write the token   
-               for (Offset i = 0; i < GetCount(); ++i) {
-                  to += TO {As<AMeta>(i)};
-                  if (i < GetCount() - 1)
-                     to += Separator(IsOr());
-               }
-            }
-            else if (CastsTo<Verb, false, THIS>()) {
-               // Contained type is verb                                
-               for (Offset i = 0; i < GetCount(); ++i) {
-                  auto& verb = As<Verb>(i);
-                  to += verb.operator TO();
-                  if (i < GetCount() - 1)
-                     to += Separator(IsOr());
-               }
-            }
-            else if (CastsTo<Construct, false, THIS>()) {
-               // Contained type is Neat                                
-               for (Offset i = 0; i < GetCount(); ++i) {
-                  auto& construct = As<Construct>(i);
-                  to += construct.template SerializeAs<TO_ORIGINAL>();
-                  if (i < GetCount() - 1)
-                     to += Separator(IsOr());
-               }
-            }
-            else if (CastsTo<Neat, false, THIS>()) {
-               // Contained type is Neat                                
-               for (Offset i = 0; i < GetCount(); ++i) {
-                  auto& neat = As<Neat>(i);
-                  to += neat.template SerializeAs<TO_ORIGINAL>();
-                  if (i < GetCount() - 1)
-                     to += Separator(IsOr());
-               }
-            }
-            else if (CastsTo<Byte, false, THIS>()) {
-               // Contained type is raw bytes, wrap it in byte scope    
-               auto raw_bytes = GetRawAs<Byte>();
-               if (not IsOr()) {
-                  to += Code {Code::OpenByte};
-                  for (Offset i = 0; i < GetCount(); ++i)
-                     ToHex(raw_bytes[i], to);
-               }
-               else for (Offset i = 0; i < GetCount(); ++i) {
-                  to += Code {Code::OpenByte};
-                  ToHex(raw_bytes[i], to);
-                  if (i < GetCount() - 1)
-                     to += Separator(IsOr());
-               }
-            }
-            else if (not mType->mNamedValues.empty()) {
-               // Contained type has named values, we can use those     
-               for (Offset i = 0; i < GetCount(); ++i) {
-                  const auto lhs = GetElementDense(i);
-                  bool found = false;
-                  for (auto cmeta : mType->mNamedValues) {
-                     // Compare each element in Block with each constant
-                     const Block rhs {{}, cmeta};
-                     if (lhs == rhs) {
-                        // Match found                                  
-                        to += TO {cmeta};
-                        found = true;
-                        break;
-                     }
-                  }
-
-                  if (not found) {
-                     if constexpr (CT::SameAsOneOf<TO_ORIGINAL, Debug, Text>) {
-                        // Don't pollute with messages while serializing
-                        // for logging, just return a default name      
-                        to += "<unserializable named value>";
-                     }
-                     else {
-                        LANGULUS_OOPS(Convert, "Can't serialize block",
-                           " of type `", GetToken(), "` to `", NameOf<TO>(),
-                           "` (final target being `", NameOf<TO_ORIGINAL>(), "`)"
-                           " because a named value couldn't be found in reflection"
-                        );
-                     }
-                  }
-
-                  if (i < GetCount() - 1)
-                     to += Separator(IsOr());
-               }
+         
+         // No rules defined, or didn't apply to data, so time to rely  
+         // on the reflected converters instead                         
+         TAny<OUT> converted;
+         if (not Convert<THIS>(converted)) {
+            if constexpr (OUT::SerializationRules::CriticalFailure) {
+               // Couldn't convert elements, and that is marked as      
+               // a critical falure                                     
+               LANGULUS_OOPS(Convert, "Couldn't serialize ", mCount,
+                  " item(s) of type `", GetToken(),
+                  "` as `", converted.GetToken(), '`');
+               return 0;
             }
             else {
-               // Serialize one by one using Verbs::Interpret           
-               // This is the slowest routine                           
-               Verbs::InterpretAs<TO> interpreter;
-               interpreter.ShortCircuit(false);
-
-               if (DispatchFlat(*this, interpreter)) {
-                  bool separate = false;
-                  interpreter->ForEach([&](const Text& r) {
-                     if (separate)
-                        to += Separator(IsOr());
-                     separate = true;
-
-                     if (r.IsEmpty())
-                        to += "<empty text interpretation>";
-                     else
-                        to += r;
-                  });
-               }
-               else if constexpr (CT::SameAsOneOf<TO_ORIGINAL, Debug, Text>) {
-                  // Don't pollute with messages while serializing      
-                  // for logging, just throw                            
-                  LANGULUS_THROW(Convert, "Can't serialize block");
-               }
-               else {
-                  LANGULUS_OOPS(Convert, "Can't serialize block",
-                     " of type `", GetToken(), "` to `", NameOf<TO>(),
-                     "` (final target being `", NameOf<TO_ORIGINAL>(), "`)"
-                  );
-               }
+               // Couldn't convert elements, but since that failure     
+               // isn't marked as critical, we can just inform about it 
+               to += OUT("/* Couldn't serialize ", mCount,
+                  " item(s) of type `", GetToken(),
+                  "` as `", converted.GetToken(), "` */");
+               return to.GetCount() - initial;
+            }
+         }
+         else if constexpr (OUT::SerializationRules::CriticalFailure) {
+            // Make sure that all elements are converted to a non-empty 
+            // string, as it is disallowed on critical failure          
+            for (auto& item : converted) {
+               LANGULUS_ASSERT(item, Convert,
+                  "Item(s) of type `", GetToken(),
+                  "` were serialized to an empty `", converted.GetToken(), '`');
             }
          }
 
-         // Close scope                                                 
-         if constexpr (not ENSCOPED) {
-            if (scoped)
-               to += Code {Code::CloseScope};
-            else {
-               if (IsPast())
-                  to += Code {Code::Past};
-               else if (IsFuture())
-                  to += Code {Code::Future};
+         // Write all converted elements to the serialized container    
+         for (Offset i = 0; i < converted.GetCount(); ++i) {
+            if constexpr (LANGULUS(SAFE)) {
+               if (not converted[i]) {
+                  // This is reached only if non-critical failure       
+                  // Just insert a comment to notify of the error       
+                  to += OUT(
+                     "/* Item #", i, " of type `", GetToken(),
+                     "` was serialized to an empty `", converted.GetToken(), "` */");
+               }
+               else to += converted[i];
             }
+            else to += converted[i];
+
+            if (i < GetCount() - 1)
+               OUT::SerializationRules::Separate(*this, to);
          }
-         else {
-            if (IsPast())
-               to += Code {Code::Past};
-            else if (IsFuture())
-               to += Code {Code::Future};
+      }
+
+      const bool scoped = GetCount() > 1 or IsInvalid() or IsExecutable();
+      if (not scoped) {
+         if (IsPast())
+            to += OUT::Operator::Past;
+         else if (IsFuture())
+            to += OUT::Operator::Future;
+      }
+
+      return to.GetCount() - initial;
+   }
+
+   /// Apply serialization rules                                              
+   template<CT::Block THIS, class T, class...RULES>
+   Count Block::SerializeByRules(CT::Serial auto& to, Types<RULES...>) const {
+      Count result = 0;
+      (void)(... or (result = SerializeApplyRule<THIS, T, RULES>(to)));
+      return result;
+   }
+
+   /// Apply a single serialization rule                                      
+   template<CT::Block THIS, class T, class RULE>
+   Count Block::SerializeApplyRule(CT::Serial auto& to) const {
+      using OUT = Deref<decltype(to)>;
+      const auto initial = to.GetCount();
+      using Type = typename RULE::Type;
+
+      if constexpr (RULE::sMatch == Serial::Exact) {
+         if (not IsSimilar<THIS, Type>())
+            return 0;
+      }
+      else if constexpr (RULE::sMatch == Serial::BasedOn) {
+         if (not CastsTo<Type, false, THIS>())
+            return 0;
+      }
+      else LANGULUS_ERROR("Unimplemented matcher");
+
+      if constexpr (RULE::sRule == Serial::Skip)
+         return 0;
+      else if constexpr (RULE::sRule == Serial::Wrap) {
+         // If reached, then the rule is compatible with the type       
+         for (Offset i = 0; i < mCount; ++i) {
+            to += RULE::sStart;
+            to += static_cast<OUT>(As<Type>(i));
+            to += RULE::sEnd;
+
+            if (i < GetCount() - 1)
+               OUT::SerializationRules::Separate(*this, to);
          }
 
          return to.GetCount() - initial;
       }
-      else if constexpr (CT::Same<TO, Bytes>) {
-         //                                                             
-         //  Serialize to binary                                        
-         //                                                             
-         if constexpr (ENSCOPED) {
-            to += Bytes {GetCount()};
-            to += Bytes {GetUnconstrainedState()};
-            to += Bytes {GetType()};
-         }
+      else LANGULUS_ERROR("Unimplemented rule");
+   }
 
-         if (IsEmpty() or IsUntyped())
-            return to.GetCount() - initial;
+   /// Serialize block to binary                                              
+   ///   @attention any change in this routine should be reflected in the     
+   ///      corresponding Block::DeserializeBinary                            
+   ///   @tparam NEXT - the type we're serializing - void for type-erasure    
+   ///      if both NEXT and THIS are type-erased, type will be serialized    
+   ///   @param to - [out] the serialized data goes here                      
+   ///   @return the number of written bytes                                  
+   template<CT::Block THIS, class NEXT>
+   Count Block::SerializeToBinary(CT::Serial auto& to) const {
+      using OUT = Deref<decltype(to)>;
+      const auto initial = to.GetCount();
 
-         const bool resolvable = IsResolvable();
-         if (not resolvable) {
-            if (IsPOD()) {
-               // If data is POD, optimize by directly memcpying it     
-               const auto denseStride = GetStride();
-               const auto byteCount = denseStride * GetCount();
-               to.template AllocateMore<TO>(to.GetCount() + byteCount);
+      if constexpr (CT::TypeErased<NEXT>) {
+         to += Bytes {GetCount()};
+         to += Bytes {GetUnconstrainedState()};
+         to += Bytes {GetType()};
+      }
 
-               if (IsSparse()) {
-                  // ... pointer by pointer if sparse                   
-                  auto p = GetRawSparseAs<Byte>();
-                  const auto pEnd = p + GetCount();
-                  while (p != pEnd)
-                     to += Bytes {p++, denseStride};
-               }
-               else {
-                  // ... at once if dense                               
-                  to += Bytes {GetRawAs<Byte>(), byteCount};
-               }
+      if (IsEmpty() or IsUntyped())
+         return to.GetCount() - initial;
 
-               return to.GetCount() - initial;
-            }
-            else if (IsDeep()) {
-               // If data is deep, nest-serialize each sub-block        
-               ForEach([&to](const Block& block) {
-                  (void) block.Serialize<true>(to);
-               });
+      if (IsDeep()) {
+         // If data is deep, nest-serialize each sub-block              
+         ForEach([&to](const Block& block) {
+            block.SerializeToBinary<Block, void>(to);
+         });
 
-               return to.GetCount() - initial;
-            }
-            else if (CastsTo<RTTI::Meta>()) {
-               // Serialize meta                                        
-               ForEach(
-                  [&to](DMeta meta) { to += Bytes {meta}; },
-                  [&to](VMeta meta) { to += Bytes {meta}; },
-                  [&to](TMeta meta) { to += Bytes {meta}; },
-                  [&to](CMeta meta) { to += Bytes {meta}; }
-               );
-
-               return to.GetCount() - initial;
-            }
-            else if (CastsTo<Verb>()) {
-               // Serialize verb                                        
-               ForEach([&to](const Verb& verb) {
-                  to += Bytes {verb.GetVerb()};
-                  to += Bytes {verb.GetCharge()};
-                  to += Bytes {verb.GetVerbState()};
-                  (void) verb.GetSource().Serialize<true>(to);
-                  (void) verb.GetArgument().Serialize<true>(to);
-               });
-
-               return to.GetCount() - initial;
-            }
-         }
-      
-         if (mType->mDefaultConstructor) {
-            // Type is statically creatable, and has default constructor
-            // therefore we can serialize it by serializing each        
-            // reflected base and member                                
-            for (Count i = 0; i < GetCount(); ++i) {
-               auto element = GetElementResolved(i);
-               if (resolvable)
-                  to += Bytes {element.GetType()};
-
-               // Serialize all reflected bases                         
-               for (auto& base : element.GetType()->mBases) {
-                  // Imposed bases are never serialized                 
-                  if (base.mImposed or base.mType->mIsAbstract)
-                     continue;
-
-                  const auto baseBlock = element.GetBaseMemory(base);
-                  (void) baseBlock.Serialize<false>(to);
-               }
-
-               // Serialize all reflected members                       
-               for (auto& member : element.GetType()->mMembers) {
-                  const auto memberBlock = element.GetMember(member, 0);
-                  (void) memberBlock.Serialize<false>(to);
-               }
-            }
-
-            return to.GetCount() - initial;
-         }
-
-         // Failure if reached                                          
-         LANGULUS_OOPS(Convert, "Can't serialize ",
-            " type `", GetToken(), "` as `", NameOf<TO>(),
-            "` (final target being `", NameOf<TO_ORIGINAL>(), "`)"
+         return to.GetCount() - initial;
+      }
+      else if (CastsTo<RTTI::Meta>()) {
+         // Serialize meta                                              
+         ForEach(
+            [&to](DMeta meta) { to += Bytes {meta}; },
+            [&to](VMeta meta) { to += Bytes {meta}; },
+            [&to](TMeta meta) { to += Bytes {meta}; },
+            [&to](CMeta meta) { to += Bytes {meta}; }
          );
-         return 0;
+
+         return to.GetCount() - initial;
       }
-      else LANGULUS_ERROR("Unsupported serialization");
-   }
+      else if (IsPOD()) {
+         // If data is POD, optimize by directly memcpying it           
+         const auto denseStride = GetStride();
+         const auto byteCount = denseStride * GetCount();
+         to.template AllocateMore<OUT>(to.GetCount() + byteCount);
 
-   /// Serialize a Neat container                                             
-   ///   @tparam T - text type to serialize as                                
-   ///   @return the serialized data                                          
-   template<CT::TextBased T>
-   T Neat::SerializeAs() const {
-      using Flow::Code;
-      T to;
-      to += Code {Code::OpenScope};
-      bool separator = false;
-      for (auto pair : mAnythingElse) {
-         for (auto& group : pair.mValue) {
-            if (separator)
-               to += ", ";
-
-            if (group.IsValid())
-               to += Flow::Serialize<T, false>(group);
-            else
-               to += T {pair.mKey};
-            separator = true;
+         if (IsSparse()) {
+            // ... pointer by pointer if sparse                         
+            auto p = GetRawSparseAs<Byte>();
+            const auto pEnd = p + GetCount();
+            while (p != pEnd)
+               to += Bytes::From(p++, denseStride);
          }
-      }
-
-      for (auto pair : mTraits) {
-         for (auto& trait : pair.mValue) {
-            if (separator)
-               to += ", ";
-
-            if (trait.IsValid())
-               to += Flow::Serialize<T, false>(Trait::From(pair.mKey, trait));
-            else
-               to += T {pair.mKey};
-            separator = true;
+         else {
+            // ... at once if dense                                     
+            to += Bytes::From(GetRawAs<Byte>(), byteCount);
          }
+
+         return to.GetCount() - initial;
       }
+      else if (mType->mDefaultConstructor
+      and not  mType->mProducerRetriever) {
+         // Type is statically creatable, and has default constructor   
+         // therefore we can serialize it by serializing each           
+         // reflected base and member                                   
+         for (Count i = 0; i < GetCount(); ++i) {
+            auto element = GetElementResolved(i);
+            if (IsResolvable())
+               to += Bytes {element.GetType()};
 
-      for (auto pair : mConstructs) {
-         for (auto& construct : pair.mValue) {
-            if (separator)
-               to += ", ";
+            // Serialize all reflected bases                            
+            for (auto& base : element.GetType()->mBases) {
+               // Imposed bases are never serialized                    
+               if (base.mImposed or base.mType->mIsAbstract)
+                  continue;
 
-            if (construct.mData.IsValid() or not construct.mCharge.IsDefault()) {
-               to += Flow::Serialize<T, false>(
-                  Construct(pair.mKey, construct.mData, construct.mCharge));
+               const auto baseBlock = element.GetBaseMemory(base);
+               baseBlock.SerializeToBinary<Block, RTTI::Base>(to);
             }
-            else to += T {pair.mKey};
-            separator = true;
+
+            // Serialize all reflected members                          
+            for (auto& member : element.GetType()->mMembers) {
+               const auto memberBlock = element.GetMember(member, 0);
+               memberBlock.SerializeToBinary<Block, RTTI::Member>(to);
+            }
          }
+
+         return to.GetCount() - initial;
       }
-      to += Code {Code::CloseScope};
-      return to;
-   }
-   
-   /// Serialize a construct to a desired text type                           
-   ///   @tparam T - type to serialize as                                     
-   ///   @return the serialized container                                     
-   template<CT::TextBased T> LANGULUS(INLINED)
-   T Construct::SerializeAs() const {
-      return {
-         GetType(),
-         GetCharge().operator Debug(),
-         GetDescriptor().template SerializeAs<T>()
-      };
+
+      // Failure if reached                                             
+      LANGULUS_OOPS(Convert, "Can't serialize ",
+         " type `", GetToken(), "` as `", to.GetToken(), "`");
+      return 0;
    }
 
-   /// Explicit logging operator for Construct                                
-   LANGULUS(INLINED)
-   Construct::operator Debug() const {
-      return SerializeAs<Debug>();
+   ///                                                                        
+   template<CT::Block THIS> LANGULUS(INLINED)
+   void Block::ReadInner(Offset start, Count count, Loader loader) const {
+      if (start >= mCount or mCount - start < count) {
+         LANGULUS_ASSERT(loader, Access, "Reader lacks loader");
+         loader(const_cast<Block&>(*this), count - (mCount - start));
+      }
    }
-   
-#if LANGULUS_FEATURE(MANAGED_REFLECTION)
+
+   /// Read an atom-sized unsigned integer, based on the provided header      
+   ///   @param result - [out] the resulting deserialized number              
+   ///   @param read - offset to apply to serialized byte array               
+   ///   @param header - environment header                                   
+   ///   @param loader - loader for streaming                                 
+   ///   @return the number of read bytes from byte container                 
+   template<CT::Block THIS>
+   Offset Block::DeserializeAtom(
+      Offset& result, Offset read, const Header& header, Loader loader
+   ) const {
+      if (header.mAtomSize == 4) {
+         // We're deserializing data, that was serialized on a 32-bit   
+         // architecture                                                
+         uint32_t count4 = 0;
+         ReadInner<THIS>(read, 4, loader);
+         ::std::memcpy(&count4, At(read), 4);
+         read += 4;
+         result = static_cast<Offset>(count4);
+      }
+      else if (header.mAtomSize == 8) {
+         // We're deserializing data, that was serialized on a 64-bit   
+         // architecture                                                
+         uint64_t count8 = 0;
+         ReadInner<THIS>(read, 8, loader);
+         ::std::memcpy(&count8, At(read), 8);
+         read += 8;
+         LANGULUS_ASSERT(count8 > std::numeric_limits<Offset>::max(),
+            Convert, "Deserialized atom contains a value "
+            "too powerful for your architecture");
+         result = static_cast<Offset>(count8);
+      }
+      else {
+         LANGULUS_OOPS(Convert,
+            "Unsupported atomic size ", header.mAtomSize,
+            " was deserialized from source - is the source corrupted?"
+         );
+      }
+
+      return read;
+   }
+
+   /// A snippet for conveniently deserializing a meta from binary            
+   ///   @param result - [out] the deserialized meta goes here                
+   ///   @param read - byte offset inside 'from'                              
+   ///   @param header - environment header                                   
+   ///   @param loader - loader for streaming                                 
+   ///   @return number of read bytes                                         
+   template<CT::Block THIS>
+   Offset Block::DeserializeMeta(
+      CT::Meta auto& result, Offset read, const Header& header, Loader loader
+   ) const {
+      using META = Deref<decltype(result)>;
+      Count count = 0;
+      read = DeserializeAtom<THIS>(count, read, header, loader);
+      if (count) {
+         ReadInner<THIS>(read, count, loader);
+         const Token token {GetRawAs<Letter, THIS>() + read, count};
+
+         if constexpr (CT::Same<META, DMeta>)
+            result = RTTI::GetMetaData(token);
+         else if constexpr (CT::Same<META, VMeta>)
+            result = RTTI::GetMetaVerb(token);
+         else if constexpr (CT::Same<META, TMeta>)
+            result = RTTI::GetMetaTrait(token);
+         else if constexpr (CT::Same<META, CMeta>)
+            result = RTTI::GetMetaConstant(token);
+         else
+            LANGULUS_ERROR("Unsupported meta deserialization");
+         return read + count;
+      }
+
+      result = {};
+      return read;
+   }
 
    /// Inner deserialization routine from binary                              
-   ///   @tparam HEADER - true if you want to read a portability header       
-   ///                    (useful for deserializing standalone data)          
+   ///   @tparam NEXT - the type we're deserializing - void for type-erasure  
+   ///      if both NEXT and 'to' are type-erased, type will be deserialized  
    ///   @param to - [out] the resulting deserialized data                    
    ///   @param header - environment header                                   
    ///   @param readOffset - offset to apply to serialized byte array         
    ///   @param loader - loader for streaming                                 
    ///   @return the number of read/peek bytes from byte container            
-   template<bool HEADER, CT::Block TO>
-   Size Bytes::Deserialize(
-      TO& to, const Header& header, Offset readOffset, const Loader& loader
+   template<CT::Block THIS, class NEXT>
+   Offset Block::DeserializeBinary(
+      CT::Block auto& to, const Header& header, Offset readOffset, Loader loader
    ) const {
-      using namespace Flow;
-      using namespace Serial;
+      using OUT = Deref<decltype(to)>;
+      static_assert(CT::Untyped<THIS> or CT::Bytes<THIS>,
+         "THIS isn't a byte container");
+      static_assert(CT::Untyped<OUT> or CT::TypeErased<NEXT>
+         or CT::Similar<TypeOf<OUT>, NEXT>, "Type mismatch");
+      using T = Conditional<CT::Typed<OUT>, TypeOf<OUT>, NEXT>;
+      LANGULUS_ASSUME(DevAssumes, (IsSimilar<THIS, Byte>()),
+         "THIS isn't a byte container");
 
       Count deserializedCount = 0;
-      auto read = readOffset;
-
-      if constexpr (HEADER) {
-         // Read the header - means we have unpredictable data          
-         // The header contains instructions on how data was serialized 
-         read = DeserializeAtom(deserializedCount, read, header, loader);
+      Offset read = readOffset;
+      if constexpr (CT::TypeErased<T>) {
+         // We have unpredictable data, so the deserializer expects     
+         // that next bytes contain instructions of what kind of data   
+         // to deserialize                                              
+         read = DeserializeAtom<THIS>(deserializedCount, read, header, loader);
 
          // First read the serialized data state                        
-         DataState deserializedState {};
-         RequestMoreBytes(read, sizeof(DataState), loader);
-         ::std::memcpy(static_cast<void*>(&deserializedState), At(read), sizeof(DataState));
+         DataState state {};
+         ReadInner<THIS>(read, sizeof(DataState), loader);
+         memcpy(static_cast<void*>(&state), At(read), sizeof(DataState));
          read += sizeof(DataState);
-         to.AddState(deserializedState);
+         to.AddState(state);
 
          // Finally, read type                                          
-         DMeta deserializedType;
-         read = DeserializeMeta(deserializedType, read, header, loader);
-
-         if (not deserializedType)
+         DMeta type;
+         read = DeserializeMeta<THIS>(type, read, header, loader);
+         if (not type)
             return read;
 
-         to.template Mutate<TO, void>(deserializedType);
+         // And mutate the resulting container apppropriately           
+         // (this also acts as a runtime type-check, in case 'to'       
+         // already contains stuff)                                     
+         to.template Mutate<OUT, void>(type);
       }
       else {
-         // Don't read header - we have a predictable single element,   
-         // like a member, a base, or a cast operator sequence          
-         // In this case, result should already be allocated and known  
-         LANGULUS_ASSERT(to.IsTyped() and to,
-            Convert, "Bad serialization output block while deserializing ",
-            GetToken(), " as ", to.GetToken()
-         );
+         // We have predictable data                                    
+         // In this case, 'to' should already be allocated and known    
+         LANGULUS_ASSUME(DevAssumes, to.GetType()->template IsSimilar<T>(),
+            "Bad binary deserializing block type: ",
+            to.GetType(), " instead of ", MetaDataOf<T>());
+         LANGULUS_ASSUME(DevAssumes, not to.IsEmpty(),
+            "Binary deserializing block isn't preinitialized");
 
          deserializedCount = to.GetCount();
       }
@@ -738,306 +601,128 @@ namespace Langulus::Anyness
          return read;
 
       // Fill memory                                                    
-      const bool resolvable = to.IsResolvable();
-      if (not resolvable) {
-         if (to.IsPOD()) {
-            // If data is POD, optimize by directly memcpying it        
-            if constexpr (HEADER)
-               to.template AllocateMore<TO, false, true>(deserializedCount);
+      if (to.IsDeep()) {
+         // If data is deep, nest each sub-block                        
+         if constexpr (CT::TypeErased<T>)
+            to.New(deserializedCount);
 
-            const auto byteSize = to.GetBytesize();
-            RequestMoreBytes(read, byteSize, loader);
+         to.ForEach([&](Block& block) {
+            read = DeserializeBinary<Block, void>(block, header, read, loader);
+         });
 
-            if (to.IsSparse()) {
-               // Allocate a separate block for the elements            
-               const auto temporary = Allocator::Allocate(nullptr, byteSize);
-               auto start = temporary->GetBlockStart();
-               ::std::memcpy(start, At(read), byteSize);
-               read += byteSize;
-               temporary->Keep(deserializedCount - 1);
-
-               // Write a pointer to each element                       
-               auto p = to.template GetHandle<Byte*>(0);
-               const auto pEnd = p + to.GetCount();
-               const auto size = to.GetType()->mSize;
-               while (p != pEnd) {
-                  p.Create(start, temporary);
-                  start += size;
-               }
-            }
-            else {
-               // Data is dense, parse it at once                       
-               ::std::memcpy(to.GetRaw(), At(read), byteSize);
-               read += byteSize;
-            }
-
-            return read;
-         }
-         else if (to.IsDeep()) {
-            // If data is deep, nest each sub-block                     
-            if constexpr (HEADER)
-               to.New(deserializedCount);
-
-            to.ForEach([&](Block& block) {
-               read = Deserialize<true>(block, header, read, loader);
-            });
-
-            return read;
-         }
-         else if (to.GetType()->IsExact<DMeta, TMeta, CMeta, VMeta>()) {
-            // Deserialize data definition                              
-            if constexpr (HEADER)
-               to.New(deserializedCount);
-
-            to.ForEach(
-               [&](DMeta& meta) {
-                  read = DeserializeMeta(meta, read, header, loader);
-               },
-               [&](VMeta& meta) {
-                  read = DeserializeMeta(meta, read, header, loader);
-               },
-               [&](CMeta& meta) {
-                  read = DeserializeMeta(meta, read, header, loader);
-               },
-               [&](TMeta& meta) {
-                  read = DeserializeMeta(meta, read, header, loader);
-               }
-            );
-
-            return read;
-         }
-         else if (to.template CastsTo<Verb>()) {
-            // If data is verb, deserialize it here                     
-            if constexpr (HEADER)
-               to.New(deserializedCount);
-
-            to.ForEach([&](Verb& verb) {
-               // Deserialize verb type                                 
-               VMeta ptr;
-               read = DeserializeMeta(ptr, read, header, loader);
-               verb.SetVerb(ptr);
-
-               // Deserialize the charge                                
-               Charge charge;
-               RequestMoreBytes(read, sizeof(Charge), loader);
-               ::std::memcpy(static_cast<void*>(&charge), At(read), sizeof(Charge));
-               read += sizeof(Charge);
-               verb.SetCharge(charge);
-
-               // Deserialize the verb state                            
-               VerbState vstate;
-               RequestMoreBytes(read, sizeof(VerbState), loader);
-               ::std::memcpy(static_cast<void*>(&vstate), At(read), sizeof(VerbState));
-               read += sizeof(VerbState);
-               verb.SetVerbState(vstate);
-
-               // Deserialize source                                    
-               read = Deserialize<true>(verb.GetSource(), header, read, loader);
-
-               // Deserialize argument                                  
-               read = Deserialize<true>(verb.GetArgument(), header, read, loader);
-            });
-
-            return read;
-         }
+         return read;
       }
+      else if (to.GetType()->template IsSimilar<DMeta, TMeta, CMeta, VMeta>()) {
+         // Deserialize data definitions                                
+         //TODO register them as dependencies
+         if constexpr (CT::TypeErased<T>)
+            to.New(deserializedCount);
 
-      if (to.mType->mDefaultConstructor) {
+         to.ForEach(
+            [&](DMeta& meta) {
+               read = DeserializeMeta<THIS>(meta, read, header, loader);
+            },
+            [&](VMeta& meta) {
+               read = DeserializeMeta<THIS>(meta, read, header, loader);
+            },
+            [&](CMeta& meta) {
+               read = DeserializeMeta<THIS>(meta, read, header, loader);
+            },
+            [&](TMeta& meta) {
+               read = DeserializeMeta<THIS>(meta, read, header, loader);
+            }
+         );
+
+         return read;
+      }
+      else if (to.IsPOD()) {
+         // If data is POD, optimize by directly memcpying it           
+         //TODO does POD guarantee that type isn't resolvable?
+         if constexpr (CT::TypeErased<T>)
+            to.template AllocateMore<OUT, false, true>(deserializedCount);
+
+         const auto byteSize = to.GetBytesize();
+         ReadInner<THIS>(read, byteSize, loader);
+
+         if (to.IsSparse()) {
+            // Allocate a separate block for the elements               
+            const auto temporary = Allocator::Allocate(nullptr, byteSize);
+            auto start = temporary->GetBlockStart();
+            ::std::memcpy(start, At(read), byteSize);
+            read += byteSize;
+            temporary->Keep(deserializedCount - 1);
+
+            // Write a pointer to each element                          
+            auto p = to.template GetHandle<Byte*, OUT>(0);
+            const auto pEnd = p + to.GetCount();
+            const auto size = to.GetType()->mSize;
+            while (p != pEnd) {
+               p.Create(start, temporary);
+               start += size;
+            }
+         }
+         else {
+            // Data is dense, parse it all at once                      
+            ::std::memcpy(to.GetRaw(), At(read), byteSize);
+            read += byteSize;
+         }
+
+         return read;
+      }
+      else if (to.mType->mDefaultConstructor
+      and not  to.mType->mProducerRetriever) {
          // Type is statically producible, and has default constructor, 
-         // therefore we can deserialize it by making a default copy    
-         // and then filling in the reflected members and bases         
+         // therefore we can deserialize it by making a default         
+         // instance, and filling in the reflected members and bases    
          for (Count i = 0; i < deserializedCount; ++i) {
-            auto resolvedType = to.GetType();
-            if (resolvable)
-               read = DeserializeMeta(resolvedType, read, header, loader);
-
             Any element;
-            if constexpr (HEADER) {
-               // Create default copy only if not predictable           
+            if constexpr (CT::TypeErased<T>) {
+               // Default-initialize an instance to write on top of     
+               // Make sure that the type is the most concrete one, in  
+               // the case that instances are resolvable                
+               auto resolvedType = to.GetType();
+               if (to.IsResolvable())
+                  read = DeserializeMeta<THIS>(resolvedType, read, header, loader);
                element = Any::FromMeta(resolvedType);
                element.New(1);
             }
             else {
-               // We don't make a default copy if already predictable   
-               // It is your responsibility to preallocate and define   
-               // the result container                                  
+               // Data is predictable and assumed initialized, just     
+               // write on top of it                                    
                element = to.GetElementDense(i);
             }
 
             // Deserialize all reflected bases                          
+            // Skip abstract/imposed bases                              
             for (auto& base : element.GetType()->mBases) {
                if (base.mImposed or base.mType->mIsAbstract)
                   continue;
 
                auto baseBlock = element.GetBaseMemory(base);
-               read = Deserialize<false>(baseBlock, header, read, loader);
+               read = DeserializeBinary<THIS, RTTI::Base>(
+                  baseBlock, header, read, loader);
             }
 
             // Deserialize all reflected members                        
             for (auto& member : element.GetType()->mMembers) {
                auto memberBlock = element.GetMember(member, 0);
-               read = Deserialize<false>(memberBlock, header, read, loader);
+               read = DeserializeBinary<THIS, RTTI::Member>(
+                  memberBlock, header, read, loader);
             }
 
-            if constexpr (HEADER)
-               to.InsertBlock(IndexBack, element);
+            if constexpr (CT::TypeErased<T>)
+               to.template InsertBlockInner<OUT, void, false>(
+                  IndexBack, Abandon(static_cast<Block&>(element)));
          }
 
          return read;
       }
 
       // Failure if reached                                             
-      LANGULUS_OOPS(
-         Convert, "Can't deserialize `",
-         GetToken(), "` as `", to.GetToken(), '`'
-      );
+      LANGULUS_OOPS(Convert, "Can't deserialize `", GetToken(),
+         "` as `", to.GetToken(), '`');
       return 0;
    }
-
-#endif
-
-} // namespace Langulus::Anyness
-
-
-namespace Langulus::Flow::Serial
-{
-
-   /// Convert a byte to hexadecimal string, and append it to text container  
-   ///   @param from - the byte to convert to hexadecimal                     
-   ///   @param to - the container to append to                               
-   LANGULUS(INLINED)
-   void ToHex(const Byte& from, Text& to) {
-      if (from == 0) {
-         // fmt writes single zero instead of two zeroes                
-         const auto raw = to.Extend(2).GetRaw();
-         *raw = *(raw + 1) = '0';
-      }
-      else fmt::format_to_n(to.Extend(2).GetRaw(), 2, "{:X}", from.mValue);
-   }
-
-   /// Check if a memory block needs a Code scope decorated                   
-   ///   @param block - the memory block to check                             
-   ///   @return true if a scope is required around the block                 
-   LANGULUS(INLINED)
-   bool NeedsScope(const Block& block) noexcept {
-      return block.GetCount() > 1 or block.IsInvalid();
-   }
-
-   /// Add a separator                                                        
-   ///   @param isOr - OR separator or not                                    
-   ///   @return the text equivalent of the separator                         
-   LANGULUS(INLINED)
-   Text Separator(bool isOr) {
-      return isOr 
-         ? Verbs::Conjunct::CTTI_NegativeOperator 
-         : Verbs::Conjunct::CTTI_PositiveOperator;
-   }
-
-   /// A snippet for serializing a reference to a meta object                 
-   ///   @param from - the member block to serialize                          
-   ///   @param to - [out] the serialized data                                
-   ///   @param member - reflection data about the member                     
-   template<CT::Meta META, CT::Text TO> LANGULUS(INLINED)
-   void SerializeMeta(const Block& from, TO& to, const RTTI::Member* member) {
-      auto meta = member->template As<META>(from.GetRaw());
-      if (meta)   to += meta->GetToken();
-      else        to += Decay<META>::DefaultToken;
-   }
-
-   /// A snippet for serializing a block of numbers                           
-   ///   @param from - the number block to serialize                          
-   ///   @param to - [out] the serialized data                                
-   template<class T, CT::Text TO>
-   void SerializeNumber(const Block& from, TO& to) {
-      if (from.IsDense()) {
-         // Significantly faster routine if dense                       
-         auto data = from.template GetRawAs<T>();
-         const auto dataEnd = from.template GetRawEndAs<T>();
-         while (data != dataEnd) {
-            if constexpr (CT::Same<T, Letter>) {
-               if constexpr (CT::Signed<Letter>)
-                  to += TO {static_cast<signed>(*data)};
-               else
-                  to += TO {static_cast<unsigned>(*data)};
-            }
-            else to += TO {*data};
-
-            if (from.GetType()->mSuffix.size())
-               to += from.GetType()->mSuffix;
-            if (data < dataEnd - 1)
-               to += Separator(from.IsOr());
-            ++data;
-         }
-      }
-      else {
-         for (Offset i = 0; i < from.GetCount(); ++i) {
-            if constexpr (CT::Same<T, Letter>) {
-               if constexpr (CT::Signed<Letter>)
-                  to += TO {static_cast<signed>(from.template As<T>(i))};
-               else
-                  to += TO {static_cast<unsigned>(from.template As<T>(i))};
-            }
-            else to += TO {from.template As<T>(i)};
-
-            to += from.GetType()->mSuffix;
-            if (i < from.GetCount() - 1)
-               to += Separator(from.IsOr());
-         }
-      }
-   }
-
-   /// Serialize all reflected data members in all bases                      
-   ///   @param from - the member block to serialize                          
-   ///   @param to - the serialized data                                      
-   template<CT::Text TO, CT::Block TO_ORIGINAL>
-   void SerializeMembers(const Block& from, TO& to) {
-      if (from.IsDeep()) {
-         to += Serialize<TO, true, Block, TO_ORIGINAL>(
-            from.template Get<Block>());
-         return;
-      }
-
-      // Append a separator?                                            
-      bool separate = false;
-
-      // First we serialize all bases' members                          
-      for (auto& base : from.GetType()->mBases) {
-         if (base.mType->mSize > 0) {
-            if (separate) {
-               to += Verbs::Conjunct::CTTI_PositiveOperator;
-               separate = false;
-            }
-
-            const auto initial = to.GetCount();
-            SerializeMembers<TO, TO_ORIGINAL>(
-               from.GetBaseMemory(base.mType, base), to);
-
-            if (initial < to.GetCount())
-               separate = true;
-         }
-      }
-
-      // Iterate members for each object                                
-      for (auto& member : from.mType->mMembers) {
-         if (separate)
-            to += Verbs::Conjunct::CTTI_PositiveOperator;
-
-         const auto type = member.GetType();
-         if (type->template Is<DMeta>())
-            SerializeMeta<DMeta>(from, to, &member);
-         else if (type->template Is<TMeta>())
-            SerializeMeta<TMeta>(from, to, &member);
-         else if (type->template Is<VMeta>())
-            SerializeMeta<VMeta>(from, to, &member);
-         else if (type->template Is<CMeta>())
-            SerializeMeta<CMeta>(from, to, &member);
-         else
-            to += Serialize<TO, true, Block, TO_ORIGINAL>(
-               from.GetMember(member, 0), 0);
-
-         separate = true;
-      }
-   }*/
 
 } // namespace Langulus::Flow::Serial
 

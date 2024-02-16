@@ -20,7 +20,7 @@ namespace Langulus::Anyness
    class Charge {
       LANGULUS(POD) true;
       LANGULUS(NULLIFIABLE) false;
-      LANGULUS_CONVERSIONS(Text);
+      LANGULUS_CONVERTS_TO(Text);
 
       // Mass of the verb                                               
       Real mMass = DefaultMass;

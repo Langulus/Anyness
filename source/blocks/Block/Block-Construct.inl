@@ -130,47 +130,48 @@ namespace Langulus::Anyness
       using S = SemanticOf<decltype(what)>;
       using ST = TypeOf<S>;
 
-      Block result;
       if constexpr (CT::Array<ST>) {
          // ... from a bounded array                                    
          count *= ExtentOf<ST>;
-         result.SetMemory(
+         return {
             DataState::Constrained,
             MetaDataOf<Deext<ST>>(), count,
             DesemCast(what), nullptr
-         );
+         };
       }
       else if constexpr (CT::Sparse<ST>) {
          // ... from a pointer                                          
-         result.SetMemory(
+         return {
             DataState::Constrained,
             MetaDataOf<Deptr<ST>>(), count,
             DesemCast(what), nullptr
-         );
+         };
       }
       else {
          // ... from a value                                            
          if constexpr (CT::Resolvable<ST>) {
             // Resolve a runtime-resolvable value                       
-            result = DesemCast(what).GetBlock();
+            Block result = DesemCast(what).GetBlock();
+            if constexpr (CONSTRAIN_TYPE)
+               result.MakeTypeConstrained();
+            return result;
          }
          else if constexpr (CT::Deep<ST>) {
             // Static cast to Block if CT::Deep                         
-            result.operator = (DesemCast(what));
+            Block result = DesemCast(what);
+            if constexpr (CONSTRAIN_TYPE)
+               result.MakeTypeConstrained();
+            return result;
          }
          else {
             // Any other value gets wrapped inside a temporary Block    
-            result.SetMemory(
+            return {
                DataState::Constrained,
                MetaDataOf<ST>(), 1,
                &DesemCast(what), nullptr
-            );
+            };
          }
       }
-
-      if constexpr (CONSTRAIN_TYPE)
-         result.MakeTypeConstrained();
-      return result;
    }
 
    /// Create an empty typed block                                            

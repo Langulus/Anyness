@@ -79,8 +79,6 @@ void CheckState_ContainsArray(auto& pack, const CT::Array auto& e, Allocation* e
 /// The main test for Any/TAny containers, with all kinds of items, from      
 /// sparse to dense, from trivial to complex, from flat to deep               
 TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]", 
-   (TypePair<Any, Trait*>),
-
    (TypePair<TAny<int*>, int*>),
    (TypePair<TAny<Trait*>, Trait*>),
    (TypePair<TAny<Traits::Count*>, Traits::Count*>),
@@ -88,7 +86,7 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
    (TypePair<TAny<Text*>, Text*>),
 
    (TypePair<Any, int*>),
-
+   (TypePair<Any, Trait*>),
    (TypePair<Any, Traits::Count*>),
    (TypePair<Any, Any*>),
    (TypePair<Any, Text*>),
@@ -374,13 +372,7 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
       }
 
       WHEN("Populated using Any::New") {
-         if constexpr (not CT::Typed<T>) {
-            if constexpr (CT::Trait<T>)
-               pack = T::template From<Traits::Count, E>();
-            else
-               pack = T::template From<E>();
-         }
-
+         pack = FromHelper<T, E>();
          const auto created = pack.New(3, darray2[0]);
          REQUIRE(created == 3);
 

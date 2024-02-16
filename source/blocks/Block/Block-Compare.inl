@@ -680,8 +680,7 @@ namespace Langulus::Anyness
    ///   @return true if comparison returns true                              
    LANGULUS(INLINED)
    bool Block::CallComparer(const Block& right, const RTTI::Base& base) const {
-      return  mRaw == right.mRaw 
-          or (mRaw and right.mRaw
+      return  mRaw == right.mRaw or (mRaw and right.mRaw
          and  base.mType->mComparer(mRaw, right.mRaw));
    }
 
@@ -750,11 +749,12 @@ namespace Langulus::Anyness
    
    /// Compare loosely with another TAny, ignoring case                       
    /// This function applies only if T is character                           
-   ///   @param other - text to compare with                                  
+   ///   @param other - container to compare with                             
    ///   @return true if both containers match loosely                        
    template<CT::Block THIS> LANGULUS(INLINED)
    bool Block::CompareLoose(const CT::Block auto& other) const noexcept {
-      return MatchesLoose<THIS>(other) == mCount;
+      return (IsEmpty() and other.IsEmpty() and IsSimilar<THIS>(other.GetType()))
+          or MatchesLoose<THIS>(other) == mCount;
    }
 
    /// Count how many consecutive elements match in two containers            
@@ -762,56 +762,53 @@ namespace Langulus::Anyness
    ///   @return the number of matching items                                 
    template<CT::Block THIS> LANGULUS(INLINED)
    Count Block::Matches(const CT::Block auto& other) const noexcept {
-      using OTHER = Deref<decltype(other)>;
+      if (IsEmpty() or other.IsEmpty())
+         return 0;
 
+      using OTHER = Deref<decltype(other)>;
       if constexpr (CT::Typed<THIS> and CT::Typed<OTHER>) {
          using T1 = TypeOf<THIS>;
          using T2 = TypeOf<OTHER>;
 
          if constexpr (CT::Inner::Comparable<T1, T2>) {
-            if constexpr (CT::Similar<T1, T2>) {
-               if (mRaw == other.mRaw)
-                  return ::std::min(mCount, other.mCount);
-            }
-
             auto t1 = GetRaw<THIS>();
             auto t2 = other.template GetRaw<OTHER>();
             const auto t1end = GetRawEnd<THIS>();
             const auto t2end = other.template GetRawEnd<OTHER>();
-            while (t1 != t1end and t2 != t2end and *t1 == *(t2++))
+            while (t1 != t1end and t2 != t2end and *t1 == *t2) {
                ++t1;
-            return t1 - GetRaw();
+               ++t2;
+            }
+            return t1 - GetRaw<THIS>();
          }
          else return false;
       }
       else TODO();
    }
 
-   /// Compare loosely with another, ignoring upper-case                      
-   /// Count how many consecutive letters match in two strings                
-   ///   @param other - text to compare with                                  
-   ///   @return the number of matching symbols                               
+   /// Compare loosely with another, ignoring upper-case if both blocks       
+   /// contain letters                                                        
+   ///   @param other - container to compare with                             
+   ///   @return the number of loosely matching elements                      
    template<CT::Block THIS> LANGULUS(INLINED)
    Count Block::MatchesLoose(const CT::Block auto& other) const noexcept {
-      using OTHER = Deref<decltype(other)>;
+      if (IsEmpty() or other.IsEmpty())
+         return 0;
 
+      using OTHER = Deref<decltype(other)>;
       if constexpr (CT::Typed<THIS> and CT::Typed<OTHER>) {
          using T1 = TypeOf<THIS>;
          using T2 = TypeOf<OTHER>;
 
          if constexpr (CT::Character<T1> and CT::Similar<T1, T2>) {
-            if (mRaw == other.mRaw)
-               return mCount == other.mCount;
-            else if (mCount != other.mCount)
-               return false;
-
             auto t1 = GetRaw<THIS>();
             auto t2 = other.template GetRaw<THIS>();
             const auto tend = GetRawEnd<THIS>();
-            while (t1 < tend and ::std::tolower(*t1)
-                              == ::std::tolower(*(t2++)))
+            while (t1 < tend and ::std::tolower(*t1) == ::std::tolower(*t2)) {
                ++t1;
-            return GetRaw<THIS>() - t1;
+               ++t2;
+            }
+            return t1 - GetRaw<THIS>();
          }
          else TODO();
       }

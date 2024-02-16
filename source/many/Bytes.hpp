@@ -16,7 +16,7 @@ namespace Langulus::CT
    /// Any dense value or array of values, that isn't CT::Block               
    template<class...T>
    concept BinablePOD = (
-         (Inner::POD<Deext<T>> and Dense<Deext<T>> and not Block<Deext<T>>
+         (Inner::POD<Deext<T>> and Dense<Deext<T>> and not Block<Deext<T>> and not Meta<Deext<T>>
       ) and ...);
 
    namespace Inner
@@ -149,40 +149,7 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Deserialization                                                   
       ///                                                                     
-      #pragma pack(push, 1)
-      struct Header {
-         ::std::uint8_t mAtomSize;
-         ::std::uint8_t mFlags;
-         ::std::uint16_t mUnused;
-
-      public:
-         Header() noexcept;
-
-         enum {Default, BigEndian};
-
-         bool operator == (const Header&) const noexcept;
-      };
-      #pragma pack(pop)
-
-      template<class T>
-      NOD() T Deserialize() const;
-
-      //using Loader = void(*)(Bytes&, Size);
-
-      // Intentionally undefined, because it requires Langulus::Flow    
-      // and relies on Verbs::Interpret                                 
-      /*#if LANGULUS_FEATURE(MANAGED_REFLECTION)
-         template<bool HEADER, CT::Block TO>
-         Size Deserialize(TO& result, const Header& header = {}, Offset readOffset = 0, const Loader& loader = {}) const;
-
-      protected:
-         void RequestMoreBytes(Offset, Size, const Loader&) const;
-
-         NOD() Size DeserializeAtom(Offset&, Offset, const Header&, const Loader&) const;
-
-         template<class META>
-         NOD() Size DeserializeMeta(META&, Offset, const Header&, const Loader&) const;
-      #endif*/
+      NOD() Count Deserialize(CT::Data auto&) const;
    };
 
 } // namespace Langulus::Anyness

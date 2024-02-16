@@ -280,6 +280,34 @@ namespace Langulus::Anyness
    bool TABLE()::IsValueMissingDeep() const {
       return BlockMap::IsValueMissingDeep<TMap>();
    }
+   
+   /// Check if the map contains at least one executable key (nested)         
+   ///   @return true if the map has executable entries                       
+   TEMPLATE() LANGULUS(INLINED)
+   bool TABLE()::IsKeyExecutableDeep() const {
+      return BlockMap::IsKeyExecutableDeep<TMap>();
+   }
+   
+   /// Check if the map contains at least one executable value (nested)       
+   ///   @return true if the map has executable entries                       
+   TEMPLATE() LANGULUS(INLINED)
+   bool TABLE()::IsValueExecutableDeep() const {
+      return BlockMap::IsValueExecutableDeep<TMap>();
+   }
+
+   /// Check if the map contains executable keys                              
+   ///   @return true if the map has executable key type                      
+   TEMPLATE() LANGULUS(INLINED)
+   bool TABLE()::IsKeyExecutable() const {
+      return BlockMap::IsKeyExecutable<TMap>();
+   }
+   
+   /// Check if the map contains executable values                            
+   ///   @return true if the map has executable value type                    
+   TEMPLATE() LANGULUS(INLINED)
+   bool TABLE()::IsValueExecutable() const {
+      return BlockMap::IsValueExecutable<TMap>();
+   }
 
    /// Check if key origin type matches any of the list                       
    ///   @tparam K1, KN... - the list of types to compare against             
