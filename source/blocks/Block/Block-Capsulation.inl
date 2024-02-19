@@ -380,7 +380,7 @@ namespace Langulus::Anyness
    ///   @return the token                                                    
    template<CT::BlockBased THIS> LANGULUS(INLINED)
    constexpr Token Block::GetToken() const noexcept {
-      return GetType<THIS>()->GetShortestUnambiguousToken();
+      return GetType<THIS>().GetToken();
    }
    
    /// Get the size of a single element (in bytes)                            

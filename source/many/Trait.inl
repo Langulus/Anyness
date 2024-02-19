@@ -31,10 +31,10 @@ namespace Langulus::Anyness
    /// absorbed                                                               
    ///   @param t1 - first argument                                           
    ///   @param tn - the rest of the arguments (optional)                     
-   template<class T1, class...TAIL>
-   requires CT::Inner::UnfoldInsertable<T1, TAIL...> LANGULUS(INLINED)
-   Trait::Trait(T1&& t1, TAIL&&...tn) {
-      if constexpr (sizeof...(TAIL) == 0 and not CT::Array<T1>) {
+   template<class T1, class...TN>
+   requires CT::Inner::UnfoldInsertable<T1, TN...> LANGULUS(INLINED)
+   Trait::Trait(T1&& t1, TN&&...tn) {
+      if constexpr (sizeof...(TN) == 0 and not CT::Array<T1>) {
          using S = SemanticOf<decltype(t1)>;
          using T = TypeOf<S>;
 
@@ -47,7 +47,7 @@ namespace Langulus::Anyness
          else
             Any::Insert<Any>(IndexBack, Forward<T1>(t1));
       }
-      else Any::Insert<Any>(IndexBack, Forward<T1>(t1), Forward<TAIL>(tn)...);
+      else Any::Insert<Any>(IndexBack, Forward<T1>(t1), Forward<TN>(tn)...);
    }
 
    /// Create a trait from a trait and data types                             

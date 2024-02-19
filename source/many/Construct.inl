@@ -220,8 +220,7 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    bool Construct::operator == (const Construct& rhs) const {
       return GetHash() == rhs.GetHash()
-         and (mType == rhs.mType or (mType and mType->IsExact(rhs.mType)))
-         and mDescriptor == rhs.mDescriptor;
+         and mType == rhs.mType and mDescriptor == rhs.mDescriptor;
    }
 
    /// Check if construct type can be interpreted as another type             

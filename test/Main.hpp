@@ -66,7 +66,6 @@ T CreateElement(const ALT_T& e) {
    return element;
 }
 
-
 template<class C, class K, class V>
 struct MapPair {
    using Container = C;
@@ -87,12 +86,3 @@ P CreatePair(const ALT_K& key, const ALT_V& value) {
       CreateElement<V>(value)
    };
 }
-
-/*namespace std {
-   template<>
-   struct hash<Text> {
-      size_t operator()(const Text& str) const noexcept {
-         return str.GetHash().mHash;
-      }
-   };
-}*/

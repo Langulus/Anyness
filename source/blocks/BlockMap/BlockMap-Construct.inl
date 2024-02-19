@@ -147,13 +147,18 @@ namespace Langulus::Anyness
                }
                else {
                   // Values are sparse, too - treat them the same       
-                  TAny<Deptr<V>> coalescedValues;
+                  using CV = TAny<Deptr<V>>;
+                  CV coalescedValues;
                   coalescedValues.Reserve(asFrom->GetCount());
-                  for (auto item : *asFrom)
-                     coalescedValues.Insert(IndexBack, SS::Nest(*item.mValue));
-                  const_cast<Allocation*>(coalescedValues.mEntry)->Keep(asFrom->GetCount());
-                  auto ptrVal = coalescedValues.GetRaw();
+                  for (auto item : *asFrom) {
+                     coalescedValues.template InsertInner<CV, void, false>(
+                        IndexBack, SS::Nest(*item.mValue));
+                  }
 
+                  const_cast<Allocation*>(coalescedValues.mEntry)
+                     ->Keep(asFrom->GetCount());
+
+                  auto ptrVal = coalescedValues.GetRaw();
                   auto info = GetInfo();
                   const auto infoEnd = GetInfoEnd();
                   auto dstKey = GetValHandle<B>(0);
@@ -173,14 +178,19 @@ namespace Langulus::Anyness
                // We're cloning pointers, which will inevitably end up  
                // pointing elsewhere, which means that all pairs must   
                // be rehashed and reinserted                            
-               TAny<Deptr<K>> coalescedKeys;
+               using CK = TAny<Deptr<K>>;
+               CK coalescedKeys;
                coalescedKeys.Reserve(asFrom->GetCount());
 
                // Coalesce all densified elements, to avoid multiple    
                // allocations                                           
-               for (auto& item : *asFrom)
-                  coalescedKeys.Insert(IndexBack, SS::Nest(*item.mKey));
-               const_cast<Allocation*>(coalescedKeys.mEntry)->Keep(asFrom->GetCount());
+               for (auto& item : *asFrom) {
+                  coalescedKeys.template InsertInner<CK, void, false>(
+                     IndexBack, SS::Nest(*item.mKey));
+               }
+
+               const_cast<Allocation*>(coalescedKeys.mEntry)
+                  ->Keep(asFrom->GetCount());
 
                // Zero info bytes and insert pointers                   
                ZeroMemory(mInfo, mKeys.mReserved);
@@ -210,13 +220,18 @@ namespace Langulus::Anyness
                }
                else {
                   // Values are sparse, too - treat them the same       
-                  TAny<Deptr<V>> coalescedValues;
+                  using CV = TAny<Deptr<V>>;
+                  CV coalescedValues;
                   coalescedValues.Reserve(asFrom->GetCount());
-                  for (auto& item : *asFrom)
-                     coalescedValues.Insert(IndexBack, SS::Nest(*item.mValue));
-                  const_cast<Allocation*>(coalescedValues.mEntry)->Keep(asFrom->GetCount());
-                  auto ptrVal = coalescedValues.GetRaw();
+                  for (auto& item : *asFrom) {
+                     coalescedValues.template InsertInner<CV, void, false>(
+                        IndexBack, SS::Nest(*item.mValue));
+                  }
 
+                  const_cast<Allocation*>(coalescedValues.mEntry)
+                     ->Keep(asFrom->GetCount());
+
+                  auto ptrVal = coalescedValues.GetRaw();
                   while (ptr != ptrEnd) {
                      InsertInner<B, false>(
                         GetBucket(GetReserved() - 1, ptr),
@@ -288,12 +303,16 @@ namespace Langulus::Anyness
                   // Values are sparse, too - treat them the same       
                   auto coalescedValues = Any::FromMeta(asFrom->mValues.mType->mDeptr);
                   coalescedValues.Reserve(asFrom->GetCount());
-                  for (auto item : *asFrom)
-                     coalescedValues.Insert(IndexBack, SS::Nest(*item.mValue));
-                  const_cast<Allocation*>(coalescedValues.mEntry)->Keep(asFrom->GetCount());
+                  for (auto item : *asFrom) {
+                     coalescedValues.template InsertBlockInner<Any, void, false>(
+                        IndexBack, SS::Nest(*item.mValue));
+                  }
+
+                  const_cast<Allocation*>(coalescedValues.mEntry)
+                     ->Keep(asFrom->GetCount());
+
                   auto ptrVal = coalescedValues.mRaw;
                   const Size valstride = coalescedValues.GetStride();
-
                   auto info = GetInfo();
                   const auto infoEnd = GetInfoEnd();
                   while (info != infoEnd) {
@@ -319,9 +338,13 @@ namespace Langulus::Anyness
 
                // Coalesce all densified elements, to avoid multiple    
                // allocations                                           
-               for (auto item : *asFrom)
-                  coalescedKeys.InsertBlock(IndexBack, SS::Nest(*item.mKey));
-               const_cast<Allocation*>(coalescedKeys.mEntry)->Keep(asFrom->GetCount());
+               for (auto item : *asFrom) {
+                  coalescedKeys.template InsertBlockInner<Any, void, false>(
+                     IndexBack, SS::Nest(*item.mKey));
+               }
+
+               const_cast<Allocation*>(coalescedKeys.mEntry)
+                  ->Keep(asFrom->GetCount());
 
                // Zero info bytes and insert pointers                   
                ZeroMemory(mInfo, mKeys.mReserved);
@@ -354,12 +377,16 @@ namespace Langulus::Anyness
                   // Values are sparse, too - treat them the same       
                   auto coalescedValues = Any::FromMeta(asFrom->mValues.mType->mDeptr);
                   coalescedValues.Reserve(asFrom->GetCount());
-                  for (auto item : *asFrom)
-                     coalescedValues.Insert(IndexBack, SS::Nest(*item.mValue));
-                  const_cast<Allocation*>(coalescedValues.mEntry)->Keep(asFrom->GetCount());
+                  for (auto item : *asFrom) {
+                     coalescedValues.template InsertBlockInner<Any, void, false>(
+                        IndexBack, SS::Nest(*item.mValue));
+                  }
+
+                  const_cast<Allocation*>(coalescedValues.mEntry)
+                     ->Keep(asFrom->GetCount());
+
                   auto ptrVal = coalescedValues.mRaw;
                   const Size valstride = coalescedValues.GetStride();
-
                   while (ptr != ptrEnd) {
                      InsertInner<B, false>(
                         GetBucket(GetReserved() - 1, ptr),
