@@ -40,13 +40,13 @@ namespace Langulus::Anyness
    /// Create from a list of elements, each of them can be semantic or not,   
    /// an array, as well as any other kinds of sets                           
    ///   @param t1 - first element                                            
-   ///   @param tail - tail of elements (optional)                            
-   TEMPLATE() template<class T1, class...TAIL>
-   requires CT::DeepSetMakable<T, T1, TAIL...> LANGULUS(INLINED)
-   TABLE()::TSet(T1&& t1, TAIL&&...tail) {
+   ///   @param tn - tail of elements (optional)                              
+   TEMPLATE() template<class T1, class...TN>
+   requires CT::DeepSetMakable<T, T1, TN...> LANGULUS(INLINED)
+   TABLE()::TSet(T1&& t1, TN&&...tn) {
       mKeys.mType = MetaDataOf<T>();
 
-      if constexpr (sizeof...(TAIL) == 0) {
+      if constexpr (sizeof...(TN) == 0) {
          using S = SemanticOf<decltype(t1)>;
          using ST = TypeOf<S>;
 
@@ -93,7 +93,7 @@ namespace Langulus::Anyness
          }
          else Insert(Forward<T1>(t1));
       }
-      else Insert(Forward<T1>(t1), Forward<TAIL>(tail)...);
+      else Insert(Forward<T1>(t1), Forward<TN>(tn)...);
    }
 
    /// Destroys the set and all it's contents                                 
@@ -291,12 +291,12 @@ namespace Langulus::Anyness
 
    /// Unfold-insert elements, semantically or not                            
    ///   @param t1 - element, or array of elements, to insert                 
-   ///   @param tail... - the rest of the elements (optional)                 
+   ///   @param tn... - the rest of the elements (optional)                   
    ///   @return the number of inserted elements                              
-   TEMPLATE() template<class T1, class...TAIL>
-   requires CT::Inner::UnfoldMakableFrom<T, T1, TAIL...> LANGULUS(INLINED)
-   Count TABLE()::Insert(T1&& t1, TAIL&&...tail) {
-      return BlockSet::Insert<TSet>(Forward<T1>(t1), Forward<TAIL>(tail)...);
+   TEMPLATE() template<class T1, class...TN>
+   requires CT::Inner::UnfoldMakableFrom<T, T1, TN...> LANGULUS(INLINED)
+   Count TABLE()::Insert(T1&& t1, TN&&...tn) {
+      return BlockSet::Insert<TSet>(Forward<T1>(t1), Forward<TN>(tn)...);
    }
    
    /// Insert all elements of a set, semantically or not                      

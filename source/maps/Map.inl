@@ -42,11 +42,11 @@ namespace Langulus::Anyness
    /// If there's one map argument, it will be absorbed                       
    /// Otherwise, elements are expected to initialize a pair each             
    ///   @param t1 - first element (can be semantic)                          
-   ///   @param tail... - the rest of the elements (optional, can be semantic)
-   TEMPLATE() template<class T1, class...TAIL>
-   requires CT::Inner::UnfoldInsertable<T1, TAIL...>
-   LANGULUS(INLINED) TABLE()::Map(T1&& t1, TAIL&&...tail) {
-      if constexpr (sizeof...(TAIL) == 0) {
+   ///   @param tn... - the rest of the elements (optional, can be semantic)  
+   TEMPLATE() template<class T1, class...TN>
+   requires CT::Inner::UnfoldInsertable<T1, TN...>
+   LANGULUS(INLINED) TABLE()::Map(T1&& t1, TN&&...tn) {
+      if constexpr (sizeof...(TN) == 0) {
          using S = SemanticOf<decltype(t1)>;
          using T = TypeOf<S>;
 
@@ -55,7 +55,7 @@ namespace Langulus::Anyness
          else
             BlockMap::InsertPair<Map>(Forward<T1>(t1));
       }
-      else BlockMap::InsertPair<Map>(Forward<T1>(t1), Forward<TAIL>(tail)...);
+      else BlockMap::InsertPair<Map>(Forward<T1>(t1), Forward<TN>(tn)...);
    }
 
    /// Map destructor                                                         

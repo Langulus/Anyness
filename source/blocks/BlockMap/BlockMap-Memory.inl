@@ -48,7 +48,7 @@ namespace Langulus::Anyness
       }
 
       mValues.mRaw = const_cast<Byte*>(mValues.mEntry->GetBlockStart());
-      mKeys.mReserved /*= mValues.mReserved*/ = count;
+      mKeys.mReserved = count;
 
       // Precalculate the info pointer, it's costly                     
       mKeys.mRaw = const_cast<Byte*>(mKeys.mEntry->GetBlockStart());
@@ -97,7 +97,7 @@ namespace Langulus::Anyness
       }
 
       mValues.mRaw = const_cast<Byte*>(mValues.mEntry->GetBlockStart());
-      mKeys.mReserved = /*mValues.mReserved =*/ count;
+      mKeys.mReserved = count;
 
       // Precalculate the info pointer, it's costly                     
       mKeys.mRaw = const_cast<Byte*>(mKeys.mEntry->GetBlockStart());

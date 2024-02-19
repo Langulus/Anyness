@@ -175,13 +175,13 @@ namespace Langulus::Anyness
 
    /// Insert elements, semantically or not                                   
    ///   @param t1 - the first item to insert                                 
-   ///   @param tail... - the rest of items to insert (optional)              
+   ///   @param tn... - the rest of items to insert (optional)                
    ///   @return number of inserted elements                                  
-   template<CT::Set THIS, class T1, class...TAIL> LANGULUS(INLINED)
-   Count BlockSet::Insert(T1&& t1, TAIL&&...tail) {
+   template<CT::Set THIS, class T1, class...TN> LANGULUS(INLINED)
+   Count BlockSet::Insert(T1&& t1, TN&&...tn) {
       Count inserted = 0;
         inserted += UnfoldInsert<THIS>(Forward<T1>(t1));
-      ((inserted += UnfoldInsert<THIS>(Forward<TAIL>(tail))), ...);
+      ((inserted += UnfoldInsert<THIS>(Forward<TN>(tn))), ...);
       return inserted;
    }
    

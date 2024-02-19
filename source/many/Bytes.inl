@@ -37,26 +37,40 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    Bytes::Bytes(const CT::BinablePOD auto& item) {
       using T = Deref<decltype(item)>;
-      Block::AllocateFresh<Bytes>(Block::RequestSize<Bytes>(sizeof(T)));
+      constexpr auto size = sizeof(T);
+
+      Block::AllocateFresh<Bytes>(Block::RequestSize<Bytes>(size));
       if constexpr (CT::Array<T>)
-         CopyMemory(mRaw, reinterpret_cast<const Byte*>(item), sizeof(T));
+         CopyMemory(mRaw, reinterpret_cast<const Byte*>( item), size);
       else
-         CopyMemory(mRaw, reinterpret_cast<const Byte*>(&item), sizeof(T));
-      mCount += sizeof(T);
+         CopyMemory(mRaw, reinterpret_cast<const Byte*>(&item), size);
+      mCount += size;
    }
  
    /// Serialize a meta definition                                            
    ///   @param meta - the definition to serialize                            
    LANGULUS(INLINED)
    Bytes::Bytes(const CT::Meta auto& meta) {
-      const auto token = meta.GetToken();
-      const Count tokensize = static_cast<Count>(token.size());
-      const Count count = sizeof(Count) + tokensize;
-      Block::AllocateFresh<Bytes>(Block::RequestSize<Bytes>(count));
-      CopyMemory(GetRaw(), reinterpret_cast<const Byte*>(&tokensize), sizeof(tokensize));
-      if (tokensize)
-         CopyMemory(GetRaw() + sizeof(Count), reinterpret_cast<const Byte*>(token.data()), tokensize);
-      mCount = count;
+      constexpr auto atom = sizeof(Count);
+
+      if (meta) {
+         const auto token = meta->mToken;
+         const Count tokensize = static_cast<Count>(token.size());
+         const Count count = atom + tokensize;
+         Block::AllocateFresh<Bytes>(Block::RequestSize<Bytes>(count));
+         mCount = count;
+         CopyMemory(GetRaw(),
+            reinterpret_cast<const Byte*>(&tokensize), atom);
+         CopyMemory(GetRaw() + atom,
+            reinterpret_cast<const Byte*>(token.data()), tokensize);
+      }
+      else {
+         const Count tokensize = 0;
+         Block::AllocateFresh<Bytes>(Block::RequestSize<Bytes>(atom));
+         mCount = atom;
+         CopyMemory(GetRaw(),
+            reinterpret_cast<const Byte*>(&tokensize), atom);
+      }
    }
  
    /// Compose bytes by an arbitrary amount of binable arguments              
@@ -66,8 +80,8 @@ namespace Langulus::Anyness
    template<class T1, class T2, class...TN>
    requires CT::Inner::Binable<T1, T2, TN...> LANGULUS(INLINED)
    Bytes::Bytes(T1&& t1, T2&& t2, TN&&...tn) {
-      UnfoldInsert(Forward<T1>(t1));
-      UnfoldInsert(Forward<T2>(t2));
+        UnfoldInsert(Forward<T1>(t1));
+        UnfoldInsert(Forward<T2>(t2));
       ((UnfoldInsert(Forward<TN>(tn))), ...);
    }
    
@@ -144,7 +158,7 @@ namespace Langulus::Anyness
          return false;
 
       if constexpr (CT::Array<T>)
-         return 0 == ::std::memcmp(mRaw, rhs, sizeof(T));
+         return 0 == ::std::memcmp(mRaw,  rhs, sizeof(T));
       else
          return 0 == ::std::memcmp(mRaw, &rhs, sizeof(T));
    }

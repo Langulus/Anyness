@@ -28,7 +28,7 @@ namespace Langulus::Anyness
       const auto initial = out.mCount;
       const auto& me = *reinterpret_cast<const THIS*>(this);
 
-      if constexpr (CT::Typed<THIS> and CT::Typed<OUT>) {
+      if constexpr (CT::Typed<THIS, OUT>) {
          // Both containers are statically typed, so leverage it to     
          // generate a well inlined routine for conversion              
          using FROM = TypeOf<THIS>;
@@ -50,10 +50,15 @@ namespace Langulus::Anyness
          }         
       }
       else if (me.IsSimilar(out.GetType())) {
-         // Types are already the same, just copy elements              
-         out.template AllocateMore<OUT>(out.mCount + mCount);
-         out.template InsertBlockInner<OUT, void, false>(
-            IndexBack, Copy(*this));
+         // Types are already the same, don't convert anything          
+         if (out.IsEmpty())
+            out = me;
+         else if constexpr ((CT::Typed<THIS> and CT::Inner::CopyMakable<TypeOf<THIS>>)
+                        or  (CT::Typed<OUT>  and CT::Inner::CopyMakable<TypeOf<OUT>>))
+            out.InsertBlock(IndexBack, Copy(me));
+         else LANGULUS_OOPS(Convert, 
+            "Unable to append uncopyable elements of type ",
+            '`', GetType(), "` - use pointers instead?");
       }
       else {
          // Search for a reflected conversion routine                   
@@ -94,17 +99,13 @@ namespace Langulus::Anyness
                   ->Keep(mCount - 1);
             }
             else {
-               // Both RHS and LHS are dense and non-POD                
-               // We invoke reflected constructors for each element     
-               auto from = mRaw;
+               // We're converting to dense container                   
                auto to = out.mRaw;
-               const auto toEnd = to + mCount * out.GetType()->mSize;
-
-               while (to != toEnd) {
+               for (Count i = 0; i < mCount; ++i) {
                   // Construct each element                             
-                  converter(from, to);
+                  auto from = GetElementDense<CountMax, THIS>(i);
+                  converter(from.mRaw, to);
                   to += out.GetType()->mSize;
-                  from += mType->mSize;
                }
             }
          }
@@ -133,17 +134,13 @@ namespace Langulus::Anyness
                   ->Keep(mCount - 1);
             }
             else {
-               // Both RHS and LHS are dense and non-POD                
-               // We invoke reflected constructors for each element     
-               auto from = mRaw;
+               // We're converting to dense container                   
                auto to = out.mRaw;
-               const auto toEnd = to + mCount * out.GetType()->mSize;
-
-               while (to != toEnd) {
+               for (Count i = 0; i < mCount; ++i) {
                   // Construct each element                             
-                  converter(from, to);
+                  auto from = GetElementDense<CountMax, THIS>(i);
+                  converter(from.mRaw, to);
                   to += out.GetType()->mSize;
-                  from += mType->mSize;
                }
             }
          }
@@ -387,13 +384,13 @@ namespace Langulus::Anyness
 
          return to.GetCount() - initial;
       }
-      else if (CastsTo<RTTI::Meta>()) {
+      else if (CastsTo<AMeta>()) {
          // Serialize meta                                              
          ForEach(
-            [&to](DMeta meta) { to += Bytes {meta}; },
-            [&to](VMeta meta) { to += Bytes {meta}; },
-            [&to](TMeta meta) { to += Bytes {meta}; },
-            [&to](CMeta meta) { to += Bytes {meta}; }
+            [&to](DMeta meta) noexcept {to += Bytes {meta};},
+            [&to](VMeta meta) noexcept {to += Bytes {meta};},
+            [&to](TMeta meta) noexcept {to += Bytes {meta};},
+            [&to](CMeta meta) noexcept {to += Bytes {meta};}
          );
 
          return to.GetCount() - initial;
@@ -409,17 +406,37 @@ namespace Langulus::Anyness
             auto p = GetRawSparseAs<Byte>();
             const auto pEnd = p + GetCount();
             while (p != pEnd)
-               to += Bytes::From(p++, denseStride);
+               to += Bytes::From(Disown(p++), denseStride);
          }
          else {
             // ... at once if dense                                     
-            to += Bytes::From(GetRawAs<Byte>(), byteCount);
+            to += Bytes::From(Disown(GetRawAs<Byte>()), byteCount);
          }
 
          return to.GetCount() - initial;
       }
       else if (mType->mDefaultConstructor
       and not  mType->mProducerRetriever) {
+         // Serialize specialized containers here                       
+         const auto satisfied = ForEach(
+            [&to](const Text& text) {
+               to += Bytes {text.GetCount()};
+               to += Bytes::From(Disown(text.mRaw), text.mCount);
+            },
+            [&to](const Bytes& bytes) {
+               to += Bytes {bytes.mCount};
+               to += bytes;
+            },
+            [this,&to](const Trait& trait) {
+               if (IsSimilar<THIS, Trait>())
+                  to += Bytes {trait.GetTrait()};
+               trait.SerializeToBinary<Block, void>(to);
+            }
+         );
+
+         if (satisfied)
+            return to.GetCount() - initial;
+
          // Type is statically creatable, and has default constructor   
          // therefore we can serialize it by serializing each           
          // reflected base and member                                   
@@ -489,7 +506,8 @@ namespace Langulus::Anyness
          ReadInner<THIS>(read, 8, loader);
          ::std::memcpy(&count8, At(read), 8);
          read += 8;
-         LANGULUS_ASSERT(count8 > std::numeric_limits<Offset>::max(),
+         LANGULUS_ASSERT(
+            count8 <= std::numeric_limits<Offset>::max(),
             Convert, "Deserialized atom contains a value "
             "too powerful for your architecture");
          result = static_cast<Offset>(count8);
@@ -531,6 +549,9 @@ namespace Langulus::Anyness
             result = RTTI::GetMetaConstant(token);
          else
             LANGULUS_ERROR("Unsupported meta deserialization");
+
+         LANGULUS_ASSERT(result, Meta,
+            "Deserialized meta for token `", token, "` doesn't exist");
          return read + count;
       }
 
@@ -551,11 +572,13 @@ namespace Langulus::Anyness
       CT::Block auto& to, const Header& header, Offset readOffset, Loader loader
    ) const {
       using OUT = Deref<decltype(to)>;
+      using T = Conditional<CT::Typed<OUT>, TypeOf<OUT>, NEXT>;
+
       static_assert(CT::Untyped<THIS> or CT::Bytes<THIS>,
          "THIS isn't a byte container");
       static_assert(CT::Untyped<OUT> or CT::TypeErased<NEXT>
          or CT::Similar<TypeOf<OUT>, NEXT>, "Type mismatch");
-      using T = Conditional<CT::Typed<OUT>, TypeOf<OUT>, NEXT>;
+
       LANGULUS_ASSUME(DevAssumes, (IsSimilar<THIS, Byte>()),
          "THIS isn't a byte container");
 
@@ -588,9 +611,13 @@ namespace Langulus::Anyness
       else {
          // We have predictable data                                    
          // In this case, 'to' should already be allocated and known    
-         LANGULUS_ASSUME(DevAssumes, to.GetType()->template IsSimilar<T>(),
-            "Bad binary deserializing block type: ",
-            to.GetType(), " instead of ", MetaDataOf<T>());
+         if constexpr (not CT::SameAsOneOf<T, RTTI::Base, RTTI::Member>) {
+            LANGULUS_ASSUME(DevAssumes, to.GetType()->template IsSimilar<T>(),
+               "Bad binary deserializing block type: ",
+               to.GetType(), " instead of ", MetaDataOf<T>()
+            );
+         }
+
          LANGULUS_ASSUME(DevAssumes, not to.IsEmpty(),
             "Binary deserializing block isn't preinitialized");
 
@@ -612,23 +639,23 @@ namespace Langulus::Anyness
 
          return read;
       }
-      else if (to.GetType()->template IsSimilar<DMeta, TMeta, CMeta, VMeta>()) {
+      else if (to.template CastsTo<AMeta>()) {
          // Deserialize data definitions                                
          //TODO register them as dependencies
          if constexpr (CT::TypeErased<T>)
             to.New(deserializedCount);
 
          to.ForEach(
-            [&](DMeta& meta) {
+            [&](DMeta& meta) noexcept {
                read = DeserializeMeta<THIS>(meta, read, header, loader);
             },
-            [&](VMeta& meta) {
+            [&](VMeta& meta) noexcept {
                read = DeserializeMeta<THIS>(meta, read, header, loader);
             },
-            [&](CMeta& meta) {
+            [&](CMeta& meta) noexcept {
                read = DeserializeMeta<THIS>(meta, read, header, loader);
             },
-            [&](TMeta& meta) {
+            [&](TMeta& meta) noexcept {
                read = DeserializeMeta<THIS>(meta, read, header, loader);
             }
          );
@@ -671,9 +698,72 @@ namespace Langulus::Anyness
       }
       else if (to.mType->mDefaultConstructor
       and not  to.mType->mProducerRetriever) {
+         if (to.template CastsTo<Text>()) {
+            // Deserialize a text based container                       
+            if constexpr (CT::TypeErased<T>)
+               to.template AllocateMore<OUT>(deserializedCount);
+
+            for (Count i = 0; i < deserializedCount; ++i) {
+               Count count = 0;
+               read = DeserializeAtom<THIS>(count, read, header, loader);
+               to.template InsertInner<OUT, void, false>(
+                  IndexBack, Text::From(Disown(
+                     reinterpret_cast<const Letter*>(mRaw + read)), count)
+               );
+               read += count * sizeof(Letter);
+            }
+
+            return read;
+         }
+         else if (to.template CastsTo<Bytes>()) {
+            // Deserialize a bytes based container                      
+            if constexpr (CT::TypeErased<T>)
+               to.template AllocateMore<OUT>(deserializedCount);
+
+            for (Count i = 0; i < deserializedCount; ++i) {
+               Count count = 0;
+               read = DeserializeAtom<THIS>(count, read, header, loader);
+               to.template InsertInner<OUT, void, false>(
+                  IndexBack, Bytes::From(Disown(mRaw + read), count)
+               );
+               read += count;
+            }
+
+            return read;
+         }
+         else if (to.template CastsTo<Trait>()) {
+            // Deserialize a Trait based container                      
+            if constexpr (CT::TypeErased<T>)
+               to.New(deserializedCount);
+
+            if (to.template IsSimilar<OUT, Trait>()) {
+               // Each trait can be different                           
+               to.ForEach([&](Trait& trait) {
+                  TMeta ttype;
+                  read = DeserializeMeta<THIS>(ttype, read, header, loader);
+                  trait.SetTrait(ttype);
+
+                  auto& block = static_cast<Block&>(trait);
+                  read = DeserializeBinary<Block, void>(block, header, read, loader);
+               });
+            }
+            else {
+               // All traits are the same                               
+               to.ForEach([&](Trait& trait) {
+                  auto& block = static_cast<Block&>(trait);
+                  read = DeserializeBinary<Block, void>(block, header, read, loader);
+               });
+            }
+
+            return read;
+         }
+
          // Type is statically producible, and has default constructor, 
          // therefore we can deserialize it by making a default         
          // instance, and filling in the reflected members and bases    
+         if constexpr (CT::TypeErased<T>)
+            to.template AllocateMore<OUT>(deserializedCount);
+
          for (Count i = 0; i < deserializedCount; ++i) {
             Any element;
             if constexpr (CT::TypeErased<T>) {
@@ -710,9 +800,10 @@ namespace Langulus::Anyness
                   memberBlock, header, read, loader);
             }
 
-            if constexpr (CT::TypeErased<T>)
+            if constexpr (CT::TypeErased<T>) {
                to.template InsertBlockInner<OUT, void, false>(
                   IndexBack, Abandon(static_cast<Block&>(element)));
+            }
          }
 
          return read;

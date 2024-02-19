@@ -27,18 +27,15 @@ namespace Langulus
          LANGULUS(ABSTRACT) true;
          LANGULUS(DEEP) true;
          LANGULUS(POD) true;
+
       protected:
          union {
-            #if LANGULUS_DEBUG()
-               char* mRawChar;
-            #endif
+            DEBUGGERY(char* mRawChar);
             // Raw pointer to first element inside the memory block     
             Byte* mRaw {};
             Byte** mRawSparse;
          };
    
-         // The data state                                              
-         DataState mState {DataState::Default};
          // Number of initialized elements inside memory block          
          Count mCount {};
          // Number of allocated elements in the memory block            
@@ -49,6 +46,8 @@ namespace Langulus
          // is static, or we simply have no authority over it (just a   
          // view)                                                       
          const Allocation* mEntry {};
+         // The data state                                              
+         DataState mState {DataState::Default};
 
       public:
          constexpr Block() noexcept = default;
@@ -644,10 +643,10 @@ namespace Langulus::Anyness
       NOD() bool CompareTypes(const Block&, RTTI::Base&) const;
       NOD() bool CallComparer(const Block&, const RTTI::Base&) const;
 
-      template<bool REVERSE = false>
-      Count GatherInner(const CT::Block auto&, CT::Block auto&);
-      template<bool REVERSE = false>
-      Count GatherPolarInner(DMeta, const CT::Block auto&, CT::Block auto&, DataState);
+      template<bool REVERSE = false, CT::Block = Any>
+      Count GatherInner(CT::Block auto&) const;
+      template<bool REVERSE = false, CT::Block = Any>
+      Count GatherPolarInner(DMeta, CT::Block auto&, DataState) const;
 
    public:
       ///                                                                     

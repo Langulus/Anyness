@@ -96,10 +96,11 @@ namespace Langulus::Anyness
       void SetTrait() noexcept;
       void SetTrait(TMeta) noexcept;
 
-      template<CT::TraitBased = Trait, CT::Trait, CT::Trait...>
+      template<CT::Trait, CT::TraitBased = Trait>
       NOD() constexpr bool IsTrait() const;
 
-      template<CT::TraitBased = Trait, class...TN> requires CT::Exact<TMeta, TMeta, TN...>
+      template<CT::TraitBased = Trait, class...TN>
+      requires CT::Exact<TMeta, TMeta, TN...>
       NOD() bool IsTrait(TMeta, TN...) const;
 
       template<CT::TraitBased = Trait>

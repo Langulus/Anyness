@@ -45,13 +45,13 @@ namespace Langulus::Anyness
    /// Create from a list of elements, each of them can be semantic or not,   
    /// an array, as well as any other kinds of anies                          
    ///   @param t1 - first element                                            
-   ///   @param tail - tail of elements (optional)                            
-   TEMPLATE() template<class T1, class...TAIL>
-   requires CT::DeepMakable<T, T1, TAIL...> LANGULUS(INLINED)
-   TAny<T>::TAny(T1&& t1, TAIL&&...tail) {
+   ///   @param tn - tail of elements (optional)                              
+   TEMPLATE() template<class T1, class...TN>
+   requires CT::DeepMakable<T, T1, TN...> LANGULUS(INLINED)
+   TAny<T>::TAny(T1&& t1, TN&&...tn) {
       mType = MetaDataOf<T>();
 
-      if constexpr (sizeof...(TAIL) == 0) {
+      if constexpr (sizeof...(TN) == 0) {
          using S = SemanticOf<decltype(t1)>;
          using ST = TypeOf<S>;
 
@@ -59,6 +59,7 @@ namespace Langulus::Anyness
             if constexpr (CT::Typed<ST>) {
                // Not type-erased block, do compile-time type checks    
                using STT = TypeOf<ST>;
+
                if constexpr (CT::Similar<T, STT>) {
                   // Type is binary compatible, just transfer block     
                   Block::BlockTransfer<TAny>(S::Nest(t1));
@@ -97,16 +98,17 @@ namespace Langulus::Anyness
                   // This TAny accepts any kind of deep element         
                   Insert(IndexBack, Forward<T1>(t1));
                }
-               else {
+               else if constexpr (CT::Typed<ST> and CT::MakableFrom<T, typename S::template As<TypeOf<ST>>>) {
                   // Attempt converting all elements to T               
                   InsertBlock(IndexBack, Forward<T1>(t1));
                }
+               else LANGULUS_OOPS(Meta, "Unable to absorb block");
             }
             else LANGULUS_ERROR("Can't construct this TAny from this kind of Block");
          }
          else Insert(IndexBack, Forward<T1>(t1));
       }
-      else Insert(IndexBack, Forward<T1>(t1), Forward<TAIL>(tail)...);
+      else Insert(IndexBack, Forward<T1>(t1), Forward<TN>(tn)...);
    }
 
    /// Destructor                                                             
@@ -668,13 +670,13 @@ namespace Langulus::Anyness
    ///      elements at index to the right, in order to fit the insertion     
    ///   @param index - the index to insert at                                
    ///   @param t1 - the first element                                        
-   ///   @param tail - the rest of the elements (optional)                    
+   ///   @param tn - the rest of the elements (optional)                      
    ///   @return number of inserted items                                     
-   TEMPLATE() template<bool MOVE_ASIDE, class T1, class...TAIL>
-   requires CT::Inner::UnfoldMakableFrom<T, T1, TAIL...> LANGULUS(INLINED)
-   Count TAny<T>::Insert(CT::Index auto index, T1&& t1, TAIL&&...tail) {
+   TEMPLATE() template<bool MOVE_ASIDE, class T1, class...TN>
+   requires CT::Inner::UnfoldMakableFrom<T, T1, TN...> LANGULUS(INLINED)
+   Count TAny<T>::Insert(CT::Index auto index, T1&& t1, TN&&...tn) {
       return Block::Insert<TAny, Any, MOVE_ASIDE>(
-         index, Forward<T1>(t1), Forward<TAIL>(tail)...);
+         index, Forward<T1>(t1), Forward<TN>(tn)...);
    }
 
    /// Insert all elements of a block at an index, semantically or not        
@@ -698,13 +700,13 @@ namespace Langulus::Anyness
    ///      elements at index to the right, in order to fit the insertion     
    ///   @param index - the index at which to insert                          
    ///   @param t1 - the first item to insert                                 
-   ///   @param tail... - the rest of items to insert (optional)              
+   ///   @param tn... - the rest of items to insert (optional)                
    ///   @return the number of inserted items                                 
-   TEMPLATE() template<bool MOVE_ASIDE, class T1, class...TAIL>
-   requires CT::Inner::UnfoldMakableFrom<T, T1, TAIL...> LANGULUS(INLINED)
-   Count TAny<T>::Merge(CT::Index auto index, T1&& t1, TAIL&&...tail) {
+   TEMPLATE() template<bool MOVE_ASIDE, class T1, class...TN>
+   requires CT::Inner::UnfoldMakableFrom<T, T1, TN...> LANGULUS(INLINED)
+   Count TAny<T>::Merge(CT::Index auto index, T1&& t1, TN&&...tn) {
       return Block::Merge<TAny, Any, MOVE_ASIDE>(
-         index, Forward<T1>(t1), Forward<TAIL>(tail)...);
+         index, Forward<T1>(t1), Forward<TN>(tn)...);
    }
 
    /// Search for a sequence of elements, and if not found, semantically      
@@ -876,8 +878,8 @@ namespace Langulus::Anyness
    ///   @param source - container to gather from, type acts as filter        
    ///   @return the number of gathered elements                              
    TEMPLATE() template<bool REVERSE> LANGULUS(INLINED)
-   Count TAny<T>::GatherFrom(const Block& source) {
-      return GatherInner<REVERSE>(source, *this);
+   Count TAny<T>::GatherFrom(const CT::Block auto& source) {
+      return source.template GatherInner<REVERSE>(*this);
    }
 
    /// Gather items of specific state from source container, and fill this one
@@ -886,8 +888,8 @@ namespace Langulus::Anyness
    ///   @param state - state filter                                          
    ///   @return the number of gathered elements                              
    TEMPLATE() template<bool REVERSE> LANGULUS(INLINED)
-   Count TAny<T>::GatherFrom(const Block& source, DataState state) {
-      return GatherPolarInner<REVERSE>(GetType(), source, *this, state);
+   Count TAny<T>::GatherFrom(const CT::Block auto& source, DataState state) {
+      return source.template GatherPolarInner<REVERSE>(GetType(), *this, state);
    }
 
    /// Pick a constant region and reference it from another container         

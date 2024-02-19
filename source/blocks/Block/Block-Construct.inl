@@ -24,8 +24,8 @@ namespace Langulus::A
    ///   @param meta - the type of the memory block                           
    LANGULUS(INLINED)
    constexpr Block::Block(const DataState& state, DMeta meta) noexcept
-      : mState {state}
-      , mType {meta} { }
+      : mType {meta}
+      , mState {state} { }
    
    /// Manual construction via state and a reflected constant                 
    ///   @param state - the initial state of the container                    
@@ -83,11 +83,11 @@ namespace Langulus::A
    Block::Block(const DataState& state, DMeta meta, Count count, void* raw, const Allocation* entry)
    IF_UNSAFE(noexcept)
       : mRaw {static_cast<Byte*>(raw)}
-      , mState {state}
       , mCount {count}
       , mReserved {count}
       , mType {meta}
-      , mEntry {entry} {
+      , mEntry {entry}
+      , mState {state} {
       LANGULUS_ASSUME(DevAssumes, not entry or raw,
          "Invalid data pointer");
       LANGULUS_ASSUME(DevAssumes, meta,

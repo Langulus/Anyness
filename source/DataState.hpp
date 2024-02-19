@@ -16,11 +16,12 @@ namespace Langulus
    ///                                                                        
    ///   Data state flags                                                     
    ///                                                                        
+   #pragma pack(push, 1)
    struct DataState {
       LANGULUS(POD) true;
       LANGULUS(NULLIFIABLE) true;
 
-      enum Enum {
+      enum Enum : ::std::uint8_t {
          // Default data state                                          
          // Default state is inclusive, mutable, nonmissing             
          // nonstatic, nonencrypted, noncompressed, and dense           
@@ -116,5 +117,6 @@ namespace Langulus
       
       constexpr void Reset() noexcept;
    };
-   
+   #pragma pack(pop)
+
 } // namespace Langulus

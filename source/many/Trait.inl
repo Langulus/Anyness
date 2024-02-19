@@ -141,16 +141,15 @@ namespace Langulus::Anyness
       }
    }
 
-   /// Check if a trait matches one of a set of trait types                   
-   ///   @tparam T1 - the first trait to compare against                      
-   ///   @tparam TN - the rest of trait to compare against (optional)         
-   ///   @return true if this trait matches one of the given types            
-   template<CT::TraitBased THIS, CT::Trait T1, CT::Trait...TN> LANGULUS(INLINED)
+   /// Check if a trait matches the given trait type                          
+   ///   @tparam T1 - the trait to compare against                            
+   ///   @return true trait matches                                           
+   template<CT::Trait T1, CT::TraitBased THIS> LANGULUS(INLINED)
    constexpr bool Trait::IsTrait() const {
       if constexpr (CT::Trait<THIS>)
-         return CT::SimilarAsOneOf<THIS, T1, TN...>;
+         return CT::SimilarAsOneOf<THIS, T1>;
       else
-         return IsTrait(MetaTraitOf<T1>(), MetaTraitOf<TN>()...);
+         return IsTrait(MetaTraitOf<T1>());
    }
 
    /// Check if a trait matches one of a set of trait types                   

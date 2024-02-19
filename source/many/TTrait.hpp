@@ -24,6 +24,9 @@ namespace Langulus::Anyness
 
       using TraitType = TRAIT;
 
+      template<class T>
+      using Tag = RTTI::Tag<T, TRAIT>;
+
    public:
       using Trait::Trait;
       TTrait(const TTrait&);
@@ -38,7 +41,7 @@ namespace Langulus::Anyness
       TTrait& operator = (TTrait&&);
 
    public:
-      template<CT::Trait, CT::Trait...>
+      template<CT::Trait>
       NOD() constexpr bool IsTrait() const;
       template<CT::Trait...TN>
       NOD() constexpr bool IsTrait(TMeta, TN...) const;

@@ -43,7 +43,7 @@ namespace Langulus::Anyness
    ///   @param other - the handle and semantic to construct with             
    TEMPLATE() template<template<class> class S, CT::Handle H>
    requires CT::Inner::SemanticMakable<S, T> LANGULUS(INLINED)
-   constexpr HAND()::Handle(S<H>&& other) 
+   constexpr HAND()::Handle(S<H>&& other)
       : mValue {S<T>(other->Get())}
       , mEntry {other->GetEntry()} {
       using HT = TypeOf<H>;
@@ -73,20 +73,23 @@ namespace Langulus::Anyness
       
    /// Semantically construct using compatible non-handle type                
    ///   @param other - the handle and semantic to construct with             
-   TEMPLATE() template<template<class> class S, CT::NotHandle H>
-   requires (not EMBED and CT::Semantic<S<H>> and CT::MakableFrom<T, S<H>>)
-   LANGULUS(INLINED) constexpr HAND()::Handle(S<H>&& other, const Allocation* e)
-      : mValue {other.Forward()}
+   TEMPLATE() template<class T1>
+   requires (not EMBED and CT::MakableFrom<T, T1>) LANGULUS(INLINED)
+   constexpr HAND()::Handle(T1&& other, const Allocation* e)
+      : mValue {Forward<T1>(other)}
       , mEntry {e} {
+      using S = SemanticOf<T1>;
+
       if constexpr (CT::Sparse<T>) {
          // A pointer on the stack can still contain an entry           
-         if constexpr (S<H>::Shallow) {
+         if constexpr (S::Shallow) {
             // Copy/Disown/Move/Abandon a pointer                       
             // Since pointers don't have ownership, it's just a copy    
             // with an optional entry search, if not disowned, and if   
             // managed memory is enabled                                
             using DT = Deptr<T>;
-            if constexpr (CT::Allocatable<DT> and (S<H>::Keep or S<H>::Move))
+
+            if constexpr (CT::Allocatable<DT> and (S::Keep or S::Move))
                mEntry = Allocator::Find(MetaDataOf<DT>(), mValue);
          }
          else {

@@ -31,7 +31,7 @@ namespace Langulus::Anyness
    ///   @return true if this block contains similar data                     
    template<CT::Block THIS> LANGULUS(INLINED)
    bool Block::Is(DMeta type) const noexcept {
-      return GetType<THIS>() &= type;
+      return GetType<THIS>() | type;
    }
 
    /// Check if unqualified type is the same as one of the provided types     
@@ -52,7 +52,7 @@ namespace Langulus::Anyness
    ///   @return true if this block contains similar data                     
    template<CT::Block THIS> LANGULUS(INLINED)
    bool Block::IsSimilar(DMeta type) const noexcept {
-      return GetType<THIS>() |= type;
+      return GetType<THIS>() & type;
    }
 
    /// Check if this type is exactly one of the provided types                
