@@ -11,7 +11,7 @@
 #include "Block-Indexing.inl"
 #include <RTTI/Hash.hpp>
 
-#define VERBOSE(...)     //Logger::Verbose(_VA_ARGS_)
+#define VERBOSE(...)     //Logger::Verbose(__VA_ARGS__)
 #define VERBOSE_TAB(...) //auto tab = Logger::Section(__VA_ARGS__)
 
 
