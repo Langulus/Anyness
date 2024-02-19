@@ -144,7 +144,7 @@ namespace Langulus::Anyness
 
                return true;
             }
-            else LANGULUS_THROW(Compare, "No == operator reflected");
+            else LANGULUS_OOPS(Compare, "No == operator reflected for type ", mType);
          }
 
          // If this is reached, then an advanced comparison commences   
@@ -690,17 +690,48 @@ namespace Langulus::Anyness
    ///   @param input - source container                                      
    ///   @param output - [in/out] container that collects results             
    ///   @return the number of gathered elements                              
-   template<bool REVERSE>
-   Count Block::GatherInner(const CT::Block auto& input, CT::Block auto& output) {
-      if (input.IsDeep() and not output.IsDeep()) {
-         Count count = 0;
-         ForEach<REVERSE>([&](const Block& i) {
-            count += GatherInner<REVERSE>(i, output);
-         });
-         return count;
-      }
+   template<bool REVERSE, CT::Block THIS>
+   Count Block::GatherInner(CT::Block auto& output) const {
+      using OUT = Deref<decltype(output)>;
+      const auto& me = reinterpret_cast<const THIS&>(*this);
 
-      return output.InsertBlock(IndexBack, input);
+      if constexpr (CT::Typed<OUT, THIS>) {
+         // Both containers are statically typed - leverage it          
+         TODO();
+      }
+      else {
+         if (IsDeep<THIS>() and not output.IsDeep()) {
+            Count count = 0;
+            ForEach<REVERSE>([&](const Block& i) {
+               count += i.template GatherInner<REVERSE>(output);
+            });
+            return count;
+         }
+
+         if constexpr (CT::Typed<OUT>) {
+            // Output container is strictly typed, we can't make loose  
+            // matches                                                  
+            if (IsSimilar<THIS, TypeOf<OUT>>())
+               return output.InsertBlock(IndexBack, me);
+            else
+               return 0;
+         }
+         else {
+            if (output.IsTypeConstrained()) {
+               // Output container is strictly typed, we can't make     
+               // loose matches                                         
+               if (IsSimilar<THIS>(output.GetType()))
+                  return output.template InsertBlock<OUT, void, false>(IndexBack, me);
+               else
+                  return 0;
+            }
+            else {
+               // Output is not strictly typed, so we can afford a      
+               // looser coparison                                      
+               return output.InsertBlock(IndexBack, me);
+            }
+         }
+      }
    }
 
    /// Gather items of specific phase from input container and fill output    
@@ -710,17 +741,17 @@ namespace Langulus::Anyness
    ///   @param output - [in/out] container that collects results             
    ///   @param state - the data state filter                                 
    ///   @return the number of gathered elements                              
-   template<bool REVERSE>
-   Count Block::GatherPolarInner(
-      DMeta type, const CT::Block auto& input, CT::Block auto& output, DataState state
-   ) {
-      if (input.GetState() % state) {
-         if (input.IsNow() and input.IsDeep()) {
+   template<bool REVERSE, CT::Block THIS>
+   Count Block::GatherPolarInner(DMeta type, CT::Block auto& output, DataState state) const {
+      const auto& me = reinterpret_cast<const THIS&>(*this);
+
+      if (GetState() % state) {
+         if (IsNow() and IsDeep<THIS>()) {
             // Phases don't match, but we can dig deeper if deep        
             // and neutral, since Phase::Now is permissive              
-            Block localOutput {input.GetUnconstrainedState(), type};
+            Block localOutput {GetUnconstrainedState(), type};
             ForEach<REVERSE>([&](const Block& i) {
-               GatherPolarInner<REVERSE>(type, i, localOutput, state);
+               i.GatherPolarInner<REVERSE>(type, localOutput, state);
             });
             localOutput.MakeNow();
             const auto inserted = output.SmartPush(IndexBack, Abandon(localOutput));
@@ -735,12 +766,12 @@ namespace Langulus::Anyness
       // Input is flat and neutral/same                                 
       if (not type) {
          // Output is any, so no need to iterate                        
-         return output.SmartPush(IndexBack, input);
+         return output.SmartPush(IndexBack, me);
       }
 
       // Iterate subpacks if any                                        
-      Block localOutput {input.GetState(), type};
-      GatherInner<REVERSE>(input, localOutput);
+      Block localOutput {GetState(), type};
+      GatherInner<REVERSE>(localOutput);
       localOutput.MakeNow();
       const auto inserted = output.InsertBlock(IndexBack, Abandon(localOutput));
       localOutput.Free<Any>();

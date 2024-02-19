@@ -52,9 +52,9 @@ namespace Langulus::Anyness
       Any(const Any&);
       Any(Any&&) noexcept;
 
-      template<class T1, class...TAIL>
-      requires CT::Inner::UnfoldInsertable<T1, TAIL...>
-      Any(T1&&, TAIL&&...);
+      template<class T1, class...TN>
+      requires CT::Inner::UnfoldInsertable<T1, TN...>
+      Any(T1&&, TN&&...);
 
       ~Any();
 

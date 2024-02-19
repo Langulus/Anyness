@@ -76,9 +76,9 @@ namespace Langulus::Anyness
    /// Check if a trait matches one of a set of trait types                   
    ///   @tparam T... - the trait list                                        
    ///   @return true if this trait is one of the given types                 
-   TEMPLATE() template<CT::Trait T1, CT::Trait...TN> LANGULUS(INLINED)
+   TEMPLATE() template<CT::Trait T1> LANGULUS(INLINED)
    constexpr bool TME()::IsTrait() const {
-      return Trait::IsTrait<TRAIT, T1, TN...>();
+      return Trait::IsTrait<TRAIT, T1>();
    }
 
    /// Check if a trait matches one of a set of trait types                   

@@ -265,9 +265,9 @@ namespace Langulus::Anyness
       void Swap(CT::Index auto, CT::Index auto);
 
       template<bool REVERSE = false>
-      Count GatherFrom(const Block&);
+      Count GatherFrom(const CT::Block auto&);
       template<bool REVERSE = false>
-      Count GatherFrom(const Block&, DataState);
+      Count GatherFrom(const CT::Block auto&, DataState);
 
       ///                                                                     
       ///   Memory management                                                 

@@ -24,6 +24,7 @@ namespace Langulus::Anyness
    constexpr TABLE()::TMap() : Map<ORDERED> {} {
       mKeys.mState = DataState::Typed;
       mValues.mState = DataState::Typed;
+
       if constexpr (CT::Constant<K>)
          mKeys.MakeConst();
       if constexpr (CT::Constant<V>)
@@ -45,11 +46,11 @@ namespace Langulus::Anyness
    /// Create from a list of pairs, each of them can be semantic or not,      
    /// an array, as well as any other kinds of maps                           
    ///   @param t1 - first element                                            
-   ///   @param tail - tail of elements (optional)                            
-   TEMPLATE() template<class T1, class...TAIL>
-   requires CT::DeepMapMakable<K, V, T1, TAIL...> LANGULUS(INLINED)
-   TABLE()::TMap(T1&& t1, TAIL&&...tail) {
-      if constexpr (sizeof...(TAIL) == 0) {
+   ///   @param tn - tail of elements (optional)                              
+   TEMPLATE() template<class T1, class...TN>
+   requires CT::DeepMapMakable<K, V, T1, TN...> LANGULUS(INLINED)
+   TABLE()::TMap(T1&& t1, TN&&...tn) {
+      if constexpr (sizeof...(TN) == 0) {
          using S = SemanticOf<decltype(t1)>;
          using ST = TypeOf<S>;
 
@@ -77,7 +78,7 @@ namespace Langulus::Anyness
          }
          else InsertPair(Forward<T1>(t1));
       }
-      else InsertPair(Forward<T1>(t1), Forward<TAIL>(tail)...);
+      else InsertPair(Forward<T1>(t1), Forward<TN>(tn)...);
    }
 
    /// Destroys the map and all it's contents                                 
@@ -449,14 +450,14 @@ namespace Langulus::Anyness
    }
 
    /// Unfold-insert pairs, semantically or not                               
-   ///   @param t1, tail... - pairs, or arrays of pairs, to insert            
+   ///   @param t1, tn... - pairs, or arrays of pairs, to insert              
    ///   @return the number of inserted pairs                                 
-   TEMPLATE() template<class T1, class...TAIL>
-   requires CT::Inner::UnfoldMakableFrom<TPair<K, V>, T1, TAIL...>
-   LANGULUS(INLINED) Count TABLE()::InsertPair(T1&& t1, TAIL&&...tail) {
+   TEMPLATE() template<class T1, class...TN>
+   requires CT::Inner::UnfoldMakableFrom<TPair<K, V>, T1, TN...>
+   LANGULUS(INLINED) Count TABLE()::InsertPair(T1&& t1, TN&&...tn) {
       Count inserted = 0;
         inserted += BlockMap::UnfoldInsert<TMap>(Forward<T1>(t1));
-      ((inserted += BlockMap::UnfoldInsert<TMap>(Forward<TAIL>(tail))), ...);
+      ((inserted += BlockMap::UnfoldInsert<TMap>(Forward<TN>(tn))), ...);
       return inserted;
    }
 

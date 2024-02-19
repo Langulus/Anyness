@@ -117,7 +117,7 @@ namespace Langulus::Anyness
                   // Memory is used from multiple locations, and we must
                   // copy the memory for this block - we can't move it! 
                   // This will throw, if data is not copy-constructible 
-                  if constexpr (CT::DisownMakable<T> or CT::CopyMakable<T>) {
+                  if constexpr (CT::CopyMakable<T>) {
                      AllocateFresh<THIS>(request);
                      CreateSemantic<THIS>(Copy(previousBlock));
                   }

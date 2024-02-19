@@ -15,13 +15,14 @@ namespace Langulus
    namespace A
    {
 
+      /// An abstract handle                                                  
       struct Handle {
          LANGULUS(ABSTRACT) true;
          LANGULUS(UNINSERTABLE) true;
          LANGULUS(UNALLOCATABLE) true;
       };
 
-   }
+   } // namespace Langulus::A
 
    namespace CT
    {
@@ -32,8 +33,9 @@ namespace Langulus
       template<class...T>
       concept NotHandle = ((not Handle<T>) and ...);
 
-   }
-}
+   } // namespace Langulus::CT
+
+} // namespace Langulus
 
 namespace Langulus::Anyness
 {
@@ -83,9 +85,8 @@ namespace Langulus::Anyness
       requires CT::Inner::SemanticMakable<S, T>
       constexpr Handle(S<H>&&);
 
-      template<template<class> class S, CT::NotHandle H>
-      requires (not EMBED and CT::Semantic<S<H>> and CT::MakableFrom<T, S<H>>)
-      constexpr Handle(S<H>&&, const Allocation* = nullptr);
+      template<class T1> requires (not EMBED and CT::MakableFrom<T, T1>)
+      constexpr Handle(T1&&, const Allocation* = nullptr);
 
       constexpr Handle& operator = (const Handle&) noexcept = default;
       constexpr Handle& operator = (Handle&&) noexcept = default;
