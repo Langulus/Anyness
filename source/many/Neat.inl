@@ -12,6 +12,7 @@
 #include "Construct.inl"
 #include "../maps/TMap.inl"
 #include "../Charge.inl"
+#include "../verbs/Verb.hpp"
 
 
 namespace Langulus::Anyness
@@ -46,11 +47,11 @@ namespace Langulus::Anyness
    /// Tidy up any number of elements sequentially, each element can be       
    /// semantic or not. Deep contents are normalized only for CT::Deep        
    ///   @param t1 - first element                                            
-   ///   @param tail... - the rest of the elements (optional)                 
-   template<class T1, class...TAIL> LANGULUS(INLINED)
-   Neat::Neat(T1&& t1, TAIL&&... tail)
-   requires CT::Inner::UnfoldInsertable<T1, TAIL...> {
-      Insert(Forward<T1>(t1), Forward<TAIL>(tail)...);
+   ///   @param tn... - the rest of the elements (optional)                   
+   template<class T1, class...TN> LANGULUS(INLINED)
+   Neat::Neat(T1&& t1, TN&&...tn)
+   requires CT::Inner::UnfoldInsertable<T1, TN...> {
+      Insert(Forward<T1>(t1), Forward<TN>(tn)...);
    }
 
    /// Semantic assignment with another normalized descriptor                 
@@ -503,6 +504,11 @@ namespace Langulus::Anyness
          // Construct's arguments are always Neat                       
          AddConstruct(S::Nest(item));
       }
+      else if constexpr (CT::VerbBased<T>) {
+         // Verbs have to respect their ordering, they all go into the  
+         // same mAnythingElse[AVerb] bucket                            
+         AddVerb(S::Nest(item));
+      }
       else {
          // RHS is nothing special, just add it as it is                
          const auto meta = MetaDataOf<Decay<T>>();
@@ -576,6 +582,9 @@ namespace Langulus::Anyness
                [&](const Trait& trait) {
                   InsertInner(S::Nest(const_cast<Trait&>(trait)));
                },
+               [&](const A::Verb& verb) {
+                  InsertInner(S::Nest(const_cast<A::Verb&>(verb)));
+               },
                [&](const DMeta& meta) {InsertInner(meta);},
                [&](const TMeta& meta) {InsertInner(meta);},
                [&](const CMeta& meta) {InsertInner(meta);}
@@ -602,10 +611,10 @@ namespace Langulus::Anyness
    ///   @param key - the key to add                                          
    ///   @return 1 if pair was inserted, zero otherwise                       
    template<class T1, class...TN> LANGULUS(INLINED)
-   Count Neat::Insert(T1&& t1, TN&&...tail) {
+   Count Neat::Insert(T1&& t1, TN&&...tn) {
       Count inserted = 0;
-      inserted   += UnfoldInsert(Forward<T1>(t1));
-      ((inserted += UnfoldInsert(Forward<TN>(tail))), ...);
+        inserted += UnfoldInsert(Forward<T1>(t1));
+      ((inserted += UnfoldInsert(Forward<TN>(tn))), ...);
       return inserted;
    }
    
@@ -757,6 +766,22 @@ namespace Langulus::Anyness
             mAnythingElse.Insert(dmeta, Any {});
       }
       else LANGULUS_ERROR("Can't insert data");
+   }
+   
+   /// Push verbs to the appropriate bucket                                   
+   ///   @attention this is an inner function that doesn't affect the hash    
+   ///   @param verb - the verb (and semantic) to insert                      
+   LANGULUS(INLINED)
+   void Neat::AddVerb(auto&& verb) {
+      using S = SemanticOf<decltype(verb)>;
+
+      // Insert deep data - we have to flatten it                       
+      static const auto meta = MetaDataOf<A::Verb>();
+      auto found = mAnythingElse.FindIt(meta);
+      if (found)
+         *found.mValue << S::Nest(verb).template Forward<A::Verb>();
+      else
+         mAnythingElse.Insert(meta, S::Nest(verb).template Forward<A::Verb>());
    }
 
    /// Push a construct to the appropriate bucket                             

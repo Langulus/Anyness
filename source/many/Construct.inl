@@ -143,13 +143,13 @@ namespace Langulus::Anyness
    ///   @param head, tail  - the constructor arguments                       
    ///   @return the request                                                  
    template<CT::Data T, CT::Data T1, CT::Data...TN> LANGULUS(INLINED)
-   Construct Construct::From(T1&& head, TN&&...tail) {
+   Construct Construct::From(T1&& head, TN&&...tn) {
       static_assert(CT::Decayed<T>, "T must be fully decayed");
       const auto meta = MetaDataOf<T>();
-      if constexpr (sizeof...(tail) == 0)
+      if constexpr (sizeof...(tn) == 0)
          return Construct {meta, Forward<T1>(head)};
       else
-         return Construct {meta, Any {Forward<T1>(head), Forward<TN>(tail)...}};
+         return Construct {meta, Any {Forward<T1>(head), Forward<TN>(tn)...}};
    }
 
    /// Create content descriptor from a static type (without arguments)       
@@ -168,12 +168,12 @@ namespace Langulus::Anyness
    ///   @param head, tail  - the constructor arguments                       
    ///   @return the request                                                  
    template<CT::Data T1, CT::Data...TN> LANGULUS(INLINED)
-   Construct Construct::FromToken(const Token& token, T1&& head, TN&&...tail) {
+   Construct Construct::FromToken(const Token& token, T1&& head, TN&&...tn) {
       const auto meta = RTTI::DisambiguateMeta(token);
-      if constexpr (sizeof...(tail) == 0)
+      if constexpr (sizeof...(tn) == 0)
          return Construct {meta, Forward<T1>(head)};
       else
-         return Construct {meta, Any {Forward<T1>(head), Forward<TN>(tail)...}};
+         return Construct {meta, Any {Forward<T1>(head), Forward<TN>(tn)...}};
    }
 
    /// Create content descriptor from a type token (without arguments)        

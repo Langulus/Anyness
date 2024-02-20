@@ -220,6 +220,7 @@ namespace Langulus::Anyness
       void AddTrait(auto&&);
       void AddData(auto&&);
       void AddConstruct(auto&&);
+      void AddVerb(auto&&);
 
       template<Offset... IDX>
       bool ExtractTraitInner(const TAny<Any>&, ::std::integer_sequence<Offset, IDX...>, CT::Data auto&...) const;
