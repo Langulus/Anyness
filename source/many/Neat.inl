@@ -10,9 +10,10 @@
 #include "Neat.hpp"
 #include "Trait.inl"
 #include "Construct.inl"
+#include "Bytes.inl"
 #include "../maps/TMap.inl"
+#include "../verbs/Verb.inl"
 #include "../Charge.inl"
-#include "../verbs/Verb.hpp"
 
 
 namespace Langulus::Anyness
@@ -60,19 +61,20 @@ namespace Langulus::Anyness
    ///   @return a reference to this descriptor                               
    template<template<class> class S> LANGULUS(INLINED)
    Neat& Neat::operator = (S<Neat>&& other) requires CT::Semantic<S<Neat>> {
-      mTraits = S<Neat>::Nest(other->mTraits);
-      mConstructs = S<Neat>::Nest(other->mConstructs);
-      mAnythingElse = S<Neat>::Nest(other->mAnythingElse);
+      using SS = S<Neat>;
+      mTraits = SS::Nest(other->mTraits);
+      mConstructs = SS::Nest(other->mConstructs);
+      mAnythingElse = SS::Nest(other->mAnythingElse);
       mHash = other->mHash;
 
       // Reset remote hash if moving                                    
-      if constexpr (S<Neat>::Move and S<Neat>::Keep)
+      if constexpr (SS::Move and SS::Keep)
          other->mHash = {};
       return *this;
    }
 
    /// Clear the container without deallocating                               
-   inline void Neat::Clear() {
+   LANGULUS(INLINED) void Neat::Clear() {
       mHash = {};
       mTraits.Clear();
       mConstructs.Clear();
@@ -80,7 +82,7 @@ namespace Langulus::Anyness
    }
    
    /// Clear and deallocate the container                                     
-   inline void Neat::Reset() {
+   LANGULUS(INLINED) void Neat::Reset() {
       mHash = {};
       mTraits.Reset();
       mConstructs.Reset();
@@ -157,7 +159,7 @@ namespace Langulus::Anyness
          return mHash;
 
       // Traits::Parent never participates in the hash                  
-      Hash traitHash {};
+      Hash traitHash;
       for (auto pair : mTraits) {
          if (pair.mKey->Is<Traits::Parent>())
             continue;
@@ -276,9 +278,7 @@ namespace Langulus::Anyness
    TAny<Any>* Neat::GetTraits(TMeta t) {
       LANGULUS_ASSUME(UserAssumes, t, "Can't get invalid trait");
       auto found = mTraits.Find(t);
-      if (not found)
-         return nullptr;
-      return &mTraits.GetValue(found);
+      return found ? &mTraits.GetValue(found) : nullptr;
    }
 
    /// Get list of traits, corresponding to a type (const)                    
@@ -313,9 +313,7 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    TAny<Messy>* Neat::GetData(DMeta d) {
       auto found = mAnythingElse.Find(d ? d->mOrigin : nullptr);
-      if (not found)
-         return nullptr;
-      return &mAnythingElse.GetValue(found);
+      return found ? &mAnythingElse.GetValue(found) : nullptr;
    }
 
    /// Get list of data, corresponding to a type (const)                      
@@ -348,9 +346,7 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    TAny<Inner::DeConstruct>* Neat::GetConstructs(DMeta d) {
       auto found = mConstructs.Find(d ? d->mOrigin : nullptr);
-      if (not found)
-         return nullptr;
-      return &mConstructs.GetValue(found);
+      return found ? &mConstructs.GetValue(found) : nullptr;
    }
 
    /// Get list of constructs, corresponding to a type (const)                
@@ -414,7 +410,7 @@ namespace Langulus::Anyness
    bool Neat::ExtractTraitInner(
       const TAny<Any>& found, 
       ::std::integer_sequence<Offset, IDX...>, 
-      CT::Data auto&... values
+      CT::Data auto&...values
    ) const {
       return (ExtractTraitInnerInner<IDX>(found, values) or ...);
    }
@@ -1077,9 +1073,12 @@ namespace Langulus::Anyness
                   if constexpr (CT::Mutable<A>) {
                      // Make sure change is commited before proceeding  
                      if constexpr (CT::Deep<A>) {
-                        data.mHash = temporaryConstruct.template Get<Construct>().GetHash();
-                        data.mData = temporaryConstruct.template Get<Construct>().GetDescriptor();
-                        data.mCharge = temporaryConstruct.template Get<Construct>().GetCharge();
+                        data.mHash = temporaryConstruct.template
+                           Get<Construct>().GetHash();
+                        data.mData = temporaryConstruct.template
+                           Get<Construct>().GetDescriptor();
+                        data.mCharge = temporaryConstruct.template
+                           Get<Construct>().GetCharge();
                      }
                      else {
                         data.mHash = temporaryConstruct.GetHash();
@@ -1097,9 +1096,12 @@ namespace Langulus::Anyness
                if constexpr (CT::Mutable<A>) {
                   // Make sure change is commited before proceeding     
                   if constexpr (CT::Deep<A>) {
-                     data.mHash = temporaryConstruct.template Get<Construct>().GetHash();
-                     data.mData = temporaryConstruct.template Get<Construct>().GetDescriptor();
-                     data.mCharge = temporaryConstruct.template Get<Construct>().GetCharge();
+                     data.mHash = temporaryConstruct.template
+                        Get<Construct>().GetHash();
+                     data.mData = temporaryConstruct.template
+                        Get<Construct>().GetDescriptor();
+                     data.mCharge = temporaryConstruct.template
+                        Get<Construct>().GetCharge();
                   }
                   else {
                      data.mHash = temporaryConstruct.GetHash();

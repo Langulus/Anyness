@@ -60,7 +60,7 @@ namespace Langulus::Anyness
       NOD() Hash GetHash() const noexcept;
       void Reset() noexcept;
 
-      NOD() explicit operator Text() const;
+      NOD() operator Text() const;
    };
 
 } // namespace Langulus::Anyness
