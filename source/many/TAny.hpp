@@ -53,9 +53,14 @@ namespace Langulus::Anyness
    ///                                                                        
    template<CT::Data T>
    class TAny : public Any {
-      static_assert(CT::Insertable<T>,   "Contained type must be insertable");
-      static_assert(CT::Allocatable<T>,  "Contained type must be allocatable");
-      static_assert(not CT::Reference<T>,"Contained type can't be a reference");
+      static_assert(CT::Complete<T>,
+         "Contained type must be complete");
+      static_assert(CT::Insertable<T>,
+         "Contained type must be insertable");
+      static_assert(CT::Allocatable<T>,
+         "Contained type must be allocatable");
+      static_assert(not CT::Reference<T>,
+         "Contained type can't be a reference");
 
       LANGULUS(DEEP) true;
       LANGULUS(POD) false;
@@ -69,15 +74,15 @@ namespace Langulus::Anyness
       TAny(const TAny&);
       TAny(TAny&&) noexcept;
 
-      template<class T1, class...TAIL>
-      requires CT::DeepMakable<T, T1, TAIL...>
-      TAny(T1&&, TAIL&&...);
+      template<class T1, class...TN>
+      requires CT::DeepMakable<T, T1, TN...>
+      TAny(T1&&, TN&&...);
 
       ~TAny();
 
       NOD() static TAny From(auto&&, Count = 1);
 
-      template<CT::Data... LIST_T>
+      template<CT::Data...LIST_T>
       NOD() static TAny Wrap(LIST_T&&...);
 
       ///                                                                     
@@ -170,7 +175,7 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Iteration                                                         
       ///                                                                     
-      using Iterator = Block::Iterator<TAny>;
+      using Iterator      = Block::Iterator<TAny>;
       using ConstIterator = Block::Iterator<const TAny>;
 
       NOD() Iterator begin() noexcept;
@@ -278,17 +283,17 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Insertion                                                         
       ///                                                                     
-      template<bool MOVE_ASIDE = true, class T1, class...TAIL>
-      requires CT::Inner::UnfoldMakableFrom<T, T1, TAIL...>
-      Count Insert(CT::Index auto, T1&&, TAIL&&...);
+      template<bool MOVE_ASIDE = true, class T1, class...TN>
+      requires CT::Inner::UnfoldMakableFrom<T, T1, TN...>
+      Count Insert(CT::Index auto, T1&&, TN&&...);
 
       template<class FORCE = Any, bool MOVE_ASIDE = true, class T1>
       requires CT::Block<Desem<T1>>
       Count InsertBlock(CT::Index auto, T1&&);
 
-      template<bool MOVE_ASIDE = true, class T1, class...TAIL>
-      requires CT::Inner::UnfoldMakableFrom<T, T1, TAIL...>
-      Count Merge(CT::Index auto, T1&&, TAIL&&...);
+      template<bool MOVE_ASIDE = true, class T1, class...TN>
+      requires CT::Inner::UnfoldMakableFrom<T, T1, TN...>
+      Count Merge(CT::Index auto, T1&&, TN&&...);
 
       template<class FORCE = Any, bool MOVE_ASIDE = true, class T1>
       requires CT::Block<Desem<T1>>

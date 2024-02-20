@@ -187,8 +187,19 @@ namespace Langulus::CT
 
 } // namespace Langulus::CT
 
-namespace Langulus::Flow
+namespace Langulus::A
 {
+
+   /// Check if a type is compatible with CT::Character concept at runtime    
+   struct Text {
+      LANGULUS(ABSTRACT) true;
+      LANGULUS(CONCRETE) Anyness::Text;
+
+      static constexpr bool CTTI_TextTrait = true;
+
+      ~Text() = delete;
+   };
+
    struct Code;
 }
 
@@ -243,10 +254,10 @@ namespace Langulus::Anyness
          static bool Separate(const Block&, Text&);
          
          using Rules = Types<
-            Serial::Rule<Serial::Wrap, Serial::BasedOn, Flow::Code,  Operator::OpenCode,      Operator::CloseCode>,
-            Serial::Rule<Serial::Wrap, Serial::BasedOn, Text,        Operator::OpenString,    Operator::CloseString>,
-            Serial::Rule<Serial::Wrap, Serial::BasedOn, Bytes,       Operator::OpenByte,      Operator::CloseByte>,
-            Serial::Rule<Serial::Wrap, Serial::Exact,   Letter,      Operator::OpenCharacter, Operator::CloseCharacter>
+            Serial::Rule<Serial::Wrap, Serial::BasedOn, A::Code,Operator::OpenCode,      Operator::CloseCode>,
+            Serial::Rule<Serial::Wrap, Serial::BasedOn, Text,   Operator::OpenString,    Operator::CloseString>,
+            Serial::Rule<Serial::Wrap, Serial::BasedOn, Bytes,  Operator::OpenByte,      Operator::CloseByte>,
+            Serial::Rule<Serial::Wrap, Serial::Exact,   Letter, Operator::OpenCharacter, Operator::CloseCharacter>
          >;
       };
 
@@ -383,6 +394,26 @@ namespace Langulus
 {
 
    Anyness::Text operator "" _text(const char*, ::std::size_t);
+
+   namespace A
+   {
+
+      ///                                                                     
+      ///   Abstract code container                                           
+      ///                                                                     
+      struct Code : Anyness::Text {
+         LANGULUS_BASES(Anyness::Text);
+
+         using Anyness::Text::Text;
+
+         Code(const Anyness::Text& a)
+            : Anyness::Text {a} {}
+
+         Code(Anyness::Text&& a)
+            : Anyness::Text {Forward<Anyness::Text>(a)} {}
+      };
+
+   } // namespace Langulus::A
 
 } // namespace Langulus
 

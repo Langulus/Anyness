@@ -139,17 +139,16 @@ namespace Langulus::Anyness
 
    /// Create content descriptor from a static type and arguments by move     
    ///   @tparam T - type of the construct                                    
-   ///   @tparam HEAD, TAIL - types of the arguments (deducible)              
-   ///   @param head, tail  - the constructor arguments                       
+   ///   @param t1, tn  - the constructor arguments                           
    ///   @return the request                                                  
    template<CT::Data T, CT::Data T1, CT::Data...TN> LANGULUS(INLINED)
-   Construct Construct::From(T1&& head, TN&&...tn) {
+   Construct Construct::From(T1&& t1, TN&&...tn) {
       static_assert(CT::Decayed<T>, "T must be fully decayed");
       const auto meta = MetaDataOf<T>();
       if constexpr (sizeof...(tn) == 0)
-         return Construct {meta, Forward<T1>(head)};
+         return Construct {meta, Forward<T1>(t1)};
       else
-         return Construct {meta, Any {Forward<T1>(head), Forward<TN>(tn)...}};
+         return Construct {meta, Any {Forward<T1>(t1), Forward<TN>(tn)...}};
    }
 
    /// Create content descriptor from a static type (without arguments)       
@@ -163,17 +162,16 @@ namespace Langulus::Anyness
 
 #if LANGULUS_FEATURE(MANAGED_REFLECTION)
    /// Create content descriptor from a type token and arguments by copy      
-   ///   @tparam HEAD, TAIL - types of the arguments (deducible)              
    ///   @param token - the type name for the construct                       
-   ///   @param head, tail  - the constructor arguments                       
+   ///   @param t1, tn  - the constructor arguments                           
    ///   @return the request                                                  
    template<CT::Data T1, CT::Data...TN> LANGULUS(INLINED)
-   Construct Construct::FromToken(const Token& token, T1&& head, TN&&...tn) {
+   Construct Construct::FromToken(const Token& token, T1&& t1, TN&&...tn) {
       const auto meta = RTTI::DisambiguateMeta(token);
       if constexpr (sizeof...(tn) == 0)
-         return Construct {meta, Forward<T1>(head)};
+         return Construct {meta, Forward<T1>(t1)};
       else
-         return Construct {meta, Any {Forward<T1>(head), Forward<TN>(tn)...}};
+         return Construct {meta, Any {Forward<T1>(t1), Forward<TN>(tn)...}};
    }
 
    /// Create content descriptor from a type token (without arguments)        
@@ -243,18 +241,14 @@ namespace Langulus::Anyness
    ///   @tparam T - type of the construct to compare against                 
    template<CT::Data T> LANGULUS(INLINED)
    bool Construct::CastsTo() const {
-      if (not mType)
-         return false;
-      return CastsTo(MetaDataOf<T>());
+      return mType ? CastsTo(MetaDataOf<T>()) : false;
    }
 
    /// Check if construct type fully matches a given static type              
    ///   @tparam T - type of the construct to compare against                 
    template<CT::Data T> LANGULUS(INLINED)
    bool Construct::Is() const {
-      if (not mType)
-         return false;
-      return Is(MetaDataOf<T>());
+      return mType ? Is(MetaDataOf<T>()) : false;
    }
 
    /// Get the argument for the construct                                     
@@ -349,9 +343,9 @@ namespace Langulus::Anyness
       using OUT = Deref<decltype(to)>;
       to += GetType();
       to += static_cast<Text>(GetCharge());
-      to += OUT::SerializationRules::Operator::OpenScope;
+      to += OUT::Operator::OpenScope;
       GetDescriptor().Serialize(to);
-      to += OUT::SerializationRules::Operator::CloseScope;
+      to += OUT::Operator::CloseScope;
       return to.GetCount() - initial;
    }
 

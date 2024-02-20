@@ -291,9 +291,9 @@ namespace Langulus::Anyness
       const auto initial = to.GetCount();
       using OUT = Deref<decltype(to)>;
       to += GetTrait<THIS>();
-      to += OUT::SerializationRules::Operator::OpenScope;
+      to += OUT::Operator::OpenScope;
       Block::SerializeToText<Block, void>(to);
-      to += OUT::SerializationRules::Operator::CloseScope;
+      to += OUT::Operator::CloseScope;
       return to.GetCount() - initial;
    }
 
