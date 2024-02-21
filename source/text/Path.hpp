@@ -19,7 +19,7 @@ namespace Langulus::Anyness
    struct Path : Text {
       LANGULUS_BASES(Text);
       LANGULUS(FILES) "";
-      LANGULUS_CONVERTS_FROM();
+      LANGULUS_CONVERTS_FROM(Text);
 
       static constexpr char Separator = '/';
 
@@ -29,7 +29,6 @@ namespace Langulus::Anyness
 
       Path(const Text&);
       Path(Text&&);
-      Path(Describe&&);
 
       NOD() Text GetExtension() const;
       NOD() Path GetDirectory() const;

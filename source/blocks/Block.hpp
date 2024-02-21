@@ -365,11 +365,6 @@ namespace Langulus::Anyness
       template<CT::Block = Any>
       NOD() decltype(auto) operator[] (CT::Index auto) const;
 
-      template<CT::Data> NOD() IF_UNSAFE(constexpr)
-      decltype(auto) Get(Offset = 0, Offset = 0) IF_UNSAFE(noexcept);
-      template<CT::Data> NOD() IF_UNSAFE(constexpr)
-      decltype(auto) Get(Offset = 0, Offset = 0) const IF_UNSAFE(noexcept);
-   
       template<CT::Data>
       NOD() decltype(auto) As(CT::Index auto);
       template<CT::Data>
@@ -460,7 +455,7 @@ namespace Langulus::Anyness
       template<CT::Data, bool ASCEND = false>
       void Sort() noexcept;
 
-   protected:
+   protected: 
       NOD() Block GetElementInner(Offset = 0)       IF_UNSAFE(noexcept);
       NOD() Block GetElementInner(Offset = 0) const IF_UNSAFE(noexcept);
 
@@ -481,6 +476,12 @@ namespace Langulus::Anyness
       Offset SimplifyIndex(INDEX) const
       noexcept(not LANGULUS_SAFE() and CT::BuiltinInteger<INDEX>);
 
+   IF_LANGULUS_TESTING(public:)
+      template<CT::Data> NOD() IF_UNSAFE(constexpr)
+      decltype(auto) Get(Offset = 0, Offset = 0) IF_UNSAFE(noexcept);
+      template<CT::Data> NOD() IF_UNSAFE(constexpr)
+      decltype(auto) Get(Offset = 0, Offset = 0) const IF_UNSAFE(noexcept);
+   
    public:
       ///                                                                     
       ///   Iteration                                                         

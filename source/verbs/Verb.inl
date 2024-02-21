@@ -207,6 +207,13 @@ namespace Langulus::A
    bool Verb::operator <= (const Verb& rhs) const noexcept {
       return mPriority <= rhs.mPriority;
    }
+   
+   /// Hash the verb                                                          
+   ///   @return the hash of the content                                      
+   LANGULUS(INLINED)
+   Hash Verb::GetHash() const {
+      return HashOf(mVerb, mSource, GetArgument(), mOutput);
+   }
 
    /// Get the verb id and charge                                             
    ///   @return verb charge                                                  

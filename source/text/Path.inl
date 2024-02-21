@@ -26,23 +26,12 @@ namespace Langulus::Anyness
    Path::Path(Text&& other)
       : Text {Forward<Text>(other)} {}
 
-   /// Descriptor-constructor                                                 
-   ///   @param describe - the descriptor                                     
-   LANGULUS(INLINED)
-   Path::Path(Describe&& describe) {
-      LANGULUS_ASSUME(UserAssumes, *describe,
-         "Empty descriptor for ", NameOf<Path>());
-      describe->ExtractData<Text>(*this);
-   }
-
    /// Return the lowercase file extension (the part after the last '.')      
    ///   @return a cloned text container with the extension                   
    LANGULUS(INLINED)
    Text Path::GetExtension() const {
       const auto found = Find<true>('.');
-      if (found)
-         return Text::Crop(found);
-      return {};
+      return found ? Text::Crop(found.GetOffsetUnsafe() + 1) : Text {};
    }
 
    /// Return the directory part of the path                                  
@@ -50,9 +39,7 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    Path Path::GetDirectory() const {
       const auto found = Find<true>(Separator);
-      if (found)
-         return Text::Crop(0, found.GetOffsetUnsafe() + 1);
-      return {};
+      return found ? Text::Crop(0, found.GetOffsetUnsafe() + 1) : Path {};
    }
 
    /// Return the filename part of the path                                   
@@ -60,9 +47,7 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    Path Path::GetFilename() const {
       const auto found = Find<true>(Separator);
-      if (found)
-         return Text::Crop(found + 1);
-      return *this;
+      return found ? Text::Crop(found + 1) : Path {*this};
    }
 
    /// Append a subdirectory or filename                                      

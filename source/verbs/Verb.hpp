@@ -68,6 +68,7 @@ namespace Langulus::A
       ///                                                                     
       ///   Capsulation                                                       
       ///                                                                     
+      NOD() Hash GetHash() const;
       NOD() const Anyness::Charge& GetCharge() const noexcept;
       NOD() Langulus::Real GetMass() const noexcept;
       NOD() Langulus::Real GetRate() const noexcept;

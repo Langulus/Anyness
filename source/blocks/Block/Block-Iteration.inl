@@ -111,7 +111,7 @@ namespace Langulus::Anyness
    template<bool REVERSE, bool SKIP, CT::Block THIS, class...F>
    LANGULUS(INLINED) Count Block::ForEachDeep(F&&...calls) const {
       Count result = 0;
-      (void)(... or (Loop::Break !=
+      (void)(... or (Loop::Break ==
          ForEachDeepInner<THIS, REVERSE, SKIP>(Forward<F>(calls), result)
       ));
       return result;

@@ -261,7 +261,9 @@ namespace Langulus::Anyness
    TEMPLATE() template<template<class> class S, class ST>
    requires CT::Semantic<S<ST>> LANGULUS(INLINED)
    void HAND()::CreateSemantic(S<ST>&& rhs) {
-      if constexpr (S<ST>::Shallow and CT::Sparse<T>) {
+      using SS = S<ST>;
+
+      if constexpr (SS::Shallow and CT::Sparse<T>) {
          // Do a copy/disown/abandon/move sparse LHS                    
          if constexpr (CT::Handle<ST>) {
             // RHS is a handle                                          
@@ -269,21 +271,21 @@ namespace Langulus::Anyness
             static_assert(CT::Similar<T, HT>, "Handle type mismatch");
             Get() = rhs->Get();
 
-            if constexpr (S<ST>::Keep or S<ST>::Move)
+            if constexpr (SS::Keep or SS::Move)
                GetEntry() = rhs->GetEntry();
             else
                GetEntry() = nullptr;
 
-            if constexpr (S<ST>::Move) {
+            if constexpr (SS::Move) {
                // We're moving RHS, so we need to clear it up           
-               if constexpr (S<ST>::Keep)
+               if constexpr (SS::Keep)
                   rhs->Get() = nullptr;
 
                // Clearing entry is mandatory, because we're            
                // transferring the ownership                            
                rhs->GetEntry() = nullptr;
             }
-            else if constexpr (S<ST>::Keep) {
+            else if constexpr (SS::Keep) {
                // Copying RHS, but keep it only if not disowning it     
                if (GetEntry())
                   const_cast<Allocation*>(GetEntry())->Keep();
@@ -301,7 +303,7 @@ namespace Langulus::Anyness
             Get() = rhsh.Get();
             GetEntry() = rhsh.GetEntry();
 
-            if constexpr (S<ST>::Keep) {
+            if constexpr (SS::Keep) {
                if (GetEntry())
                   const_cast<Allocation*>(GetEntry())->Keep();
             }
@@ -311,20 +313,15 @@ namespace Langulus::Anyness
       else if constexpr (CT::Dense<T>) {
          // Do a copy/disown/abandon/move/clone inside a dense handle   
          if constexpr (CT::Handle<ST> and CT::MakableFrom<T, TypeOf<ST>>)
-            SemanticNew(&Get(), S<ST>::Nest(rhs->Get()));
+            new (&Get()) T {SS::Nest(rhs->Get())}; // SemanticNew(&Get(), SS::Nest(rhs->Get()));
          else if constexpr (CT::MakableFrom<T, ST>)
-            SemanticNew(&Get(), rhs.Forward());
+            new (&Get()) T {rhs.Forward()}; // SemanticNew(&Get(), rhs.Forward());
          else
             LANGULUS_ERROR("Can't initialize dense T");
       }
       else if constexpr (CT::Dense<Deptr<T>>) {
-         // Do a clone, unless T is meta                                
-         if constexpr (CT::Meta<T>) {
-            // If T is meta, just copy pointer                          
-            Get() = rhs->Get();
-            GetEntry() = nullptr;
-         }
-         else if constexpr (CT::Resolvable<T>) {
+         // Clone sparse/dense data                                     
+         if constexpr (CT::Resolvable<T>) {
             // If T is resolvable, we need to always clone the resolved 
             // (a.k.a the most concrete) type                           
             TODO();
@@ -338,11 +335,11 @@ namespace Langulus::Anyness
 
             if constexpr (CT::Handle<ST>) {
                static_assert(CT::Exact<T, TypeOf<ST>>, "Type mismatch");
-               SemanticNew(pointer, S<ST>::Nest(*rhs->Get()));
+               SemanticNew(pointer, SS::Nest(*rhs->Get()));
             }
             else {
                static_assert(CT::Exact<T, ST>, "Type mismatch");
-               SemanticNew(pointer, S<ST>::Nest(**rhs));
+               SemanticNew(pointer, SS::Nest(**rhs));
             }
 
             Get() = pointer;
