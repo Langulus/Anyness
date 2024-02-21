@@ -528,7 +528,7 @@ namespace Langulus::Anyness
       using T = Deref<decltype(what)>;
       if constexpr (CT::TextBased<T>) {
          Block::AllocateMore<Text>(mCount + what.mCount);
-         CopyMemory(GetRaw() + mCount, what.GetRaw());
+         CopyMemory(GetRaw() + mCount, what.GetRaw(), what.mCount);
          mCount += what.mCount;
       }
       else {

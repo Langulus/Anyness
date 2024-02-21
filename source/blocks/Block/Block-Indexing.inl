@@ -15,24 +15,6 @@
 namespace Langulus::Anyness
 {
    
-   /// Constrain an index to the limits of the current block                  
-   ///   @param idx - the index to constrain                                  
-   ///   @return the constrained index or a special one of constrain fails    
-   template<CT::Block THIS> LANGULUS(INLINED)
-   Index Block::Constrain(const Index idx) const IF_UNSAFE(noexcept) {
-      const auto result = idx.Constrained(mCount);
-      if (result == IndexBiggest)
-         return GetIndex<IndexBiggest, THIS>();
-      else if (result == IndexSmallest)
-         return GetIndex<IndexSmallest, THIS>();
-      else if (result == IndexMode) {
-         UNUSED() Count unused;
-         return GetIndexMode<THIS>(unused);
-      }
-
-      return result;
-   }
-
    /// Get the internal byte array with a given offset                        
    /// This is lowest level access and checks nothing                         
    ///   @attention assumes block is allocated                                
@@ -42,8 +24,6 @@ namespace Langulus::Anyness
    Byte* Block::At(const Offset byteOffset) IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, mRaw,
          "Invalid memory");
-      /*LANGULUS_ASSUME(DevAssumes, byteOffset < GetReservedSize<Block>(),
-         "Byte offset out of range");*/ //TODO cases problems when getting map values, due to lack of mReserved
       return mRaw + byteOffset;
    }
 
@@ -58,6 +38,8 @@ namespace Langulus::Anyness
    template<CT::Block THIS> LANGULUS(INLINED)
    decltype(auto) Block::operator[] (CT::Index auto idx) {
       const auto index = SimplifyIndex<THIS>(idx);
+      LANGULUS_ASSERT(index < mCount, Access, "Index out of range");
+
       if constexpr (CT::Typed<THIS>)
          return GetRaw<THIS>()[index];
       else
@@ -67,6 +49,8 @@ namespace Langulus::Anyness
    template<CT::Block THIS> LANGULUS(INLINED)
    decltype(auto) Block::operator[] (CT::Index auto idx) const {
       const auto index = SimplifyIndex<THIS>(idx);
+      LANGULUS_ASSERT(index < mCount, Access, "Index out of range");
+
       if constexpr (CT::Typed<THIS>)
          return GetRaw<THIS>()[index];
       else
@@ -83,8 +67,7 @@ namespace Langulus::Anyness
    ///   @return either pointer or reference to the element (depends on T)    
    template<CT::Data T> LANGULUS(INLINED) IF_UNSAFE(constexpr)
    decltype(auto) Block::Get(Offset idx, Offset baseOffset) IF_UNSAFE(noexcept) {
-      LANGULUS_ASSUME(DevAssumes, IsTyped<Block>(), "Block is not typed");
-
+      LANGULUS_ASSUME(DevAssumes, mType, "Block is not typed");
       Byte* pointer;
       if (mType->mIsSparse)
          pointer = GetRawSparseAs<Byte, Block>()[idx] + baseOffset;
@@ -110,17 +93,17 @@ namespace Langulus::Anyness
    ///   @return either pointer or reference to the element (depends on T)    
    template<CT::Data T>
    decltype(auto) Block::As(CT::Index auto index) {
-      if (not mType)
-         LANGULUS_THROW(Access, "Untyped block");
-
       // First quick type stage for fast access                         
+      LANGULUS_ASSUME(DevAssumes, mType, "Block is not typed");
       if (mType->Is<T>()) {
          const auto idx = SimplifyIndex<TAny<T>>(index);
+         LANGULUS_ASSERT(idx < mCount, Access, "Index out of range");
          return Get<T>(idx);
       }
 
       // Second fallback stage for compatible bases and mappings        
       const auto idx = SimplifyIndex<Any>(index);
+      LANGULUS_ASSERT(idx < mCount, Access, "Index out of range");
       RTTI::Base base;
       if (not mType->template GetBase<T>(0, base)) {
          // There's still a chance if this container is resolvable      
@@ -633,6 +616,24 @@ namespace Langulus::Anyness
       Block result {*this};
       result.mCount = count;
       result.mRaw += start * mType->mSize;
+      return result;
+   }
+   
+   /// Constrain an index to the limits of the current block                  
+   ///   @param idx - the index to constrain                                  
+   ///   @return the constrained index or a special one of constrain fails    
+   template<CT::Block THIS> LANGULUS(INLINED)
+   Index Block::Constrain(const Index idx) const IF_UNSAFE(noexcept) {
+      const auto result = idx.Constrained(mCount);
+      if (result == IndexBiggest)
+         return GetIndex<IndexBiggest, THIS>();
+      else if (result == IndexSmallest)
+         return GetIndex<IndexSmallest, THIS>();
+      else if (result == IndexMode) {
+         UNUSED() Count unused;
+         return GetIndexMode<THIS>(unused);
+      }
+
       return result;
    }
 
