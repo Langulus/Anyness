@@ -339,6 +339,7 @@ namespace Langulus::A
          if (mSource.IsValid() or IsLongCircuited() or IsMonocast())
             out += ' ';
          out += NameOf<Verb>();
+         writtenAsToken = true;
       }
       else {
          // A valid verb is written either as token, or as operator     
