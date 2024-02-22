@@ -25,11 +25,11 @@ namespace Langulus::Anyness
          mKeys.MakeConst();
    }
 
-   /// Shallow-copy construction                                              
-   ///   @param other - the table to copy                                     
+   /// Refer construction                                                     
+   ///   @param other - the table to refer to                                 
    TEMPLATE() LANGULUS(INLINED)
    TABLE()::TSet(const TSet& other)
-      : TSet {Copy(other)} {}
+      : TSet {Refer(other)} {}
 
    /// Move construction                                                      
    ///   @param other - the table to move                                     
@@ -102,13 +102,13 @@ namespace Langulus::Anyness
       BlockSet::Free<TSet>();
    }
 
-   /// Shallow-copy assignment                                                
-   ///   @param rhs - the container to shallow-copy                           
+   /// Refer assignment                                                       
+   ///   @param rhs - the container to refer to                               
    ///   @return a reference to this container                                
    TEMPLATE() LANGULUS(INLINED)
    TABLE()& TABLE()::operator = (const TSet& rhs) {
-      static_assert(CT::DeepSetAssignable<T, Copied<TSet<T>>>);
-      return operator = (Copy(rhs));
+      static_assert(CT::DeepSetAssignable<T, Refered<TSet<T>>>);
+      return operator = (Refer(rhs));
    }
 
    /// Move assignment                                                        

@@ -27,6 +27,9 @@ namespace Langulus::Anyness
          return end();
 
       RemoveInner<THIS>(offset--);
+
+      if (IsEmpty())
+         return end();
       
       while (offset < sentinel and not mInfo[offset])
          --offset;
@@ -166,12 +169,18 @@ namespace Langulus::Anyness
    }
    
    /// Erases a statically typed pair at a specific index                     
+   ///   @attention if this map has more than one use, it will be copied to   
+   ///      a new place, before any removals are done                         
    ///   @attention assumes that index points to a valid entry                
    ///   @param index - the index to remove                                   
    template<CT::Map THIS>
    void BlockMap::RemoveInner(const Offset index) IF_UNSAFE(noexcept) {
       auto psl = GetInfo() + index;
       LANGULUS_ASSUME(DevAssumes, *psl, "Removing an invalid pair");
+      if (GetUses() > 1) {
+         // This map must be shallow-copied to a new place              
+
+      }
 
       // Destroy the key, info and value at the start                   
       // Use statically typed optimizations where possible              

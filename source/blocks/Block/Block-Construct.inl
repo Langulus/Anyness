@@ -250,15 +250,15 @@ namespace Langulus::Anyness
       }
 
       if constexpr (SS::Shallow) {
-         // We're transferring via a shallow semantic                   
-         mRaw = from->mRaw;
-         mReserved = from->mReserved;
-
+         // Move/Copy/Refer/Abandon/Disown other                        
          if constexpr (SS::Keep) {
-            // Move/Copy other                                          
-            mEntry = from->mEntry;
-
+            // Move/Copy/Refer other                                    
             if constexpr (SS::Move) {
+               // Move                                                  
+               mEntry = from->mEntry;
+               mRaw = from->mRaw;
+               mReserved = from->mReserved;
+
                if constexpr (not FROM::Ownership) {
                   // Since we are not aware if that block is referenced 
                   // or not we reference it just in case, and we also   
@@ -272,10 +272,35 @@ namespace Langulus::Anyness
                   from->ResetState();
                }
             }
-            else Keep();
+            else {
+               // Copy/Refer other                                      
+               if constexpr (CT::Refered<SS>) {
+                  // Just reference                                     
+                  mRaw = from->mRaw;
+                  mReserved = from->mReserved;
+                  mEntry = from->mEntry;
+                  Keep();
+               }
+               else {
+                  // Do a shallow copy                                  
+                  // We're cloning first layer, so we guarantee, that   
+                  // data is no longer static and constant (unless      
+                  // mType is constant)                                 
+                  mState -= DataState::Static | DataState::Constant;
+                  if (0 == mCount)
+                     return;
+
+                  // Pick a preferably typed block to optimize          
+                  using B = Conditional<CT::Typed<FROM>, FROM, TO>;
+                  AllocateFresh<B>(RequestSize<B>(mCount));
+                  CreateSemantic<B>(Refer(from));
+               }
+            }
          }
          else if constexpr (SS::Move) {
             // Abandon other                                            
+            mRaw = from->mRaw;
+            mReserved = from->mReserved;
             mEntry = from->mEntry;
             from->mEntry = nullptr;
          }

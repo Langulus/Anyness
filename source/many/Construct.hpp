@@ -40,25 +40,11 @@ namespace Langulus::Anyness
       Construct(S<Construct>&&) requires CT::Semantic<S<Construct>>;
 
       Construct(DMeta);
-
-      template<CT::NotSemantic T = Any>
-      Construct(DMeta, const T&, const Charge& = {});
-      template<CT::NotSemantic T = Any>
-      Construct(DMeta, T&, const Charge& = {});
-      template<CT::NotSemantic T = Any>
-      Construct(DMeta, T&&, const Charge& = {});
-      template<CT::Semantic S>
-      Construct(DMeta, S&&, const Charge& = {});
+      Construct(DMeta, auto&&, const Charge& = {});
 
       #if LANGULUS_FEATURE(MANAGED_REFLECTION)
          Construct(const Token&);
-         template<CT::NotSemantic T = Any>
-         Construct(const Token&, const T&, const Charge& = {});
-         template<CT::NotSemantic T = Any>
-         Construct(const Token&, T&, const Charge& = {});
-         template<CT::NotSemantic T = Any>
-         Construct(const Token&, T&&, const Charge& = {});
-         Construct(const Token&, CT::Semantic auto&&, const Charge& = {});
+         Construct(const Token&, auto&&, const Charge& = {});
       #endif
 
       Construct& operator = (const Construct&) noexcept;

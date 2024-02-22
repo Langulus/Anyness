@@ -503,7 +503,7 @@ namespace Langulus::Anyness
       LANGULUS_ASSUME(DevAssumes, IsSparse<THIS>(),
          "Representing dense data as sparse");
       if constexpr (CT::Typed<THIS>)
-         return reinterpret_cast<TypeOf<THIS>*>(mRawSparse);
+         return reinterpret_cast<DecvqAll<TypeOf<THIS>>*>(mRawSparse);
       else
          return reinterpret_cast<void**>(mRawSparse);
    }

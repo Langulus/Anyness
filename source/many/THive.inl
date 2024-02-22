@@ -22,17 +22,31 @@ namespace Langulus::Anyness
    LANGULUS(INLINED) TME()::Cell::Cell(A&&...args)
       : mData {Forward<A>(args)...} {}
 
+   TEMPLATE() LANGULUS(INLINED)
+   TME()::THive(const THive& other)
+      : THive {Refer(other)} {}
+
+   TEMPLATE() LANGULUS(INLINED)
+   TME()::THive(THive&& other)
+      : THive {Move(other)} {}
+
+   TEMPLATE() template<template<class> class S>
+   requires CT::Semantic<S<THive<T>>> LANGULUS(INLINED)
+   TME()::THive(S<THive<T>>&&) {
+      TODO();
+   }
+
    /// Hive destructor                                                        
    TEMPLATE() LANGULUS(INLINED)
    TME()::~THive() {
       Reset();
    }
 
-   /// Shallow copy assignment                                                
-   ///   @param other - the hive to copy                                      
+   /// Refer assignment                                                       
+   ///   @param other - the hive to refer to                                  
    TEMPLATE() LANGULUS(INLINED)
    TME()& TME()::operator = (const THive& other) {
-      return operator = (Copy(other));
+      return operator = (Refer(other));
    }
 
    /// Move assignment                                                        
@@ -175,8 +189,11 @@ namespace Langulus::Anyness
 
          // Make sure that the mReusable is inside limits, as it may    
          // go out of bounds in edge cases                              
-         if (not Owns(mReusable))
+         auto frame = Owns(mReusable);
+         if (not frame)
             mReusable = nullptr;
+         else
+            ++const_cast<Frame*>(frame)->mCount;
       }
       else {
          // Add new frame                                               
@@ -190,6 +207,7 @@ namespace Langulus::Anyness
 
          // Use first cell to initialize our object                     
          result = new (frame.GetRaw()) Cell {Forward<A>(args)...};
+         ++frame.mCount;
 
          // Pass through all new unused cells, and set their markers    
          mReusable = frame.GetRaw() + 1;
@@ -227,25 +245,27 @@ namespace Langulus::Anyness
    TEMPLATE() LANGULUS(INLINED)
    void TME()::Reset() {
       for (auto& frame : mFrames) {
+         if (frame.IsEmpty())
+            continue;
+
          // Destroy only valid cells in frames, that have exactly one   
          // reference of use                                            
-         if (frame.GetUses() != 1) {
+         /*if (frame.GetUses() != 1) {
             // Frame is still in use, we can't destroy anything in it   
             // Just dereference it                                      
             frame.Reset();
             continue;
-         }
-
+         }*/
+         LANGULUS_ASSERT(frame.GetUses() == 1, Destruct, "Can't reset hive");
          auto raw = frame.GetRaw();
-         const auto rawEnd = frame.GetRawEnd();
-         while (raw != rawEnd) {
-            if (not raw->mNextFreeCell)
+         const auto rawEnd = frame.GetRaw() + frame.GetReserved();
+         while (raw != rawEnd and frame.mCount) {
+            if (not raw->mNextFreeCell) {
                raw->~Cell();
+               --frame.mCount;
+            }
             ++raw;
          }
-
-         // Make sure no more destructors are called on destruction     
-         static_cast<Frame&>(frame).mCount = 0;
       }
 
       mFrames.Reset();

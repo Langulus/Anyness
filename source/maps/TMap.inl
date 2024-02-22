@@ -31,11 +31,11 @@ namespace Langulus::Anyness
          mValues.MakeConst();
    }
 
-   /// Shallow-copy construction                                              
+   /// Refer construction                                                     
    ///   @param other - the table to copy                                     
    TEMPLATE() LANGULUS(INLINED)
    TABLE()::TMap(const TMap& other)
-      : TMap {Copy(other)} {}
+      : TMap {Refer(other)} {}
 
    /// Move construction                                                      
    ///   @param other - the table to move                                     
@@ -95,12 +95,12 @@ namespace Langulus::Anyness
       return operator = (Move(pair));
    }
 
-   /// Creates a shallow copy of the given table                              
+   /// Refer assignment                                                       
    ///   @param pair - the table to reference                                 
    ///   @return a reference to this table                                    
    TEMPLATE() LANGULUS(INLINED)
    TABLE()& TABLE()::operator = (const TMap& pair) {
-      return operator = (Copy(pair));
+      return operator = (Refer(pair));
    }
    
    /// Generic assignment                                                     

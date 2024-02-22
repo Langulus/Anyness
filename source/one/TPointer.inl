@@ -30,11 +30,11 @@ namespace Langulus::Anyness
       : Base {nullptr}
       , mEntry {nullptr} {}
 
-   /// Copy constructor                                                       
+   /// Refer constructor                                                      
    ///   @param other - pointer to reference                                  
    TEMPLATE() LANGULUS(INLINED)
    constexpr TME()::TPointer(const TPointer& other)
-      : TPointer {Copy(other)} {}
+      : TPointer {Refer(other)} {}
 
    /// Move constructor                                                       
    ///   @param other - pointer to move                                       
@@ -133,12 +133,12 @@ namespace Langulus::Anyness
       mValue = {};
    }
 
-   /// Copy-assignment                                                        
+   /// Refer-assignment                                                       
    ///   @param rhs - pointer to reference                                    
    ///   @return a reference to this shared pointer                           
    TEMPLATE() LANGULUS(INLINED)
    constexpr TME()& TME()::operator = (const TPointer& rhs) {
-      return operator = (Copy(rhs));
+      return operator = (Refer(rhs));
    }
 
    /// Move-assignment                                                        

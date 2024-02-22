@@ -25,11 +25,11 @@
 namespace Langulus::Anyness
 {
 
-   /// Shallow-copy constructor                                               
-   ///   @param other - the container to shallow-copy                         
+   /// Refer constructor                                                      
+   ///   @param other - the container to refer to                             
    TEMPLATE() LANGULUS(INLINED)
    TABLE()::Set(const Set& other)
-      : Set {Copy(other)} {}
+      : Set {Refer(other)} {}
 
    /// Move constructor                                                       
    ///   @param other - the container to move                                 
@@ -62,12 +62,12 @@ namespace Langulus::Anyness
       BlockSet::Free<Set>();
    }
 
-   /// Copy assignment                                                        
-   ///   @param rhs - unordered set to copy-insert                            
+   /// Refer assignment                                                       
+   ///   @param rhs - set to refer to                                         
    ///   @return a reference to this set                                      
    TEMPLATE() LANGULUS(INLINED)
    TABLE()& TABLE()::operator = (const Set& rhs) {
-      return operator = (Copy(rhs));
+      return operator = (Refer(rhs));
    }
 
    /// Move assignment                                                        

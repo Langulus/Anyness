@@ -19,11 +19,11 @@
 namespace Langulus::Anyness
 {
 
-   /// Copy-constructor                                                       
+   /// Refer-constructor                                                      
    ///   @param other - neat container to shallow-copy                        
    LANGULUS(INLINED)
    Neat::Neat(const Neat& other)
-      : Neat {Copy(other)} {}
+      : Neat {Refer(other)} {}
 
    /// Move-constructor                                                       
    ///   @param other - neat container to move                                
@@ -32,8 +32,7 @@ namespace Langulus::Anyness
       : Neat {Move(other)} {}
 
    /// Semantic constructor                                                   
-   ///   @tparam S - semantic to use (deducible)                              
-   ///   @param other - the container to use                                  
+   ///   @param other - the container and semantic to use                     
    template<template<class> class S> LANGULUS(INLINED)
    Neat::Neat(S<Neat>&& other) requires CT::Semantic<S<Neat>>
       : mHash {other->mHash}
@@ -719,7 +718,7 @@ namespace Langulus::Anyness
          if (found)
             *found.mValue << Abandon(wrapper);
          else
-            mTraits.Insert(meta, TAny<Any> {Abandon(wrapper)});
+            mTraits.Insert(meta, /*TAny<Any> {*/Abandon(wrapper)/*}*/);
       }
       else if constexpr (CT::Exact<T, TMeta>) {
          // Insert trait without contents                               
@@ -728,7 +727,7 @@ namespace Langulus::Anyness
          if (found)
             *found.mValue << Any {};
          else
-            mTraits.Insert(trait, TAny<Any> { Any {} });
+            mTraits.Insert(trait, /*TAny<Any> {*/ Any {} /*}*/);
       }
       else LANGULUS_ERROR("Can't insert trait");
    }

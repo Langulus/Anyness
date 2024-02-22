@@ -146,13 +146,13 @@ namespace Langulus::Anyness
    template<CT::Map THIS> LANGULUS(INLINED)
    decltype(auto) BlockMap::GetRawKey(const Offset i) IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, i < GetReserved(),
-         "Index out of limits when accessing map key",
+         "Index out of limits when accessing ", NameOf<THIS>(), " key",
          ", index ", i, " is beyond the reserved ", GetReserved(), " elements");
 
       if constexpr (CT::Typed<THIS>) {
          IF_SAFE(using K = typename THIS::Key);
          LANGULUS_ASSUME(DevAssumes, (IsKeySimilar<THIS, K>()),
-            "Wrong type when accessing map key",
+            "Wrong type when accessing ", NameOf<THIS>(), " key",
             ", using type `", NameOf<K>(), "` instead of `", GetKeyType(), '`');
          return GetKeys<THIS>().GetRaw() + i;
       }
@@ -188,13 +188,13 @@ namespace Langulus::Anyness
    template<CT::Map THIS> LANGULUS(INLINED)
    decltype(auto) BlockMap::GetRawVal(const Offset i) IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, i < GetReserved(),
-         "Index out of limits when accessing map value",
+         "Index out of limits when accessing ", NameOf<THIS>(), " value",
          ", index ", i, " is beyond the reserved ", GetReserved(), " elements");
 
       if constexpr (CT::Typed<THIS>) {
          IF_SAFE(using V = typename THIS::Value);
          LANGULUS_ASSUME(DevAssumes, (IsValueSimilar<THIS, V>()),
-            "Wrong type when accessing map value",
+            "Wrong type when accessing ", NameOf<THIS>(), " value",
             ", using type `", NameOf<V>(), "` instead of `", GetValueType(), '`');
          return GetVals<THIS>().GetRaw() + i;
       }
@@ -237,13 +237,13 @@ namespace Langulus::Anyness
    template<CT::Map THIS> LANGULUS(INLINED)
    auto BlockMap::GetKeyHandle(const Offset i) const IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, i < GetReserved(),
-         "Index out of limits when accessing map key",
+         "Index out of limits when accessing ", NameOf<THIS>(), " key",
          ", index ", i, " is beyond the reserved ", GetReserved(), " elements");
 
       if constexpr (CT::Typed<THIS>) {
          using K = typename THIS::Key;
          LANGULUS_ASSUME(DevAssumes, (IsKeySimilar<THIS, K>()),
-            "Wrong type when accessing map key",
+            "Wrong type when accessing ", NameOf<THIS>(), " key",
             ", using type `", NameOf<K>(), "` instead of `", GetKeyType(), '`');
          return GetKeys<THIS>().template GetHandle<K, TAny<K>>(i);
       }
@@ -258,13 +258,13 @@ namespace Langulus::Anyness
    template<CT::Map THIS> LANGULUS(INLINED)
    auto BlockMap::GetValHandle(const Offset i) const IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, i < GetReserved(),
-         "Index out of limits when accessing map value",
+         "Index out of limits when accessing ", NameOf<THIS>(), " value",
          ", index ", i, " is beyond the reserved ", GetReserved(), " elements");
 
       if constexpr (CT::Typed<THIS>) {
          using V = typename THIS::Value;
          LANGULUS_ASSUME(DevAssumes, (IsValueSimilar<THIS, V>()),
-            "Wrong type when accessing map value",
+            "Wrong type when accessing ", NameOf<THIS>(), " value",
             ", using type `", NameOf<V>(), "` instead of `", GetValueType(), '`');
 
          // We can't rely on Block::GetHandle, because it uses mReserved

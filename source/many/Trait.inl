@@ -14,11 +14,11 @@
 namespace Langulus::Anyness
 {
 
-   /// Shallow copy constructor                                               
-   ///   @param other - the trait to copy                                     
+   /// Refer constructor                                                      
+   ///   @param other - the trait to refer to                                 
    LANGULUS(INLINED)
    Trait::Trait(const Trait& other)
-      : Trait {Copy(other)} {}
+      : Trait {Refer(other)} {}
 
    /// Move constructor                                                       
    ///   @param other - the trait to move                                     
@@ -197,12 +197,12 @@ namespace Langulus::Anyness
       else return Any::operator == (rhs);
    }
 
-   /// Copy-assignment                                                        
-   ///   @param other - the trait to copy                                     
+   /// Refer-assignment                                                       
+   ///   @param other - the trait to refer to                                 
    ///   @return a reference to this trait                                    
    LANGULUS(INLINED)
    Trait& Trait::operator = (const Trait& rhs) {
-      return operator = (Copy(rhs));
+      return operator = (Refer(rhs));
    }
 
    /// Move-assignment                                                        

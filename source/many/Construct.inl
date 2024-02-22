@@ -14,11 +14,11 @@
 namespace Langulus::Anyness
 {
    
-   /// Shallow-copy constructor                                               
-   ///   @param other - construct to shallow-copy                             
+   /// Refer constructor                                                      
+   ///   @param other - construct to refer to                                 
    LANGULUS(INLINED)
    Construct::Construct(const Construct& other) noexcept
-      : Construct {Copy(other)} {}
+      : Construct {Refer(other)} {}
 
    /// Move constructor                                                       
    ///   @param other - construct to move                                     
@@ -47,36 +47,14 @@ namespace Langulus::Anyness
    Construct::Construct(DMeta type)
       : mType {type ? type->mOrigin : nullptr} {}
 
-   /// Shallow-copying manual construct constructor                           
-   ///   @tparam T - the type of arguments (deducible)                        
+   /// Semantic manual constructor                                            
    ///   @param type - the type of the construct                              
-   ///   @param arguments - the arguments for construction                    
-   ///   @param charge - the charge for the construction                      
-   template<CT::NotSemantic T> LANGULUS(INLINED)
-   Construct::Construct(DMeta type, const T& arguments, const Charge& charge)
-      : Construct {type, Copy(arguments), charge} {}
-
-   template<CT::NotSemantic T> LANGULUS(INLINED)
-   Construct::Construct(DMeta type, T& arguments, const Charge& charge)
-      : Construct {type, Copy(arguments), charge} {}
-
-   /// Moving manual construct constructor                                    
-   ///   @tparam T - the type of arguments (deducible)                        
-   ///   @param type - the type of the construct                              
-   ///   @param arguments - the arguments for construction                    
-   ///   @param charge - the charge for the construction                      
-   template<CT::NotSemantic T> LANGULUS(INLINED)
-   Construct::Construct(DMeta type, T&& arguments, const Charge& charge)
-      : Construct {type, Move(arguments), charge} {}
-   
-   /// Semantic manual construct constructor                                  
-   ///   @param type - the type of the construct                              
-   ///   @param arguments - the arguments for construction                    
+   ///   @param args - the arguments for construction                         
    ///   @param charge - the charge for the construction                      
    LANGULUS(INLINED)
-   Construct::Construct(DMeta type, CT::Semantic auto&& arguments, const Charge& charge)
+   Construct::Construct(DMeta type, auto&& args, const Charge& charge)
       : mType {type ? type->mOrigin : nullptr}
-      , mDescriptor {arguments.Forward()}
+      , mDescriptor {Forward<Deref<decltype(args)>>(args)}
       , mCharge {charge} { }
 
 #if LANGULUS_FEATURE(MANAGED_REFLECTION)
@@ -86,29 +64,21 @@ namespace Langulus::Anyness
    Construct::Construct(const Token& token)
       : mType {RTTI::GetMetaData(token)->mOrigin} {}
 
-   template<CT::NotSemantic T> LANGULUS(INLINED)
-   Construct::Construct(const Token& token, const T& arguments, const Charge& charge)
-      : Construct {token, Copy(arguments), charge} {}
-
-   template<CT::NotSemantic T> LANGULUS(INLINED)
-   Construct::Construct(const Token& token, T& arguments, const Charge& charge)
-      : Construct {token, Copy(arguments), charge} {}
-
-   template<CT::NotSemantic T> LANGULUS(INLINED)
-   Construct::Construct(const Token& token, T&& arguments, const Charge& charge)
-      : Construct {token, Move(arguments), charge} {}
-
    LANGULUS(INLINED)
-   Construct::Construct(const Token& token, CT::Semantic auto&& arguments, const Charge& charge)
-      : Construct {RTTI::GetMetaData(token), arguments.Forward(), charge} {}
+   Construct::Construct(const Token& token, auto&& args, const Charge& charge)
+      : Construct {
+         RTTI::GetMetaData(token),
+         Forward<Deref<decltype(args)>>(args),
+         charge
+      } {}
 #endif
 
-   /// Copy-assignment                                                        
+   /// Refer-assignment                                                       
    ///   @param rhs - the construct to shallow-copy                           
    ///   @return a reference to this construct                                
    LANGULUS(INLINED)
    Construct& Construct::operator = (const Construct& rhs) noexcept {
-      return operator = (Copy(rhs));
+      return operator = (Refer(rhs));
    }
 
    /// Move-assignment                                                        

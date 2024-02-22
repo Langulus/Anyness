@@ -398,7 +398,7 @@ namespace Langulus::Anyness
                   InsertInner<THIS, false>(
                      newBucket,
                      Abandon(keyswap),
-                     Copy(old.GetValHandle<THIS>(oldIndex))
+                     Refer(old.GetValHandle<THIS>(oldIndex))
                   );
                }
                else {
@@ -414,7 +414,7 @@ namespace Langulus::Anyness
                   InsertBlockInner<THIS, false>(
                      newBucket,
                      Abandon(keyswap),
-                     Copy(old.GetValHandle<THIS>(oldIndex))
+                     Refer(old.GetValHandle<THIS>(oldIndex))
                   );
 
                   keyswap.Free();
@@ -475,7 +475,7 @@ namespace Langulus::Anyness
 
                   // Reinsert at the new bucket                         
                   InsertInner<THIS, false>(
-                     newBucket, Copy(oldKey), Abandon(valswap));
+                     newBucket, Refer(oldKey), Abandon(valswap));
                }
                else {
                   auto oldValue = old.GetValHandle<THIS>(oldIndex);
@@ -489,7 +489,7 @@ namespace Langulus::Anyness
                   --mKeys.mCount;
 
                   InsertBlockInner<THIS, false>(
-                     newBucket, Copy(oldKey), Abandon(valswap));
+                     newBucket, Refer(oldKey), Abandon(valswap));
 
                   valswap.Free();
                }
