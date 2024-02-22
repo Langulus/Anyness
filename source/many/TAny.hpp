@@ -15,6 +15,7 @@ namespace Langulus::CT
 
    /// Concept for recognizing arguments, with which a statically typed       
    /// container can be constructed                                           
+   TODO make this a function to be more readable and account for the two shallow cases - if copying, it also has to either refer or clone
    template<class T, class...A>
    concept DeepMakable = Inner::UnfoldMakableFrom<T, A...>
         or (sizeof...(A) == 1

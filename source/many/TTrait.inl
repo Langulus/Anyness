@@ -17,20 +17,20 @@
 namespace Langulus::Anyness
 {
 
-   /// Copy-constructor                                                       
+   /// Refer-constructor                                                      
    TEMPLATE() LANGULUS(INLINED)
    TME()::TTrait(const TTrait& other)
-      : Trait {Copy(static_cast<const Any&>(other))} {}
+      : Trait {Refer(static_cast<const Any&>(other))} {}
 
    /// Move-constructor                                                       
    TEMPLATE() LANGULUS(INLINED)
    TME()::TTrait(TTrait&& other)
       : Trait {Move(Forward<Any>(other))} {}
 
-   /// Copy-assignment                                                        
+   /// Refer-assignment                                                       
    TEMPLATE() LANGULUS(INLINED)
    TME()& TME()::operator = (const TTrait& rhs) {
-      Trait::operator = (Copy(static_cast<const Any&>(rhs)));
+      Trait::operator = (Refer(static_cast<const Any&>(rhs)));
       return *this;
    }
 

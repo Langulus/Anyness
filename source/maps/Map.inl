@@ -26,11 +26,11 @@
 namespace Langulus::Anyness
 {
 
-   /// Shallow-copy constructor                                               
-   ///   @param other - the container to shallow-copy                         
+   /// Refer constructor                                                      
+   ///   @param other - the container to refer to                             
    TEMPLATE() LANGULUS(INLINED)
    TABLE()::Map(const Map& other)
-      : Map {Copy(other)} {}
+      : Map {Refer(other)} {}
 
    /// Move constructor                                                       
    ///   @param other - the container to move                                 
@@ -64,12 +64,12 @@ namespace Langulus::Anyness
       BlockMap::Free<Map>();
    }
 
-   /// Copy assignment                                                        
-   ///   @param rhs - unordered map to shallow-copy                           
+   /// Refer assignment                                                       
+   ///   @param rhs - map to refer to                                         
    ///   @return a reference to this map                                      
    TEMPLATE() LANGULUS(INLINED)
    TABLE()& TABLE()::operator = (const Map& rhs) {
-      return operator = (Copy(rhs));
+      return operator = (Refer(rhs));
    }
 
    /// Move assignment                                                        

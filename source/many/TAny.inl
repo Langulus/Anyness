@@ -30,13 +30,13 @@ namespace Langulus::Anyness
          mState = DataState::Typed;
    }
 
-   /// Shallow-copy construction (const)                                      
+   /// Refer constructor                                                      
    ///   @param other - the TAny to reference                                 
    TEMPLATE() LANGULUS(INLINED)
    TAny<T>::TAny(const TAny& other)
-      : TAny {Copy(other)} {}
+      : TAny {Refer(other)} {}
     
-   /// Move construction                                                      
+   /// Move constructor                                                       
    ///   @param other - the TAny to move                                      
    TEMPLATE() LANGULUS(INLINED)
    TAny<T>::TAny(TAny&& other) noexcept
@@ -220,13 +220,13 @@ namespace Langulus::Anyness
       return Block::GetToken<TAny>();
    }
 
-   /// Shallow-copy assignment                                                
-   ///   @param rhs - the container to shallow-copy                           
+   /// Refer assignment                                                       
+   ///   @param rhs - the container to refer to                               
    ///   @return a reference to this container                                
    TEMPLATE() LANGULUS(INLINED)
    TAny<T>& TAny<T>::operator = (const TAny& rhs) {
-      static_assert(CT::DeepAssignable<T, Copied<TAny<T>>>);
-      return operator = (Copy(rhs));
+      static_assert(CT::DeepAssignable<T, Refered<TAny<T>>>);
+      return operator = (Refer(rhs));
    }
 
    /// Move assignment                                                        

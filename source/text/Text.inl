@@ -21,11 +21,11 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    constexpr Text::Text(::std::nullptr_t) noexcept {}
 
-   /// Shallow-copy constructor                                               
+   /// Refer constructor                                                      
    ///   @param other - container to reference                                
    LANGULUS(INLINED)
    Text::Text(const Text& other)
-      : Text {Copy(other)} { }
+      : Text {Refer(other)} { }
 
    /// Move constructor                                                       
    ///   @param other - container to move                                     
@@ -239,12 +239,12 @@ namespace Langulus::Anyness
       }
    }
 
-   /// Shallow copy assignment                                                
-   ///   @param rhs - the text to copy                                        
+   /// Refer assignment                                                       
+   ///   @param rhs - the text to refer to                                    
    ///   @return a reference to this container                                
    LANGULUS(INLINED)
    Text& Text::operator = (const Text& rhs) {
-      return operator = (Copy(rhs));
+      return operator = (Refer(rhs));
    }
 
    /// Move assignment                                                        

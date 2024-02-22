@@ -22,11 +22,11 @@ namespace Langulus::Anyness
    constexpr TME()::TOwned() requires CT::Inner::Defaultable<T>
       : mValue {} {}
 
-   /// Shallow-copy constructor                                               
+   /// Refer constructor                                                      
    ///   @param value - owned value to reference                              
    TEMPLATE() LANGULUS(INLINED)
-   constexpr TME()::TOwned(const TOwned& value) requires CT::Inner::CopyMakable<T>
-      : TOwned {Copy(value)} {}
+   constexpr TME()::TOwned(const TOwned& value) requires CT::Inner::ReferMakable<T>
+      : TOwned {Refer(value)} {}
 
    /// Move constructor                                                       
    ///   @param value - owned value to move                                   
@@ -46,11 +46,11 @@ namespace Langulus::Anyness
    constexpr TME()::TOwned(A&&...args)
       : mValue {Forward<A>(args)...} {}
 
-   /// Shallow-copy assignment                                                
+   /// Refer assignment                                                       
    ///   @param value - the value to reference                                
    TEMPLATE() LANGULUS(INLINED)
-   constexpr TME()& TME()::operator = (const TOwned& value) requires CT::Inner::CopyAssignable<T> {
-      return operator = (Copy(value));
+   constexpr TME()& TME()::operator = (const TOwned& value) requires CT::Inner::ReferAssignable<T> {
+      return operator = (Refer(value));
    }
 
    /// Move assignment                                                        

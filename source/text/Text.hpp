@@ -403,6 +403,7 @@ namespace Langulus
       ///                                                                     
       struct Code : Anyness::Text {
          LANGULUS_BASES(Anyness::Text);
+         LANGULUS(FILES) "";
 
          using Anyness::Text::Text;
 

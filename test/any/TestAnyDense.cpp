@@ -2574,6 +2574,19 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
       const T memory2 = pack2;
 
       WHEN("Copy-assign pack1 in pack2") {
+         pack2 = Copy(pack1);
+
+         REQUIRE(pack1.GetUses() == 3);
+         REQUIRE(pack2.GetUses() == 3);
+         REQUIRE(memory2.GetUses() == 1);
+         REQUIRE(pack1 == pack2);
+         REQUIRE(pack2 == memory1);
+         REQUIRE(pack2 != memory2);
+         for (int i = 0; i < 5; ++i)
+            REQUIRE(pack2[i] == darray1[i]);
+      }
+      
+      WHEN("Refer-assign pack1 in pack2") {
          pack2 = pack1;
 
          REQUIRE(pack1.GetUses() == 3);
@@ -2624,6 +2637,17 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
       }
 
       WHEN("Copy-assign pack1 in pack2, then reset pack1") {
+         pack2 = Copy(pack1);
+         pack1.Reset();
+
+         REQUIRE_FALSE(pack1.HasAuthority());
+         REQUIRE(pack2.GetUses() == 2);
+         REQUIRE_FALSE(pack1.GetRaw());
+         REQUIRE(pack1.GetReserved() == 0);
+         REQUIRE(pack2 == memory1);
+      }
+      
+      WHEN("Refer-assign pack1 in pack2, then reset pack1") {
          pack2 = pack1;
          pack1.Reset();
 

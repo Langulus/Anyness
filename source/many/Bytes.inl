@@ -14,11 +14,11 @@
 namespace Langulus::Anyness
 {
 
-   /// Copy-constructor                                                       
+   /// Refer-constructor                                                      
    ///   @param other - container to reference                                
    LANGULUS(INLINED)
    Bytes::Bytes(const Bytes& other)
-      : Bytes {Copy(other)} {}
+      : Bytes {Refer(other)} {}
 
    /// Move-constructor                                                       
    ///   @param other - container to move                                     
@@ -94,16 +94,16 @@ namespace Langulus::Anyness
       return Abandon(reinterpret_cast<Bytes&>(block));
    }
 
-   /// Shallow copy assignment from immutable byte container                  
-   ///   @param rhs - the byte container to shallow-copy                      
+   /// Refer-assignment                                                       
+   ///   @param rhs - the byte container to refer to                          
    ///   @return a reference to this container                                
    LANGULUS(INLINED)
    Bytes& Bytes::operator = (const Bytes& rhs) {
-      return operator = (Copy(rhs));
+      return operator = (Refer(rhs));
    }
 
-   /// Move byte container                                                    
-   ///   @param rhs - the container to move                                   
+   /// Move-assignment                                                        
+   ///   @param rhs - the byte container to move                              
    ///   @return a reference to this container                                
    LANGULUS(INLINED)
    Bytes& Bytes::operator = (Bytes&& rhs) {
@@ -273,7 +273,7 @@ namespace Langulus::Anyness
                reinterpret_cast<const Byte*>(DesemCast(item)),
                sizeof(T)
             );
-            Block::InsertBlockInner<Bytes, void, true>(IndexBack, Copy(data));
+            Block::InsertBlockInner<Bytes, void, true>(IndexBack, Refer(data));
          }
          else {
             // Unfold and serialize elements, one by one                
@@ -311,7 +311,7 @@ namespace Langulus::Anyness
             reinterpret_cast<const Byte*>(&DesemCast(item)),
             sizeof(T)
          );
-         InsertBlockInner<Bytes, void, true>(IndexBack, Copy(data));
+         InsertBlockInner<Bytes, void, true>(IndexBack, Refer(data));
       }
       else LANGULUS_ERROR("Unable to insert as bytes");
    }

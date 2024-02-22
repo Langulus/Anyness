@@ -47,7 +47,7 @@ namespace Langulus::Anyness
       const auto previousCount = mCount;
       AllocateMore<THIS, true>(mCount + count);
       const auto newRegion = CropInner(previousCount, count);
-      return Copy(reinterpret_cast<const THIS&>(newRegion));
+      return reinterpret_cast<const THIS&>(newRegion);
    }
 
    /// Create N new elements, using default construction                      
@@ -679,7 +679,7 @@ namespace Langulus::Anyness
       result.Block::template AllocateFresh<THIS>(
          result.Block::template RequestSize<THIS>(mCount + rhs->GetCount()));
       result.Block::template InsertBlock<THIS, void, false>(
-         IndexBack, Copy(lhs));
+         IndexBack, Refer(lhs));
       result.Block::template InsertBlock<THIS, void, false>(
          IndexBack, rhs.Forward());
       return Abandon(result);
@@ -984,6 +984,7 @@ namespace Langulus::Anyness
          // Leverage the fact, that containers are statically typed     
          if constexpr (CT::Sparse<T>) {
             using DT = Deptr<T>;
+
             if constexpr (SS::Shallow) {
                // Shallow pointer transfer                              
                ShallowBatchPointerConstruction(source.Forward());
@@ -992,7 +993,7 @@ namespace Langulus::Anyness
                // We early-return with an enforced shallow pointer      
                // transfer, because its requesting to clone             
                // unallocatable/unclonable/abstract data, such as metas 
-               ShallowBatchPointerConstruction(Copy(*source));
+               ShallowBatchPointerConstruction(Refer(*source));
             }
             else if constexpr (CT::Sparse<DT> or not CT::Resolvable<T>) {
                // If contained type is not resolvable, or its deptr     
@@ -1095,10 +1096,18 @@ namespace Langulus::Anyness
          }
          else if constexpr (SS::Shallow) {
             if constexpr (SS::Keep) {
-               LANGULUS_ASSERT(
-                  mType->mIsSparse or mType->mCopyConstructor, Construct,
-                  "Can't copy-construct elements"
-                  " - no copy-constructor was reflected");
+               if constexpr (CT::Refered<SS>) {
+                  LANGULUS_ASSERT(
+                     mType->mIsSparse or mType->mReferConstructor, Construct,
+                     "Can't refer-construct elements"
+                     " - no refer-constructor was reflected");
+               }
+               else {
+                  LANGULUS_ASSERT(
+                     mType->mIsSparse or mType->mCopyConstructor, Construct,
+                     "Can't copy-construct elements"
+                     " - no copy-constructor was reflected");
+               }
             }
             else {
                LANGULUS_ASSERT(
@@ -1124,7 +1133,7 @@ namespace Langulus::Anyness
                // We early-return with an enforced shallow pointer      
                // transfer, because its requesting to clone             
                // unallocatable/unclonable/abstract data, such as metas 
-               ShallowBatchPointerConstruction(Copy(source));
+               ShallowBatchPointerConstruction(Refer(source));
             }
             else if (mType->mDeptr->mIsSparse or not mType->mResolver) {
                // If contained type is not resolvable (or is just       
@@ -1159,8 +1168,8 @@ namespace Langulus::Anyness
             }
          }
          else if (mType->mIsPOD) {
-            // Both are POD - Copy/Disown/Move/Abandon/Clone by memcpy  
-            // all at once (batch optimization)                         
+            // Both are POD - Copy/Refer/Disown/Move/Abandon/Clone      
+            // by memcpy all at once (batch optimization)               
             const auto bytesize = mType->mSize * mCount;
             if constexpr (REVERSE)
                MoveMemory(mRaw, source->mRaw, bytesize);
@@ -1183,10 +1192,13 @@ namespace Langulus::Anyness
                      mType->mAbandonConstructor(rhs, lhs);
                }
                else if constexpr (SS::Shallow) {
-                  if constexpr (SS::Keep)
-                     mType->mCopyConstructor(rhs, lhs);
-                  else
-                     mType->mDisownConstructor(rhs, lhs);
+                  if constexpr (SS::Keep) {
+                     if constexpr (CT::Refered<SS>)
+                        mType->mReferConstructor(rhs, lhs);
+                     else
+                        mType->mCopyConstructor(rhs, lhs);
+                  }
+                  else mType->mDisownConstructor(rhs, lhs);
                }
                else mType->mCloneConstructor(rhs, lhs);
 
@@ -1240,7 +1252,8 @@ namespace Langulus::Anyness
    ///   @param source - the source of pointers                               
    template<template<class> class S, CT::Block T> requires CT::Semantic<S<T>>
    void Block::ShallowBatchPointerConstruction(S<T>&& source) const {
-      static_assert(S<T>::Shallow,
+      using SS = S<T>;
+      static_assert(SS::Shallow,
          "This function works only for shallow semantics");
 
       const auto mthis       = const_cast<Block*>(this);
@@ -1251,7 +1264,7 @@ namespace Langulus::Anyness
          ? source->template GetEntries<T>()
          : nullptr;
 
-      if constexpr (S<T>::Move) {
+      if constexpr (SS::Move) {
          // Move/Abandon                                                
          MoveMemory(pointersDst, pointersSrc, mCount);
 
@@ -1266,14 +1279,15 @@ namespace Langulus::Anyness
          }
 
          // Reset source pointers, too, if not abandoned                
-         if constexpr (S<T>::Keep)
+         if constexpr (SS::Keep)
             ZeroMemory(pointersSrc, mCount);
       }
       else {
-         // Copy/Disown                                                 
+         // Copy/Refer/Disown                                           
          CopyMemory(pointersDst, pointersSrc, mCount);
 
-         if constexpr (S<T>::Keep) {
+         if constexpr (SS::Keep) {
+            // Copy/Refer                                               
             // Reference each entry, if not disowned                    
             if (entriesSrc) {
                CopyMemory(entriesDst, entriesSrc, mCount);
@@ -1286,12 +1300,12 @@ namespace Langulus::Anyness
                }
             }
             else {
-               // Otherwise make sure all entries are zero              
+               // No entries available, make sure all entries are zero  
                ZeroMemory(entriesDst, mCount);
             }
          }
          else {
-            // Otherwise make sure all entries are zero                 
+            // Disown: make sure all entries are zero                   
             ZeroMemory(entriesDst, mCount);
          }
       }
@@ -1337,7 +1351,7 @@ namespace Langulus::Anyness
                // transfer, because its requesting to clone             
                // unallocatable/unclonable/abstract data, such as metas 
                Destroy<THIS>();
-               ShallowBatchPointerConstruction(Copy(*source));
+               ShallowBatchPointerConstruction(Refer(*source));
             }
             else if constexpr (CT::Sparse<DT> or not CT::Resolvable<T>) {
                // If contained type is not resolvable, or its deptr     
@@ -1429,10 +1443,18 @@ namespace Langulus::Anyness
          }
          else if constexpr (SS::Shallow) {
             if constexpr (SS::Keep) {
-               LANGULUS_ASSERT(
-                  mType->mIsSparse or mType->mCopyAssigner, Construct,
-                  "Can't copy-assign elements"
-                  " - no copy-assigner was reflected");
+               if constexpr (CT::Refered<SS>) {
+                  LANGULUS_ASSERT(
+                     mType->mIsSparse or mType->mReferAssigner, Construct,
+                     "Can't refer-assign elements"
+                     " - no refer-assigner was reflected");
+               }
+               else {
+                  LANGULUS_ASSERT(
+                     mType->mIsSparse or mType->mCopyAssigner, Construct,
+                     "Can't copy-assign elements"
+                     " - no copy-assigner was reflected");
+               }
             }
             else {
                LANGULUS_ASSERT(
@@ -1478,7 +1500,7 @@ namespace Langulus::Anyness
                   }
                }
                else if constexpr (SS::Shallow) {
-                  // Copy/Disown RHS in LHS                             
+                  // Copy/Refer/Disown RHS in LHS                       
                   *lhs = const_cast<Byte*>(*rhs);
 
                   if constexpr (SS::Keep) {
@@ -1520,10 +1542,13 @@ namespace Langulus::Anyness
                      mType->mAbandonAssigner(rhs, lhs);
                }
                else if constexpr (SS::Shallow) {
-                  if constexpr (SS::Keep)
-                     mType->mCopyAssigner(rhs, lhs);
-                  else
-                     mType->mDisownAssigner(rhs, lhs);
+                  if constexpr (SS::Keep) {
+                     if constexpr (CT::Refered<SS>)
+                        mType->mReferAssigner(rhs, lhs);
+                     else
+                        mType->mCopyAssigner(rhs, lhs);
+                  }
+                  else mType->mDisownAssigner(rhs, lhs);
                }
                else mType->mCloneAssigner(rhs, lhs);
 

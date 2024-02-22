@@ -14,11 +14,11 @@
 namespace Langulus::A
 {
    
-   /// Shallow-copy constructor                                               
-   ///   @param other - the verb to shallow-copy                              
+   /// Refer constructor                                                      
+   ///   @param other - the verb to refer to                                  
    LANGULUS(INLINED)
    Verb::Verb(const Verb& other)
-      : Verb {Copy(other)} {}
+      : Verb {Refer(other)} {}
 
    /// Move constructor                                                       
    ///   @param other - the verb to move                                      
@@ -39,12 +39,12 @@ namespace Langulus::A
       mOutput = S<Any> {other->mOutput};
    }
 
-   /// Verb shallow-copy assignment                                           
-   ///   @param rhs - the verb to shallow-copy assign                         
+   /// Refer assignment                                                       
+   ///   @param rhs - the verb to refer to                                    
    ///   @return a reference to this verb                                     
    LANGULUS(INLINED)
    Verb& Verb::operator = (const Verb& rhs) {
-      return operator = (Copy(rhs));
+      return operator = (Refer(rhs));
    }
 
    /// Verb move-assignment                                                   

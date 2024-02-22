@@ -36,16 +36,16 @@ namespace Langulus::Anyness
 
       if constexpr (SS::Shallow) {
          // We're transferring via a shallow semantic                   
-         mKeys.mCount = other->mKeys.mCount;
-         mKeys.mRaw = other->mKeys.mRaw;
-         mKeys.mReserved = other->mKeys.mReserved;
-         mInfo = other->mInfo;
-
          if constexpr (SS::Keep) {
-            // Move/Copy other                                          
-            mKeys.mEntry = other->mKeys.mEntry;
-
+            // Move/Refer/Copy other                                    
             if constexpr (SS::Move) {
+               // Move                                                  
+               mKeys.mEntry = other->mKeys.mEntry;
+               mKeys.mCount = other->mKeys.mCount;
+               mKeys.mRaw = other->mKeys.mRaw;
+               mKeys.mReserved = other->mKeys.mReserved;
+               mInfo = other->mInfo;
+
                if constexpr (not FROM::Ownership) {
                   // Since we are not aware if that block is referenced 
                   // or not we reference it just in case, and we also   
@@ -59,11 +59,33 @@ namespace Langulus::Anyness
                   other->mKeys.ResetState();
                }
             }
-            else Keep();
+            else if constexpr (CT::Refered<SS>) {
+               // Refer                                                 
+               mKeys.mEntry = other->mKeys.mEntry;
+               mKeys.mCount = other->mKeys.mCount;
+               mKeys.mRaw = other->mKeys.mRaw;
+               mKeys.mReserved = other->mKeys.mReserved;
+               mInfo = other->mInfo;
+
+               Keep();
+            }
+            else {
+               // Copy                                                  
+               mKeys.mState -= DataState::Static | DataState::Constant;
+               if (other->IsEmpty())
+                  return;
+
+               TODO();
+            }
          }
          else if constexpr (SS::Move) {
             // Abandon other                                            
             mKeys.mEntry = other->mKeys.mEntry;
+            mKeys.mCount = other->mKeys.mCount;
+            mKeys.mRaw = other->mKeys.mRaw;
+            mKeys.mReserved = other->mKeys.mReserved;
+            mInfo = other->mInfo;
+
             other->mKeys.mEntry = nullptr;
          }
       }

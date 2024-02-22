@@ -106,22 +106,32 @@ namespace Langulus::Anyness
                   // chance for a move). Sparse containers have         
                   // additional memory allocated for each pointer's     
                   // entry, if managed memory is enabled                
-                  if constexpr (CT::AbandonMakable<T> or CT::MoveMakable<T> or CT::CopyMakable<T>) {
+                  if constexpr (CT::AbandonMakable<T>
+                            or  CT::MoveMakable<T>
+                            //or  CT::CopyMakable<T>
+                            or  CT::ReferMakable<T>
+                  ) {
                      mRaw = const_cast<Byte*>(mEntry->GetBlockStart());
                      CreateSemantic<THIS>(Abandon(previousBlock));
                      previousBlock.Free();
                   }
-                  else LANGULUS_THROW(Construct, "Memory moved, but T is not move-constructible");
+                  else LANGULUS_THROW(Construct,
+                     "Memory moved, but T is not move-constructible");
                }
                else {
                   // Memory is used from multiple locations, and we must
                   // copy the memory for this block - we can't move it! 
-                  // This will throw, if data is not copy-constructible 
-                  if constexpr (CT::CopyMakable<T>) {
+                  // This will throw, if data is not copiable/referable 
+                  if constexpr (CT::ReferMakable<T>) {
+                     AllocateFresh<THIS>(request);
+                     CreateSemantic<THIS>(Refer(previousBlock));
+                  }
+                  else if constexpr (CT::CopyMakable<T>) {
                      AllocateFresh<THIS>(request);
                      CreateSemantic<THIS>(Copy(previousBlock));
                   }
-                  else LANGULUS_THROW(Construct, "Memory moved, but T is not copy-constructible");
+                  else LANGULUS_THROW(Construct,
+                     "Memory moved, but T is not copy-constructible");
                }
             }
             else {
@@ -245,6 +255,7 @@ namespace Langulus::Anyness
    /// that is owned by us. Preserve hierarchy, density and state, but remove 
    /// size constraints and constness. If we already own this block's memory, 
    /// then nothing happens                                                   
+   //TODO now can be substituded using the Copy semantic, instead of the Refer semantic
    template<CT::Block THIS> LANGULUS(INLINED)
    void Block::TakeAuthority() {
       if (mEntry or not mRaw)
@@ -253,7 +264,7 @@ namespace Langulus::Anyness
       // Copy all elements                                              
       Block clone {*this};
       clone.AllocateFresh<THIS>(RequestSize<THIS>(mCount));
-      clone.CreateSemantic<THIS>(Copy(*this));
+      clone.CreateSemantic<THIS>(Refer(*this));
 
       // Discard constness and staticness                               
       clone.mState -= DataState::Static | DataState::Constant;
@@ -307,7 +318,7 @@ namespace Langulus::Anyness
                // Memory is used from multiple locations, and we must   
                // copy the memory for this block - we can't move it!    
                AllocateFresh<THIS>(request);
-               CreateSemantic<THIS>(Copy(previousBlock));
+               CreateSemantic<THIS>(Refer(previousBlock));
                previousBlock.Free<Any>();
             }
          }

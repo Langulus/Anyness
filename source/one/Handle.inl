@@ -51,7 +51,7 @@ namespace Langulus::Anyness
 
       if constexpr (not Embedded) {
          if constexpr (S<H>::Shallow) {
-            // Copy/Disown/Move/Abandon a handle                        
+            // Copy/Refer/Disown/Move/Abandon a handle                  
             if constexpr (not S<H>::Keep)
                mEntry = nullptr;
 
@@ -83,7 +83,7 @@ namespace Langulus::Anyness
       if constexpr (CT::Sparse<T>) {
          // A pointer on the stack can still contain an entry           
          if constexpr (S::Shallow) {
-            // Copy/Disown/Move/Abandon a pointer                       
+            // Copy/Refer/Disown/Move/Abandon a pointer                 
             // Since pointers don't have ownership, it's just a copy    
             // with an optional entry search, if not disowned, and if   
             // managed memory is enabled                                
@@ -243,14 +243,14 @@ namespace Langulus::Anyness
       GetEntry() = entry;
    }
 
-   /// Copy-assign a new value and entry at the handle                        
+   /// Refer-assign a new value and entry at the handle                       
    ///   @attention this overwrites previous handle without dereferencing it, 
    ///      and without destroying anything                                   
    ///   @param value - the new value to assign                               
    ///   @param entry - the allocation that the value is part of              
    TEMPLATE() LANGULUS(INLINED)
    void HAND()::Create(const T& value, const Allocation* entry) noexcept requires CT::Dense<T> {
-      SemanticNew(&Get(), Copy(value));
+      SemanticNew(&Get(), Refer(value));
       GetEntry() = entry;
    }
 
@@ -313,11 +313,14 @@ namespace Langulus::Anyness
       else if constexpr (CT::Dense<T>) {
          // Do a copy/disown/abandon/move/clone inside a dense handle   
          if constexpr (CT::Handle<ST> and CT::MakableFrom<T, TypeOf<ST>>)
-            new (&Get()) T {SS::Nest(rhs->Get())}; // SemanticNew(&Get(), SS::Nest(rhs->Get()));
-         else if constexpr (CT::MakableFrom<T, ST>)
-            new (&Get()) T {rhs.Forward()}; // SemanticNew(&Get(), rhs.Forward());
-         else
-            LANGULUS_ERROR("Can't initialize dense T");
+            new (&Get()) T {SS::Nest(rhs->Get())};
+         else if constexpr (CT::MakableFrom<T, SS>)
+            new (&Get()) T {rhs.Forward()};
+         else if constexpr (CT::SemanticMakable<S, T> and CT::Similar<T, ST>)
+            new (&Get()) T (rhs.Forward()); // notice the parenthesis:  
+                                            // required in case T is    
+                                            // an aggregate type        
+         else LANGULUS_ERROR("Can't initialize dense T");
       }
       else if constexpr (CT::Dense<Deptr<T>>) {
          // Clone sparse/dense data                                     

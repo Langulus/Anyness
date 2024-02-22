@@ -38,7 +38,7 @@ namespace Langulus::Anyness
             // Types are already the same, just copy elements           
             out.template AllocateMore<OUT>(out.mCount + mCount);
             out.template InsertBlockInner<OUT, void, false>(
-               IndexBack, Copy(me));
+               IndexBack, Refer(me));
          }
          else if constexpr (CT::Inner::Convertible<FROM, TO>) {
             // Types are statically convertible                         
@@ -53,6 +53,9 @@ namespace Langulus::Anyness
          // Types are already the same, don't convert anything          
          if (out.IsEmpty())
             out = me;
+         else if constexpr ((CT::Typed<THIS> and CT::Inner::ReferMakable<TypeOf<THIS>>)
+                        or  (CT::Typed<OUT>  and CT::Inner::ReferMakable<TypeOf<OUT>>))
+            out.InsertBlock(IndexBack, Refer(me));
          else if constexpr ((CT::Typed<THIS> and CT::Inner::CopyMakable<TypeOf<THIS>>)
                         or  (CT::Typed<OUT>  and CT::Inner::CopyMakable<TypeOf<OUT>>))
             out.InsertBlock(IndexBack, Copy(me));

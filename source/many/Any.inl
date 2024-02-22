@@ -25,11 +25,11 @@
 namespace Langulus::Anyness
 {
 
-   /// Shallow-copy constructor                                               
-   ///   @param other - the container to shallow-copy                         
+   /// Refer constructor                                                      
+   ///   @param other - the container to refer to                             
    LANGULUS(INLINED)
    Any::Any(const Any& other)
-      : Any {Copy(other)} {}
+      : Any {Refer(other)} {}
 
    /// Move constructor                                                       
    ///   @param other - the container to move                                 
@@ -100,12 +100,12 @@ namespace Langulus::Anyness
       return Block {state, MetaDataOf<T>()};
    }
    
-   /// Shallow-copy assignment                                                
-   ///   @param rhs - the container to copy                                   
+   /// Refer assignment                                                       
+   ///   @param rhs - the container to refer to                               
    ///   @return a reference to this container                                
    LANGULUS(INLINED)
    Any& Any::operator = (const Any& rhs) {
-      return operator = (Copy(rhs));
+      return operator = (Refer(rhs));
    }
 
    /// Move assignment                                                        
