@@ -225,7 +225,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container                                
    TEMPLATE() LANGULUS(INLINED)
    TAny<T>& TAny<T>::operator = (const TAny& rhs) {
-      static_assert(CT::DeepAssignable<T, Refered<TAny<T>>>);
+      static_assert(CT::DeepAssignable<T, Referred<TAny<T>>>);
       return operator = (Refer(rhs));
    }
 

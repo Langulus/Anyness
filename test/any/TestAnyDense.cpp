@@ -2576,8 +2576,8 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
       WHEN("Copy-assign pack1 in pack2") {
          pack2 = Copy(pack1);
 
-         REQUIRE(pack1.GetUses() == 3);
-         REQUIRE(pack2.GetUses() == 3);
+         REQUIRE(pack1.GetUses() == 2);
+         REQUIRE(pack2.GetUses() == 1);
          REQUIRE(memory2.GetUses() == 1);
          REQUIRE(pack1 == pack2);
          REQUIRE(pack2 == memory1);
@@ -2641,7 +2641,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
          pack1.Reset();
 
          REQUIRE_FALSE(pack1.HasAuthority());
-         REQUIRE(pack2.GetUses() == 2);
+         REQUIRE(pack2.GetUses() == 1);
          REQUIRE_FALSE(pack1.GetRaw());
          REQUIRE(pack1.GetReserved() == 0);
          REQUIRE(pack2 == memory1);

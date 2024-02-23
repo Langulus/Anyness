@@ -67,9 +67,12 @@ namespace Langulus::Anyness
                return count;
             }
 
-            LANGULUS_ASSERT(GetUses() == 1, Move,
-               "Removing elements from memory block, used from multiple places, "
-               "requires memory to move");
+            if (GetUses() > 1) {
+               // Block is used from multiple locations, and we mush    
+               // branch out before changing it                         
+               TODO();
+            }
+
             LANGULUS_ASSERT(IsMutable(), Access,
                "Attempting to remove from constant container");
             LANGULUS_ASSERT(not IsStatic(), Access,
@@ -115,13 +118,18 @@ namespace Langulus::Anyness
                }
             }
 
+            if (GetUses() > 1) {
+               // Block is used from multiple locations, and we mush    
+               // branch out before changing it                         
+               TODO();
+            }
+
             // First call the destructors on the correct region         
             CropInner(idx, removed).Destroy<THIS>();
 
             if (ender < mCount) {
                // Fill gap by invoking abandon-constructors             
                // We're moving to the left, so no reverse is required   
-               LANGULUS_ASSERT(GetUses() == 1, Move, "Moving elements in use");
                const auto tail = mCount - ender;
                CropInner(idx, tail)
                   .CreateSemantic<THIS>(
@@ -206,6 +214,12 @@ namespace Langulus::Anyness
          }
 
          return;
+      }
+
+      if (GetUses() > 1) {
+         // Block is used from multiple locations, and we mush          
+         // branch out before changing it                               
+         TODO();
       }
 
       // Call destructors and change count                              
@@ -298,6 +312,8 @@ namespace Langulus::Anyness
    ///   @attention assumes block is not static                               
    template<CT::Block THIS>
    void Block::Destroy() const {
+      LANGULUS_ASSUME(DevAssumes, GetUses() == 1,
+         "Attempting to destroy elements used from multiple locations");
       LANGULUS_ASSUME(DevAssumes, not IsEmpty(),
          "Attempting to destroy elements in an empty container");
       LANGULUS_ASSUME(DevAssumes, not IsStatic(),

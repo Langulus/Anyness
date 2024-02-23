@@ -150,6 +150,12 @@ namespace Langulus::Anyness
 
       while (psl != pslEnd) {
          if (*psl and val == value) {
+            if (GetUses() > 1) {
+               // Map is used from multiple locations, and we mush      
+               // branch out before changing it                         
+               TODO();
+            }
+
             // Remove every pair with matching value                    
             auto key = GetKeyHandle<THIS>(psl - GetInfo());
             key.Destroy();
@@ -174,13 +180,17 @@ namespace Langulus::Anyness
    ///   @attention assumes that index points to a valid entry                
    ///   @param index - the index to remove                                   
    template<CT::Map THIS>
-   void BlockMap::RemoveInner(const Offset index) IF_UNSAFE(noexcept) {
+   void BlockMap::RemoveInner(const Offset index) {
+      if (GetUses() > 1) {
+         // Map is used from multiple locations, and we must branch out 
+         // before changing it - only this copy will be affected        
+         const BlockMap backup = *this;
+         const_cast<Allocation*>(mKeys.mEntry)->Free();
+         new (this) THIS {Copy(reinterpret_cast<const THIS&>(backup))};
+      }
+
       auto psl = GetInfo() + index;
       LANGULUS_ASSUME(DevAssumes, *psl, "Removing an invalid pair");
-      if (GetUses() > 1) {
-         // This map must be shallow-copied to a new place              
-
-      }
 
       // Destroy the key, info and value at the start                   
       // Use statically typed optimizations where possible              

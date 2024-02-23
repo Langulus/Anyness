@@ -66,7 +66,7 @@ namespace Langulus::Anyness
                   other->mValues.ResetState();
                }
             }
-            else if constexpr (CT::Refered<SS>) {
+            else if constexpr (CT::Referred<SS>) {
                // Refer                                                 
                mKeys.mEntry = other->mKeys.mEntry;
                mValues.mEntry = other->mValues.mEntry;
@@ -80,16 +80,79 @@ namespace Langulus::Anyness
             }
             else {
                // Copy                                                  
+               // We're shallow-copying, so we're 100% sure, that       
+               // each pair will end up in the same place               
                mKeys.mState -= DataState::Static | DataState::Constant;
                mValues.mState -= DataState::Static | DataState::Constant;
                if (other->IsEmpty())
                   return;
 
-               TODO();
+               // Always prefer statically typed map interface (if any) 
+               using B = Conditional<CT::Typed<FROM>, FROM, TO>;
+               AllocateFresh<B>(other->GetReserved());
+               auto asFrom = const_cast<B*>(reinterpret_cast<const B*>(&*other));
+               CopyMemory(mInfo, other->mInfo, GetReserved() + 1);
+               mKeys.mCount = other->GetCount();
+
+               if constexpr (CT::Typed<B>) {
+                  // At least one of the maps is typed                  
+                  using K = typename B::Key;
+                  using V = typename B::Value;
+
+                  if constexpr (CT::Inner::POD<K>) {
+                     // Data is POD, we can directly copy all keys      
+                     CopyMemory(
+                        mKeys.mRaw, asFrom->mKeys.mRaw,
+                        GetReserved() * sizeof(K)
+                     );
+                  }
+                  else {
+                     // Data isn't pod, refer valid keys one by one     
+                     auto info = GetInfo();
+                     const auto infoEnd = GetInfoEnd();
+                     auto dstKey = GetKeyHandle<B>(0);
+                     auto srcKey = asFrom->template GetKeyHandle<B>(0);
+                     while (info != infoEnd) {
+                        if (*info)
+                           dstKey.CreateSemantic(Refer(srcKey));
+
+                        ++info;
+                        ++dstKey;
+                        ++srcKey;
+                     }
+                  }
+               }
+               else {
+                  // Both maps are type-erased                          
+                  if (asFrom->mKeys.mType->mIsPOD) {
+                     // Keys are POD, we can directly copy them all     
+                     CopyMemory(
+                        mKeys.mRaw, asFrom->mKeys.mRaw,
+                        GetReserved() * asFrom->mKeys.mType->mSize
+                     );
+                  }
+                  else {
+                     // Keys aren't POD, clone valid keys one by one    
+                     auto info = GetInfo();
+                     const auto infoEnd = GetInfoEnd();
+                     auto dstKey = GetKeyHandle<B>(0);
+                     auto srcKey = asFrom->template GetKeyHandle<B>(0);
+                     while (info != infoEnd) {
+                        if (*info)
+                           dstKey.CreateSemantic(Refer(srcKey));
+
+                        ++info;
+                        ++dstKey;
+                        ++srcKey;
+                     }
+                  }
+               }
+
+               CloneValuesInner(Refer(*asFrom));
             }
          }
          else if constexpr (SS::Move) {
-            // Abandon other                                            
+            // Abandon                                                  
             mKeys.mEntry = other->mKeys.mEntry;
             mValues.mEntry = other->mValues.mEntry;
             mKeys.mCount = other->mKeys.mCount;
@@ -99,6 +162,14 @@ namespace Langulus::Anyness
             mInfo = other->mInfo;
 
             other->mKeys.mEntry = nullptr;
+         }
+         else {
+            // Disown                                                   
+            mKeys.mCount = other->mKeys.mCount;
+            mKeys.mRaw = other->mKeys.mRaw;
+            mKeys.mReserved = other->mKeys.mReserved;
+            mValues.mRaw = other->mValues.mRaw;
+            mInfo = other->mInfo;
          }
       }
       else {
@@ -115,7 +186,7 @@ namespace Langulus::Anyness
          auto asFrom = const_cast<B*>(reinterpret_cast<const B*>(&*other));
 
          if constexpr (CT::Typed<B>) {
-            // At least one of the maps is dense                        
+            // At least one of the maps is typed                        
             using K = typename B::Key;
             using V = typename B::Value;
 
@@ -147,57 +218,7 @@ namespace Langulus::Anyness
                   }
                }
 
-               if constexpr (CT::Dense<V>) {
-                  if constexpr (CT::Inner::POD<V>) {
-                     // Data is POD, we can directly copy all values    
-                     CopyMemory(
-                        mValues.mRaw, asFrom->mValues.mRaw,
-                        GetReserved() * sizeof(V)
-                     );
-                  }
-                  else {
-                     // Data isn't pod, clone valid values one by one   
-                     auto info = GetInfo();
-                     const auto infoEnd = GetInfoEnd();
-                     auto dstKey = GetValHandle<B>(0);
-                     auto srcKey = asFrom->template GetValHandle<B>(0);
-                     while (info != infoEnd) {
-                        if (*info)
-                           dstKey.CreateSemantic(SS::Nest(srcKey));
-
-                        ++info;
-                        ++dstKey;
-                        ++srcKey;
-                     }
-                  }
-               }
-               else {
-                  // Values are sparse, too - treat them the same       
-                  using CV = TAny<Deptr<V>>;
-                  CV coalescedValues;
-                  coalescedValues.Reserve(asFrom->GetCount());
-                  for (auto item : *asFrom) {
-                     coalescedValues.template InsertInner<CV, void, false>(
-                        IndexBack, SS::Nest(*item.mValue));
-                  }
-
-                  const_cast<Allocation*>(coalescedValues.mEntry)
-                     ->Keep(asFrom->GetCount());
-
-                  auto ptrVal = coalescedValues.GetRaw();
-                  auto info = GetInfo();
-                  const auto infoEnd = GetInfoEnd();
-                  auto dstKey = GetValHandle<B>(0);
-                  while (info != infoEnd) {
-                     if (*info)
-                        dstKey.Create(ptrVal, coalescedValues.mEntry);
-
-                     ++info;
-                     ++dstKey;
-                     ++ptrVal;
-                  }
-               }
-
+               CloneValuesInner(SS::Nest(*asFrom));
                mKeys.mCount = other->GetCount();
             }
             else {
@@ -222,53 +243,7 @@ namespace Langulus::Anyness
                ZeroMemory(mInfo, mKeys.mReserved);
                mInfo[mKeys.mReserved] = 1;
 
-               auto ptr = coalescedKeys.GetRaw();
-               const auto ptrEnd = coalescedKeys.GetRawEnd();
-
-               if constexpr (CT::Dense<V>) {
-                  // Values are dense, however                          
-                  int valIdx = 0;
-                  while (not asFrom->mInfo[valIdx])
-                     ++valIdx;
-
-                  while (ptr != ptrEnd) {
-                     InsertInner<B, false>(
-                        GetBucket(GetReserved() - 1, ptr),
-                        Abandon(HandleLocal<K> {Copy(ptr), coalescedKeys.mEntry}),
-                        SS::Nest(asFrom->template GetValHandle<B>(valIdx))
-                     );
-
-                     ++ptr;
-                     ++valIdx;
-                     while (not asFrom->mInfo[valIdx])
-                        ++valIdx;
-                  }
-               }
-               else {
-                  // Values are sparse, too - treat them the same       
-                  using CV = TAny<Deptr<V>>;
-                  CV coalescedValues;
-                  coalescedValues.Reserve(asFrom->GetCount());
-                  for (auto& item : *asFrom) {
-                     coalescedValues.template InsertInner<CV, void, false>(
-                        IndexBack, SS::Nest(*item.mValue));
-                  }
-
-                  const_cast<Allocation*>(coalescedValues.mEntry)
-                     ->Keep(asFrom->GetCount());
-
-                  auto ptrVal = coalescedValues.GetRaw();
-                  while (ptr != ptrEnd) {
-                     InsertInner<B, false>(
-                        GetBucket(GetReserved() - 1, ptr),
-                        Abandon(HandleLocal<K> {Copy(ptr),    coalescedKeys.mEntry}),
-                        Abandon(HandleLocal<V> {Copy(ptrVal), coalescedValues.mEntry})
-                     );
-
-                     ++ptr;
-                     ++ptrVal;
-                  }
-               }
+               CloneValuesReinsertInner(coalescedKeys, SS::Nest(*asFrom));
             }
          }
          else {
@@ -301,58 +276,7 @@ namespace Langulus::Anyness
                   }
                }
                
-               if (not asFrom->mValues.mType->mIsSparse) {
-                  if (asFrom->mValues.mType->mIsPOD) {
-                     // Values are POD, we can directly copy them all   
-                     CopyMemory(
-                        mValues.mRaw, asFrom->mValues.mRaw,
-                        GetReserved() * asFrom->mValues.mType->mSize
-                     );
-                  }
-                  else {
-                     // Values aren't POD, clone valid keys one by one  
-                     auto info = GetInfo();
-                     const auto infoEnd = GetInfoEnd();
-                     auto dstKey = GetValHandle<B>(0);
-                     auto srcKey = asFrom->template GetValHandle<B>(0);
-                     while (info != infoEnd) {
-                        if (*info)
-                           dstKey.CreateSemantic(SS::Nest(srcKey));
-
-                        ++info;
-                        ++dstKey;
-                        ++srcKey;
-                     }
-                  }
-               }
-               else {
-                  // Values are sparse, too - treat them the same       
-                  auto coalescedValues = Any::FromMeta(asFrom->mValues.mType->mDeptr);
-                  coalescedValues.Reserve(asFrom->GetCount());
-                  for (auto item : *asFrom) {
-                     coalescedValues.template InsertBlockInner<Any, void, false>(
-                        IndexBack, SS::Nest(*item.mValue));
-                  }
-
-                  const_cast<Allocation*>(coalescedValues.mEntry)
-                     ->Keep(asFrom->GetCount());
-
-                  auto ptrVal = coalescedValues.mRaw;
-                  const Size valstride = coalescedValues.GetStride();
-                  auto info = GetInfo();
-                  const auto infoEnd = GetInfoEnd();
-                  while (info != infoEnd) {
-                     if (*info) {
-                        GetValHandle<B>(info - GetInfo()).CreateSemantic(
-                           Abandon(HandleLocal<void*> {Copy(ptrVal), coalescedValues.mEntry})
-                        );
-                     }
-
-                     ++info;
-                     ptrVal += valstride.mSize;
-                  }
-               }
-
+               CloneValuesInner(SS::Nest(*asFrom));
                mKeys.mCount = other->GetCount();
             }
             else {
@@ -376,54 +300,251 @@ namespace Langulus::Anyness
                ZeroMemory(mInfo, mKeys.mReserved);
                mInfo[mKeys.mReserved] = 1;
 
-               auto ptr = coalescedKeys.mRaw;
-               const auto ptrEnd = coalescedKeys.mRaw + coalescedKeys.GetBytesize();
-               const Size stride = coalescedKeys.GetStride();
+               CloneValuesReinsertInner(coalescedKeys, SS::Nest(*asFrom));
+            }
+         }
+      }
+   }
 
-               if (not asFrom->mValues.mType->mIsSparse) {
-                  // Values are dense, however                          
-                  int valIdx = 0;
-                  while (not asFrom->mInfo[valIdx])
-                     ++valIdx;
+   /// Clone a key/value block                                                
+   ///   @attention assumes key type is dense, and values go into the same    
+   ///      places                                                            
+   template<template<class> class S, CT::Map B>
+   requires CT::Semantic<S<B>>
+   void BlockMap::CloneValuesInner(S<B>&& asFrom) {
+      using SS = S<B>;
 
-                  while (ptr != ptrEnd) {
-                     InsertInner<B, false>(
-                        GetBucket(GetReserved() - 1, ptr),
-                        Abandon(HandleLocal<void*> {Copy(ptr), coalescedKeys.mEntry}),
-                        SS::Nest(asFrom->template GetValHandle<B>(valIdx))
-                     );
+      if constexpr (CT::Typed<B>) {
+         // At least one of the maps is dense                           
+         using V = typename B::Value;
 
-                     ++ptr;
-                     ++valIdx;
-                     while (not asFrom->mInfo[valIdx])
-                        ++valIdx;
-                  }
+         // We're cloning dense keys or shallow-copying any keys, so    
+         // we're 100% sure, that each pair will end up in the same spot
+         if constexpr (CT::Dense<V> or CT::ShallowSemantic<SS>) {
+            if constexpr (CT::Inner::POD<V>) {
+               // Data is POD, we can directly copy all values          
+               CopyMemory(
+                  mValues.mRaw, asFrom->mValues.mRaw,
+                  GetReserved() * sizeof(V)
+               );
+            }
+            else {
+               // Data isn't pod, clone valid values one by one         
+               auto info = GetInfo();
+               const auto infoEnd = GetInfoEnd();
+               auto dstKey = GetValHandle<B>(0);
+               auto srcKey = asFrom->template GetValHandle<B>(0);
+               while (info != infoEnd) {
+                  if (*info)
+                     dstKey.CreateSemantic(SS::Nest(srcKey));
+
+                  ++info;
+                  ++dstKey;
+                  ++srcKey;
                }
-               else {
-                  // Values are sparse, too - treat them the same       
-                  auto coalescedValues = Any::FromMeta(asFrom->mValues.mType->mDeptr);
-                  coalescedValues.Reserve(asFrom->GetCount());
-                  for (auto item : *asFrom) {
-                     coalescedValues.template InsertBlockInner<Any, void, false>(
-                        IndexBack, SS::Nest(*item.mValue));
-                  }
+            }
+         }
+         else {
+            // Values are sparse, too - treat them the same             
+            using CV = TAny<Deptr<V>>;
+            CV coalescedValues;
+            coalescedValues.Reserve(asFrom->GetCount());
+            for (auto item : *asFrom) {
+               coalescedValues.template InsertInner<CV, void, false>(
+                  IndexBack, SS::Nest(*item.mValue));
+            }
 
-                  const_cast<Allocation*>(coalescedValues.mEntry)
-                     ->Keep(asFrom->GetCount());
+            const_cast<Allocation*>(coalescedValues.mEntry)
+               ->Keep(asFrom->GetCount());
 
-                  auto ptrVal = coalescedValues.mRaw;
-                  const Size valstride = coalescedValues.GetStride();
-                  while (ptr != ptrEnd) {
-                     InsertInner<B, false>(
-                        GetBucket(GetReserved() - 1, ptr),
-                        Abandon(HandleLocal<void*> {Copy(ptr), coalescedKeys.mEntry}),
-                        Abandon(HandleLocal<void*> {Copy(ptrVal), coalescedValues.mEntry})
-                     );
+            auto ptrVal = coalescedValues.GetRaw();
+            auto info = GetInfo();
+            const auto infoEnd = GetInfoEnd();
+            auto dstKey = GetValHandle<B>(0);
+            while (info != infoEnd) {
+               if (*info)
+                  dstKey.Create(ptrVal, coalescedValues.mEntry);
 
-                     ptr += stride.mSize;
-                     ptrVal += valstride.mSize;
-                  }
+               ++info;
+               ++dstKey;
+               ++ptrVal;
+            }
+         }
+      }
+      else {
+         // Both maps are type-erased                                   
+         // We're cloning dense elements or shallow-copying any, so     
+         // we're 100% sure, that each element will end up in the same  
+         // spot                                                        
+         if (not asFrom->mValues.mType->mIsSparse or CT::ShallowSemantic<SS>) {
+            if (asFrom->mValues.mType->mIsPOD) {
+               // Values are POD, we can directly copy them all         
+               CopyMemory(
+                  mValues.mRaw, asFrom->mValues.mRaw,
+                  GetReserved() * asFrom->mValues.mType->mSize
+               );
+            }
+            else {
+               // Values aren't POD, clone valid keys one by one        
+               auto info = GetInfo();
+               const auto infoEnd = GetInfoEnd();
+               auto dstKey = GetValHandle<B>(0);
+               auto srcKey = asFrom->template GetValHandle<B>(0);
+               while (info != infoEnd) {
+                  if (*info)
+                     dstKey.CreateSemantic(SS::Nest(srcKey));
+
+                  ++info;
+                  ++dstKey;
+                  ++srcKey;
                }
+            }
+         }
+         else {
+            // Values are sparse, too - treat them the same             
+            auto coalescedValues = Any::FromMeta(asFrom->mValues.mType->mDeptr);
+            coalescedValues.Reserve(asFrom->GetCount());
+            for (auto item : *asFrom) {
+               coalescedValues.template InsertBlockInner<Any, void, false>(
+                  IndexBack, SS::Nest(*item.mValue));
+            }
+
+            const_cast<Allocation*>(coalescedValues.mEntry)
+               ->Keep(asFrom->GetCount());
+
+            auto ptrVal = coalescedValues.mRaw;
+            const Size valstride = coalescedValues.GetStride();
+            auto info = GetInfo();
+            const auto infoEnd = GetInfoEnd();
+            while (info != infoEnd) {
+               if (*info) {
+                  GetValHandle<B>(info - GetInfo()).CreateSemantic(
+                     Abandon(HandleLocal<void*> {ptrVal, coalescedValues.mEntry})
+                  );
+               }
+
+               ++info;
+               ptrVal += valstride.mSize;
+            }
+         }
+      }
+   }
+   
+   /// Clone a key/value block                                                
+   ///   @attention assumes keys are sparse and all pairs will end up in      
+   ///      different places                                                  
+   template<template<class> class S, CT::Map B>
+   requires CT::Semantic<S<B>>
+   void BlockMap::CloneValuesReinsertInner(CT::Block auto& coalescedKeys, S<B>&& asFrom) {
+      using SS = S<B>;
+
+      if constexpr (CT::Typed<B>) {
+         // At least one of the maps is dense                           
+         // We're cloning pointers, which will inevitably end up        
+         // pointing elsewhere, which means that all pairs must         
+         // be rehashed and reinserted                                  
+         using K = typename B::Key;
+         using V = typename B::Value;
+
+         auto ptr = coalescedKeys.GetRaw();
+         const auto ptrEnd = coalescedKeys.GetRawEnd();
+
+         if constexpr (CT::Dense<V>) {
+            // Values are dense, however                                
+            int valIdx = 0;
+            while (not asFrom->mInfo[valIdx])
+               ++valIdx;
+
+            while (ptr != ptrEnd) {
+               InsertInner<B, false>(
+                  GetBucket(GetReserved() - 1, ptr),
+                  Abandon(HandleLocal<K> {ptr, coalescedKeys.mEntry}),
+                  SS::Nest(asFrom->template GetValHandle<B>(valIdx))
+               );
+
+               ++ptr;
+               ++valIdx;
+               while (not asFrom->mInfo[valIdx])
+                  ++valIdx;
+            }
+         }
+         else {
+            // Values are sparse, too - treat them the same             
+            using CV = TAny<Deptr<V>>;
+            CV coalescedValues;
+            coalescedValues.Reserve(asFrom->GetCount());
+            for (auto& item : *asFrom) {
+               coalescedValues.template InsertInner<CV, void, false>(
+                  IndexBack, SS::Nest(*item.mValue));
+            }
+
+            const_cast<Allocation*>(coalescedValues.mEntry)
+               ->Keep(asFrom->GetCount());
+
+            auto ptrVal = coalescedValues.GetRaw();
+            while (ptr != ptrEnd) {
+               InsertInner<B, false>(
+                  GetBucket(GetReserved() - 1, ptr),
+                  Abandon(HandleLocal<K> {ptr,    coalescedKeys.mEntry}),
+                  Abandon(HandleLocal<V> {ptrVal, coalescedValues.mEntry})
+               );
+
+               ++ptr;
+               ++ptrVal;
+            }
+         }
+      }
+      else {
+         // Both maps are type-erased                                   
+         // We're cloning pointers, which will inevitably end up        
+         // pointing elsewhere, which means that all elements must      
+         // be rehashed and reinserted                                  
+         auto ptr = coalescedKeys.mRaw;
+         const auto ptrEnd = coalescedKeys.mRaw + coalescedKeys.GetBytesize();
+         const Size stride = coalescedKeys.GetStride();
+
+         if (not asFrom->mValues.mType->mIsSparse) {
+            // Values are dense, however                                
+            int valIdx = 0;
+            while (not asFrom->mInfo[valIdx])
+               ++valIdx;
+
+            while (ptr != ptrEnd) {
+               InsertInner<B, false>(
+                  GetBucket(GetReserved() - 1, ptr),
+                  Abandon(HandleLocal<void*> {ptr, coalescedKeys.mEntry}),
+                  SS::Nest(asFrom->template GetValHandle<B>(valIdx))
+               );
+
+               ++ptr;
+               ++valIdx;
+               while (not asFrom->mInfo[valIdx])
+                  ++valIdx;
+            }
+         }
+         else {
+            // Values are sparse, too - treat them the same             
+            auto coalescedValues = Any::FromMeta(asFrom->mValues.mType->mDeptr);
+            coalescedValues.Reserve(asFrom->GetCount());
+            for (auto item : *asFrom) {
+               coalescedValues.template InsertBlockInner<Any, void, false>(
+                  IndexBack, SS::Nest(*item.mValue));
+            }
+
+            const_cast<Allocation*>(coalescedValues.mEntry)
+               ->Keep(asFrom->GetCount());
+
+            auto ptrVal = coalescedValues.mRaw;
+            const Size valstride = coalescedValues.GetStride();
+            while (ptr != ptrEnd) {
+               InsertInner<B, false>(
+                  GetBucket(GetReserved() - 1, ptr),
+                  Abandon(HandleLocal<void*> {ptr, coalescedKeys.mEntry}),
+                  Abandon(HandleLocal<void*> {ptrVal, coalescedValues.mEntry})
+               );
+
+               ptr += stride.mSize;
+               ptrVal += valstride.mSize;
             }
          }
       }

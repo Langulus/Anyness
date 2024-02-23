@@ -28,10 +28,10 @@ SCENARIO("Data normalization", "[neat]") {
    static_assert(CT::Complete<Any>);
 
    static_assert(CT::SemanticMakable<Copied, Any>);
-   static_assert(CT::SemanticMakable<Refered, Any>);
+   static_assert(CT::SemanticMakable<Referred, Any>);
 
    static_assert(CT::Inner::SemanticMakable<Copied, Any>);
-   static_assert(CT::Inner::SemanticMakable<Refered, Any>);
+   static_assert(CT::Inner::SemanticMakable<Referred, Any>);
 
    static_assert(CT::DeepMakable<Any, Cloned<TAny<Any>>>);
    static_assert(CT::CopyMakable<Any>);
@@ -72,15 +72,15 @@ SCENARIO("Data normalization", "[neat]") {
    static_assert(CT::PairAssignable<TMeta, TAny<Any>, Cloned<TPair<TMeta, TAny<Any>>>>);
 
    static_assert(CT::Inner::SemanticMakableAlt<Copied<TMeta>>);
-   static_assert(CT::Inner::SemanticMakableAlt<Refered<TMeta>>);
+   static_assert(CT::Inner::SemanticMakableAlt<Referred<TMeta>>);
    static_assert(CT::Inner::SemanticMakableAlt<Cloned<TMeta>>);
 
    static_assert(CT::Inner::SemanticMakableAlt<Copied<TAny<Any>>>);
-   static_assert(CT::Inner::SemanticMakableAlt<Refered<TAny<Any>>>);
+   static_assert(CT::Inner::SemanticMakableAlt<Referred<TAny<Any>>>);
    static_assert(CT::Inner::SemanticMakableAlt<Cloned<TAny<Any>>>);
 
    static_assert(CT::Inner::SemanticMakableAlt<Copied<TPair<TMeta, TAny<Any>>>>);
-   static_assert(CT::Inner::SemanticMakableAlt<Refered<TPair<TMeta, TAny<Any>>>>);
+   static_assert(CT::Inner::SemanticMakableAlt<Referred<TPair<TMeta, TAny<Any>>>>);
    static_assert(CT::Inner::SemanticMakableAlt<Cloned<TPair<TMeta, TAny<Any>>>>);
 
    static_assert(CT::CopyMakable<TUnorderedMap<TMeta, TAny<Any>>>);

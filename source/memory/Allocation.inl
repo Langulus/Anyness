@@ -62,10 +62,14 @@ namespace Langulus::Anyness
    ///   @param bytes - the number of allocated bytes                         
    ///   @param pool - the pool/handle of the entry                           
    LANGULUS(INLINED)
-   constexpr Allocation::Allocation(const Size& bytes, Pool* pool) noexcept
+   constexpr Allocation::Allocation(Size bytes, Pool* pool) noexcept
       : mAllocatedBytes {bytes}
       , mReferences {1}
-      , mPool {pool} {}
+      , mPool {pool} {
+      #if LANGULUS_FEATURE(MEMORY_STATISTICS)
+         mStep = Instance.GetStatistics().mStep;
+      #endif
+   }
 
    /// Get the size of the Allocation structure, rounded up for alignment     
    ///   @return the byte size of the entry, including alignment              
@@ -81,7 +85,7 @@ namespace Langulus::Anyness
    ///   @param size - the usable number of bytes required                    
    ///   @return the byte size for a new Allocation, including padding        
    LANGULUS(INLINED)
-   constexpr Size Allocation::GetNewAllocationSize(const Size& size) noexcept {
+   constexpr Size Allocation::GetNewAllocationSize(Size size) noexcept {
       const Size minimum = Allocation::GetMinAllocation();
       const Size proposed = Allocation::GetSize() + size;
       return ::std::max(proposed, minimum);
@@ -161,8 +165,7 @@ namespace Langulus::Anyness
 
    /// Get the start of the entry as a given type                             
    ///   @return a pointer to the first element                               
-   template<class T>
-   LANGULUS(INLINED)
+   template<class T> LANGULUS(INLINED)
    T* Allocation::As() const noexcept {
       return reinterpret_cast<T*>(
          const_cast<Allocation*>(this)->GetBlockStart());

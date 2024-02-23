@@ -59,7 +59,7 @@ namespace Langulus::Anyness
                   other->mKeys.ResetState();
                }
             }
-            else if constexpr (CT::Refered<SS>) {
+            else if constexpr (CT::Referred<SS>) {
                // Refer                                                 
                mKeys.mEntry = other->mKeys.mEntry;
                mKeys.mCount = other->mKeys.mCount;
@@ -79,7 +79,7 @@ namespace Langulus::Anyness
             }
          }
          else if constexpr (SS::Move) {
-            // Abandon other                                            
+            // Abandon                                                  
             mKeys.mEntry = other->mKeys.mEntry;
             mKeys.mCount = other->mKeys.mCount;
             mKeys.mRaw = other->mKeys.mRaw;
@@ -87,6 +87,13 @@ namespace Langulus::Anyness
             mInfo = other->mInfo;
 
             other->mKeys.mEntry = nullptr;
+         }
+         else {
+            // Disown                                                   
+            mKeys.mCount = other->mKeys.mCount;
+            mKeys.mRaw = other->mKeys.mRaw;
+            mKeys.mReserved = other->mKeys.mReserved;
+            mInfo = other->mInfo;
          }
       }
       else {
@@ -159,7 +166,7 @@ namespace Langulus::Anyness
                while (ptr != ptrEnd) {
                   InsertInner<B, false>(
                      GetBucket(GetReserved() - 1, ptr),
-                     Abandon(HandleLocal<TypeOf<B>> {Copy(ptr), coalesced.mEntry})
+                     Abandon(HandleLocal<TypeOf<B>> {ptr, coalesced.mEntry})
                   );
                   ++ptr;
                }
@@ -223,7 +230,7 @@ namespace Langulus::Anyness
                while (ptr != ptrEnd) {
                   InsertInner<B, false>(
                      GetBucket(GetReserved() - 1, ptr),
-                     Abandon(HandleLocal<void*> {Copy(ptr), coalesced.mEntry})
+                     Abandon(HandleLocal<void*> {ptr, coalesced.mEntry})
                   );
                   ptr += stride.mSize;
                }
