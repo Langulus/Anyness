@@ -310,7 +310,8 @@ namespace Langulus::Anyness
                return 0;
 
             const auto data = Block::From(item);
-            if (not IsSimilar<THIS, DT>() or not FindBlock<false, THIS>(data, IndexFront)) {
+            if (not IsSimilar<THIS, DT>()
+            or  not FindBlock<false, THIS>(data, IndexFront)) {
                InsertBlockInner<THIS, FORCE, MOVE_ASIDE, DT>(
                   index, S::Nest(data));
                return ExtentOf<T>;
@@ -340,16 +341,14 @@ namespace Langulus::Anyness
    ///      elements at index to the right, in order to fit the insertion     
    ///   @param idx - the index at which to insert                            
    ///   @param t1 - the first item to insert                                 
-   ///   @param tail... - the rest of items to insert (optional)              
+   ///   @param tn... - the rest of items to insert (optional)                
    ///   @return number of inserted elements                                  
-   template<CT::Block THIS, class FORCE, bool MOVE_ASIDE, class T1, class...TAIL>
+   template<CT::Block THIS, class FORCE, bool MOVE_ASIDE, class T1, class...TN>
    LANGULUS(INLINED)
-   Count Block::Insert(CT::Index auto idx, T1&& t1, TAIL&&...tail) {
+   Count Block::Insert(CT::Index auto idx, T1&& t1, TN&&...tn) {
       Count inserted = 0;
-        inserted += UnfoldInsert<THIS, FORCE, MOVE_ASIDE>(
-         idx, Forward<T1>(t1));
-      ((inserted += UnfoldInsert<THIS, FORCE, MOVE_ASIDE>(
-         idx, Forward<TAIL>(tail))), ...);
+        inserted += UnfoldInsert<THIS, FORCE, MOVE_ASIDE>(idx, Forward<T1>(t1));
+      ((inserted += UnfoldInsert<THIS, FORCE, MOVE_ASIDE>(idx, Forward<TN>(tn))), ...);
       return inserted;
    }
    
@@ -398,16 +397,16 @@ namespace Langulus::Anyness
    ///      elements at index to the right, in order to fit the insertion     
    ///   @param index - the index at which to insert                          
    ///   @param t1 - the first item to insert                                 
-   ///   @param tail... - the rest of items to insert (optional)              
+   ///   @param tn... - the rest of items to insert (optional)                
    ///   @return the number of inserted elements                              
-   template<CT::Block THIS, class FORCE, bool MOVE_ASIDE, class T1, class...TAIL>
+   template<CT::Block THIS, class FORCE, bool MOVE_ASIDE, class T1, class...TN>
    LANGULUS(INLINED)
-   Count Block::Merge(CT::Index auto index, T1&& t1, TAIL&&...tail) {
+   Count Block::Merge(CT::Index auto index, T1&& t1, TN&&...tn) {
       Count inserted = 0;
         inserted += UnfoldMerge<THIS, FORCE, MOVE_ASIDE>(
          index, Forward<T1>(t1));
       ((inserted += UnfoldMerge<THIS, FORCE, MOVE_ASIDE>(
-         index, Forward<TAIL>(tail))), ...);
+         index, Forward<TN>(tn))), ...);
       return inserted;
    }
 
@@ -486,8 +485,8 @@ namespace Langulus::Anyness
    LANGULUS(INLINED) T& Block::Deepen() {
       auto& me = reinterpret_cast<THIS&>(*this);
       LANGULUS_ASSERT(not me.IsTypeConstrained()
-                       or me.template IsSimilar<T>(),
-         Mutate, "Can't deepen with incompatible type");
+                       or me.template IsSimilar<T>(), Mutate,
+         "Can't deepen with incompatible type");
 
       // Back up the state so that we can restore it if not moved over  
       UNUSED() const DataState state = mState.mState & DataState::Or;
@@ -693,6 +692,8 @@ namespace Langulus::Anyness
    void Block::CreateDefault() const {
       LANGULUS_ASSUME(DevAssumes, mCount and mCount <= mReserved,
          "Count outside limits", '(', mCount, " > ", mReserved);
+      LANGULUS_ASSUME(DevAssumes, GetUses() == 1,
+         "Data is referenced from multiple locations");
 
       auto mthis = const_cast<Block*>(this);
       if constexpr (CT::Typed<THIS>) {
@@ -757,6 +758,8 @@ namespace Langulus::Anyness
       static_assert(sizeof...(A) > 0, "Bad number of arguments");
       LANGULUS_ASSUME(DevAssumes, mCount and mCount <= mReserved,
          "Count outside limits", '(', mCount, " > ", mReserved);
+      LANGULUS_ASSUME(DevAssumes, GetUses() == 1,
+         "Data is referenced from multiple locations");
 
       const auto getNeat = [&] {
          if constexpr (sizeof...(A) == 1) {
@@ -883,8 +886,10 @@ namespace Langulus::Anyness
    void Block::Create(A&&...arguments) const {
       LANGULUS_ASSUME(DevAssumes, mCount and mCount <= mReserved,
          "Count outside limits", '(', mCount, " > ", mReserved);
-      auto mthis = reinterpret_cast<THIS*>(const_cast<Block*>(this));
+      LANGULUS_ASSUME(DevAssumes, GetUses() == 1,
+         "Data is referenced from multiple locations");
 
+      auto mthis = reinterpret_cast<THIS*>(const_cast<Block*>(this));
       if constexpr (sizeof...(A) == 0) {
          // Attempt default construction                                
          CreateDefault<THIS>();
@@ -967,6 +972,7 @@ namespace Langulus::Anyness
          "Count outside limits", '(', mCount, " > ", mReserved);
       LANGULUS_ASSUME(DevAssumes, mCount <= source->mCount,
          "Count mismatch");
+
       // Type-erased pointers (void*) are acceptable                    
       LANGULUS_ASSUME(DevAssumes, 
             (source->GetType()->IsSimilar(GetType<THIS>())
@@ -1096,7 +1102,7 @@ namespace Langulus::Anyness
          }
          else if constexpr (SS::Shallow) {
             if constexpr (SS::Keep) {
-               if constexpr (CT::Refered<SS>) {
+               if constexpr (CT::Referred<SS>) {
                   LANGULUS_ASSERT(
                      mType->mIsSparse or mType->mReferConstructor, Construct,
                      "Can't refer-construct elements"
@@ -1193,7 +1199,7 @@ namespace Langulus::Anyness
                }
                else if constexpr (SS::Shallow) {
                   if constexpr (SS::Keep) {
-                     if constexpr (CT::Refered<SS>)
+                     if constexpr (CT::Referred<SS>)
                         mType->mReferConstructor(rhs, lhs);
                      else
                         mType->mCopyConstructor(rhs, lhs);
@@ -1232,6 +1238,8 @@ namespace Langulus::Anyness
          "Count mismatch");
       LANGULUS_ASSUME(DevAssumes, IsSparse(),
          "Container is not sparse");
+      LANGULUS_ASSUME(DevAssumes, GetUses() == 1,
+         "Data is referenced from multiple locations");
 
       // Type-erased pointers (void*) are acceptable, because they're   
       // required for some internal stuff, although not recommended     
@@ -1325,6 +1333,9 @@ namespace Langulus::Anyness
          "Count outside limits", '(', mCount, " > ", mReserved);
       LANGULUS_ASSUME(DevAssumes, mCount <= source->mCount,
          "Count mismatch");
+      LANGULUS_ASSUME(DevAssumes, GetUses() == 1,
+         "Data is referenced from multiple locations");
+
       // Type-erased pointers (void*) are acceptable                    
       LANGULUS_ASSUME(DevAssumes, (source->GetType()->IsSimilar(GetType<THIS>())
          or (source->GetType()->template IsSimilar<void*>() and IsSparse<THIS>())
@@ -1443,7 +1454,7 @@ namespace Langulus::Anyness
          }
          else if constexpr (SS::Shallow) {
             if constexpr (SS::Keep) {
-               if constexpr (CT::Refered<SS>) {
+               if constexpr (CT::Referred<SS>) {
                   LANGULUS_ASSERT(
                      mType->mIsSparse or mType->mReferAssigner, Construct,
                      "Can't refer-assign elements"
@@ -1543,7 +1554,7 @@ namespace Langulus::Anyness
                }
                else if constexpr (SS::Shallow) {
                   if constexpr (SS::Keep) {
-                     if constexpr (CT::Refered<SS>)
+                     if constexpr (CT::Referred<SS>)
                         mType->mReferAssigner(rhs, lhs);
                      else
                         mType->mCopyAssigner(rhs, lhs);

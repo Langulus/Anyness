@@ -16,12 +16,6 @@
 namespace Langulus::Anyness
 {
 
-   /// Cell construction                                                      
-   ///   @param args... - arguments to forward to T's constructor             
-   TEMPLATE() template<class...A> requires ::std::constructible_from<T, A...>
-   LANGULUS(INLINED) TME()::Cell::Cell(A&&...args)
-      : mData {Forward<A>(args)...} {}
-
    TEMPLATE() LANGULUS(INLINED)
    TME()::THive(const THive& other)
       : THive {Refer(other)} {}
@@ -273,6 +267,14 @@ namespace Langulus::Anyness
       mCount = 0;
    }
 
+
+
+   
+   /// Cell construction                                                      
+   ///   @param args... - arguments to forward to T's constructor             
+   TEMPLATE() template<class...A> requires ::std::constructible_from<T, A...>
+   LANGULUS(INLINED) TME()::Cell::Cell(A&&...args)
+      : mData {Forward<A>(args)...} {}
 
 
 

@@ -107,7 +107,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container                                
    TEMPLATE() LANGULUS(INLINED)
    TABLE()& TABLE()::operator = (const TSet& rhs) {
-      static_assert(CT::DeepSetAssignable<T, Refered<TSet<T>>>);
+      static_assert(CT::DeepSetAssignable<T, Referred<TSet<T>>>);
       return operator = (Refer(rhs));
    }
 

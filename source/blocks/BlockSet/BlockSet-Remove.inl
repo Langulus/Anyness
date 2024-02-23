@@ -66,6 +66,12 @@ namespace Langulus::Anyness
       auto psl = GetInfo() + index;
       LANGULUS_ASSUME(DevAssumes, *psl, "Removing an invalid key");
 
+      if (GetUses() > 1) {
+         // Set is used from multiple locations, and we mush branch out 
+         // before changing it                                          
+         TODO();
+      }
+
       // Destroy the key and info at the start                          
       // Use statically typed optimizations where possible              
       auto key = GetHandle<THIS>(index);

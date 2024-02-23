@@ -407,7 +407,7 @@ namespace Langulus::Anyness
                if constexpr (CT::Sparse<Deptr<T>>) {
                   // Pointer to pointer                                 
                   // Release all nested indirection layers              
-                  HandleLocal<Deptr<T>> {Copy(*Get())}.Destroy();
+                  HandleLocal<Deptr<T>> {*Get()}.Destroy();
                }
                else if constexpr (CT::Destroyable<T>) {
                   // Pointer to a complete, destroyable dense           
@@ -451,7 +451,7 @@ namespace Langulus::Anyness
                if (meta->mDeptr->mIsSparse) {
                   // Release all nested indirection layers              
                   HandleLocal<Byte*> {
-                     Copy(*reinterpret_cast<Byte**>(Get()))
+                     *reinterpret_cast<Byte**>(Get())
                   }.DestroyUnknown(meta->mDeptr);
                }
                else if (meta->mDestructor) {

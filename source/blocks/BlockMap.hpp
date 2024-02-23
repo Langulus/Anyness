@@ -125,6 +125,14 @@ namespace Langulus::Anyness
       requires CT::Semantic<S<FROM>>
       void BlockTransfer(S<FROM>&&);
 
+      template<template<class> class S, CT::Map FROM>
+      requires CT::Semantic<S<FROM>>
+      void CloneValuesInner(S<FROM>&&);
+
+      template<template<class> class S, CT::Map FROM>
+      requires CT::Semantic<S<FROM>>
+      void CloneValuesReinsertInner(CT::Block auto&, S<FROM>&&);
+
    public:
       ///                                                                     
       ///   Capsulation                                                       
@@ -518,7 +526,7 @@ namespace Langulus::Anyness
       template<CT::Map>
       void ClearInner();
       template<CT::Map>
-      void RemoveInner(Offset) IF_UNSAFE(noexcept);
+      void RemoveInner(Offset);
 
    #if LANGULUS(TESTING)
       public: NOD() constexpr const void* GetRawKeysMemory() const noexcept;

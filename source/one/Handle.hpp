@@ -153,7 +153,7 @@ namespace Langulus
       ///   @tparam T - type to unfold                                        
       ///   @return a pointer of the most inner type                          
       template<class T>
-      constexpr auto Unfold() noexcept {//TODO nest for semantics?
+      consteval auto Unfold() noexcept {
          if constexpr (CT::Sparse<T>) {
             if constexpr (CT::Array<T>)
                return Unfold<Deext<T>>();

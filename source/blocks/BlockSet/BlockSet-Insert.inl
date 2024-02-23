@@ -401,6 +401,12 @@ namespace Langulus::Anyness
    template<CT::Set THIS, bool CHECK_FOR_MATCH, template<class> class S, CT::Data T>
    requires CT::Semantic<S<T>>
    Offset BlockSet::InsertInner(const Offset start, S<T>&& key) {
+      if (GetUses() > 1) {
+         // Set is used from multiple locations, and we mush branch out 
+         // before changing it                                          
+         TODO();
+      }
+
       auto keyswapper = CreateValHandle<THIS>(key.Forward());
 
       // Get the starting index based on the key hash                   
@@ -456,6 +462,12 @@ namespace Langulus::Anyness
    template<CT::Set THIS, bool CHECK_FOR_MATCH, template<class> class S>
    requires CT::Semantic<S<Block>>
    Offset BlockSet::InsertBlockInner(const Offset start, S<Block>&& key) {
+      if (GetUses() > 1) {
+         // Set is used from multiple locations, and we mush branch out 
+         // before changing it                                          
+         TODO();
+      }
+
       // Get the starting index based on the key hash                   
       auto psl = GetInfo() + start;
       const auto pslEnd = GetInfoEnd();

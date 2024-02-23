@@ -12,26 +12,88 @@
 
 namespace Langulus::CT
 {
+   namespace Inner
+   {
+
+      /// Test whether a TAny is constructible with the given arguments       
+      ///   @tparam T - the contained type in TAny<T>                         
+      ///   @tparam ...A - the arguments to test                              
+      ///   @return true if TAny<T> is constructible using {A...}             
+      template<class T, class...A>
+      consteval bool DeepMakable() noexcept {
+         if constexpr (UnfoldMakableFrom<T, A...>) {
+            // If we can directly forward A..., then always prefer that 
+            return true;
+         }
+         else if constexpr (sizeof...(A) == 1) {
+            // If only one A provided, it HAS to be a CT::Block type    
+            using FA = FirstOf<A...>;
+            using SA = SemanticOf<FA>;
+
+            if constexpr (CT::Block<Desem<FA>>) {
+               if constexpr (SA::Shallow) {
+                  // Generally, shallow semantics are always supported, 
+                  // but copying will call element constructors, so we  
+                  // have to check if the contained type supports it    
+                  if constexpr (CT::Copied<SA>)
+                     return ReferMakable<T>;
+                  else
+                     return true;
+               }
+               else {
+                  // Cloning always calls element constructors, and we  
+                  // have to check whether contained elements can do it 
+                  return SemanticMakableAlt<typename SA::template As<T>>;
+               }
+            }
+            else return false;
+         }
+         else return false;
+      };
+      
+      /// Test whether a TAny is assignable with the given argument           
+      ///   @tparam T - the contained type in TAny<T>                         
+      ///   @tparam A - the argument to test                                  
+      ///   @return true if TAny<T> is assignable using = A                   
+      template<class T, class A>
+      consteval bool DeepAssignable() noexcept {
+         if constexpr (UnfoldMakableFrom<T, A>) {
+            // If we can directly forward A..., then always prefer that 
+            // Othewise, it has to be a CT::Block type                  
+            return true;
+         }
+         else if constexpr (CT::Block<Desem<A>>) {
+            using SA = SemanticOf<A>;
+
+            if constexpr (SA::Shallow) {
+               // Generally, shallow semantics are always supported,    
+               // but copying will call element assigners, so we        
+               // have to check if the contained type supports it       
+               if constexpr (CT::Copied<SA>)
+                  return ReferAssignable<T>;
+               else
+                  return true;
+            }
+            else {
+               // Cloning always calls element assigners, and we        
+               // have to check whether contained elements can do it    
+               return SemanticAssignableAlt<typename SA::template As<T>>;
+            }
+         }
+         else return false;
+      };
+
+   } // namespace Langulus::CT::Inner
 
    /// Concept for recognizing arguments, with which a statically typed       
    /// container can be constructed                                           
-   TODO make this a function to be more readable and account for the two shallow cases - if copying, it also has to either refer or clone
    template<class T, class...A>
-   concept DeepMakable = Inner::UnfoldMakableFrom<T, A...>
-        or (sizeof...(A) == 1
-           and Block<Desem<FirstOf<A...>>>
-           and (SemanticOf<FirstOf<A...>>::Shallow
-            or Inner::SemanticMakableAlt<
-               typename SemanticOf<FirstOf<A...>>::template As<T>>)
-        );
+   concept DeepMakable = Inner::DeepMakable<T, A...>();
 
    /// Concept for recognizing argument, with which a statically typed        
    /// container can be assigned                                              
    template<class T, class A>
-   concept DeepAssignable = Inner::UnfoldMakableFrom<T, A>
-        or (Block<Desem<A>> and (SemanticOf<A>::Shallow
-           or Inner::SemanticAssignableAlt<
-            typename SemanticOf<A>::template As<T>>));
+   concept DeepAssignable = Inner::DeepAssignable<T, A>();
 
 } // namespace Langulus::CT
 

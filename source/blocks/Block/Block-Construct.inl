@@ -274,7 +274,7 @@ namespace Langulus::Anyness
             }
             else {
                // Copy/Refer other                                      
-               if constexpr (CT::Refered<SS>) {
+               if constexpr (CT::Referred<SS>) {
                   // Just reference                                     
                   mRaw = from->mRaw;
                   mReserved = from->mReserved;
@@ -298,11 +298,16 @@ namespace Langulus::Anyness
             }
          }
          else if constexpr (SS::Move) {
-            // Abandon other                                            
+            // Abandon                                                  
             mRaw = from->mRaw;
             mReserved = from->mReserved;
             mEntry = from->mEntry;
             from->mEntry = nullptr;
+         }
+         else {
+            // Disown                                                   
+            mRaw = from->mRaw;
+            mReserved = from->mReserved;
          }
       }
       else {
