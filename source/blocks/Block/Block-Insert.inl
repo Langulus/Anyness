@@ -658,10 +658,11 @@ namespace Langulus::Anyness
       else if (rhs->IsEmpty())
          return lhs;
 
-      if (GetUses() == 1) {
+      if (GetUses() == 1 and not mType->mDestructor and not mType->mIsSparse) {
          // Silently append rhs to this block's memory, to save on a    
          // reallocation. This block will remain the same, but it will  
-         // diverge, if changed in the future                           
+         // diverge, if changed in the future. This is only allowed     
+         // if the container contains dense indestructible items        
          const auto countBackup = mCount;
          const_cast<Block*>(this)->template
             InsertBlock<THIS, void>(IndexBack, rhs.Forward());

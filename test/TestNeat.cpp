@@ -110,6 +110,44 @@ SCENARIO("Data normalization", "[neat]") {
          Neat normalized {data};
       }
 	}
+   
+	GIVEN("A neat container full of many things") {
+      struct ComplexStuff {
+         int x = 1;
+         float y = 2;
+         double z = 3;
+         std::string name;
+
+         bool operator == (const ComplexStuff&) const = default;
+
+         ~ComplexStuff() {
+            x = 0;
+            y = 1;
+            z = 2;
+         }
+      };
+
+      Neat neat {
+         Traits::Name {"Root"},
+         Construct::From<int>(),
+         Construct::From<float>(),
+         Construct::From<double>(),
+         Construct::From<ComplexStuff>(
+            Traits::Name {"Child1"},
+            Construct::From<int>(),
+            Construct::From<float>(),
+            Construct::From<ComplexStuff>(Traits::Name {"GrandChild1"}),
+            Construct::From<ComplexStuff>(Traits::Name {"GrandChild2"})
+         ),
+         Construct::From<ComplexStuff>(Traits::Name {"Child2"})
+      };
+
+      WHEN("Copied") {
+         Neat copied = neat;
+
+         //REQUIRE(neat == copied);
+      }
+	}
 
    REQUIRE(memoryState.Assert());
 }

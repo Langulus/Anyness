@@ -12,6 +12,8 @@
 
 
 SCENARIO("Byte manipulation", "[bytes]") {
+   static Allocator::State memoryState;
+
    GIVEN("An empty byte container") {
       Bytes data;
 
@@ -151,4 +153,6 @@ SCENARIO("Byte manipulation", "[bytes]") {
          REQUIRE(data != Bytes {randomStuff2});
       }
    }
+
+   REQUIRE(memoryState.Assert());
 }

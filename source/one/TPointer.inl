@@ -97,7 +97,8 @@ namespace Langulus::Anyness
    /// Shared pointer destruction                                             
    TEMPLATE() LANGULUS(INLINED)
    TME()::~TPointer() {
-      ResetInner();
+      if (mValue)
+         ResetInner();
    }
 
    /// Create a new instance of T by providing constructor arguments          
@@ -115,11 +116,14 @@ namespace Langulus::Anyness
    }
 
    /// Reset the pointer                                                      
+   ///   @attention assumes pointer is valid                                  
    TEMPLATE() LANGULUS(INLINED)
    void TME()::ResetInner() {
+      LANGULUS_ASSUME(DevAssumes, mValue, "Null pointer");
+
       if constexpr (DR and CT::Referencable<T>) {
          // Do double referencing                                       
-         if (mValue and mValue->GetReferences() > 1)
+         if (mValue->GetReferences() > 1)
             mValue->Free();
       }
 
@@ -129,8 +133,10 @@ namespace Langulus::Anyness
    /// Reset the pointer                                                      
    TEMPLATE() LANGULUS(INLINED)
    void TME()::Reset() {
-      ResetInner();
-      mValue = {};
+      if (mValue) {
+         ResetInner();
+         mValue = {};
+      }
    }
 
    /// Refer-assignment                                                       

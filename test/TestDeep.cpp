@@ -13,6 +13,7 @@
 
 
 SCENARIO("Deep sequential containers", "[any]") {
+   static Allocator::State memoryState;
 
    static_assert(sizeof(A::Block) == sizeof(Block));
 
@@ -496,4 +497,6 @@ SCENARIO("Deep sequential containers", "[any]") {
          REQUIRE(subpack3.GetUses() == 1); // 2 if that functionality is added
       }
    }
+
+   REQUIRE(memoryState.Assert());
 }

@@ -338,7 +338,7 @@ namespace Langulus::Anyness
             return *this;
       #endif
 
-      if (mEntry and mEntry->GetUses() == 1) {
+      if (GetUses() == 1) {
          auto mutableThis = const_cast<Text*>(this);
 
          // If we have ownership and this is the only place where data  
