@@ -908,16 +908,15 @@ namespace Langulus::Anyness
             if constexpr (sizeof...(A) == 1 and CT::Sparse<T>) {
                // We just copied a pointer multiple times, make sure    
                // we reference the memory behind it, if we own it       
-               const Allocation* allocation = nullptr;
                auto ent = mthis->template GetEntries<THIS>();
-               const auto entEnd = ent + mCount;
-
-               allocation = Allocator::Find(MetaDataOf<Deptr<T>>(), *(--lhs));
-               if (allocation)
+               auto allocation = Allocator::Find(MetaDataOf<Deptr<T>>(), *(--lhs));
+               if (allocation) {
+                  const auto entEnd = ent + mCount;
+                  while (ent != entEnd)
+                     *(ent++) = allocation;
                   const_cast<Allocation*>(allocation)->Keep(mCount);
-
-               while (ent != entEnd)
-                  *(ent++) = allocation;
+               }
+               else memset(ent, 0, mCount * sizeof(void*));
             }
          }
          else CreateDescribe<THIS>(Forward<A>(arguments)...);

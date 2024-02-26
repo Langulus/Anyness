@@ -130,9 +130,9 @@ namespace Langulus::Anyness
       Handle& operator += (Offset) noexcept requires Embedded;
       Handle& operator -= (Offset) noexcept requires Embedded;
 
-      template<bool RESET = false>
+      template<bool RESET = false, bool DEALLOCATE = true>
       void Destroy() const;
-      template<bool RESET = false>
+      template<bool RESET = false, bool DEALLOCATE = true>
       void DestroyUnknown(DMeta) const;
    };
    

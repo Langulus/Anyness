@@ -242,24 +242,29 @@ namespace Langulus::Anyness
          if (frame.IsEmpty())
             continue;
 
-         // Destroy only valid cells in frames, that have exactly one   
-         // reference of use                                            
-         /*if (frame.GetUses() != 1) {
-            // Frame is still in use, we can't destroy anything in it   
-            // Just dereference it                                      
-            frame.Reset();
-            continue;
-         }*/
-         LANGULUS_ASSERT(frame.GetUses() == 1, Destruct, "Can't reset hive");
          auto raw = frame.GetRaw();
          const auto rawEnd = frame.GetRaw() + frame.GetReserved();
          while (raw != rawEnd and frame.mCount) {
             if (not raw->mNextFreeCell) {
-               raw->~Cell();
+               if (raw->mData.GetReferences() == 1) {
+                  // Safe to destroy the instance from here             
+                  raw->~Cell();
+               }
+               else {
+                  // The particular hive cell is in use somewhere else  
+                  // so just dereference it from here                   
+                  raw->mData.Free();
+                  LANGULUS_ASSUME(DevAssumes, frame.GetUses() > 1,
+                     "Hive cell referenced elsewhere, but frame memory isn't");
+               }
+
                --frame.mCount;
             }
             ++raw;
          }
+
+         LANGULUS_ASSUME(DevAssumes, frame.mCount == 0,
+            "Frame should be empty at this point");
       }
 
       mFrames.Reset();

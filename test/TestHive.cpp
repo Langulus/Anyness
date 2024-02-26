@@ -8,9 +8,11 @@
 ///                                                                           
 #include "Main.hpp"
 #include <Anyness/THive.hpp>
+#include <Anyness/Referenced.hpp>
 #include <catch2/catch.hpp>
 
-struct Producible {
+
+struct Producible : Referenced {
    int v;
 
    Producible(int vv) : v {vv} {}
@@ -21,6 +23,8 @@ struct Producible {
 };
 
 SCENARIO("Test hives", "[hive]") {
+   static Allocator::State memoryState;
+
 	GIVEN("A hive instance") {
 		THive<Producible> hive;
 
@@ -45,5 +49,9 @@ SCENARIO("Test hives", "[hive]") {
 			REQUIRE(hive.mFrames[0].GetRaw()[0].mData == Producible {1});
 			REQUIRE(hive.mFrames[0].GetRaw()[1].mData == Producible {2});
 		}
-	}
+
+      // Check for memory leaks after each cycle                        
+   }
+
+   REQUIRE(memoryState.Assert());
 }

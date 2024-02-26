@@ -58,9 +58,25 @@ TEMPLATE_TEST_CASE(
    using T = typename TestType::LHS;
    using K = typename TestType::RHS;
 
-   GIVEN("A default-initialized set instance") {
-      const auto element = CreateElement<K>(555);
+   const auto element = CreateElement<K>(555);
 
+   // Arrays are dynamic to avoid constexprification                 
+   const K darray1[5] {
+      CreateElement<K>(1),
+      CreateElement<K>(2),
+      CreateElement<K>(3),
+      CreateElement<K>(4),
+      CreateElement<K>(5)
+   };
+   const K darray2[5] {
+      CreateElement<K>(6),
+      CreateElement<K>(7),
+      CreateElement<K>(8),
+      CreateElement<K>(9),
+      CreateElement<K>(10)
+   };
+
+   GIVEN("A default-initialized set instance") {
       T set;
 
       WHEN("Given a default-constructed map") {
@@ -135,8 +151,6 @@ TEMPLATE_TEST_CASE(
    }
 
    GIVEN("A copy-initialized set instance") {
-      const auto element = CreateElement<K>(555);
-
       WHEN("Given an element-constructed set") {
          T set {element};
 
@@ -154,14 +168,6 @@ TEMPLATE_TEST_CASE(
    }
    
    GIVEN("Five elements") {
-      const K darray1[5] {
-         CreateElement<K>(1),
-         CreateElement<K>(2),
-         CreateElement<K>(3),
-         CreateElement<K>(4),
-         CreateElement<K>(5)
-      };
-
       WHEN("Unfold-initialized using the five elements as an array") {
          T set {darray1};
 
@@ -180,22 +186,6 @@ TEMPLATE_TEST_CASE(
 
    GIVEN("Set with some items") {
       IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
-
-      // Arrays are dynamic to avoid constexprification                 
-      const K darray1[5] {
-         CreateElement<K>(1),
-         CreateElement<K>(2),
-         CreateElement<K>(3),
-         CreateElement<K>(4),
-         CreateElement<K>(5)
-      };
-      const K darray2[5] {
-         CreateElement<K>(6),
-         CreateElement<K>(7),
-         CreateElement<K>(8),
-         CreateElement<K>(9),
-         CreateElement<K>(10)
-      };
 
       T set;
       set << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
@@ -499,7 +489,6 @@ TEMPLATE_TEST_CASE(
       }
       }
 
-
       WHEN("Removing non-available elements") {
          const auto removed9 = set.Remove(darray2[3]);
 
@@ -658,7 +647,7 @@ TEMPLATE_TEST_CASE(
 
       WHEN("Sets are compared") {
          T sameSet;
-         sameSet << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
+         sameSet << darray1;
          T clonedSet {Clone(set)};
          T copiedSet {set};
          T differentSet1;
@@ -793,6 +782,14 @@ TEMPLATE_TEST_CASE(
          REQUIRE(i == set.GetCount());
          REQUIRE(i == done);
       }
+   }
+
+   if constexpr (CT::Sparse<K>) {
+      delete element;
+      for (auto i : darray1)
+         delete i;
+      for (auto i : darray2)
+         delete i;
    }
 }
 

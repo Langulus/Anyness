@@ -270,12 +270,13 @@ namespace Langulus::Anyness
       if (not mKeys.mEntry)
          return;
 
-      LANGULUS_ASSUME(DevAssumes,
-         mKeys.mEntry->GetUses() >= 1, "Bad memory dereferencing");
+      LANGULUS_ASSUME(DevAssumes, GetUses() >= 1, "Bad memory dereferencing");
 
       if (mKeys.mEntry->GetUses() == 1) {
-         if (not IsEmpty())
-            ClearInner<THIS>();
+         if (not IsEmpty()) {
+            ClearPartInner<THIS>(GetKeys<THIS>());
+            ClearPartInner<THIS>(GetVals<THIS>());
+         }
 
          // Deallocate stuff                                            
          LANGULUS_ASSUME(DevAssumes, mValues.mEntry->GetUses() == 1,

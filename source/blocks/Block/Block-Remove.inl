@@ -326,10 +326,59 @@ namespace Langulus::Anyness
          if constexpr (CT::Sparse<T>) {
             // Destroy all indirection layers, if their references reach
             // 1, and destroy the dense element, if it has destructor   
+            // This is done in the following way:                       
+            //    1. First dereference all handles that point to the    
+            //       same memory together as one                        
+            //    2. Destroy those groups, that are fully dereferenced  
             auto handle = GetHandle<T, THIS>(0);
             const auto handleEnd = handle + mCount;
+
+            //                                                          
             while (handle.mValue != handleEnd.mValue) {
-               handle.Destroy();
+               if (not *handle.mEntry) {
+                  ++handle;
+                  continue;
+               }
+
+               // Count all handles that match the current entry        
+               auto matches = 0;
+               auto handle2 = handle + 1;
+               while (handle2.mValue != handleEnd.mValue) {
+                  if (*handle.mEntry == *handle2.mEntry)
+                     ++matches;
+                  ++handle2;
+               }
+
+               const_cast<Allocation*>(*handle.mEntry)->Free(matches);
+               if (1 == (*handle.mEntry)->GetUses()) {
+                  // Destroy all matching handles, but deallocate only  
+                  // once after that                                    
+                  if (matches) {
+                     auto handle3 = handle + 1;
+                     while (handle3.mValue != handleEnd.mValue) {
+                        if (*handle.mEntry == *handle3.mEntry)
+                           handle3.Destroy<true, false>();
+                        ++handle3;
+                     }
+                  }
+
+                  handle.Destroy();
+               }
+               else {
+                  // Just dereference once more, but also reset         
+                  // the matching handle entries                        
+                  if (matches) {
+                     auto handle3 = handle + 1;
+                     while (handle3.mValue != handleEnd.mValue) {
+                        if (*handle.mEntry == *handle3.mEntry)
+                           *handle3.mEntry = nullptr;
+                        ++handle3;
+                     }
+                  }
+
+                  const_cast<Allocation*>(*handle.mEntry)->Free(1);
+               }
+
                ++handle;
             }
          }
@@ -350,8 +399,53 @@ namespace Langulus::Anyness
             // 1, and destroy the dense element, if it has destructor   
             auto handle = mthis->template GetHandle<Byte*, THIS>(0);
             const auto handleEnd = handle + mCount;
+            
+            //                                                          
             while (handle.mValue != handleEnd.mValue) {
-               handle.DestroyUnknown(mType);
+               if (not *handle.mEntry) {
+                  ++handle;
+                  continue;
+               }
+
+               // Count all handles that match the current entry        
+               auto matches = 0;
+               auto handle2 = handle + 1;
+               while (handle2.mValue != handleEnd.mValue) {
+                  if (*handle.mEntry == *handle2.mEntry)
+                     ++matches;
+                  ++handle2;
+               }
+
+               const_cast<Allocation*>(*handle.mEntry)->Free(matches);
+               if (1 == (*handle.mEntry)->GetUses()) {
+                  // Destroy all matching handles, but deallocate only  
+                  // once after that                                    
+                  if (matches) {
+                     auto handle3 = handle + 1;
+                     while (handle3.mValue != handleEnd.mValue) {
+                        if (*handle.mEntry == *handle3.mEntry)
+                           handle3.DestroyUnknown<true, false>(mType);
+                        ++handle3;
+                     }
+                  }
+
+                  handle.DestroyUnknown(mType);
+               }
+               else {
+                  // Just dereference once more, but also reset         
+                  // the matching handle entries                        
+                  if (matches) {
+                     auto handle3 = handle + 1;
+                     while (handle3.mValue != handleEnd.mValue) {
+                        if (*handle.mEntry == *handle3.mEntry)
+                           *handle3.mEntry = nullptr;
+                        ++handle3;
+                     }
+                  }
+
+                  const_cast<Allocation*>(*handle.mEntry)->Free(1);
+               }
+
                ++handle;
             }
          }

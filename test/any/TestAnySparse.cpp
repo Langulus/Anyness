@@ -79,8 +79,9 @@ void CheckState_ContainsArray(auto& pack, const CT::Array auto& e, Allocation* e
 /// The main test for Any/TAny containers, with all kinds of items, from      
 /// sparse to dense, from trivial to complex, from flat to deep               
 TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]", 
-   (TypePair<TAny<int*>, int*>),
    (TypePair<TAny<Trait*>, Trait*>),
+
+   (TypePair<TAny<int*>, int*>),
    (TypePair<TAny<Traits::Count*>, Traits::Count*>),
    (TypePair<TAny<Any*>, Any*>),
    (TypePair<TAny<Text*>, Text*>),
@@ -93,6 +94,8 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
 
    (TypePair<Traits::Name, Text*>)
 ) {
+   static Allocator::State memoryState;
+
    using T = typename TestType::LHS;
    using E = typename TestType::RHS;
    using DenseE = Decay<E>;
@@ -378,13 +381,15 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
          #endif
       }
 
-      WHEN("Populated using Any::New") {
-         pack = FromHelper<T, E>();
-         const auto created = pack.New(3, darray2[0]);
-         REQUIRE(created == 3);
+      for (int repeat = 0; repeat != 100; ++repeat) {
+         WHEN(std::string("Populated using Any::New") + std::to_string(repeat)) {
+            pack = FromHelper<T, E>();
+            const auto created = pack.New(3, darray2[0]);
+            REQUIRE(created == 3);
 
-         CheckState_OwnedFull<E>(pack);
-         CheckState_ContainsN(3, pack, darray2[0]);
+            CheckState_OwnedFull<E>(pack);
+            CheckState_ContainsN(3, pack, darray2[0]);
+         }
       }
 
       WHEN("Shallow-copy more of the same stuff to the back (<<)") {
@@ -559,6 +564,9 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
                });
             };
          #endif
+
+         for (auto i : darray3)
+            delete i;
       }
 
       WHEN("Move more of the same stuff to the front (>>)") {
@@ -615,6 +623,9 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
                });
             };
          #endif
+
+         for (auto i : darray3)
+            delete i;
       }
 
       WHEN("Emplace item at the front") {
@@ -655,6 +666,8 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
             REQUIRE_THROWS(pack.Emplace(IndexFront, ::std::move(i666)));
             CheckState_Default<E>(pack);
          }
+
+         delete i666;
       }
       
       WHEN("Emplace item at the back") {
@@ -695,6 +708,8 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
             REQUIRE_THROWS(pack.Emplace(IndexBack, ::std::move(i666)));
             CheckState_Default<E>(pack);
          }
+
+         delete i666;
       }
 
       WHEN("Removing non-available elements") {
@@ -759,37 +774,21 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
 
       WHEN("Packs are compared") {
          T another_pack1;
-         another_pack1  << CreateElement<E>(1) 
-                        << CreateElement<E>(2)
-                        << CreateElement<E>(3)
-                        << CreateElement<E>(4)
-                        << CreateElement<E>(5);
+         another_pack1  << darray1;
 
          T another_pack2;
-         another_pack2  << CreateElement<E>(2)
-                        << CreateElement<E>(2)
-                        << CreateElement<E>(3)
-                        << CreateElement<E>(4)
-                        << CreateElement<E>(5);
+         another_pack2  << darray2;
 
          T another_pack3;
-         another_pack3  << CreateElement<E>(1)
-                        << CreateElement<E>(2)
-                        << CreateElement<E>(3)
-                        << CreateElement<E>(4)
-                        << CreateElement<E>(5)
-                        << CreateElement<E>(6);
+         another_pack3  << darray1 << darray2;
+
          T defaulted_pack1;
 
          TAny<uint> another_pack4;
          another_pack4  << uint(1) << uint(2) << uint(3) << uint(4) << uint(5);
 
          Any another_pack5;
-         another_pack5  << CreateElement<E>(1)
-                        << CreateElement<E>(2)
-                        << CreateElement<E>(3)
-                        << CreateElement<E>(4)
-                        << CreateElement<E>(5);
+         another_pack5  << darray1;
 
          Any defaulted_pack2;
 
@@ -1731,6 +1730,9 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
                });
             };
          #endif
+
+         for (auto i : darray3)
+            delete i;
       }
 
       WHEN("Move more of the same stuff to the front (>>)") {
@@ -1798,6 +1800,9 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
                });
             };
          #endif
+
+         for (auto i : darray3)
+            delete i;
       }
       
       WHEN("Insert single item at a specific place by shallow-copy") {
@@ -1838,6 +1843,8 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
                });
             };
          #endif
+
+         delete i666;
       }
 
       WHEN("Insert multiple items at a specific place by shallow-copy") {
@@ -1922,6 +1929,8 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
                });
             };
          #endif
+
+         delete i666;
       }
 
       WHEN("Emplace item at a specific place") {
@@ -1963,6 +1972,8 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
                });
             };
          #endif
+
+         delete i666;
       }
 
       WHEN("Emplace item at the front") {
@@ -2004,6 +2015,8 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
                });
             };
          #endif
+
+         delete i666;
       }
       
       WHEN("Emplace item at the back") {
@@ -2045,18 +2058,21 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
                });
             };
          #endif
+
+         delete i666;
       }
 
-      WHEN("The size is reduced by finding and removing elements, but reserved memory should remain the same on shrinking") {
+      WHEN("The size is reduced by finding and removing elements") {
          const auto removed2 = pack.Remove(darray1[1]);
          const auto removed4 = pack.Remove(darray1[3]);
+         const auto temp = CreateElement<E>(666);
 
          REQUIRE(removed2 == 1);
          REQUIRE(removed4 == 1);
          REQUIRE(pack[0] == darray1[0]);
          REQUIRE(pack[1] == darray1[2]);
          REQUIRE(pack[2] == darray1[4]);
-         REQUIRE_THROWS(pack[3] == CreateElement<E>(666));
+         REQUIRE_THROWS(pack[3] == temp);
          REQUIRE(pack.GetCount() == 3);
          REQUIRE(pack.GetReserved() >= 5);
          REQUIRE(pack.GetRaw() == memory);
@@ -2083,6 +2099,8 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
                });
             };
          #endif
+
+         delete temp;
       }
 
       WHEN("Removing non-available elements") {
@@ -2148,11 +2166,7 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
             WHEN("Pack is reset, then immediately allocated again") {
                IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                pack.Reset();
-               pack  << CreateElement<E>(6) 
-                     << CreateElement<E>(7) 
-                     << CreateElement<E>(8) 
-                     << CreateElement<E>(9) 
-                     << CreateElement<E>(10);
+               pack << darray2;
                REQUIRE(pack.GetRaw() == memory);
             }
          }
@@ -2207,38 +2221,22 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
 
       WHEN("Packs are compared") {
          T another_pack1;
-         another_pack1 << CreateElement<E>(1)
-                       << CreateElement<E>(2)
-                       << CreateElement<E>(3)
-                       << CreateElement<E>(4)
-                       << CreateElement<E>(5);
+         another_pack1 << darray1;
          T another_pack2;
-         another_pack2 << CreateElement<E>(2)
-                       << CreateElement<E>(2)
-                       << CreateElement<E>(3)
-                       << CreateElement<E>(4)
-                       << CreateElement<E>(5);
+         another_pack2 << darray2;
          T another_pack3;
-         another_pack3 << CreateElement<E>(1)
-                       << CreateElement<E>(2)
-                       << CreateElement<E>(3)
-                       << CreateElement<E>(4)
-                       << CreateElement<E>(5)
-                       << CreateElement<E>(6);
+         another_pack3 << darray1 << darray2;
          TAny<uint> another_pack4;
          another_pack4 << uint(1) << uint(2) << uint(3) << uint(4) << uint(5);
          Any another_pack5;
-         another_pack5 << CreateElement<E>(1)
-                       << CreateElement<E>(2)
-                       << CreateElement<E>(3)
-                       << CreateElement<E>(4)
-                       << CreateElement<E>(5);
+         another_pack5 << darray1;
 
-         REQUIRE(pack != another_pack1);
+         REQUIRE(pack == another_pack1);
          REQUIRE(pack != another_pack2);
          REQUIRE(pack != another_pack3);
-         //REQUIRE(pack != another_pack4);
-         REQUIRE(pack != another_pack5);
+         if constexpr (CT::Untyped<T>)
+            REQUIRE(pack != another_pack4);
+         REQUIRE(another_pack1 == another_pack5);
       }
 
       WHEN("A forward value-based search is performed on existent value") {
@@ -2744,4 +2742,10 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
    }
 
    delete element;
+   for (auto item : darray1)
+      delete item;
+   for (auto item : darray2)
+      delete item;
+
+   REQUIRE(memoryState.Assert());
 }

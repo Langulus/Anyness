@@ -20,20 +20,18 @@
 TEMPLATE_TEST_CASE(
    "Sparse TOrderedMap/TUnorderedMap/OrderedMap/UnorderedMap", "[map]",
 
-   (MapPair<UnorderedMap, Text, Trait*>),
-
-   (MapPair<TUnorderedMap<Text, Trait*>, Text, Trait*>),
    (MapPair<TUnorderedMap<Text, int*>, Text, int*>),
+   (MapPair<TUnorderedMap<Text, Trait*>, Text, Trait*>),
    (MapPair<TUnorderedMap<Text, Traits::Count*>, Text, Traits::Count*>),
    (MapPair<TUnorderedMap<Text, Any*>, Text, Any*>),
 
-   (MapPair<TOrderedMap<Text, Trait*>, Text, Trait*>),
    (MapPair<TOrderedMap<Text, int*>, Text, int*>),
+   (MapPair<TOrderedMap<Text, Trait*>, Text, Trait*>),
    (MapPair<TOrderedMap<Text, Traits::Count*>, Text, Traits::Count*>),
    (MapPair<TOrderedMap<Text, Any*>, Text, Any*>),
 
    (MapPair<UnorderedMap, Text, int*>),
-
+   (MapPair<UnorderedMap, Text, Trait*>),
    (MapPair<UnorderedMap, Text, Traits::Count*>),
    (MapPair<UnorderedMap, Text, Any*>),
 
@@ -42,16 +40,52 @@ TEMPLATE_TEST_CASE(
    (MapPair<OrderedMap, Text, Traits::Count*>),
    (MapPair<OrderedMap, Text, Any*>)
 ) {
+   IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
+
+   static Allocator::State memoryState;
+
    using T = typename TestType::Container;
    using K = typename TestType::Key;
    using V = typename TestType::Value;
    using Pair = TPair<K, V>;
    using StdPair = ::std::pair<K, V>;
 
-   GIVEN("A default-initialized map instance") {
-      const auto pair    = CreatePair<Pair,    K, V>("five hundred", 555);
-      const auto stdpair = CreatePair<StdPair, K, V>("five hundred", 555);
+   const auto pair = CreatePair<Pair, K, V>("five hundred", 555);
+   const auto stdpair = CreatePair<StdPair, K, V>("five hundred", 555);
 
+   const Pair darray1[5] {
+      CreatePair<Pair, K, V>("one", 1),
+      CreatePair<Pair, K, V>("two", 2),
+      CreatePair<Pair, K, V>("three", 3),
+      CreatePair<Pair, K, V>("four", 4),
+      CreatePair<Pair, K, V>("five", 5)
+   };
+
+   const Pair darray2[5] {
+      CreatePair<Pair, K, V>("six", 6),
+      CreatePair<Pair, K, V>("seven", 7),
+      CreatePair<Pair, K, V>("eight", 8),
+      CreatePair<Pair, K, V>("nine", 9),
+      CreatePair<Pair, K, V>("ten", 10)
+   };
+
+   const StdPair darray1std[5] {
+      CreatePair<StdPair, K, V>("one", 1),
+      CreatePair<StdPair, K, V>("two", 2),
+      CreatePair<StdPair, K, V>("three", 3),
+      CreatePair<StdPair, K, V>("four", 4),
+      CreatePair<StdPair, K, V>("five", 5)
+   };
+
+   const StdPair darray2std[5] {
+      CreatePair<StdPair, K, V>("six", 6),
+      CreatePair<StdPair, K, V>("seven", 7),
+      CreatePair<StdPair, K, V>("eight", 8),
+      CreatePair<StdPair, K, V>("nine", 9),
+      CreatePair<StdPair, K, V>("ten", 10)
+   };
+
+   GIVEN("A default-initialized map instance") {
       T map {};
 
       WHEN("Given a default-constructed map") {
@@ -134,9 +168,6 @@ TEMPLATE_TEST_CASE(
    }
    
    GIVEN("A pair copy-initialized map instance") {
-      const auto pair    = CreatePair<Pair,    K, V>("five hundred", 555);
-      const auto stdpair = CreatePair<StdPair, K, V>("five hundred", 555);
-
       T map {pair};
 
       WHEN("Given a pair-constructed map") {
@@ -159,22 +190,6 @@ TEMPLATE_TEST_CASE(
    }
    
    GIVEN("A pair array copy-initialized map instance") {
-      const Pair darray1[5] {
-         CreatePair<Pair, K, V>("one", 1),
-         CreatePair<Pair, K, V>("two", 2),
-         CreatePair<Pair, K, V>("three", 3),
-         CreatePair<Pair, K, V>("four", 4),
-         CreatePair<Pair, K, V>("five", 5)
-      };
-
-      const StdPair darray1std[5] {
-         CreatePair<StdPair, K, V>("one", 1),
-         CreatePair<StdPair, K, V>("two", 2),
-         CreatePair<StdPair, K, V>("three", 3),
-         CreatePair<StdPair, K, V>("four", 4),
-         CreatePair<StdPair, K, V>("five", 5)
-      };
-
       T map {darray1};
 
       WHEN("Given a preinitialized map with 5 elements") {
@@ -198,39 +213,6 @@ TEMPLATE_TEST_CASE(
    }
 
    GIVEN("Map with some items") {
-      IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
-
-      // Arrays are dynamic to avoid constexprification                 
-      const Pair darray1[5] {
-         CreatePair<Pair, K, V>("one", 1), 
-         CreatePair<Pair, K, V>("two", 2), 
-         CreatePair<Pair, K, V>("three", 3), 
-         CreatePair<Pair, K, V>("four", 4), 
-         CreatePair<Pair, K, V>("five", 5)
-      };
-      const Pair darray2[5] {
-         CreatePair<Pair, K, V>("six", 6),
-         CreatePair<Pair, K, V>("seven", 7),
-         CreatePair<Pair, K, V>("eight", 8),
-         CreatePair<Pair, K, V>("nine", 9),
-         CreatePair<Pair, K, V>("ten", 10)
-      };
-
-      const StdPair darray1std[5] {
-         CreatePair<StdPair, K, V>("one", 1),
-         CreatePair<StdPair, K, V>("two", 2),
-         CreatePair<StdPair, K, V>("three", 3),
-         CreatePair<StdPair, K, V>("four", 4),
-         CreatePair<StdPair, K, V>("five", 5)
-      };
-      const StdPair darray2std[5] {
-         CreatePair<StdPair, K, V>("six", 6),
-         CreatePair<StdPair, K, V>("seven", 7),
-         CreatePair<StdPair, K, V>("eight", 8),
-         CreatePair<StdPair, K, V>("nine", 9),
-         CreatePair<StdPair, K, V>("ten", 10)
-      };
-
       T map {};
       map << darray1[0];
       map << darray1[1];
@@ -491,11 +473,6 @@ TEMPLATE_TEST_CASE(
          REQUIRE(map.GetRawKeysMemory() == keyMemory);
          REQUIRE(map.GetRawValsMemory() == valueMemory);
          REQUIRE(map.GetReserved() >= 5);
-         /*REQUIRE(map[darray1[0].mKey] == darray1[0].mValue);
-         REQUIRE(map[darray1[1].mKey] != darray1[1].mValue);
-         REQUIRE(map[darray1[2].mKey] == darray1[2].mValue);
-         REQUIRE(map[darray1[3].mKey] != darray1[3].mValue);
-         REQUIRE(map[darray1[4].mKey] == darray1[4].mValue);*/
 
          REQUIRE(map.ContainsKey(darray1[0].mKey));
          REQUIRE_FALSE(map.ContainsKey(darray1[1].mKey));
@@ -560,11 +537,6 @@ TEMPLATE_TEST_CASE(
          REQUIRE(map.GetRawKeysMemory() == keyMemory);
          REQUIRE(map.GetRawValsMemory() == valueMemory);
          REQUIRE(map.GetReserved() >= 5);
-         /*REQUIRE(map[darray1[0].mKey] == darray1[0].mValue);
-         REQUIRE(map[darray1[1].mKey] != darray1[1].mValue);
-         REQUIRE(map[darray1[2].mKey] == darray1[2].mValue);
-         REQUIRE(map[darray1[3].mKey] != darray1[3].mValue);
-         REQUIRE(map[darray1[4].mKey] == darray1[4].mValue);*/
 
          REQUIRE(map.ContainsKey(darray1[0].mKey));
          REQUIRE_FALSE(map.ContainsKey(darray1[1].mKey));
@@ -666,10 +638,6 @@ TEMPLATE_TEST_CASE(
          REQUIRE(map.HasAuthority());
          REQUIRE(map.GetUses() == 1);
          REQUIRE(map.GetCount() == 5);
-         /*#if LANGULUS_FEATURE(MANAGED_MEMORY)
-            REQUIRE(map.GetRawKeysMemory() == keyMemory);
-            REQUIRE(map.GetRawValuesMemory() == valueMemory);
-         #endif*/
          REQUIRE(map.GetReserved() >= 20);
       }
 
@@ -953,77 +921,16 @@ TEMPLATE_TEST_CASE(
       }
    }
 
-   /*GIVEN("Two maps") {
-      IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
+   DestroyPair(pair);
+   DestroyPair(stdpair);
+   for (auto& i : darray1)
+      DestroyPair(i);
+   for (auto& i : darray2)
+      DestroyPair(i);
+   for (auto& i : darray1std)
+      DestroyPair(i);
+   for (auto& i : darray2std)
+      DestroyPair(i);
 
-      TAny<int> pack1;
-      TAny<int> pack2;
-      pack1 << int(1) << int(2) << int(3) << int(4) << int(5);
-      pack2 << int(6) << int(7) << int(8) << int(9) << int(10);
-      const auto memory1 = static_cast<Block>(pack1);
-      const auto memory2 = static_cast<Block>(pack2);
-
-      REQUIRE(memory1 != memory2);
-
-      WHEN("Shallow copy pack1 in pack2") {
-         pack2 = pack1;
-
-         THEN("memory1 should be referenced twice, memory2 should be released") {
-            REQUIRE(pack1.GetUses() == 2);
-            REQUIRE(pack2.GetUses() == 2);
-            REQUIRE(static_cast<Block&>(pack1) == static_cast<Block&>(pack2));
-            REQUIRE(static_cast<Block&>(pack2) == memory1);
-            #if LANGULUS_FEATURE(MANAGED_MEMORY)
-               REQUIRE_FALSE(Allocator::Find(memory2.GetType(), memory2.GetRaw()));
-            #endif
-         }
-      }
-
-      WHEN("Shallow copy pack1 in pack2 and then reset pack1") {
-         pack2 = pack1;
-         pack1.Reset();
-
-         THEN("memory1 should be referenced once, memory2 should be released") {
-            REQUIRE_FALSE(pack1.HasAuthority());
-            REQUIRE(pack2.GetUses() == 1);
-            REQUIRE_FALSE(pack1.GetRaw());
-            REQUIRE(pack1.GetReserved() == 0);
-            REQUIRE(static_cast<Block&>(pack2) == memory1);
-            #if LANGULUS_FEATURE(MANAGED_MEMORY)
-               REQUIRE_FALSE(Allocator::Find(memory2.GetType(), memory2.GetRaw()));
-            #endif
-         }
-      }
-
-      WHEN("Deep copy pack1 in pack2") {
-         pack2 = Clone(pack1);
-
-         THEN("memory1 should be referenced twice, memory2 should be released") {
-            REQUIRE(pack1.GetUses() == 1);
-            REQUIRE(pack2.GetUses() == 1);
-            REQUIRE(static_cast<Block&>(pack1) == static_cast<Block&>(pack2));
-            REQUIRE(static_cast<Block&>(pack2) == memory1);
-            REQUIRE(static_cast<Block&>(pack2) != memory2);
-            #if LANGULUS_FEATURE(MANAGED_MEMORY)
-               REQUIRE_FALSE(Allocator::Find(memory2.GetType(), memory2.GetRaw()));
-            #endif
-         }
-      }
-
-      WHEN("Deep copy pack1 in pack2, then reset pack1") {
-         pack2 = Clone(pack1);
-         const auto memory3 = static_cast<Block>(pack2);
-         pack1.Reset();
-
-         THEN("memory1 should be referenced once, memory2 should be released") {
-            REQUIRE_FALSE(pack1.HasAuthority());
-            REQUIRE(pack2.GetUses() == 1);
-            REQUIRE(memory3.GetUses() == 1);
-            #if LANGULUS_FEATURE(MANAGED_MEMORY)
-               REQUIRE_FALSE(Allocator::Find(memory1.GetType(), memory1.GetRaw()));
-               REQUIRE_FALSE(Allocator::Find(memory2.GetType(), memory2.GetRaw()));
-            #endif
-         }
-      }
-   }*/
+   REQUIRE(memoryState.Assert());
 }
