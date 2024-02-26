@@ -34,6 +34,9 @@ namespace Langulus::Anyness
       using S = SemanticOf<decltype(item)>;
       using T = TypeOf<S>;
 
+      if constexpr (not CT::TypeErased<E>)
+         mKeys.mType = MetaDataOf<E>();
+
       if constexpr (CT::Array<T>) {
          if constexpr (not CT::TypeErased<E>) {
             if constexpr (CT::MakableFrom<E, Deext<T>>) {

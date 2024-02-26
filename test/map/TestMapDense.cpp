@@ -34,6 +34,8 @@ TEMPLATE_TEST_CASE(
    (MapPair<OrderedMap, Text, Traits::Count>),
    (MapPair<OrderedMap, Text, Any>)
 ) {
+   static Allocator::State memoryState;
+
    using T = typename TestType::Container;
    using K = typename TestType::Key;
    using V = typename TestType::Value;
@@ -974,4 +976,6 @@ TEMPLATE_TEST_CASE(
          }
       }
    }*/
+
+   REQUIRE(memoryState.Assert());
 }

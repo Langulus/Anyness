@@ -86,3 +86,19 @@ P CreatePair(const ALT_K& key, const ALT_V& value) {
       CreateElement<V>(value)
    };
 }
+
+void DestroyPair(auto& pair) {
+   if constexpr (requires { pair.mKey; }) {
+      if constexpr (CT::Sparse<decltype(pair.mKey)>)
+         delete pair.mKey;
+      if constexpr (CT::Sparse<decltype(pair.mValue)>)
+         delete pair.mValue;
+   }
+   else if constexpr (requires { pair.first; }) {
+      if constexpr (CT::Sparse<decltype(pair.first)>)
+         delete pair.first;
+      if constexpr (CT::Sparse<decltype(pair.second)>)
+         delete pair.second;
+   }
+   else LANGULUS_ERROR("What kind of pair is this?");
+}

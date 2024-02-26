@@ -39,13 +39,12 @@ SCENARIO("Hashing different kinds of containers", "[hash]") {
 /// Cross-container consistency tests                                         
 TEMPLATE_TEST_CASE(
    "Cross-container consistency tests for TOrderedMap/TUnorderedMap/OrderedMap/UnorderedMap", "[map]",
-   (MapPair2<Text, int*>),
-
    (MapPair2<Text, int>),
    (MapPair2<Text, Trait>),
    (MapPair2<Text, Any>),
    (MapPair2<Text, Traits::Count>),
 
+   (MapPair2<Text, int*>),
    (MapPair2<Text, Trait*>),
    (MapPair2<Text, Traits::Count*>),
    (MapPair2<Text, Any*>)

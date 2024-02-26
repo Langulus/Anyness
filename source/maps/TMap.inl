@@ -123,7 +123,17 @@ namespace Langulus::Anyness
       }
       else {
          // Unfold-insert                                               
-         BlockMap::ClearInner<TMap>();
+         if (mKeys.mEntry) {
+            if (mKeys.mEntry->GetUses() == 1) {
+               if (not IsEmpty()) {
+                  BlockMap::ClearPartInner<TMap>(BlockMap::GetKeys<TMap>());
+                  BlockMap::ClearPartInner<TMap>(BlockMap::GetVals<TMap>());
+                  mKeys.mCount = 0;
+               }
+            }
+            else BlockMap::Free<TMap>();
+         }
+
          BlockMap::UnfoldInsert<TMap>(S::Nest(rhs));
       }
 

@@ -11,6 +11,8 @@
 
 
 SCENARIO("Data normalization", "[neat]") {
+   static Allocator::State memoryState;
+
    static_assert(not CT::Abstract<Any>);
    static_assert(not CT::Abstract<TAny<Any>>);
    static_assert(not CT::Abstract<TMeta>);
@@ -92,11 +94,22 @@ SCENARIO("Data normalization", "[neat]") {
    static_assert(CT::ReferMakable<TPair<TMeta, TAny<Any>>>);
    static_assert(CT::CloneMakable<TPair<TMeta, TAny<Any>>>);
 
-	GIVEN("A complex descriptor") {
+	GIVEN("An empty messy descriptor") {
 		Any descriptor;
 
 		WHEN("Normalized") {
 			Neat normalized {descriptor};
 		}
 	}
+
+	GIVEN("A messy descriptor with contents") {
+      TAny<Byte> data;
+      data.New(8192);
+
+      WHEN("Filled with contents") {
+         Neat normalized {data};
+      }
+	}
+
+   REQUIRE(memoryState.Assert());
 }

@@ -396,7 +396,7 @@ namespace Langulus::Anyness
    /// Does absolutely nothing for dense handles, they are destroyed when     
    /// handle is destroyed                                                    
    ///   @tparam RESET - whether or not to reset pointers to null             
-   TEMPLATE() template<bool RESET>
+   TEMPLATE() template<bool RESET, bool DEALLOCATE>
    void HAND()::Destroy() const {
       if constexpr (CT::Sparse<T>) {
          // Handle is sparse, we should handle each indirection layer   
@@ -416,13 +416,16 @@ namespace Langulus::Anyness
                   Get()->~DT();
                }
 
-               Allocator::Deallocate(const_cast<Allocation*>(GetEntry()));
+               if constexpr (DEALLOCATE)
+                  Allocator::Deallocate(const_cast<Allocation*>(GetEntry()));
             }
             else const_cast<Allocation*>(GetEntry())->Free();
          }
 
-         if constexpr (RESET)
-            Create(nullptr, nullptr);
+         if constexpr (RESET) {
+            Get() = nullptr;
+            GetEntry() = nullptr;
+         }
       }
       else if constexpr (EMBED) {
          // Handle is dense and embedded, we should call the remote     
@@ -438,7 +441,7 @@ namespace Langulus::Anyness
    /// handle is destroyed                                                    
    ///   @tparam RESET - whether or not to reset pointers to null             
    ///   @param meta - the true type behind the pointer in this handle        
-   TEMPLATE() template<bool RESET>
+   TEMPLATE() template<bool RESET, bool DEALLOCATE>
    void HAND()::DestroyUnknown(DMeta meta) const {
       if constexpr (CT::Sparse<T>) {
          LANGULUS_ASSUME(DevAssumes, meta->mIsSparse,
@@ -459,13 +462,16 @@ namespace Langulus::Anyness
                   meta->mDestructor(Get());
                }
 
-               Allocator::Deallocate(const_cast<Allocation*>(GetEntry()));
+               if constexpr (DEALLOCATE)
+                  Allocator::Deallocate(const_cast<Allocation*>(GetEntry()));
             }
             else const_cast<Allocation*>(GetEntry())->Free();
          }
 
-         if constexpr (RESET)
-            Create(nullptr, nullptr);
+         if constexpr (RESET) {
+            Get() = nullptr;
+            GetEntry() = nullptr;
+         }
       }
    }
 

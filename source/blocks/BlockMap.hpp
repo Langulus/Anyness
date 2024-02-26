@@ -524,9 +524,9 @@ namespace Langulus::Anyness
       Count RemovePairInner(const CT::Pair auto&);
 
       template<CT::Map>
-      void ClearInner();
-      template<CT::Map>
       void RemoveInner(Offset);
+      template<CT::Map>
+      void ClearPartInner(CT::Block auto&);
 
    #if LANGULUS(TESTING)
       public: NOD() constexpr const void* GetRawKeysMemory() const noexcept;

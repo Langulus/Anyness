@@ -25,6 +25,8 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
    (TypePair<Any, Text>)
 
 ) {
+   static Allocator::State memoryState;
+
    using T = typename TestType::LHS;
    using E = typename TestType::RHS;
    using DenseE = Decay<E>;
@@ -2687,4 +2689,6 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
             REQUIRE(pack3[i] == darray2[i - 5]);
       }
    }
+
+   REQUIRE(memoryState.Assert());
 }

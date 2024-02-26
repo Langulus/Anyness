@@ -258,7 +258,8 @@ namespace Langulus::Anyness
 
       if (mKeys.mEntry->GetUses() == 1) {
          // Remove all used keys and values, they're used only here     
-         ClearInner<THIS>();
+         ClearPartInner<THIS>(GetKeys<THIS>());
+         ClearPartInner<THIS>(GetVals<THIS>());
 
          // Clear all info to zero                                      
          ZeroMemory(mInfo, GetReserved());
@@ -280,8 +281,10 @@ namespace Langulus::Anyness
       if (mKeys.mEntry) {
          if (mKeys.mEntry->GetUses() == 1) {
             // Remove all used keys and values, they're used only here  
-            if (not IsEmpty())
-               ClearInner<THIS>();
+            if (not IsEmpty()) {
+               ClearPartInner<THIS>(GetKeys<THIS>());
+               ClearPartInner<THIS>(GetVals<THIS>());
+            }
 
             // No point in resetting info, we'll be deallocating it     
             LANGULUS_ASSUME(DevAssumes, mValues.mEntry->GetUses() == 1,
@@ -309,28 +312,166 @@ namespace Langulus::Anyness
       TODO();
    }
    
-   /// Destroy everything valid inside the map, but don't deallocate          
+   /// Destroy each element in 'mthis' that corresponds to a valid map entry  
    ///   @attention doesn't affect count, or any container state              
-   template<CT::Map THIS> LANGULUS(INLINED)
-   void BlockMap::ClearInner() {
+   template<CT::Map THIS>
+   void BlockMap::ClearPartInner(CT::Block auto& mthis2) {
+      LANGULUS_ASSUME(DevAssumes, mthis2.GetUses() == 1,
+         "Attempting to destroy elements used from multiple locations");
+      LANGULUS_ASSUME(DevAssumes, not IsEmpty(),
+         "Attempting to destroy elements in an empty container");
+      LANGULUS_ASSUME(DevAssumes, not mthis2.IsStatic(),
+         "Destroying elements in a static container is not allowed");
+
+      Block mthis = mthis2;
+      mthis.mCount = mKeys.mCount;
+      mthis.mReserved = mKeys.mReserved;
+      using B = Deref<decltype(mthis)>;
       auto remaining = GetCount();
       auto inf = GetInfo();
       const auto infEnd = GetInfoEnd();
 
-      while (inf != infEnd and remaining) {
-         if (*inf) {
-            const auto offset = inf - GetInfo();
-            auto key = GetKeyHandle<THIS>(offset);
-            auto val = GetValHandle<THIS>(offset);
-            key.Destroy();
-            val.Destroy();
-            --remaining;
+      if constexpr (CT::Typed<B>) {
+         using T = TypeOf<B>;
+
+         if constexpr (CT::Sparse<T>) {
+            // Destroy all indirection layers, if their references reach
+            // 1, and destroy the dense element, if it has destructor   
+            // This is done in the following way:                       
+            //    1. First dereference all handles that point to the    
+            //       same memory together as one                        
+            //    2. Destroy those groups, that are fully dereferenced  
+            while (inf != infEnd and remaining) {
+               if (not *inf) {
+                  ++inf;
+                  continue;
+               }
+
+               --remaining;
+               auto handle = mthis.GetHandle<T, B>(inf - GetInfo());
+               if (not *handle.mEntry) {
+                  ++inf;
+                  continue;
+               }
+
+               // Count all handles that match the current entry        
+               auto matches = 0;
+               auto inf2 = inf + 1;
+               while (inf2 != infEnd) {
+                  if (*inf2) {
+                     auto handle2 = mthis.GetHandle<T, B>(inf2 - GetInfo());
+                     if (*handle.mEntry == *handle2.mEntry)
+                        ++matches;
+                  }
+                  ++inf2;
+               }
+
+               const_cast<Allocation*>(*handle.mEntry)->Free(matches);
+               if (1 == (*handle.mEntry)->GetUses()) {
+                  // Destroy all matching handles, but deallocate only  
+                  // once after that                                    
+                  if (matches) {
+                     auto inf3 = inf + 1;
+                     while (inf3 != infEnd) {
+                        if (*inf3) {
+                           auto handle3 = mthis.GetHandle<T, B>(inf3 - GetInfo());
+                           if (*handle.mEntry == *handle3.mEntry)
+                              handle3.Destroy<true, false>();
+                        }
+                        ++inf3;
+                     }
+                  }
+                  handle.Destroy();
+               }
+               else {
+                  // Just dereference once more                         
+                  const_cast<Allocation*>(*handle.mEntry)->Free(1);
+               }
+
+               ++inf;
+            }
+            LANGULUS_ASSUME(DevAssumes, not remaining, "Leftover");
          }
-
-         ++inf;
+         else if constexpr (CT::Destroyable<T>) {
+            // Destroy every dense element                              
+            using DT = Decay<T>;
+            while (inf != infEnd and remaining) {
+               if (*inf) {
+                  mthis.GetRaw<B>()[inf - GetInfo()].~DT();
+                  --remaining;
+               }
+               ++inf;
+            }
+            LANGULUS_ASSUME(DevAssumes, not remaining, "Leftover");
+         }
       }
+      else {
+         if (mthis.mType->mIsSparse) {
+            // Destroy all indirection layers, if their references reach
+            // 1, and destroy the dense element, if it has destructor   
+            while (inf != infEnd and remaining) {
+               if (not *inf) {
+                  ++inf;
+                  continue;
+               }
 
-      LANGULUS_ASSUME(DevAssumes, not remaining, "Leftover");
+               --remaining;
+               auto handle = mthis.GetHandle<Byte*, B>(inf - GetInfo());
+               if (not *handle.mEntry) {
+                  ++inf;
+                  continue;
+               }
+
+               // Count all handles that match the current entry        
+               auto matches = 0;
+               auto inf2 = inf + 1;
+               while (inf2 != infEnd) {
+                  if (*inf2) {
+                     auto handle2 = mthis.GetHandle<Byte*, B>(inf2 - GetInfo());
+                     if (*handle.mEntry == *handle2.mEntry)
+                        ++matches;
+                  }
+                  ++inf2;
+               }
+
+               const_cast<Allocation*>(*handle.mEntry)->Free(matches);
+               if (1 == (*handle.mEntry)->GetUses()) {
+                  // Destroy all matching handles, but deallocate only  
+                  // once after that                                    
+                  if (matches) {
+                     auto inf3 = inf + 1;
+                     while (inf3 != infEnd) {
+                        if (*inf3) {
+                           auto handle3 = mthis.GetHandle<Byte*, B>(inf3 - GetInfo());
+                           if (*handle.mEntry == *handle3.mEntry)
+                              handle3.DestroyUnknown<true, false>(mthis.mType);
+                        }
+                        ++inf3;
+                     }
+                  }
+                  handle.DestroyUnknown(mthis.mType);
+               }
+               else {
+                  // Just dereference once more                         
+                  const_cast<Allocation*>(*handle.mEntry)->Free(1);
+               }
+
+               ++inf;
+            }
+            LANGULUS_ASSUME(DevAssumes, not remaining, "Leftover");
+         }
+         else if (mthis.mType->mDestructor) {
+            // Destroy every dense element                              
+            while (inf != infEnd and remaining) {
+               if (*inf) {
+                  mthis.mType->mDestructor(mthis.mRaw + (inf - GetInfo()) * mthis.mType->mSize);
+                  --remaining;
+               }
+               ++inf;
+            }
+            LANGULUS_ASSUME(DevAssumes, not remaining, "Leftover");
+         }
+      }
    }
 
 } // namespace Langulus::Anyness
