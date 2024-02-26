@@ -392,7 +392,9 @@ namespace Langulus::Anyness
          // Free memory                                                 
          Allocator::Deallocate(const_cast<Allocation*>(mEntry));
       }
-      else const_cast<Allocation*>(mEntry)->Free();
+      else {
+         const_cast<Allocation*>(mEntry)->Free();
+      }
 
       mEntry = nullptr;
    }

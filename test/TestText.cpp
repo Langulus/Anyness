@@ -69,7 +69,7 @@ void CheckState_Abandoned(const Text&);
 TEMPLATE_TEST_CASE("Testing text containers", "[text]",
    Text, Path
 ) {
-   IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
+   static Allocator::State memoryState;
 
    GIVEN("Default text container") {
       TestType text;
@@ -344,11 +344,15 @@ TEMPLATE_TEST_CASE("Testing text containers", "[text]",
          REQUIRE(text != "Tests");
       }
    }
+
+   REQUIRE(memoryState.Assert());
 }
 
 TEMPLATE_TEST_CASE("Unsigned number stringification", "[text]",
    /*uint8_t,*/ uint16_t, uint32_t, uint64_t
 ) {
+   static Allocator::State memoryState;
+
    WHEN("Constructed Text with a number") {
       Text* text = new Text {TestType{66}};
 
@@ -374,9 +378,13 @@ TEMPLATE_TEST_CASE("Unsigned number stringification", "[text]",
 
       delete text;
    }
+
+   REQUIRE(memoryState.Assert());
 }
 
 TEMPLATE_TEST_CASE("Signed number stringification", "[text]", int8_t, int16_t, int32_t, int64_t) {
+   static Allocator::State memoryState;
+
    WHEN("Constructed Text with a number") {
       Text* text = new Text {TestType{-66}};
 
@@ -402,6 +410,8 @@ TEMPLATE_TEST_CASE("Signed number stringification", "[text]", int8_t, int16_t, i
 
       delete text;
    }
+
+   REQUIRE(memoryState.Assert());
 }
 
 TEMPLATE_TEST_CASE("Logging text containers", "[text]", Text, Path) {
@@ -412,6 +422,8 @@ TEMPLATE_TEST_CASE("Logging text containers", "[text]", Text, Path) {
 }
 
 TEMPLATE_TEST_CASE("Reflected coverters to text", "[text]", Stringifiable, StringifiableConst) {
+   static Allocator::State memoryState;
+
    GIVEN("A stringifiable type") {
       const auto debugMeta = MetaOf<Text>();
       const auto meta = MetaOf<TestType>();
@@ -428,12 +440,16 @@ TEMPLATE_TEST_CASE("Reflected coverters to text", "[text]", Stringifiable, Strin
          REQUIRE(staticallyConverted == "Stringifiable converted to Text");
       }
    }
+
+   REQUIRE(memoryState.Assert());
 }
 
 TEMPLATE_TEST_CASE("Text container interoperability", "[text]",
    (TypePair<Path, Text>),
    (TypePair<Text, Path>)
 ) {
+   static Allocator::State memoryState;
+
    using LHS = typename TestType::LHS;
    using RHS = typename TestType::RHS;
 
@@ -466,11 +482,15 @@ TEMPLATE_TEST_CASE("Text container interoperability", "[text]",
          REQUIRE(text2 == "onetwo");
       }
    }
+
+   REQUIRE(memoryState.Assert());
 }
 
 TEMPLATE_TEST_CASE("Containing literals", "[text]",
    Any, Trait
 ) {
+   static Allocator::State memoryState;
+
    GIVEN("Two types of text containers") {
       WHEN("Constructed") {
          TestType text {"one"};
@@ -512,6 +532,8 @@ TEMPLATE_TEST_CASE("Containing literals", "[text]",
          REQUIRE(text2.template As<Text>(1) == "two");
       }
    }
+
+   REQUIRE(memoryState.Assert());
 }
 
 void CheckState_Default(const Text& text) {

@@ -11,6 +11,8 @@
 
 
 SCENARIO("Constructs", "[construct]") {
+   static Allocator::State memoryState;
+
 	GIVEN("A complex descriptor") {
 		Any descriptor;
 
@@ -22,4 +24,6 @@ SCENARIO("Constructs", "[construct]") {
 			}
 		}
 	}
+
+   REQUIRE(memoryState.Assert());
 }
