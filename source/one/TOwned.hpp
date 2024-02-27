@@ -73,8 +73,8 @@ namespace Langulus::Anyness
       ///   Construction                                                      
       ///                                                                     
       constexpr TOwned() requires CT::Inner::Defaultable<T>;
-      constexpr TOwned(const TOwned&) requires CT::Inner::ReferMakable<T>;
-      constexpr TOwned(TOwned&&) requires CT::Inner::MoveMakable<T>;
+      constexpr TOwned(const TOwned&) requires (CT::Sparse<T> or CT::Inner::ReferMakable<T>);
+      constexpr TOwned(TOwned&&) requires (CT::Sparse<T> or CT::Inner::MoveMakable<T>);
 
       template<template<class> class S>
       requires CT::Inner::SemanticMakable<S, T>
@@ -87,8 +87,8 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Assignment                                                        
       ///                                                                     
-      constexpr TOwned& operator = (const TOwned&) requires CT::Inner::ReferAssignable<T>;
-      constexpr TOwned& operator = (TOwned&&) requires CT::Inner::MoveAssignable<T>;
+      constexpr TOwned& operator = (const TOwned&) requires (CT::Sparse<T> or CT::Inner::ReferAssignable<T>);
+      constexpr TOwned& operator = (TOwned&&) requires (CT::Sparse<T> or CT::Inner::MoveAssignable<T>);
 
       template<template<class> class S>
       requires CT::Inner::SemanticAssignable<S, T>
