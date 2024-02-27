@@ -357,7 +357,7 @@ namespace Langulus::Anyness
                      auto handle3 = handle + 1;
                      while (handle3.mValue != handleEnd.mValue) {
                         if (*handle.mEntry == *handle3.mEntry)
-                           handle3.Destroy<true, false>();
+                           handle3.template Destroy<true, false>();
                         ++handle3;
                      }
                   }
@@ -424,7 +424,7 @@ namespace Langulus::Anyness
                      auto handle3 = handle + 1;
                      while (handle3.mValue != handleEnd.mValue) {
                         if (*handle.mEntry == *handle3.mEntry)
-                           handle3.DestroyUnknown<true, false>(mType);
+                           handle3.template DestroyUnknown<true, false>(mType);
                         ++handle3;
                      }
                   }

@@ -326,7 +326,7 @@ namespace Langulus::Anyness
       Block mthis = mthis2;
       mthis.mCount = mKeys.mCount;
       mthis.mReserved = mKeys.mReserved;
-      using B = Deref<decltype(mthis)>;
+      using B = Deref<decltype(mthis2)>;
       auto remaining = GetCount();
       auto inf = GetInfo();
       const auto infEnd = GetInfoEnd();
@@ -349,7 +349,7 @@ namespace Langulus::Anyness
 
                --remaining;
                auto handle = mthis.GetHandle<T, B>(inf - GetInfo());
-               if (not *handle.mEntry) {
+               if (not handle.GetEntry()) {
                   ++inf;
                   continue;
                }
@@ -360,14 +360,15 @@ namespace Langulus::Anyness
                while (inf2 != infEnd) {
                   if (*inf2) {
                      auto handle2 = mthis.GetHandle<T, B>(inf2 - GetInfo());
-                     if (*handle.mEntry == *handle2.mEntry)
+                     if (handle.GetEntry() == handle2.GetEntry())
                         ++matches;
                   }
                   ++inf2;
                }
 
-               const_cast<Allocation*>(*handle.mEntry)->Free(matches);
-               if (1 == (*handle.mEntry)->GetUses()) {
+               const_cast<Allocation*>(handle.GetEntry())->Free(matches);
+
+               if (1 == handle.GetEntry()->GetUses()) {
                   // Destroy all matching handles, but deallocate only  
                   // once after that                                    
                   if (matches) {
@@ -375,8 +376,8 @@ namespace Langulus::Anyness
                      while (inf3 != infEnd) {
                         if (*inf3) {
                            auto handle3 = mthis.GetHandle<T, B>(inf3 - GetInfo());
-                           if (*handle.mEntry == *handle3.mEntry)
-                              handle3.Destroy<true, false>();
+                           if (handle.GetEntry() == handle3.GetEntry())
+                              handle3.template Destroy<true, false>();
                         }
                         ++inf3;
                      }
@@ -385,7 +386,7 @@ namespace Langulus::Anyness
                }
                else {
                   // Just dereference once more                         
-                  const_cast<Allocation*>(*handle.mEntry)->Free(1);
+                  const_cast<Allocation*>(handle.GetEntry())->Free(1);
                }
 
                ++inf;
@@ -417,7 +418,7 @@ namespace Langulus::Anyness
 
                --remaining;
                auto handle = mthis.GetHandle<Byte*, B>(inf - GetInfo());
-               if (not *handle.mEntry) {
+               if (not handle.GetEntry()) {
                   ++inf;
                   continue;
                }
@@ -428,14 +429,15 @@ namespace Langulus::Anyness
                while (inf2 != infEnd) {
                   if (*inf2) {
                      auto handle2 = mthis.GetHandle<Byte*, B>(inf2 - GetInfo());
-                     if (*handle.mEntry == *handle2.mEntry)
+                     if (handle.GetEntry() == handle2.GetEntry())
                         ++matches;
                   }
                   ++inf2;
                }
 
-               const_cast<Allocation*>(*handle.mEntry)->Free(matches);
-               if (1 == (*handle.mEntry)->GetUses()) {
+               const_cast<Allocation*>(handle.GetEntry())->Free(matches);
+
+               if (1 == handle.GetEntry()->GetUses()) {
                   // Destroy all matching handles, but deallocate only  
                   // once after that                                    
                   if (matches) {
@@ -443,8 +445,8 @@ namespace Langulus::Anyness
                      while (inf3 != infEnd) {
                         if (*inf3) {
                            auto handle3 = mthis.GetHandle<Byte*, B>(inf3 - GetInfo());
-                           if (*handle.mEntry == *handle3.mEntry)
-                              handle3.DestroyUnknown<true, false>(mthis.mType);
+                           if (handle.GetEntry() == handle3.GetEntry())
+                              handle3.template DestroyUnknown<true, false>(mthis.mType);
                         }
                         ++inf3;
                      }
@@ -453,7 +455,7 @@ namespace Langulus::Anyness
                }
                else {
                   // Just dereference once more                         
-                  const_cast<Allocation*>(*handle.mEntry)->Free(1);
+                  const_cast<Allocation*>(handle.GetEntry())->Free(1);
                }
 
                ++inf;
