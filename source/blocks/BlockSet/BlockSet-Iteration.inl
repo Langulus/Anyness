@@ -126,7 +126,7 @@ namespace Langulus::Anyness
             case Loop::Discard:
                if constexpr (CT::Mutable<THIS>) {
                   // Discard is allowed only if THIS is mutable         
-                  const_cast<BlockMap*>(this)
+                  const_cast<BlockSet*>(this)
                      ->template RemoveInner<THIS>(info - mInfo);
                   if constexpr (REVERSE)
                      next();
