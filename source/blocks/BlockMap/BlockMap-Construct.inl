@@ -97,7 +97,6 @@ namespace Langulus::Anyness
                if constexpr (CT::Typed<B>) {
                   // At least one of the maps is typed                  
                   using K = typename B::Key;
-                  using V = typename B::Value;
 
                   if constexpr (CT::Inner::POD<K>) {
                      // Data is POD, we can directly copy all keys      
@@ -188,7 +187,6 @@ namespace Langulus::Anyness
          if constexpr (CT::Typed<B>) {
             // At least one of the maps is typed                        
             using K = typename B::Key;
-            using V = typename B::Value;
 
             if constexpr (CT::Dense<K>) {
                // We're cloning dense keys, so we're 100% sure, that    
