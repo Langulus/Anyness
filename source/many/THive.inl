@@ -24,9 +24,8 @@ namespace Langulus::Anyness
    TME()::THive(THive&& other)
       : THive {Move(other)} {}
 
-   TEMPLATE() template<template<class> class S>
-   requires CT::Semantic<S<THive<T>>> LANGULUS(INLINED)
-   THive<T>::THive(S<THive<T>>&&) {
+   TEMPLATE() template<template<class> class S> LANGULUS(INLINED)
+   THive<T>::THive(S<THive>&&) requires CT::Semantic<S<THive>> {
       TODO();
    }
 
@@ -52,10 +51,9 @@ namespace Langulus::Anyness
 
    /// Semantic assignment                                                    
    ///   @param other - the have to assign                                    
-   TEMPLATE() template<template<class> class S>
-   requires CT::Semantic<S<THive<T>>> LANGULUS(INLINED)
-   THive<T>& THive<T>::operator = (S<THive<T>>&& other) {
-      using SS = S<THive<T>>;
+   TEMPLATE() template<template<class> class S> LANGULUS(INLINED)
+   THive<T>& THive<T>::operator = (S<THive>&& other) requires CT::Semantic<S<THive>> {
+      using SS = S<THive>;
       mFrames = SS::Nest(other->mFrames);
       mReusable = other->mReusable;
       mCount = other->mCount;

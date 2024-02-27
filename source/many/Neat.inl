@@ -33,8 +33,9 @@ namespace Langulus::Anyness
 
    /// Semantic constructor                                                   
    ///   @param other - the container and semantic to use                     
-   template<template<class> class S> LANGULUS(INLINED)
-   Neat::Neat(S<Neat>&& other) requires CT::Semantic<S<Neat>>
+   template<template<class> class S>
+   requires CT::Semantic<S<Neat>> LANGULUS(INLINED)
+   Neat::Neat(S<Neat>&& other)
       : mHash {other->mHash}
       , mTraits {S<Neat>::Nest(other->mTraits)}
       , mConstructs {S<Neat>::Nest(other->mConstructs)}
@@ -48,9 +49,10 @@ namespace Langulus::Anyness
    /// semantic or not. Deep contents are normalized only for CT::Deep        
    ///   @param t1 - first element                                            
    ///   @param tn... - the rest of the elements (optional)                   
-   template<class T1, class...TN> LANGULUS(INLINED)
+   template<class T1, class...TN>
+   requires CT::Inner::UnfoldInsertable<T1, TN...> LANGULUS(INLINED)
    Neat::Neat(T1&& t1, TN&&...tn)
-   requires CT::Inner::UnfoldInsertable<T1, TN...> {
+      : Neat {} {
       Insert(Forward<T1>(t1), Forward<TN>(tn)...);
    }
 
@@ -58,8 +60,9 @@ namespace Langulus::Anyness
    ///   @tparam S - semantic to use (deducible)                              
    ///   @param other - normalized descriptor to assign                       
    ///   @return a reference to this descriptor                               
-   template<template<class> class S> LANGULUS(INLINED)
-   Neat& Neat::operator = (S<Neat>&& other) requires CT::Semantic<S<Neat>> {
+   template<template<class> class S>
+   requires CT::Semantic<S<Neat>> LANGULUS(INLINED)
+   Neat& Neat::operator = (S<Neat>&& other) {
       using SS = S<Neat>;
       mTraits = SS::Nest(other->mTraits);
       mConstructs = SS::Nest(other->mConstructs);
