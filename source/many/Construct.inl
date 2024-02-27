@@ -307,7 +307,6 @@ namespace Langulus::Anyness
    }
 
    /// Serialize the construct to anything text-based                         
-   LANGULUS(INLINED)
    Count Construct::Serialize(CT::Serial auto& to) const {
       const auto initial = to.GetCount();
       using OUT = Deref<decltype(to)>;
