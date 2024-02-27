@@ -8,3 +8,4 @@
 ///                                                                           
 #pragma once
 #include "../../source/many/Neat.inl"
+#include "../../source/many/Construct.inl"

@@ -238,9 +238,10 @@ namespace Langulus::Anyness
          #ifdef LANGULUS_MAX_DEBUGGABLE_ELEMENTS
             static constexpr Count MaxIterations
                = LANGULUS_MAX_DEBUGGABLE_ELEMENTS;
+         #elif LANGULUS(DEBUG) or LANGULUS(SAFE)
+            static constexpr Count MaxIterations = 32;
          #else
-            static constexpr Count MaxIterations
-               = LANGULUS(DEBUG) or LANGULUS(SAFE) ? 32 : 8;
+            static constexpr Count MaxIterations = 8;
          #endif
 
          using Operator = Serial::Operator;

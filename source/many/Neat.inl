@@ -8,8 +8,8 @@
 ///                                                                           
 #pragma once
 #include "Neat.hpp"
-#include "Trait.inl"
-#include "Construct.inl"
+#include "Construct.hpp"
+#include "TTrait.inl"
 #include "Bytes.inl"
 #include "../maps/TMap.inl"
 #include "../verbs/Verb.inl"

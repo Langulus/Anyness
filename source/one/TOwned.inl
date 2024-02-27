@@ -25,13 +25,13 @@ namespace Langulus::Anyness
    /// Refer constructor                                                      
    ///   @param value - owned value to reference                              
    TEMPLATE() LANGULUS(INLINED)
-   constexpr TME()::TOwned(const TOwned& value) requires CT::Inner::ReferMakable<T>
+   constexpr TME()::TOwned(const TOwned& value) requires (CT::Sparse<T> or CT::Inner::ReferMakable<T>)
       : TOwned {Refer(value)} {}
 
    /// Move constructor                                                       
    ///   @param value - owned value to move                                   
    TEMPLATE() LANGULUS(INLINED)
-   constexpr TME()::TOwned(TOwned&& value) requires CT::Inner::MoveMakable<T>
+   constexpr TME()::TOwned(TOwned&& value) requires (CT::Sparse<T> or CT::Inner::MoveMakable<T>)
       : TOwned {Move(value)} {}
    
    /// Generic constructor                                                    
@@ -49,14 +49,14 @@ namespace Langulus::Anyness
    /// Refer assignment                                                       
    ///   @param value - the value to reference                                
    TEMPLATE() LANGULUS(INLINED)
-   constexpr TME()& TME()::operator = (const TOwned& value) requires CT::Inner::ReferAssignable<T> {
+   constexpr TME()& TME()::operator = (const TOwned& value) requires (CT::Sparse<T> or CT::Inner::ReferAssignable<T>) {
       return operator = (Refer(value));
    }
 
    /// Move assignment                                                        
    ///   @param value - the value to move                                     
    TEMPLATE() LANGULUS(INLINED)
-   constexpr TME()& TME()::operator = (TOwned&& value) requires CT::Inner::MoveAssignable<T> {
+   constexpr TME()& TME()::operator = (TOwned&& value) requires (CT::Sparse<T> or CT::Inner::MoveAssignable<T>) {
       return operator = (Move(value));
    }
    
