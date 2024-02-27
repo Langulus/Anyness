@@ -81,19 +81,22 @@ namespace Langulus::Anyness
       Neat(Neat&&) noexcept;
 
       template<template<class> class S>
-      Neat(S<Neat>&&) requires CT::Semantic<S<Neat>>;
+      requires CT::Semantic<S<Neat>>
+      Neat(S<Neat>&&);
 
       template<class T1, class...TN>
-      Neat(T1&&, TN&&...)
-      requires CT::Inner::UnfoldInsertable<T1, TN...>;
+      requires CT::Inner::UnfoldInsertable<T1, TN...>
+      Neat(T1&&, TN&&...);
 
       ///                                                                     
       ///   Assignment                                                        
       ///                                                                     
       Neat& operator = (const Neat&) = default;
       Neat& operator = (Neat&&) noexcept = default;
+
       template<template<class> class S>
-      Neat& operator = (S<Neat>&&) requires CT::Semantic<S<Neat>>;
+      requires CT::Semantic<S<Neat>>
+      Neat& operator = (S<Neat>&&);
 
       ///                                                                     
       ///   Comparison                                                        

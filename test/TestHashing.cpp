@@ -10,6 +10,7 @@
 #include <Anyness/Path.hpp>
 #include <Anyness/TMap.hpp>
 #include <Anyness/TSet.hpp>
+#include <Anyness/Trait.hpp>
 #include "Common.hpp"
 
 
