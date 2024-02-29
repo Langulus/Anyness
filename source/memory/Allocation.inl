@@ -21,9 +21,9 @@ namespace Langulus::Anyness
       ///   @param u - number                                                 
       ///   @return the log2                                                  
       LANGULUS(INLINED)
-      constexpr Size FastLog2(Size x) noexcept {
-         return x < 2 
-            ? 0 : Size{8 * sizeof(Size)} - ::std::countl_zero(x) - Size{1};
+      constexpr Offset FastLog2(const Offset x) noexcept {
+         return x < 2 ? 0 
+            : Offset {8 * sizeof(Offset)} - ::std::countl_zero(x) - Offset {1};
       }
 
       /// Get least significant bit                                           
@@ -31,23 +31,23 @@ namespace Langulus::Anyness
       ///   @param n - number                                                 
       ///   @return the least significant bit                                 
       LANGULUS(INLINED)
-      constexpr Size LSB(const Size& n) noexcept {
+      constexpr Offset LSB(const Offset n) noexcept {
          #if LANGULUS(BITNESS) == 32
-            constexpr Size DeBruijnBitPosition[32] = {
+            constexpr Offset DeBruijnBitPosition[32] = {
                0, 1, 28, 2, 29, 14, 24, 3, 30, 22, 20, 15, 25, 17, 4, 8,
                31, 27, 13, 23, 21, 19, 16, 7, 26, 12, 18, 6, 11, 5, 10, 9
             };
-            constexpr Size f = 0x077CB531u;
-            return DeBruijnBitPosition[(Size {n & (0 - n)} * f) >> Size {27}];
+            constexpr Offset f = 0x077CB531u;
+            return DeBruijnBitPosition[(Offset {n & (0 - n)} * f) >> Offset {27}];
          #elif LANGULUS(BITNESS) == 64
-            constexpr Size DeBruijnBitPosition[64] = {
+            constexpr Offset DeBruijnBitPosition[64] = {
                0,   1,  2, 53,  3,  7, 54, 27,  4, 38, 41,  8, 34, 55, 48, 28,
                62,  5, 39, 46, 44, 42, 22,  9, 24, 35, 59, 56, 49, 18, 29, 11,
                63, 52,  6, 26, 37, 40, 33, 47, 61, 45, 43, 21, 23, 58, 17, 10,
                51, 25, 36, 32, 60, 20, 57, 16, 50, 31, 19, 15, 30, 14, 13, 12
             };
-            constexpr Size f = 0x022fdd63cc95386dul;
-            return DeBruijnBitPosition[(Size {n & (0 - n)} * f) >> Size {58}];
+            constexpr Offset f = 0x022fdd63cc95386dul;
+            return DeBruijnBitPosition[(Offset {n & (0 - n)} * f) >> Offset {58}];
          #else
             #error Implement for your architecture
          #endif
@@ -62,7 +62,7 @@ namespace Langulus::Anyness
    ///   @param bytes - the number of allocated bytes                         
    ///   @param pool - the pool/handle of the entry                           
    LANGULUS(INLINED)
-   constexpr Allocation::Allocation(Size bytes, Pool* pool) noexcept
+   constexpr Allocation::Allocation(Offset bytes, Pool* pool) noexcept
       : mAllocatedBytes {bytes}
       , mReferences {1}
       , mPool {pool} {
@@ -74,7 +74,7 @@ namespace Langulus::Anyness
    /// Get the size of the Allocation structure, rounded up for alignment     
    ///   @return the byte size of the entry, including alignment              
    LANGULUS(INLINED)
-   constexpr Size Allocation::GetSize() noexcept {
+   constexpr Offset Allocation::GetSize() noexcept {
       static_assert(IsPowerOfTwo(Alignment),
          "Alignment is not a power-of-two number");
       return sizeof(Allocation) + Alignment - (sizeof(Allocation) % Alignment);
@@ -85,30 +85,30 @@ namespace Langulus::Anyness
    ///   @param size - the usable number of bytes required                    
    ///   @return the byte size for a new Allocation, including padding        
    LANGULUS(INLINED)
-   constexpr Size Allocation::GetNewAllocationSize(Size size) noexcept {
-      const Size minimum = Allocation::GetMinAllocation();
-      const Size proposed = Allocation::GetSize() + size;
+   constexpr Offset Allocation::GetNewAllocationSize(Offset size) noexcept {
+      const auto minimum = Allocation::GetMinAllocation();
+      const auto proposed = Allocation::GetSize() + size;
       return ::std::max(proposed, minimum);
    }
 
    /// Get the minimum possible allocation, including the overhead            
    ///   @return the byte size                                                
    LANGULUS(INLINED)
-   constexpr Size Allocation::GetMinAllocation() noexcept {
+   constexpr Offset Allocation::GetMinAllocation() noexcept {
       return Allocation::GetSize() + Alignment;
    }
 
    /// Check if the memory of the entry is in use                             
    ///   @return true if entry has any references                             
    LANGULUS(INLINED)
-   constexpr const Count& Allocation::GetUses() const noexcept {
+   constexpr Count Allocation::GetUses() const noexcept {
       return mReferences;
    }
 
    /// Return the aligned start of usable block memory (const)                
    ///   @return pointer to the entry's memory                                
    LANGULUS(INLINED)
-   const Byte* Allocation::GetBlockStart() const noexcept {
+   Byte const* Allocation::GetBlockStart() const noexcept {
       const auto entryStart = reinterpret_cast<const Byte*>(this);
       return entryStart + Allocation::GetSize();
    }
@@ -116,7 +116,7 @@ namespace Langulus::Anyness
    /// Return the end of usable block memory (always const)                   
    ///   @return pointer to the entry's memory end                            
    LANGULUS(INLINED)
-   const Byte* Allocation::GetBlockEnd() const noexcept {
+   Byte const* Allocation::GetBlockEnd() const noexcept {
       return GetBlockStart() + mAllocatedBytes;
    }
 
@@ -131,14 +131,14 @@ namespace Langulus::Anyness
    /// Get the total of the entry, and its allocated data, in bytes           
    ///   @return the byte size of the entry plus the usable region after it   
    LANGULUS(INLINED)
-   constexpr Size Allocation::GetTotalSize() const noexcept {
+   constexpr Offset Allocation::GetTotalSize() const noexcept {
       return Allocation::GetSize() + mAllocatedBytes;
    }
 
    /// Get the number of allocated bytes in this entry                        
    ///   @return the byte size of usable memory region                        
    LANGULUS(INLINED)
-   constexpr const Size& Allocation::GetAllocatedSize() const noexcept {
+   constexpr Offset Allocation::GetAllocatedSize() const noexcept {
       return mAllocatedBytes;
    }
 

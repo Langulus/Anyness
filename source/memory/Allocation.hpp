@@ -24,7 +24,7 @@ namespace Langulus::Anyness
    
    template<class T>
    concept AllocationPrimitive = requires(T a) { 
-      {T::GetNewAllocationSize(Size {})} -> CT::Same<Size>;
+      {T::GetNewAllocationSize(0)} -> CT::Unsigned;
    };
 
 
@@ -38,7 +38,7 @@ namespace Langulus::Anyness
    friend struct Allocator;
    protected:
       // Allocated bytes for this chunk                                 
-      Size mAllocatedBytes;
+      Offset mAllocatedBytes;
       // The number of references to this memory                        
       Count mReferences;
       union {
@@ -58,18 +58,17 @@ namespace Langulus::Anyness
       Allocation(Allocation&&) = delete;
       ~Allocation() = delete;
 
-      constexpr Allocation(const Size&, Pool*) noexcept;
+      constexpr Allocation(Offset, Pool*) noexcept;
 
-      NOD() static constexpr Size GetSize() noexcept;
-      NOD() static constexpr Size GetNewAllocationSize(const Size&) noexcept;
-      NOD() static constexpr Size GetMinAllocation() noexcept;
+      NOD() static constexpr Offset GetSize() noexcept;
+      NOD() static constexpr Offset GetNewAllocationSize(Offset) noexcept;
+      NOD() static constexpr Offset GetMinAllocation() noexcept;
 
-      NOD() constexpr const Count& GetUses() const noexcept;
-      NOD() const Byte* GetBlockStart() const noexcept;
-      NOD() const Byte* GetBlockEnd() const noexcept;
+      NOD() constexpr Count GetUses() const noexcept;
       NOD() Byte* GetBlockStart() noexcept;
-      NOD() constexpr Size GetTotalSize() const noexcept;
-      NOD() constexpr const Size& GetAllocatedSize() const noexcept;
+      NOD() Byte const* GetBlockEnd() const noexcept;
+      NOD() constexpr Offset GetTotalSize() const noexcept;
+      NOD() constexpr Offset GetAllocatedSize() const noexcept;
       NOD() bool Contains(const void*) const noexcept;
       NOD() bool CollisionFree(const Allocation&) const noexcept;
 
