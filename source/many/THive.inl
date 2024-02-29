@@ -314,7 +314,7 @@ namespace Langulus::Anyness
    ///   @return true element is at or beyond the end marker                  
    TEMPLATE() template<class HIVE> LANGULUS(INLINED)
    constexpr bool THive<T>::Iterator<HIVE>::operator == (const A::IteratorEnd&) const noexcept {
-      return mCell >= mFrameEnd->GetRawEnd();
+      return mCell ? mCell >= mFrameEnd->GetRawEnd() : true;
    }
    
    /// Iterator access operator                                               
@@ -350,6 +350,7 @@ namespace Langulus::Anyness
             mCell = mFrame->GetRaw();
             mCellEnd = mCell + mFrame->GetReserved();
          }
+         else mCell = nullptr;
       }
 
       return *this;
