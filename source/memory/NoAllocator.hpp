@@ -23,7 +23,7 @@ namespace Langulus::Anyness
    ///   @param size - the number of client bytes to allocate                 
    ///   @return a newly allocated memory that is correctly aligned           
    template<AllocationPrimitive T>
-   T* AlignedAllocate(const Size& size) noexcept {
+   T* AlignedAllocate(Offset size) noexcept {
       const auto finalSize = T::GetNewAllocationSize(size) + Alignment;
       const auto base = ::std::malloc(finalSize);
       if (not base) UNLIKELY()
@@ -31,8 +31,8 @@ namespace Langulus::Anyness
 
       // Align pointer to the alignment LANGULUS was built with         
       auto ptr = reinterpret_cast<T*>(
-         (reinterpret_cast<Size>(base) + Alignment)
-         & ~(Alignment - Size {1})
+         (reinterpret_cast<Offset>(base) + Alignment)
+         & ~(Alignment - Offset {1})
       );
 
       // Place the entry there                                          
@@ -47,17 +47,17 @@ namespace Langulus::Anyness
    struct Allocator {
       /// No state when MANAGED_MEMORY feature is disabled                    
       struct State {
-         constexpr bool Assert() const noexcept { return true; }
+         consteval bool Assert() const noexcept { return true; }
       };
 
       NOD() LANGULUS(INLINED)
-      static Allocation* Allocate(DMeta, const Size& size) IF_UNSAFE(noexcept) {
+      static Allocation* Allocate(DMeta, Offset size) IF_UNSAFE(noexcept) {
          LANGULUS_ASSUME(DevAssumes, size, "Zero allocation is not allowed");
          return AlignedAllocate<Allocation>(size);
       }
 
       NOD() LANGULUS(INLINED)
-      static Allocation* Reallocate(const Size& size, Allocation* previous) IF_UNSAFE(noexcept) {
+      static Allocation* Reallocate(Offset size, Allocation* previous) IF_UNSAFE(noexcept) {
          LANGULUS_ASSUME(DevAssumes, previous,
             "Reallocating nullptr");
          LANGULUS_ASSUME(DevAssumes, size != previous->GetAllocatedSize(),
