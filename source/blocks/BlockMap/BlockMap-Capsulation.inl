@@ -8,7 +8,6 @@
 ///                                                                           
 #pragma once
 #include "../BlockMap.hpp"
-#include "BlockMap-Indexing.inl"
 
 
 namespace Langulus::Anyness

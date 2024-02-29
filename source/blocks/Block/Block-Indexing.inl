@@ -8,7 +8,6 @@
 ///                                                                           
 #pragma once
 #include "../Block.hpp"
-#include "../../one/Handle.hpp"
 #include "../../Index.inl"
 
 
@@ -447,16 +446,8 @@ namespace Langulus::Anyness
 
       // Move this to temporary                                         
       temporary.CreateSemantic<B>(Move(*this));
-      // Destroy elements in this                                       
-      /*CallDestructors<THIS>();
-      // Abandon rhs to this                                            
-      CallSemanticConstructors<THIS>(rhs->mCount, rhs.Forward());*/
       // Assign all elements from rhs to this                           
       AssignSemantic<B>(S::Nest(rhs));
-      // Destroy elements in rhs                                        
-      /*rhs->template CallDestructors<THIS>();
-      // Abandon temporary to rhs                                       
-      rhs->template CallSemanticConstructors<THIS>(temporary.mCount, Abandon(temporary));*/
       // Assign all elements from temporary to rhs                      
       DesemCast(rhs).template AssignSemantic<B>(Abandon(temporary));
       // Cleanup temporary                                              
@@ -697,4 +688,5 @@ namespace Langulus::Anyness
       else
          return GetElement(mCount - 1);
    }
+
 } // namespace Langulus::Anyness

@@ -7,8 +7,7 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #pragma once
-#include "DataState.hpp"
-#include "text/Text.inl"
+#include "Charge.hpp"
 
 
 namespace Langulus::Anyness
@@ -101,24 +100,6 @@ namespace Langulus::Anyness
    constexpr Charge& Charge::operator ^= (const Real& scalar) noexcept {
       mRate *= scalar;
       return *this;
-   }
-
-   /// Serialize charge as text                                               
-   inline Charge::operator Text() const {
-      Text text;
-      if (mMass != Charge::DefaultMass)
-         text += Text {Text::Operator::Mass, mMass};
-
-      if (mRate != Charge::DefaultRate)
-         text += Text {Text::Operator::Rate, mRate};
-
-      if (mTime != Charge::DefaultTime)
-         text += Text {Text::Operator::Time, mTime};
-
-      if (mPriority != Charge::DefaultPriority)
-         text += Text {Text::Operator::Priority, mPriority};
-
-      return text;
    }
 
 } // namespace Langulus::Anyness

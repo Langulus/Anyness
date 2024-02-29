@@ -7,8 +7,6 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #pragma once
-#include "../../source/many/Any.inl"
-#include "../../source/maps/TMap.inl"
 #include "../../source/text/Text.inl"
-#include "../../source/many/Neat.inl"
-#include "../../source/many/Construct.inl"
+#include "../../source/many/Bytes.inl"
+

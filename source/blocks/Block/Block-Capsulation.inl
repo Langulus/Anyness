@@ -7,8 +7,8 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #pragma once
-#include "Block-Iteration.inl"
-#include "../../DataState.inl"
+#include "../Block.hpp"
+#include "../../many/Trait.hpp"
 #include "../../many/Construct.hpp"
 
 

@@ -9,6 +9,7 @@
 #pragma once
 #include "Construct.hpp"
 #include "Neat.inl"
+#include "../text/Text.hpp"
 
 
 namespace Langulus::Anyness

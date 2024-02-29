@@ -7,9 +7,9 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #pragma once
+#include "../many/TAny.hpp"
 #include "../many/Bytes.hpp"
 #include <Logger/Logger.hpp> // Logger has some core fmt::formatters defined  
-#include <string>
 
 
 namespace Langulus::Anyness::Serial

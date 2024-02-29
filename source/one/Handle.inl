@@ -8,7 +8,6 @@
 ///                                                                           
 #pragma once
 #include "Handle.hpp"
-#include "TPointer.hpp"
 
 #define TEMPLATE() template<CT::Data T, bool EMBED>
 #define HAND() Handle<T, EMBED>

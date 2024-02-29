@@ -8,8 +8,7 @@
 ///                                                                           
 #pragma once
 #include "../Block.hpp"
-#include "Block-Indexing.inl"
-#include <RTTI/Hash.hpp>
+#include "../../text/Text.hpp"
 
 #define VERBOSE(...)     //Logger::Verbose(__VA_ARGS__)
 #define VERBOSE_TAB(...) //auto tab = Logger::Section(__VA_ARGS__)

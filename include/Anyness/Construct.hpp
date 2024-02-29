@@ -8,3 +8,4 @@
 ///                                                                           
 #pragma once
 #include "../../source/many/Construct.inl"
+#include "../../source/text/Text.inl"

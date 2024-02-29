@@ -8,7 +8,6 @@
 ///                                                                           
 #pragma once
 #include "Bytes.hpp"
-#include "TAny.inl"
 
 
 namespace Langulus::Anyness

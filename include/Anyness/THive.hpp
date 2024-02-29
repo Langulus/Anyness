@@ -8,3 +8,4 @@
 ///                                                                           
 #pragma once
 #include "../../source/many/THive.inl"
+#include "../../source/maps/TMap.inl"

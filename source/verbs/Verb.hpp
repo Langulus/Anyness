@@ -8,7 +8,6 @@
 ///                                                                           
 #pragma once
 #include "../many/Any.hpp"
-#include "../text/Text.hpp"
 #include "../Index.hpp"
 #include "../Charge.hpp"
 #include "VerbState.hpp"
@@ -55,14 +54,14 @@ namespace Langulus::A
       Verb(Verb&&);
 
       template<template<class> class S>
-      requires CT::Semantic<S<Verb>> LANGULUS(INLINED)
+      requires CT::Semantic<S<Verb>>
       Verb(S<Verb>&&);
 
       Verb& operator = (const Verb&);
       Verb& operator = (Verb&&);
 
       template<template<class> class S>
-      requires CT::Semantic<S<Verb>> LANGULUS(INLINED)
+      requires CT::Semantic<S<Verb>>
       Verb& operator = (S<Verb>&&);
 
       ///                                                                     

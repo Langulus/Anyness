@@ -7,7 +7,7 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #pragma once
-#include "BlockSet-Iteration.inl"
+#include "../BlockSet.hpp"
 
 
 namespace Langulus::Anyness

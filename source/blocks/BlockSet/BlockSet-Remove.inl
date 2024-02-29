@@ -8,6 +8,7 @@
 ///                                                                           
 #pragma once
 #include "../BlockSet.hpp"
+#include "../../text/Text.hpp"
 
 
 namespace Langulus::Anyness
