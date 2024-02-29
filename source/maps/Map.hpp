@@ -8,6 +8,7 @@
 ///                                                                           
 #pragma once
 #include "../blocks/BlockMap.hpp"
+#include "../pairs/TPair.hpp"
 
 
 namespace Langulus::Anyness
@@ -39,9 +40,9 @@ namespace Langulus::Anyness
       Map(const Map&);
       Map(Map&&);
 
-      template<class T1, class...TAIL>
-      requires CT::Inner::UnfoldInsertable<T1, TAIL...>
-      Map(T1&&, TAIL&&...);
+      template<class T1, class...TN>
+      requires CT::Inner::UnfoldInsertable<T1, TN...>
+      Map(T1&&, TN&&...);
 
       ~Map();
 

@@ -8,7 +8,6 @@
 ///                                                                           
 #pragma once
 #include "Config.hpp"
-#include "text/Text.hpp"
 
 
 namespace Langulus::Anyness

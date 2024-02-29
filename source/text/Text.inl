@@ -19,7 +19,8 @@ namespace Langulus::Anyness
 
    /// Default construction with nullptr_t                                    
    LANGULUS(INLINED)
-   constexpr Text::Text(::std::nullptr_t) noexcept {}
+   constexpr Text::Text(::std::nullptr_t) noexcept
+      : Text {} {}
 
    /// Refer constructor                                                      
    ///   @param other - container to reference                                
@@ -815,6 +816,24 @@ namespace Langulus::Anyness
       const auto initial = to.GetCount();
       to += (from.IsOr() ? " or " : ", ");
       return to.GetCount() - initial;
+   }
+
+   /// Serialize charge as text                                               
+   inline Charge::operator Text() const {
+      Text text;
+      if (mMass != Charge::DefaultMass)
+         text += Text {Text::Operator::Mass, mMass};
+
+      if (mRate != Charge::DefaultRate)
+         text += Text {Text::Operator::Rate, mRate};
+
+      if (mTime != Charge::DefaultTime)
+         text += Text {Text::Operator::Time, mTime};
+
+      if (mPriority != Charge::DefaultPriority)
+         text += Text {Text::Operator::Priority, mPriority};
+
+      return text;
    }
 
 } // namespace Langulus::Anyness

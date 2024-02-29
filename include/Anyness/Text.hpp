@@ -8,3 +8,4 @@
 ///                                                                           
 #pragma once
 #include "../../source/text/Text.inl"
+#include "../../source/maps/TMap.inl"

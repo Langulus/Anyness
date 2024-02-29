@@ -9,3 +9,6 @@
 #pragma once
 #include "../../source/many/Neat.inl"
 #include "../../source/many/Construct.inl"
+#include "../../source/many/Bytes.inl"
+#include "../../source/verbs/Verb.inl"
+#include "../../source/text/Text.inl"

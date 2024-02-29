@@ -8,12 +8,10 @@
 ///                                                                           
 #pragma once
 #include "Neat.hpp"
-#include "Construct.hpp"
-#include "TTrait.inl"
-#include "Bytes.inl"
+#include "../many/TAny.inl"
 #include "../maps/TMap.inl"
-#include "../verbs/Verb.inl"
-#include "../Charge.inl"
+#include "../many/TTrait.inl"
+#include "../verbs/Verb.hpp"
 
 
 namespace Langulus::Anyness

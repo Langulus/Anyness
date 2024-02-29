@@ -8,7 +8,6 @@
 ///                                                                           
 #pragma once
 #include "TOwned.hpp"
-#include "Handle.hpp"
 
 
 namespace Langulus::Anyness

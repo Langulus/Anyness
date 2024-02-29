@@ -7,7 +7,7 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #pragma once
-#include "Block-Indexing.inl"
+#include "../Block.hpp"
 
 
 namespace Langulus::Anyness

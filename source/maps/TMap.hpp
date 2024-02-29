@@ -8,7 +8,6 @@
 ///                                                                           
 #pragma once
 #include "Map.hpp"
-#include "../pairs/TPair.hpp"
 
 
 namespace Langulus::CT
@@ -73,9 +72,9 @@ namespace Langulus::Anyness
       TMap(const TMap&);
       TMap(TMap&&) noexcept;
 
-      template<class T1, class...TAIL>
-      requires CT::DeepMapMakable<K, V, T1, TAIL...>
-      TMap(T1&&, TAIL&&...);
+      template<class T1, class...TN>
+      requires CT::DeepMapMakable<K, V, T1, TN...>
+      TMap(T1&&, TN&&...);
 
       ~TMap();
 
@@ -270,9 +269,9 @@ namespace Langulus::Anyness
 
       Count InsertBlock(auto&&, auto&&);
 
-      template<class T1, class...TAIL>
-      requires CT::Inner::UnfoldMakableFrom<TPair<K, V>, T1, TAIL...>
-      Count InsertPair(T1&&, TAIL&&...);
+      template<class T1, class...TN>
+      requires CT::Inner::UnfoldMakableFrom<TPair<K, V>, T1, TN...>
+      Count InsertPair(T1&&, TN&&...);
 
       template<class T1>
       requires CT::Inner::UnfoldMakableFrom<TPair<K, V>, T1>

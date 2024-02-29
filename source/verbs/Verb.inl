@@ -9,6 +9,8 @@
 #pragma once
 #include "Verb.hpp"
 #include "VerbState.inl"
+#include "../Charge.inl"
+#include "../text/Text.hpp"
 
 
 namespace Langulus::A

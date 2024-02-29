@@ -6,10 +6,16 @@ file(GLOB_RECURSE
 
 add_executable(LangulusAnynessTest ${LANGULUS_ANYNESS_TEST_SOURCES})
 
-if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
 	# There are some tests that involve safety when self = self is performed	
-    target_compile_options(LangulusAnynessTest PRIVATE "-Wno-self-assign-overloaded")
+	# Also GCC is notorious with its uninitialized member false-positives		
+    target_compile_options(LangulusAnynessTest
+		PRIVATE -Wno-maybe-uninitialized
+				-Wno-self-assign-overloaded
+	)
 endif()
+
 
 target_link_libraries(LangulusAnynessTest
 	PRIVATE		LangulusAnyness

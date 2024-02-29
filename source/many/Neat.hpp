@@ -10,7 +10,7 @@
 #include "TAny.hpp"
 #include "Trait.hpp"
 #include "../maps/TMap.hpp"
-#include "../Charge.hpp"
+#include "../Charge.inl"
 
 
 namespace Langulus::Anyness
@@ -205,8 +205,8 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Insertion                                                         
       ///                                                                     
-      template<class T1, class...TAIL>
-      Count Insert(T1&&, TAIL&&...);
+      template<class T1, class...TN>
+      Count Insert(T1&&, TN&&...);
 
       Neat& operator << (auto&&);
 

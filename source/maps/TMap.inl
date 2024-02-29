@@ -10,7 +10,7 @@
 #include "TMap.hpp"
 #include "Map.inl"
 #include "../pairs/TPair.inl"
-#include "../many/TAny.inl"
+
 
 #define TEMPLATE() template<CT::Data K, CT::Data V, bool ORDERED>
 #define TABLE() TMap<K, V, ORDERED>
@@ -21,7 +21,8 @@ namespace Langulus::Anyness
 
    /// Default construction                                                   
    TEMPLATE() LANGULUS(INLINED)
-   constexpr TABLE()::TMap() : Map<ORDERED> {} {
+   constexpr TABLE()::TMap()
+      : Map<ORDERED> {} {
       mKeys.mState = DataState::Typed;
       mValues.mState = DataState::Typed;
 

@@ -8,3 +8,5 @@
 ///                                                                           
 #pragma once
 #include "../../source/many/TAny.inl"
+#include "../../source/maps/TMap.inl"
+#include "../../source/text/Text.inl"
