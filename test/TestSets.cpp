@@ -19,20 +19,21 @@
 /// to complex, from flat to deep                                             
 TEMPLATE_TEST_CASE(
    "TOrderedSet/TUnorderedSet/OrderedSet/UnorderedSet", "[set]",
-   (TypePair<UnorderedSet, Any>),
-
    (TypePair<TUnorderedSet<int*>, int*>),
    (TypePair<TUnorderedSet<Trait*>, Trait*>),
    (TypePair<TUnorderedSet<Traits::Count*>, Traits::Count*>),
    (TypePair<TUnorderedSet<Any*>, Any*>),
+
    (TypePair<TOrderedSet<int*>, int*>),
    (TypePair<TOrderedSet<Trait*>, Trait*>),
    (TypePair<TOrderedSet<Traits::Count*>, Traits::Count*>),
    (TypePair<TOrderedSet<Any*>, Any*>),
+
    (TypePair<UnorderedSet, int*>),
    (TypePair<UnorderedSet, Trait*>),
    (TypePair<UnorderedSet, Traits::Count*>),
    (TypePair<UnorderedSet, Any*>),
+
    (TypePair<OrderedSet, int*>),
    (TypePair<OrderedSet, Trait*>),
    (TypePair<OrderedSet, Traits::Count*>),
@@ -42,19 +43,24 @@ TEMPLATE_TEST_CASE(
    (TypePair<TUnorderedSet<Trait>, Trait>),
    (TypePair<TUnorderedSet<Traits::Count>, Traits::Count>),
    (TypePair<TUnorderedSet<Any>, Any>),
+
    (TypePair<TOrderedSet<int>, int>),
    (TypePair<TOrderedSet<Trait>, Trait>),
    (TypePair<TOrderedSet<Traits::Count>, Traits::Count>),
    (TypePair<TOrderedSet<Any>, Any>),
+
    (TypePair<UnorderedSet, int>),
    (TypePair<UnorderedSet, Trait>),
    (TypePair<UnorderedSet, Traits::Count>),
+   (TypePair<UnorderedSet, Any>),
 
    (TypePair<OrderedSet, int>),
    (TypePair<OrderedSet, Trait>),
    (TypePair<OrderedSet, Traits::Count>),
    (TypePair<OrderedSet, Any>)
 ) {
+   static Allocator::State memoryState;
+
    using T = typename TestType::LHS;
    using K = typename TestType::RHS;
 
@@ -109,8 +115,6 @@ TEMPLATE_TEST_CASE(
       }
 
       WHEN("Assigned a value by move") {
-         IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
-
          T movable = element;
          set = ::std::move(movable);
 
@@ -185,8 +189,6 @@ TEMPLATE_TEST_CASE(
    }
 
    GIVEN("Set with some items") {
-      IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
-
       T set;
       set << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
       auto memory = set.GetRawMemory();
@@ -210,13 +212,13 @@ TEMPLATE_TEST_CASE(
             i << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
 
             // Make sure that the set doesn't share memory with any other set 
-            /*for (auto& i2 : *storage) {
+            for (auto& i2 : *storage) {
                if (&i2 >= &i)
                   break;
 
                REQUIRE(i.GetEntry() != i2.GetEntry());
                REQUIRE(!i2.GetEntry()->Contains(i.GetRawMemory()));
-            }*/
+            }
 
             REQUIRE(i.HasAuthority());
             REQUIRE(i.GetUses() == 1);
@@ -234,13 +236,13 @@ TEMPLATE_TEST_CASE(
             i << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
 
             // Make sure that the set doesn't share memory with any other set 
-            /*for (auto& i2 : *storage) {
+            for (auto& i2 : *storage) {
                if (&i2 >= &i)
                   break;
 
                REQUIRE(i.GetEntry() != i2.GetEntry());
                REQUIRE(!i2.GetEntry()->Contains(i.GetRawMemory()));
-            }*/
+            }
 
             REQUIRE(i.HasAuthority());
             REQUIRE(i.GetUses() == 1);
@@ -791,6 +793,8 @@ TEMPLATE_TEST_CASE(
       for (auto i : darray2)
          delete i;
    }
+
+   REQUIRE(memoryState.Assert());
 }
 
 struct VulkanLayer {};
@@ -804,6 +808,7 @@ struct Monitor {};
 struct VulkanRenderable {};
 struct Cursor {};
 
+
 /// Testing some corner cases encountered during the use of the container     
 TEMPLATE_TEST_CASE("Set corner cases", "[set]",
    (TypePair<UnorderedSet, DMeta>),
@@ -811,6 +816,8 @@ TEMPLATE_TEST_CASE("Set corner cases", "[set]",
    (TypePair<TOrderedSet<DMeta>, DMeta>),
    (TypePair<OrderedSet, DMeta>)
 ) {
+   static Allocator::State memoryState;
+
    using T = typename TestType::LHS;
    using K = typename TestType::RHS;
 
@@ -853,4 +860,6 @@ TEMPLATE_TEST_CASE("Set corner cases", "[set]",
          REQUIRE(set.Contains(MetaOf<Cursor>()));
       }
    }
+
+   REQUIRE(memoryState.Assert());
 }

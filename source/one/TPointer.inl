@@ -50,16 +50,10 @@ namespace Langulus::Anyness
       using SS = S<TPointer>;
       GetHandle().CreateSemantic(SS::Nest(other->GetHandle()));
 
-      if constexpr (SS::Move) {
-         // Remote value is removed, if moved and double-referenced     
-         // Notice it is always nullified, even when abandoned          
-         if constexpr (DR and CT::Referencable<T>)
-            other->mValue = {};
-      }
-      else if constexpr (SS::Shallow and SS::Keep) {
+      if constexpr (SS::Shallow and not SS::Move and SS::Keep) {
          // Reference value, if double-referenced and copied            
          if constexpr (DR and CT::Referencable<T>) {
-            if (mValue)
+            if (mEntry)
                mValue->Keep();
          }
       }
@@ -87,7 +81,7 @@ namespace Langulus::Anyness
          if constexpr (S::Shallow and S::Keep) {
             // Reference value, if double-referenced and copied         
             if constexpr (DR and CT::Referencable<T>) {
-               if (mValue)
+               if (mEntry)
                   mValue->Keep();
             }
          }
@@ -97,7 +91,7 @@ namespace Langulus::Anyness
    /// Shared pointer destruction                                             
    TEMPLATE() LANGULUS(INLINED)
    TME()::~TPointer() {
-      if (mValue)
+      if (mEntry)
          ResetInner();
    }
 
@@ -119,7 +113,8 @@ namespace Langulus::Anyness
    ///   @attention assumes pointer is valid                                  
    TEMPLATE() LANGULUS(INLINED)
    void TME()::ResetInner() {
-      LANGULUS_ASSUME(DevAssumes, mValue, "Null pointer");
+      LANGULUS_ASSUME(DevAssumes, mValue, "Null value");
+      LANGULUS_ASSUME(DevAssumes, mEntry, "Null entry");
 
       if constexpr (DR and CT::Referencable<T>) {
          // Do double referencing                                       
@@ -133,10 +128,11 @@ namespace Langulus::Anyness
    /// Reset the pointer                                                      
    TEMPLATE() LANGULUS(INLINED)
    void TME()::Reset() {
-      if (mValue) {
+      if (mEntry) {
          ResetInner();
-         mValue = {};
+         mEntry = {};
       }
+      mValue = {};
    }
 
    /// Refer-assignment                                                       
@@ -161,21 +157,9 @@ namespace Langulus::Anyness
    TEMPLATE() template<template<class> class S>
    requires CT::Inner::SemanticAssignable<S, T*> LANGULUS(INLINED)
    TME()& TME()::operator = (S<TPointer>&& rhs) {
-      using SS = S<TPointer>;
-      if constexpr (DR and CT::Referencable<T>) {
-         // Decrement deeper references                                 
-         if (mValue and mValue->GetReferences() > 1)
-            mValue->Free();
-      }
-
-      GetHandle().AssignSemantic(SS::Nest(rhs->GetHandle()));
-
-      if constexpr (SS::Shallow and not SS::Move and SS::Keep) {
-         // Reference value, if double-referenced and copied            
-         if constexpr (DR and CT::Referencable<T>)
-            mValue->Keep();
-      }
-
+      if (mEntry)
+         ResetInner();
+      new (this) TPointer {rhs.Forward()};
       return *this;
    }
 
@@ -194,23 +178,9 @@ namespace Langulus::Anyness
       }
       else {
          // Assign a new pointer                                        
-         if constexpr (DR and CT::Referencable<T>) {
-            // Decrement deeper references                              
-            if (mValue and mValue->GetReferences() > 1)
-               mValue->Free();
-         }
-
-         // Raw pointers are always copied, and thus referenced         
-         auto converted = static_cast<Type>(DesemCast(rhs));
-         GetHandle().AssignSemantic(S::Nest(converted));
-
-         if constexpr (S::Shallow and S::Keep) {
-            // Reference value, if double-referenced and copied         
-            if constexpr (DR and CT::Referencable<T>) {
-               if (mValue)
-                  mValue->Keep();
-            }
-         }
+         if (mEntry)
+            ResetInner();
+         new (this) TPointer {Forward<A>(rhs)};
       }
 
       return *this;

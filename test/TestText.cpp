@@ -233,8 +233,6 @@ TEMPLATE_TEST_CASE("Testing text containers", "[text]",
    }
 
    GIVEN("Full text container") {
-      IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
-
       TestType text {"test1"};
       auto memory = text.GetRaw();
 

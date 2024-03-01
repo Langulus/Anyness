@@ -51,9 +51,6 @@ namespace Langulus::Anyness
       if constexpr (not Embedded) {
          if constexpr (S<H>::Shallow) {
             // Copy/Refer/Disown/Move/Abandon a handle                  
-            if constexpr (not S<H>::Keep)
-               mEntry = nullptr;
-
             if constexpr (S<H>::Move) {
                // Always reset remote entry, when moving                
                other->GetEntry() = nullptr;
@@ -61,6 +58,10 @@ namespace Langulus::Anyness
                // Also reset remote value, if not an abandoned pointer  
                if constexpr (S<H>::Keep and CT::Sparse<HT>)
                   other->Get() = nullptr;
+            }
+            else if constexpr (not S<H>::Keep) {
+               // Disown                                                
+               mEntry = nullptr;
             }
          }
          else {

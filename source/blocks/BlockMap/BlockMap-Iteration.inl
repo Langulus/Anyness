@@ -291,41 +291,7 @@ namespace Langulus::Anyness
    ) const {
       using F = Deref<decltype(call)>;
       using A = ArgumentOf<F>;
-      //using R = ReturnOf<F>;
       using SubBlock = Conditional<CT::Mutable<THIS>, Block&, const Block&>;
-
-      /*if constexpr (CT::Deep<A>) {
-         if (not SKIP or not part.IsDeep()) {
-            // Always execute for intermediate/non-deep *this           
-            ++counter;
-
-            if constexpr (CT::Bool<R>) {
-               if (not call(part))
-                  return Loop::Break;
-            }
-            else if constexpr (CT::Exact<R, LoopControl>) {
-               // Do things depending on the F's return                 
-               const auto loop = call(part);
-               switch (loop) {
-               case Loop::Break:
-                  return Loop::Break;
-               case Loop::Continue:
-                  break;
-               case Loop::Discard:
-                  if constexpr (CT::Mutable<THIS>) {
-                     // Discard is allowed only if THIS is mutable      
-                     const_cast<Block&>(part).template Reset<THIS>();
-                     return Loop::Discard;
-                  }
-                  else {
-                     // ...otherwise it acts like a Loop::Continue      
-                     break;
-                  }
-               }
-            }
-            else call(part);
-         }
-      }*/
 
       if (part.IsDeep()) {
          // Iterate deep keys/values using non-block type               

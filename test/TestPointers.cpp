@@ -12,7 +12,7 @@
 #include "Common.hpp"
 
 
-/// Simple type for testing Ref                                              
+/// Simple type for testing Ref                                               
 struct RT : Referenced {
    int data;
 
@@ -33,8 +33,6 @@ TEMPLATE_TEST_CASE("Shared pointer", "[TPointer]",
    using TT = TypeOf<T>;
 
    GIVEN("A templated shared pointer") {
-      IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
-
       T pointer;
       T pointer2;
 
@@ -109,7 +107,7 @@ TEMPLATE_TEST_CASE("Shared pointer", "[TPointer]",
          #endif
       }
 
-      /*if constexpr (not CT::Deep<TT>) {
+      #if LANGULUS_FEATURE(NEWDELETE)
          WHEN("Given an immediate xvalue pointer created via `new` statement - a very bad practice!") {
             pointer = new Decay<TT> {3};
 
@@ -118,9 +116,7 @@ TEMPLATE_TEST_CASE("Shared pointer", "[TPointer]",
                REQUIRE(pointer.GetReferences() == 2);
             #endif
          }
-      }*/
 
-      #if LANGULUS_FEATURE(NEWDELETE)
          WHEN("Given an xvalue pointer and then reset") {
             Allocator::CollectGarbage();
             pointer = ::std::move(raw);
@@ -161,8 +157,6 @@ TEMPLATE_TEST_CASE("Double-referenced shared pointer", "[TPointer]",
    using TT = TypeOf<T>;
 
    GIVEN("A templated shared pointer") {
-      IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
-
       T pointer;
       T pointer2;
 
@@ -245,8 +239,8 @@ TEMPLATE_TEST_CASE("Double-referenced shared pointer", "[TPointer]",
          #endif
       }
 
-      /*if constexpr (not CT::Deep<TT>) {
-         WHEN("Given an immediate xvalue pointer created via `new` statement - a very bad practice!") {
+      #if LANGULUS_FEATURE(NEWDELETE)
+         WHEN("Given an immediate xvalue pointer created via `new` statement - a very bad practice, unless LANGULUS_FEATURE(NEWDELETE) is enabled!") {
             pointer = new Decay<TT> {3};
 
             #if LANGULUS_FEATURE(NEWDELETE)
@@ -254,11 +248,8 @@ TEMPLATE_TEST_CASE("Double-referenced shared pointer", "[TPointer]",
                REQUIRE(pointer.GetReferences() == 2);
             #endif
          }
-      }*/
 
-      #if LANGULUS_FEATURE(NEWDELETE)
          WHEN("Given an xvalue pointer and then reset") {
-            Allocator::CollectGarbage();
             pointer = ::std::move(raw);
             auto unused = Allocator::Free(pointer.GetType(), raw, 1);
             pointer = nullptr;
