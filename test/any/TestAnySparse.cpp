@@ -79,9 +79,8 @@ void CheckState_ContainsArray(auto& pack, const CT::Array auto& e, Allocation* e
 /// The main test for Any/TAny containers, with all kinds of items, from      
 /// sparse to dense, from trivial to complex, from flat to deep               
 TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]", 
-   (TypePair<TAny<Trait*>, Trait*>),
-
    (TypePair<TAny<int*>, int*>),
+   (TypePair<TAny<Trait*>, Trait*>),
    (TypePair<TAny<Traits::Count*>, Traits::Count*>),
    (TypePair<TAny<Any*>, Any*>),
    (TypePair<TAny<Text*>, Text*>),

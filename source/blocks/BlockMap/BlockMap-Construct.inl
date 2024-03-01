@@ -361,11 +361,10 @@ namespace Langulus::Anyness
             auto dstKey = GetValHandle<B>(0);
             while (info != infoEnd) {
                if (*info)
-                  dstKey.Create(ptrVal, coalescedValues.mEntry);
+                  dstKey.Create(ptrVal++, coalescedValues.mEntry);
 
                ++info;
                ++dstKey;
-               ++ptrVal;
             }
          }
       }
@@ -419,10 +418,10 @@ namespace Langulus::Anyness
                   GetValHandle<B>(info - GetInfo()).CreateSemantic(
                      Abandon(HandleLocal<void*> {ptrVal, coalescedValues.mEntry})
                   );
+                  ptrVal += valstride.mSize;
                }
 
                ++info;
-               ptrVal += valstride.mSize;
             }
          }
       }
