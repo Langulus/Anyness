@@ -10,10 +10,16 @@
 
 
 TEMPLATE_TEST_CASE("Converting to text", "[any]", Traits::Name, TAny<DMeta>, Any) {
+   static Allocator::State memoryState;
+
    using T = TestType;
 
    GIVEN("A container with three meta data definitions") {
-      T pack {MetaDataOf<double>(), MetaDataOf<float>(), MetaDataOf<bool>()};
+      T pack {
+         MetaDataOf<double>(),
+         MetaDataOf<float>(),
+         MetaDataOf<bool>()
+      };
 
       WHEN("Converted to texts using a templated destination") {
          TAny<Text> converted;
@@ -25,4 +31,6 @@ TEMPLATE_TEST_CASE("Converting to text", "[any]", Traits::Name, TAny<DMeta>, Any
          REQUIRE(converted[2] == "bool");
       }
    }
+
+   REQUIRE(memoryState.Assert());
 }
