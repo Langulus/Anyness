@@ -423,9 +423,9 @@ namespace Langulus::Anyness
       ///   Flow                                                              
       ///                                                                     
       // Intentionally undefined, because it requires Langulus::Flow    
-      void Run(Flow::Verb&) const;
+      Flow::Verb& Run(Flow::Verb&) const;
       // Intentionally undefined, because it requires Langulus::Flow    
-      void Run(Flow::Verb&);
+      Flow::Verb& Run(Flow::Verb&);
 
    private:
       /// Services graveyard - disallowed interface for typed containers      

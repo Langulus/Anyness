@@ -170,17 +170,10 @@ namespace Langulus::Anyness
          AllocateData<THIS, false>(count);
    }
    
-   /// Reference memory block if we own it                                    
-   ///   @param times - number of references to add                           
-   LANGULUS(INLINED)
-   void BlockSet::Reference(const Count times) const noexcept {
-      mKeys.Reference(times);
-   }
-   
    /// Reference memory block once                                            
    LANGULUS(INLINED)
    void BlockSet::Keep() const noexcept {
-      Reference(1);
+      mKeys.Keep();
    }
 
    /// Dereference memory block once and destroy all elements if data was     

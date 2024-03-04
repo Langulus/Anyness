@@ -39,7 +39,9 @@ namespace Catch
 
 }
 
+#ifdef CATCH_CONFIG_ENABLE_BENCHMARKING
 using timer = Catch::Benchmark::Chronometer;
 
 template<class T>
 using uninitialized = Catch::Benchmark::storage_for<T>;
+#endif

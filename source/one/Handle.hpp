@@ -105,9 +105,13 @@ namespace Langulus::Anyness
 
       template<template<class> class S, class T1> requires CT::Semantic<S<T1>>
       void CreateSemantic(S<T1>&&);
+      template<template<class> class S, class T1> requires CT::Semantic<S<T1>>
+      void CreateSemanticUnknown(DMeta, S<T1>&&);
 
       template<template<class> class S, class T1> requires CT::Semantic<S<T1>>
       void AssignSemantic(S<T1>&&);
+      template<template<class> class S, class T1> requires CT::Semantic<S<T1>>
+      void AssignSemanticUnknown(DMeta, S<T1>&&);
 
       template<bool RHS_EMBED>
       void Swap(Handle<T, RHS_EMBED>&);

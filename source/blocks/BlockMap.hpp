@@ -442,7 +442,6 @@ namespace Langulus::Anyness
       template<CT::Map>
       void AllocateInner(Count);
 
-      void Reference(Count) const noexcept;
       void Keep() const noexcept;
       template<CT::Map>
       void Free();
@@ -525,7 +524,7 @@ namespace Langulus::Anyness
 
       template<CT::Map>
       void RemoveInner(Offset);
-      template<CT::Map>
+      template<CT::Map, bool FORCE = true>
       void ClearPartInner(CT::Block auto&);
 
    #if LANGULUS(TESTING)

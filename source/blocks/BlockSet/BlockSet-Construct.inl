@@ -71,11 +71,85 @@ namespace Langulus::Anyness
             }
             else {
                // Copy                                                  
+               // We're shallow-copying, so we're 100% sure, that       
+               // each element will end up in the same place            
                mKeys.mState -= DataState::Static | DataState::Constant;
                if (other->IsEmpty())
                   return;
 
-               TODO();
+               // Always prefer statically typed set interface (if any) 
+               using B = Conditional<CT::Typed<FROM>, FROM, TO>;
+               using K = Conditional<CT::Typed<B>, TypeOf<B>, void>;
+               auto asFrom = const_cast<B*>(reinterpret_cast<const B*>(&*other));
+
+               if constexpr (CT::Untyped<B>) {
+                  // Runtime checks are required before allocating      
+                  LANGULUS_ASSERT(asFrom->mKeys.mType->mReferConstructor, Construct,
+                     "Can't refer-construct keys"
+                     " - no refer-constructor was reflected for type ", asFrom->mKeys.mType);
+               }
+               else {
+                  static_assert(CT::Inner::ReferMakable<K>,
+                     "Type is not refer-constructible");
+               }
+
+               AllocateFresh<B>(other->GetReserved());
+               CopyMemory(mInfo, other->mInfo, GetReserved() + 1);
+
+               if constexpr (CT::Typed<B>) {
+                  // At least one of the sets is typed                  
+                  if constexpr (CT::Inner::POD<K>) {
+                     // Data is POD, we can directly copy all keys      
+                     CopyMemory(
+                        mKeys.mRaw, asFrom->mKeys.mRaw,
+                        GetReserved() * sizeof(K)
+                     );
+                  }
+                  else {
+                     // Data isn't pod, refer valid keys one by one     
+                     auto info = GetInfo();
+                     const auto infoEnd = GetInfoEnd();
+                     auto dstKey = GetHandle<B>(0);
+                     auto srcKey = asFrom->template GetHandle<B>(0);
+                     while (info != infoEnd) {
+                        if (*info)
+                           dstKey.CreateSemantic(Refer(srcKey));
+
+                        ++info;
+                        ++dstKey;
+                        ++srcKey;
+                     }
+                  }
+               }
+               else {
+                  // Both sets are type-erased                          
+                  if (asFrom->mKeys.mType->mIsPOD) {
+                     // Keys are POD, we can directly copy them all     
+                     CopyMemory(
+                        mKeys.mRaw, asFrom->mKeys.mRaw,
+                        GetReserved() * asFrom->mKeys.mType->mSize
+                     );
+                  }
+                  else {
+                     // Keys aren't POD, clone valid keys one by one    
+                     auto info = GetInfo();
+                     const auto infoEnd = GetInfoEnd();
+                     auto dstKey = GetHandle<B>(0);
+                     auto srcKey = asFrom->template GetHandle<B>(0);
+                     while (info != infoEnd) {
+                        if (*info)
+                           dstKey.CreateSemantic(Refer(srcKey));
+
+                        ++info;
+                        ++dstKey;
+                        ++srcKey;
+                     }
+                  }
+               }
+
+               // This validates elements, do it last in case           
+               // something throws along the way                        
+               mKeys.mCount = other->GetCount();
             }
          }
          else if constexpr (SS::Move) {
@@ -105,8 +179,21 @@ namespace Langulus::Anyness
 
          // Always prefer statically typed set interface (if any)       
          using B = Conditional<CT::Typed<FROM>, FROM, TO>;
-         AllocateFresh<B>(other->GetReserved());
+         using K = Conditional<CT::Typed<B>, TypeOf<B>, void>;
          auto asFrom = const_cast<B*>(reinterpret_cast<const B*>(&*other));
+
+         if constexpr (CT::Untyped<B>) {
+            // Runtime checks are required before allocating            
+            LANGULUS_ASSERT(asFrom->mKeys.mType->mCloneConstructor, Construct,
+               "Can't clone-construct keys"
+               " - no clone-constructor was reflected for type ", asFrom->mKeys.mType);
+         }
+         else {
+            static_assert(CT::Inner::CloneMakable<K>,
+               "Key type is not clone-constructible");
+         }
+
+         AllocateFresh<B>(other->GetReserved());
 
          if constexpr (CT::Typed<B>) {
             if constexpr (CT::Dense<TypeOf<B>>) {
@@ -137,6 +224,8 @@ namespace Langulus::Anyness
                   }
                }
 
+               // This validates elements, do it last in case           
+               // something throws along the way                        
                mKeys.mCount = other->GetCount();
             }
             else {
@@ -201,6 +290,8 @@ namespace Langulus::Anyness
                   }
                }
 
+               // This validates elements, do it last in case           
+               // something throws along the way                        
                mKeys.mCount = other->GetCount();
             }
             else {

@@ -957,20 +957,17 @@ namespace Langulus::Anyness
    /// Call semantic constructors in a region and initialize memory, by       
    /// using a Block as a source                                              
    ///   @attention never modifies any block state                            
-   ///   @attention assumes none of the elements are constructed, despite     
-   ///      having a valid mCount                                             
+   ///   @attention assumes none of the elements are constructed              
    ///   @attention assumes blocks types are similar                          
-   ///   @attention assumes source has at least mCount items                  
    ///   @tparam REVERSE - calls constructors in reverse, to let you          
    ///                     account for potential memory overlap               
    ///   @param source - the source of the elements to initialize with        
    template<CT::Block THIS, bool REVERSE, template<class> class S, CT::Block OTHER>
    requires CT::Semantic<S<OTHER>>
    void Block::CreateSemantic(S<OTHER>&& source) const {
-      LANGULUS_ASSUME(DevAssumes, mCount and mCount <= mReserved,
-         "Count outside limits", '(', mCount, " > ", mReserved);
-      LANGULUS_ASSUME(DevAssumes, mCount <= source->mCount,
-         "Count mismatch");
+      const auto count = source->mCount;
+      LANGULUS_ASSUME(DevAssumes, count and count <= mReserved,
+         "Count outside limits", '(', count, " > ", mReserved);
 
       // Type-erased pointers (void*) are acceptable                    
       LANGULUS_ASSUME(DevAssumes, 
@@ -997,7 +994,7 @@ namespace Langulus::Anyness
             else if constexpr (CT::Unallocatable<Decay<T>> or not CT::CloneMakable<T>) {
                // We early-return with an enforced shallow pointer      
                // transfer, because its requesting to clone             
-               // unallocatable/unclonable/abstract data, such as metas 
+               // unallocatable/unclonable/abstract data                
                ShallowBatchPointerConstruction(Refer(*source));
             }
             else if constexpr (CT::Sparse<DT> or not CT::Resolvable<T>) {
@@ -1006,14 +1003,14 @@ namespace Langulus::Anyness
                // clones into a single allocation (optimization)        
                Block clonedCoalescedSrc {mType->mDeptr};
                clonedCoalescedSrc.AllocateFresh<Any>(
-                  clonedCoalescedSrc.RequestSize<Any>(mCount));
-               clonedCoalescedSrc.mCount = mCount;
+                  clonedCoalescedSrc.RequestSize<Any>(count));
+               clonedCoalescedSrc.mCount = count;
 
                // Clone each inner element                              
                auto handle = GetHandle<T, THIS>(0);
                auto dst = clonedCoalescedSrc.template GetRawAs<DT, Any>();
                auto src = source->GetRaw();
-               const auto srcEnd = src + mCount;
+               const auto srcEnd = src + count;
                while (src != srcEnd) {
                   SemanticNew(dst, Clone(**src));
                   handle.Create(dst, clonedCoalescedSrc.mEntry);
@@ -1024,7 +1021,7 @@ namespace Langulus::Anyness
                }
 
                const_cast<Allocation*>(clonedCoalescedSrc.mEntry)
-                  ->Keep(mCount - 1);
+                  ->Keep(count - 1);
             }
             else {
                // Type can be resolved to objects of varying size, so   
@@ -1038,9 +1035,9 @@ namespace Langulus::Anyness
             auto lhs = mthis->GetRaw();
             auto rhs = other->GetRaw();
             if constexpr (REVERSE)
-               MoveMemory(lhs, rhs, mCount);
+               MoveMemory(lhs, rhs, count);
             else
-               CopyMemory(lhs, rhs, mCount);
+               CopyMemory(lhs, rhs, count);
          }
          else {
             // Both RHS and LHS are dense and non POD                   
@@ -1048,10 +1045,10 @@ namespace Langulus::Anyness
             auto lhs = mthis->GetRaw();
             auto rhs = other->GetRaw();
             if constexpr (REVERSE) {
-               lhs += mCount - 1;
-               rhs += mCount - 1;
+               lhs += count - 1;
+               rhs += count - 1;
             }
-            const auto lhsEnd = REVERSE ? lhs - mCount : lhs + mCount;
+            const auto lhsEnd = REVERSE ? lhs - count : lhs + count;
             while (lhs != lhsEnd) {
                if constexpr (CT::Abandoned<SS> and not CT::AbandonMakable<T>) {
                   if constexpr (CT::MoveMakable<T>) {
@@ -1137,7 +1134,7 @@ namespace Langulus::Anyness
             and (mType->mIsUnallocatable or not mType->mCloneConstructor)) {
                // We early-return with an enforced shallow pointer      
                // transfer, because its requesting to clone             
-               // unallocatable/unclonable/abstract data, such as metas 
+               // unallocatable/unclonable/abstract data                
                ShallowBatchPointerConstruction(Refer(source));
             }
             else if (mType->mDeptr->mIsSparse or not mType->mResolver) {
@@ -1146,12 +1143,12 @@ namespace Langulus::Anyness
                // clones into a single allocation                       
                Block clonedCoalescedSrc {mType->mDeptr};
                clonedCoalescedSrc.AllocateFresh<Any>(
-                  clonedCoalescedSrc.RequestSize<Any>(mCount));
-               clonedCoalescedSrc.mCount = mCount;
+                  clonedCoalescedSrc.RequestSize<Any>(count));
+               clonedCoalescedSrc.mCount = count;
 
                // Clone each inner element by nesting this call         
                auto lhs = mthis->template GetHandle<Byte*, THIS>(0);
-               const auto lhsEnd = lhs + mCount;
+               const auto lhsEnd = lhs + count;
                auto dst = clonedCoalescedSrc.GetElementInner();
                auto src = source->GetElementInner();
                while (lhs.mValue != lhsEnd.mValue) {
@@ -1163,7 +1160,7 @@ namespace Langulus::Anyness
                }
 
                const_cast<Allocation*>(clonedCoalescedSrc.mEntry)
-                  ->Keep(mCount - 1);
+                  ->Keep(count - 1);
             }
             else {
                // Type is resolved to dense elements of varying size,   
@@ -1175,7 +1172,7 @@ namespace Langulus::Anyness
          else if (mType->mIsPOD) {
             // Both are POD - Copy/Refer/Disown/Move/Abandon/Clone      
             // by memcpy all at once (batch optimization)               
-            const auto bytesize = mType->mSize * mCount;
+            const auto bytesize = mType->mSize * count;
             if constexpr (REVERSE)
                MoveMemory(mRaw, source->mRaw, bytesize);
             else
@@ -1185,9 +1182,9 @@ namespace Langulus::Anyness
             // Both RHS and LHS are dense and non-POD                   
             // We invoke reflected constructors for each element        
             const auto stride = mType->mSize;
-            auto lhs = mRaw + (REVERSE ? (mCount - 1) * stride : 0);
-            auto rhs = source->mRaw + (REVERSE ? (mCount - 1) * stride : 0);
-            const auto rhsEnd = REVERSE ? rhs - mCount * stride : rhs + mCount * stride;
+            auto lhs = mRaw + (REVERSE ? (count - 1) * stride : 0);
+            auto rhs = source->mRaw + (REVERSE ? (count - 1) * stride : 0);
+            const auto rhsEnd = REVERSE ? rhs - count * stride : rhs + count * stride;
 
             while (rhs != rhsEnd) {
                if constexpr (SS::Move) {
@@ -1222,8 +1219,7 @@ namespace Langulus::Anyness
    
    /// Call a single semantic constructor by using a Handle as a source       
    ///   @attention never modifies any block state                            
-   ///   @attention assumes none of the elements are constructed, despite     
-   ///      having a valid mCount                                             
+   ///   @attention assumes none of the elements are constructed              
    ///   @attention assumes blocks types are similar                          
    ///   @param source - the handle to initialize with                        
    template<CT::Block THIS, template<class> class S, CT::Handle OTHER>
@@ -1231,10 +1227,8 @@ namespace Langulus::Anyness
    void Block::CreateSemantic(S<OTHER>&& source) const {
       static_assert(CT::Sparse<TypeOf<OTHER>>,
          "Handle isn't sparse");
-      LANGULUS_ASSUME(DevAssumes, mCount and mCount <= mReserved,
-         "Count outside limits", '(', mCount, " > ", mReserved);
-      LANGULUS_ASSUME(DevAssumes, mCount == 1,
-         "Count mismatch");
+      LANGULUS_ASSUME(DevAssumes, 1 <= mReserved,
+         "Count outside limits (1 > ", mReserved);
       LANGULUS_ASSUME(DevAssumes, IsSparse(),
          "Container is not sparse");
       LANGULUS_ASSUME(DevAssumes, GetUses() == 1,
@@ -1263,57 +1257,81 @@ namespace Langulus::Anyness
       static_assert(SS::Shallow,
          "This function works only for shallow semantics");
 
-      const auto mthis       = const_cast<Block*>(this);
+      const auto count = source->mCount;
+      const auto mthis = const_cast<Block*>(this);
       const auto pointersDst = mthis->template  GetRawSparse<T>();
       const auto pointersSrc = source->template GetRawSparse<T>();
       const auto entriesDst  = mthis->template  GetEntries<T>();
-      const auto entriesSrc = source->mEntry
+      const auto entriesSrc  = source->mEntry
          ? source->template GetEntries<T>()
          : nullptr;
 
       if constexpr (SS::Move) {
          // Move/Abandon                                                
-         MoveMemory(pointersDst, pointersSrc, mCount);
+         MoveMemory(pointersDst, pointersSrc, count);
 
          if (entriesSrc) {
             // Transfer entries, if available                           
-            MoveMemory(entriesDst, entriesSrc, mCount);
-            ZeroMemory(entriesSrc, mCount);
+            MoveMemory(entriesDst, entriesSrc, count);
+            ZeroMemory(entriesSrc, count);
          }
          else {
             // Otherwise make sure all entries are zero                 
-            ZeroMemory(entriesDst, mCount);
+            ZeroMemory(entriesDst, count);
          }
 
          // Reset source pointers, too, if not abandoned                
          if constexpr (SS::Keep)
-            ZeroMemory(pointersSrc, mCount);
+            ZeroMemory(pointersSrc, count);
       }
       else {
          // Copy/Refer/Disown                                           
-         CopyMemory(pointersDst, pointersSrc, mCount);
+         CopyMemory(pointersDst, pointersSrc, count);
 
          if constexpr (SS::Keep) {
             // Copy/Refer                                               
             // Reference each entry, if not disowned                    
             if (entriesSrc) {
-               CopyMemory(entriesDst, entriesSrc, mCount);
+               CopyMemory(entriesDst, entriesSrc, count);
                auto entry = entriesDst;
-               const auto entryEnd = entry + mCount;
-               while (entry != entryEnd) {
-                  if (*entry)
-                     const_cast<Allocation*>(*entry)->Keep();
-                  ++entry;
+               const auto entryEnd = entry + count;
+
+               if constexpr (CT::Typed<T>) {
+                  while (entry != entryEnd) {
+                     if (*entry) {
+                        const_cast<Allocation*>(*entry)->Keep();
+                        if constexpr (CT::Referencable<TypeOf<T>>)
+                           pointersDst[entry - entriesDst]->Reference(1);
+                     }
+                     ++entry;
+                  }
+               }
+               else if (source->mType->mReference) {
+                  auto reference = source->mType->mReference;
+                  while (entry != entryEnd) {
+                     if (*entry) {
+                        const_cast<Allocation*>(*entry)->Keep();
+                        reference(pointersDst[entry - entriesDst], 1);
+                     }
+                     ++entry;
+                  }
+               }
+               else {
+                  while (entry != entryEnd) {
+                     if (*entry)
+                        const_cast<Allocation*>(*entry)->Keep();
+                     ++entry;
+                  }
                }
             }
             else {
                // No entries available, make sure all entries are zero  
-               ZeroMemory(entriesDst, mCount);
+               ZeroMemory(entriesDst, count);
             }
          }
          else {
             // Disown: make sure all entries are zero                   
-            ZeroMemory(entriesDst, mCount);
+            ZeroMemory(entriesDst, count);
          }
       }
    }
@@ -1323,15 +1341,13 @@ namespace Langulus::Anyness
    ///   @attention assumes blocks don't overlap (sparse elements may still   
    ///      overlap, but this is handled in the assignment operators)         
    ///   @attention assumes blocks are binary compatible                      
-   ///   @attention assumes source has at least mCount items                  
    ///   @param source - the elements to assign                               
    template<CT::Block THIS, template<class> class S, CT::Block OTHER>
    requires CT::Semantic<S<OTHER>>
    void Block::AssignSemantic(S<OTHER>&& source) const {
-      LANGULUS_ASSUME(DevAssumes, mCount and mCount <= mReserved,
-         "Count outside limits", '(', mCount, " > ", mReserved);
-      LANGULUS_ASSUME(DevAssumes, mCount <= source->mCount,
-         "Count mismatch");
+      const auto count = source->mCount;
+      LANGULUS_ASSUME(DevAssumes, count and count <= mReserved,
+         "Count outside limits", '(', count, " > ", mReserved);
       LANGULUS_ASSUME(DevAssumes, GetUses() == 1,
          "Data is referenced from multiple locations");
 
@@ -1369,14 +1385,14 @@ namespace Langulus::Anyness
                // clones into a single allocation (optimization)        
                Block clonedCoalescedSrc {mType->mDeptr};
                clonedCoalescedSrc.AllocateFresh<Any>(
-                  clonedCoalescedSrc.RequestSize<Any>(mCount));
-               clonedCoalescedSrc.mCount = mCount;
+                  clonedCoalescedSrc.RequestSize<Any>(count));
+               clonedCoalescedSrc.mCount = count;
 
                // Clone each inner element                              
                auto handle = GetHandle<T, THIS>(0);
                auto dst = clonedCoalescedSrc.template GetRawAs<DT, Any>();
                auto src = source->GetRaw();
-               const auto srcEnd = src + mCount;
+               const auto srcEnd = src + count;
                while (src != srcEnd) {
                   SemanticNew(dst, Clone(**src));
                   handle.Assign(dst, clonedCoalescedSrc.mEntry);
@@ -1387,7 +1403,7 @@ namespace Langulus::Anyness
                }
 
                const_cast<Allocation*>(clonedCoalescedSrc.mEntry)
-                  ->Keep(mCount - 1);
+                  ->Keep(count - 1);
             }
             else {
                // Type can be resolved to objects of varying size, so   
@@ -1401,14 +1417,14 @@ namespace Langulus::Anyness
             // So we batch-overwrite them at once                       
             auto lhs = mthis->GetRaw();
             auto rhs = other->GetRaw();
-            CopyMemory(lhs, rhs, mCount);
+            CopyMemory(lhs, rhs, count);
          }
          else {
             // Both RHS and LHS are dense and non POD                   
             // Assign to each element                                   
             auto lhs = mthis->GetRaw();
             auto rhs = other->GetRaw();
-            const auto lhsEnd = lhs + mCount;
+            const auto lhsEnd = lhs + count;
             while (lhs != lhsEnd) {
                if constexpr (CT::Abandoned<SS> and not CT::AbandonAssignable<T>) {
                   if constexpr (CT::MoveAssignable<T>) {
@@ -1483,47 +1499,15 @@ namespace Langulus::Anyness
             // Since we're overwriting pointers, we have to dereference 
             // the old ones, but conditionally reference the new ones   
             auto lhs = mthis->mRawSparse;
-            const auto lhsEnd = lhs + mCount;
-            auto rhs = source->mRawSparse;
+            const auto lhsEnd = lhs + count;
+            auto rhs = other->mRawSparse;
             auto lhsEntry = mthis->template GetEntries<THIS>();
-            auto rhsEntry = source->template GetEntries<THIS>();
+            auto rhsEntry = other->template GetEntries<THIS>();
 
             while (lhs != lhsEnd) {
-               if (*lhsEntry) {
-                  // Free old LHS                                       
-                  if ((*lhsEntry)->GetUses() == 1) {
-                     mType->mOrigin->mDestructor(*lhs);
-                     Allocator::Deallocate(const_cast<Allocation*>(*lhsEntry));
-                  }
-                  else const_cast<Allocation*>(*lhsEntry)->Free();
-               }
-
-               if constexpr (SS::Move) {
-                  // Move/Abandon RHS in LHS                            
-                  *lhs = const_cast<Byte*>(*rhs);
-                  *lhsEntry = *rhsEntry;
-                  *rhsEntry = nullptr;
-
-                  if constexpr (SS::Keep) {
-                     // We're not abandoning RHS, make sure it's cleared
-                     *rhs = nullptr;
-                  }
-               }
-               else if constexpr (SS::Shallow) {
-                  // Copy/Refer/Disown RHS in LHS                       
-                  *lhs = const_cast<Byte*>(*rhs);
-
-                  if constexpr (SS::Keep) {
-                     *lhsEntry = *rhsEntry;
-                     if (*lhsEntry)
-                        const_cast<Allocation*>(*lhsEntry)->Keep();
-                  }
-                  else *lhsEntry = nullptr;
-               }
-               else {
-                  // Clone RHS in LHS                                   
-                  TODO();
-               }
+               Handle<Byte*>(*lhs, *lhsEntry)
+                  .AssignSemanticUnknown(mType,
+                     SS::Nest(Handle<Byte*>(*rhs, *rhsEntry)));
 
                ++lhs;
                ++rhs;
@@ -1542,7 +1526,7 @@ namespace Langulus::Anyness
             const auto stride = mType->mSize;
             auto lhs = mRaw;
             auto rhs = source->mRaw;
-            const auto rhsEnd = rhs + mCount * stride;
+            const auto rhsEnd = rhs + count * stride;
 
             while (rhs != rhsEnd) {
                if constexpr (SS::Move) {

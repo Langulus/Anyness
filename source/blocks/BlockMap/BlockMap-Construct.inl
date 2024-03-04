@@ -89,15 +89,31 @@ namespace Langulus::Anyness
 
                // Always prefer statically typed map interface (if any) 
                using B = Conditional<CT::Typed<FROM>, FROM, TO>;
-               AllocateFresh<B>(other->GetReserved());
+               using K = Conditional<CT::Typed<B>, typename B::Key,   void>;
+               using V = Conditional<CT::Typed<B>, typename B::Value, void>;
                auto asFrom = const_cast<B*>(reinterpret_cast<const B*>(&*other));
+
+               if constexpr (CT::Untyped<B>) {
+                  // Runtime checks are required before allocating      
+                  LANGULUS_ASSERT(asFrom->mKeys.mType->mReferConstructor, Construct,
+                     "Can't refer-construct keys"
+                     " - no refer-constructor was reflected for type ", asFrom->mKeys.mType);
+                  LANGULUS_ASSERT(asFrom->mValues.mType->mReferConstructor, Construct,
+                     "Can't refer-construct values"
+                     " - no refer-constructor was reflected for type ", asFrom->mValues.mType);
+               }
+               else {
+                  static_assert(CT::Inner::ReferMakable<K>,
+                     "Key type is not refer-constructible");
+                  static_assert(CT::Inner::ReferMakable<V>,
+                     "Value type is not refer-constructible");
+               }
+
+               AllocateFresh<B>(other->GetReserved());
                CopyMemory(mInfo, other->mInfo, GetReserved() + 1);
-               mKeys.mCount = other->GetCount();
 
                if constexpr (CT::Typed<B>) {
                   // At least one of the maps is typed                  
-                  using K = typename B::Key;
-
                   if constexpr (CT::Inner::POD<K>) {
                      // Data is POD, we can directly copy all keys      
                      CopyMemory(
@@ -148,6 +164,10 @@ namespace Langulus::Anyness
                }
 
                CloneValuesInner(Refer(*asFrom));
+
+               // This validates elements, do it last in case           
+               // something throws along the way                        
+               mKeys.mCount = other->GetCount();
             }
          }
          else if constexpr (SS::Move) {
@@ -181,13 +201,30 @@ namespace Langulus::Anyness
 
          // Always prefer statically typed map interface (if any)       
          using B = Conditional<CT::Typed<FROM>, FROM, TO>;
-         AllocateFresh<B>(other->GetReserved());
+         using K = Conditional<CT::Typed<B>, typename B::Key, void>;
+         using V = Conditional<CT::Typed<B>, typename B::Value, void>;
          auto asFrom = const_cast<B*>(reinterpret_cast<const B*>(&*other));
+
+         if constexpr (CT::Untyped<B>) {
+            // Runtime checks are required before allocating      
+            LANGULUS_ASSERT(asFrom->mKeys.mType->mCloneConstructor, Construct,
+               "Can't clone-construct keys"
+               " - no clone-constructor was reflected for type ", asFrom->mKeys.mType);
+            LANGULUS_ASSERT(asFrom->mValues.mType->mCloneConstructor, Construct,
+               "Can't clone-construct values"
+               " - no clone-constructor was reflected for type ", asFrom->mValues.mType);
+         }
+         else {
+            static_assert(CT::Inner::CloneMakable<K>,
+               "Key type is not clone-constructible");
+            static_assert(CT::Inner::CloneMakable<V>,
+               "Value type is not clone-constructible");
+         }
+
+         AllocateFresh<B>(other->GetReserved());
 
          if constexpr (CT::Typed<B>) {
             // At least one of the maps is typed                        
-            using K = typename B::Key;
-
             if constexpr (CT::Dense<K>) {
                // We're cloning dense keys, so we're 100% sure, that    
                // each pair will end up in the same place               
@@ -217,6 +254,9 @@ namespace Langulus::Anyness
                }
 
                CloneValuesInner(SS::Nest(*asFrom));
+
+               // This validates elements, do it last in case           
+               // something throws along the way                        
                mKeys.mCount = other->GetCount();
             }
             else {
@@ -275,6 +315,9 @@ namespace Langulus::Anyness
                }
                
                CloneValuesInner(SS::Nest(*asFrom));
+
+               // This validates elements, do it last in case           
+               // something throws along the way                        
                mKeys.mCount = other->GetCount();
             }
             else {
@@ -307,6 +350,7 @@ namespace Langulus::Anyness
    /// Clone a key/value block                                                
    ///   @attention assumes key type is dense, and values go into the same    
    ///      places                                                            
+   ///   @attention assumes key and value types are clone-constructible       
    template<template<class> class S, CT::Map B>
    requires CT::Semantic<S<B>>
    void BlockMap::CloneValuesInner(S<B>&& asFrom) {
@@ -430,6 +474,7 @@ namespace Langulus::Anyness
    /// Clone a key/value block                                                
    ///   @attention assumes keys are sparse and all pairs will end up in      
    ///      different places                                                  
+   ///   @attention assumes key and value types are clone-constructible       
    template<template<class> class S, CT::Map B>
    requires CT::Semantic<S<B>>
    void BlockMap::CloneValuesReinsertInner(CT::Block auto& coalescedKeys, S<B>&& asFrom) {

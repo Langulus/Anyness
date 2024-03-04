@@ -364,20 +364,26 @@ namespace Langulus::Anyness
          static_assert(CT::Complete<Deptr<TypeOf<THIS>>>,
             "Trying to interface incomplete data as dense");
 
-         copy.mEntry = *GetEntries<THIS>();
+         if (mEntry)
+            copy.mEntry = *GetEntries<THIS>();
+
          copy.mRaw = *mRawSparse;
          copy.mType = copy.mType->mDeptr;
       }
-      else {
+      else if (copy.mType->mIsSparse) {
          // Dereference as much as needed at runtime                    
          Count counter = COUNT;
+         if (mEntry)
+            copy.mEntry = *GetEntries<THIS>();
+
          while (counter and copy.mType->mIsSparse) {
             LANGULUS_ASSERT(copy.mType->mDeptr, Access,
-               "Trying to interface incomplete data as dense");
+               "Trying to interface incomplete data `", copy.mType, "` as dense");
 
-            copy.mEntry = *GetEntries<THIS>();
             copy.mRaw = *mRawSparse;
             copy.mType = copy.mType->mDeptr;
+            if (mEntry and counter != COUNT)
+               copy.mEntry = Allocator::Find(copy.mType, copy.mRaw);
             --counter;
          }
       }

@@ -121,13 +121,8 @@ namespace Langulus
 
       template<CT::Data>
       class TOwned;
-      template<class, bool>
+      template<class>
       class TPointer;
-
-      /// A shared pointer, that provides ownership and basic reference counting 
-      /// Referencing comes from the block of memory that the pointer points to  
-      template<class T>
-      using Ptr = TPointer<T, false>;
 
       /// A shared pointer, that provides ownership and more reference counting  
       /// Referencing comes first from the block of memory that the pointer      
@@ -136,7 +131,7 @@ namespace Langulus
       /// element inside the memory block. Used to keep track of elements inside 
       /// THive and Hive (component factories for example)                       
       template<class T>
-      using Ref = TPointer<T, true>;
+      using Ref = TPointer<T>;
 
       class Construct;
       using Messy = Any;

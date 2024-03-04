@@ -309,9 +309,11 @@ namespace Langulus::Anyness
    ///   @attention never modifies any block state                            
    ///   @attention assumes block is not empty                                
    ///   @attention assumes block is not static                               
-   template<CT::Block THIS>
-   void Block::Destroy() const {
-      LANGULUS_ASSUME(DevAssumes, GetUses() == 1,
+   ///   @tparam FORCE - used only when GetUses() == 1                        
+   ///   @param mask - internally used for destroying tables (tag dispatch)   
+   template<CT::Block THIS, bool FORCE, class MASK>
+   void Block::Destroy(MASK mask) const {
+      LANGULUS_ASSUME(DevAssumes, not FORCE or GetUses() == 1,
          "Attempting to destroy elements used from multiple locations");
       LANGULUS_ASSUME(DevAssumes, not IsEmpty(),
          "Attempting to destroy elements in an empty container");
@@ -319,148 +321,276 @@ namespace Langulus::Anyness
          "Destroying elements in a static container is not allowed");
 
       const auto mthis = const_cast<Block*>(this);
+
       if constexpr (CT::Typed<THIS>) {
          using T = TypeOf<THIS>;
 
-         if constexpr (CT::Sparse<T>) {
-            // Destroy all indirection layers, if their references reach
-            // 1, and destroy the dense element, if it has destructor   
-            // This is done in the following way:                       
-            //    1. First dereference all handles that point to the    
-            //       same memory together as one                        
-            //    2. Destroy those groups, that are fully dereferenced  
-            auto handle = GetHandle<T, THIS>(0);
-            const auto handleEnd = handle + mCount;
-
-            //                                                          
-            while (handle.mValue != handleEnd.mValue) {
-               if (not *handle.mEntry) {
-                  ++handle;
-                  continue;
-               }
-
-               // Count all handles that match the current entry        
-               auto matches = 0;
-               auto handle2 = handle + 1;
-               while (handle2.mValue != handleEnd.mValue) {
-                  if (*handle.mEntry == *handle2.mEntry)
-                     ++matches;
-                  ++handle2;
-               }
-
-               const_cast<Allocation*>(*handle.mEntry)->Free(matches);
-               if (1 == (*handle.mEntry)->GetUses()) {
-                  // Destroy all matching handles, but deallocate only  
-                  // once after that                                    
-                  if (matches) {
-                     auto handle3 = handle + 1;
-                     while (handle3.mValue != handleEnd.mValue) {
-                        if (*handle.mEntry == *handle3.mEntry)
-                           handle3.template Destroy<true, false>();
-                        ++handle3;
-                     }
-                  }
-
-                  handle.Destroy();
-               }
-               else {
-                  // Just dereference once more, but also reset         
-                  // the matching handle entries                        
-                  if (matches) {
-                     auto handle3 = handle + 1;
-                     while (handle3.mValue != handleEnd.mValue) {
-                        if (*handle.mEntry == *handle3.mEntry)
-                           *handle3.mEntry = nullptr;
-                        ++handle3;
-                     }
-                  }
-
-                  const_cast<Allocation*>(*handle.mEntry)->Free(1);
-               }
-
-               ++handle;
-            }
+         if constexpr (CT::Sparse<T> and FORCE) {
+            // Destroy every sparse element                             
+            DestroySparse<THIS>(mask);
          }
-         else if constexpr (CT::Destroyable<T>) {
+         else if constexpr (CT::Dense<T> and CT::Destroyable<T>
+         and (FORCE or CT::Referencable<T>)) {
             // Destroy every dense element                              
             using DT = Decay<T>;
+            const auto count = CT::Nullptr<MASK> ? mCount : mReserved;
             auto data = mthis->GetRaw<THIS>();
-            const auto dataEnd = data + mCount;
-            while (data != dataEnd) {
-               data->~DT();
+            const auto begMarker = data;
+            const auto endMarker = data + count;
+            UNUSED() Count remaining;
+            if constexpr (not CT::Nullptr<MASK>)
+               remaining = GetCount();
+
+            while (data != endMarker) {
+               if constexpr (not CT::Nullptr<MASK>) {
+                  if (not remaining)
+                     break;
+
+                  if (not mask[data - begMarker]) {
+                     ++data;
+                     continue;
+                  }
+
+                  --remaining;
+               }
+
+               if constexpr (FORCE) {
+                  if constexpr (CT::Referencable<T>)
+                     data->Reference(-1);
+                  data->~DT();
+               }
+               else {
+                  if constexpr (CT::Referencable<T>) {
+                     if (not data->Reference(-1))
+                        data->~DT();
+                  }
+               }
+
                ++data;
             }
          }
       }
       else {
-         if (mType->mIsSparse) {
-            // Destroy all indirection layers, if their references reach
-            // 1, and destroy the dense element, if it has destructor   
-            auto handle = mthis->template GetHandle<Byte*, THIS>(0);
-            const auto handleEnd = handle + mCount;
-            
-            //                                                          
-            while (handle.mValue != handleEnd.mValue) {
-               if (not *handle.mEntry) {
-                  ++handle;
-                  continue;
-               }
-
-               // Count all handles that match the current entry        
-               auto matches = 0;
-               auto handle2 = handle + 1;
-               while (handle2.mValue != handleEnd.mValue) {
-                  if (*handle.mEntry == *handle2.mEntry)
-                     ++matches;
-                  ++handle2;
-               }
-
-               const_cast<Allocation*>(*handle.mEntry)->Free(matches);
-               if (1 == (*handle.mEntry)->GetUses()) {
-                  // Destroy all matching handles, but deallocate only  
-                  // once after that                                    
-                  if (matches) {
-                     auto handle3 = handle + 1;
-                     while (handle3.mValue != handleEnd.mValue) {
-                        if (*handle.mEntry == *handle3.mEntry)
-                           handle3.template DestroyUnknown<true, false>(mType);
-                        ++handle3;
-                     }
-                  }
-
-                  handle.DestroyUnknown(mType);
-               }
-               else {
-                  // Just dereference once more, but also reset         
-                  // the matching handle entries                        
-                  if (matches) {
-                     auto handle3 = handle + 1;
-                     while (handle3.mValue != handleEnd.mValue) {
-                        if (*handle.mEntry == *handle3.mEntry)
-                           *handle3.mEntry = nullptr;
-                        ++handle3;
-                     }
-                  }
-
-                  const_cast<Allocation*>(*handle.mEntry)->Free(1);
-               }
-
-               ++handle;
-            }
+         if (FORCE and mType->mIsSparse) {
+            // Destroy every sparse element                             
+            DestroySparse<THIS>(mask);
          }
-         else if (mType->mDestructor) {
+         else if (not mType->mIsSparse and mType->mDestructor
+         and (FORCE or mType->mReference)) {
             // Destroy every dense element                              
+            const auto count = CT::Nullptr<MASK> ? mCount : mReserved;
             auto data = mthis->mRaw;
-            const auto dataEnd = data + mType->mSize * mCount;
-            while (data != dataEnd) {
-               mType->mDestructor(data);
-               data += mType->mSize;
+            UNUSED() int index;
+            UNUSED() Count remaining;
+            if constexpr (not CT::Nullptr<MASK>) {
+               index = 0;
+               remaining = GetCount();
+            }
+            const auto endMarker = data + mType->mSize * count;
+
+            if (mType->mReference) {
+               while (data != endMarker) {
+                  if constexpr (not CT::Nullptr<MASK>) {
+                     if (not remaining)
+                        break;
+
+                     if (not mask[index]) {
+                        data += mType->mSize;
+                        ++index;
+                        continue;
+                     }
+
+                     --remaining;
+                  }
+
+                  if constexpr (FORCE) {
+                     mType->mReference(data, -1);
+                     mType->mDestructor(data);
+                  }
+                  else {
+                     if (not mType->mReference(data, -1))
+                        mType->mDestructor(data);
+                  }
+
+                  data += mType->mSize;
+
+                  if constexpr (not CT::Nullptr<MASK>)
+                     ++index;
+               }
+            }
+            else if constexpr (FORCE) {
+               while (data != endMarker) {
+                  if constexpr (not CT::Nullptr<MASK>) {
+                     if (not remaining)
+                        break;
+
+                     if (not mask[index]) {
+                        data += mType->mSize;
+                        ++index;
+                        continue;
+                     }
+
+                     --remaining;
+                  }
+
+                  mType->mDestructor(data);
+                  data += mType->mSize;
+
+                  if constexpr (not CT::Nullptr<MASK>)
+                     ++index;
+               }
             }
          }
       }
 
       // Always nullify upon destruction only if we're paranoid         
-      IF_LANGULUS_PARANOID(ZeroMemory(mRaw, GetBytesize<THIS>()));
+      //TODO IF_LANGULUS_PARANOID(ZeroMemory(mRaw, GetBytesize<THIS>()));
+   }
+
+   /// Call destructors of all initialized sparse items                       
+   ///   @attention never modifies any block state                            
+   ///   @attention assumes block is not empty                                
+   ///   @attention assumes block is not static                               
+   ///   @param mask - internally used for destroying tables (tag dispatch)   
+   template<CT::Block THIS, class MASK>
+   void Block::DestroySparse(MASK mask) const {
+      // Destroy all indirection layers, if their references reach      
+      // 1, and destroy the dense element, if it has destructor         
+      // This is done in the following way:                             
+      //    1. First dereference all handles that point to the          
+      //       same memory together as one                              
+      //    2. Destroy those groups, that are fully dereferenced        
+      using T = Conditional<CT::Typed<THIS>, TypeOf<THIS>, Byte*>;
+      const auto count = CT::Nullptr<MASK> ? mCount : mReserved;
+      const auto mthis = const_cast<Block*>(this);
+      static_assert(CT::Sparse<T>);
+
+      auto handle = mthis->GetHandle<T, THIS>(0);
+      const auto begMarker = handle.mValue;
+      const auto endMarker = handle.mValue + count;
+
+      UNUSED() Count remaining;
+      if constexpr (not CT::Nullptr<MASK>)
+         remaining = GetCount();
+
+      //                                                                
+      while (handle.mValue != endMarker) {
+         if constexpr (not CT::Nullptr<MASK>) {
+            if (not remaining)
+               break;
+
+            if (not mask[handle.mValue - begMarker]) {
+               ++handle;
+               continue;
+            }
+
+            --remaining;
+         }
+
+         if (not *handle.mEntry) {
+            ++handle;
+            continue;
+         }
+
+         // Count all handles that match the current entry              
+         auto matches = 0;
+         auto handle2 = handle + 1;
+
+         UNUSED() Count remaining2;
+         if constexpr (not CT::Nullptr<MASK>)
+            remaining2 = remaining;
+
+         while (handle2.mValue != endMarker) {
+            if constexpr (not CT::Nullptr<MASK>) {
+               if (not remaining2)
+                  break;
+
+               if (not mask[handle2.mValue - begMarker]) {
+                  ++handle2;
+                  continue;
+               }
+
+               --remaining2;
+            }
+
+            if (*handle.mEntry == *handle2.mEntry)
+               ++matches;
+
+            ++handle2;
+         }
+
+         const_cast<Allocation*>(*handle.mEntry)->Free(matches);
+
+         if (1 == (*handle.mEntry)->GetUses()) {
+            // Destroy all matching handles, but deallocate only        
+            // once after that                                          
+            if (matches) {
+               handle2 = handle + 1;
+
+               if constexpr (not CT::Nullptr<MASK>)
+                  remaining2 = remaining;
+
+               while (handle2.mValue != endMarker) {
+                  if constexpr (not CT::Nullptr<MASK>) {
+                     if (not remaining2)
+                        break;
+
+                     if (not mask[handle2.mValue - begMarker]) {
+                        ++handle2;
+                        continue;
+                     }
+
+                     --remaining2;
+                  }
+
+                  if (*handle.mEntry == *handle2.mEntry) {
+                     if constexpr (CT::Typed<THIS>)
+                        handle2.template Destroy<true, false>();
+                     else
+                        handle2.template DestroyUnknown<true, false>(mType);
+                  }
+
+                  ++handle2;
+               }
+            }
+         }
+         else {
+            // Just dereference once more, but also reset               
+            // the matching handle entries                              
+            if (matches) {
+               handle2 = handle + 1;
+
+               if constexpr (not CT::Nullptr<MASK>)
+                  remaining2 = remaining;
+
+               while (handle2.mValue != endMarker) {
+                  if constexpr (not CT::Nullptr<MASK>) {
+                     if (not remaining2)
+                        break;
+
+                     if (not mask[handle2.mValue - begMarker]) {
+                        ++handle2;
+                        continue;
+                     }
+
+                     --remaining2;
+                  }
+
+                  if (*handle.mEntry == *handle2.mEntry)
+                     *handle2.mEntry = nullptr;
+
+                  ++handle2;
+               }
+            }
+         }
+
+         if constexpr (CT::Typed<THIS>)
+            handle.Destroy();
+         else
+            handle.DestroyUnknown(mType);
+
+         ++handle;
+      }
    }
 
    /// Reset the memory inside the block                                      

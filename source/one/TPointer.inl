@@ -10,8 +10,8 @@
 #include "TPointer.hpp"
 #include "TOwned.inl"
 
-#define TEMPLATE() template<class T, bool DR>
-#define TME() TPointer<T, DR>
+#define TEMPLATE() template<class T>
+#define TME() TPointer<T>
 
 
 namespace Langulus::Anyness
@@ -49,14 +49,6 @@ namespace Langulus::Anyness
    constexpr TME()::TPointer(S<TPointer>&& other) {
       using SS = S<TPointer>;
       GetHandle().CreateSemantic(SS::Nest(other->GetHandle()));
-
-      if constexpr (SS::Shallow and not SS::Move and SS::Keep) {
-         // Reference value, if double-referenced and copied            
-         if constexpr (DR and CT::Referencable<T>) {
-            if (mEntry)
-               mValue->Keep();
-         }
-      }
    }
 
    /// Construct from any compatible pointer                                  
@@ -77,14 +69,6 @@ namespace Langulus::Anyness
          // Always copy, and thus reference raw pointers                
          auto converted = static_cast<Type>(DesemCast(other));
          GetHandle().CreateSemantic(S::Nest(converted));
-
-         if constexpr (S::Shallow and S::Keep) {
-            // Reference value, if double-referenced and copied         
-            if constexpr (DR and CT::Referencable<T>) {
-               if (mEntry)
-                  mValue->Keep();
-            }
-         }
       }
    }
 
@@ -106,7 +90,7 @@ namespace Langulus::Anyness
       LANGULUS_ASSERT(pointer.mEntry, Allocate, "Out of memory");
       pointer.mValue = reinterpret_cast<T*>(pointer.mEntry->GetBlockStart());
       new (pointer.mValue) T {Forward<A>(arguments)...};
-      *this = Move(pointer);
+      *this = Abandon(pointer);
    }
 
    /// Reset the pointer                                                      
@@ -115,13 +99,6 @@ namespace Langulus::Anyness
    void TME()::ResetInner() {
       LANGULUS_ASSUME(DevAssumes, mValue, "Null value");
       LANGULUS_ASSUME(DevAssumes, mEntry, "Null entry");
-
-      if constexpr (DR and CT::Referencable<T>) {
-         // Do double referencing                                       
-         if (mValue->GetReferences() > 1)
-            mValue->Free();
-      }
-
       GetHandle().template Destroy<false>();
    }
 
@@ -189,7 +166,7 @@ namespace Langulus::Anyness
    /// Cast to a constant pointer, if mutable                                 
    ///   @return the constant equivalent to this pointer                      
    TEMPLATE() LANGULUS(INLINED)
-   TME()::operator TPointer<const T, DR>() const noexcept requires CT::Mutable<T> {
+   TME()::operator TPointer<const T>() const noexcept requires CT::Mutable<T> {
       return {mValue};
    }
 
@@ -222,7 +199,7 @@ namespace Langulus::Anyness
          DataState::Constrained,
          Base::GetType(), 1, &(mValue),
          // Notice entry is here, no search will occur                  
-         mEntry
+         nullptr//mEntry
       };
    }
 

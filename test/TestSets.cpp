@@ -23,21 +23,25 @@ TEMPLATE_TEST_CASE(
    (TypePair<TUnorderedSet<Trait*>, Trait*>),
    (TypePair<TUnorderedSet<Traits::Count*>, Traits::Count*>),
    (TypePair<TUnorderedSet<Any*>, Any*>),
+   (TypePair<TUnorderedSet<RT*>, RT*>),
 
    (TypePair<TOrderedSet<int*>, int*>),
    (TypePair<TOrderedSet<Trait*>, Trait*>),
    (TypePair<TOrderedSet<Traits::Count*>, Traits::Count*>),
    (TypePair<TOrderedSet<Any*>, Any*>),
+   (TypePair<TOrderedSet<RT*>, RT*>),
 
    (TypePair<UnorderedSet, int*>),
    (TypePair<UnorderedSet, Trait*>),
    (TypePair<UnorderedSet, Traits::Count*>),
    (TypePair<UnorderedSet, Any*>),
+   (TypePair<UnorderedSet, RT*>),
 
    (TypePair<OrderedSet, int*>),
    (TypePair<OrderedSet, Trait*>),
    (TypePair<OrderedSet, Traits::Count*>),
    (TypePair<OrderedSet, Any*>),
+   (TypePair<OrderedSet, RT*>),
 
    (TypePair<TUnorderedSet<int>, int>),
    (TypePair<TUnorderedSet<Trait>, Trait>),
@@ -578,31 +582,37 @@ TEMPLATE_TEST_CASE(
       }
 
       WHEN("Set is cloned") {
-         T clone = Langulus::Clone(set);
+         if constexpr (CT::CloneMakable<K>) {
+            T clone = Langulus::Clone(set);
 
-         REQUIRE((clone != set) == CT::Sparse<K>);
-         REQUIRE(clone.GetType()->template Is<K>());
-         REQUIRE(clone.IsAllocated());
-         REQUIRE(clone.HasAuthority());
-         REQUIRE(clone.GetUses() == 1);
-         REQUIRE(clone.GetCount() == set.GetCount());
-         REQUIRE(clone.GetCount() == 5);
-         REQUIRE(clone.GetRawMemory() != set.GetRawMemory());
+            REQUIRE((clone != set) == CT::Sparse<K>);
+            REQUIRE(clone.GetType()->template Is<K>());
+            REQUIRE(clone.IsAllocated());
+            REQUIRE(clone.HasAuthority());
+            REQUIRE(clone.GetUses() == 1);
+            REQUIRE(clone.GetCount() == set.GetCount());
+            REQUIRE(clone.GetCount() == 5);
+            REQUIRE(clone.GetRawMemory() != set.GetRawMemory());
 
-         if constexpr (CT::Sparse<K>) {
-            for (auto item1 : clone) {
-               int found = 0;
-               for (auto item2 : set) {
-                  if (*item1 == *item2)
-                     ++found;
+            if constexpr (CT::Sparse<K>) {
+               for (auto item1 : clone) {
+                  int found = 0;
+                  for (auto item2 : set) {
+                     if (*item1 == *item2)
+                        ++found;
+                  }
+
+                  REQUIRE(found == 1);
                }
-
-               REQUIRE(found == 1);
+            }
+            else {
+               for (auto& item : clone)
+                  REQUIRE(set.Contains(item));
             }
          }
-         else {
-            for (auto& item : clone)
-               REQUIRE(set.Contains(item));
+         else if constexpr (CT::Untyped<T>) {
+            T clone;
+            REQUIRE_THROWS(new (&clone) T {Langulus::Clone(set)});
          }
       }
 
@@ -650,15 +660,18 @@ TEMPLATE_TEST_CASE(
       WHEN("Sets are compared") {
          T sameSet;
          sameSet << darray1;
-         T clonedSet {Clone(set)};
          T copiedSet {set};
          T differentSet1;
          differentSet1 << darray1[0] << darray1[0] << darray1[2] << darray1[3] << darray1[4];
 
          REQUIRE(set == sameSet);
-         REQUIRE((set != clonedSet) == CT::Sparse<K>);
          REQUIRE(set == copiedSet);
          REQUIRE(set != differentSet1);
+
+         if constexpr (CT::CloneMakable<K>) {
+            T clonedSet {Clone(set)};
+            REQUIRE((set != clonedSet) == CT::Sparse<K>);
+         }
       }
 
       WHEN("Sets are iterated with ranged-for") {
@@ -787,11 +800,21 @@ TEMPLATE_TEST_CASE(
    }
 
    if constexpr (CT::Sparse<K>) {
+      if constexpr (CT::Referencable<K>)
+         element->Reference(-1);
       delete element;
-      for (auto i : darray1)
+
+      for (auto i : darray1) {
+         if constexpr (CT::Referencable<K>)
+            i->Reference(-1);
          delete i;
-      for (auto i : darray2)
+      }
+
+      for (auto i : darray2) {
+         if constexpr (CT::Referencable<K>)
+            i->Reference(-1);
          delete i;
+      }
    }
 
    REQUIRE(memoryState.Assert());
