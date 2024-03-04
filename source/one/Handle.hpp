@@ -143,6 +143,13 @@ namespace Langulus::Anyness
    template<CT::NotHandle T>
    using HandleLocal = Handle<T, false>;
 
+   /// Deduction guides                                                       
+   template<CT::Sparse T>
+   Handle(T&, const Allocation*&) -> Handle<T, true>;
+
+   template<CT::Dense T>
+   Handle(T&, const Allocation*) -> Handle<T, true>;
+
 } // namespace Langulus::Anyness
 
 namespace Langulus

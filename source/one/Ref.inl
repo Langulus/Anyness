@@ -7,11 +7,11 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #pragma once
-#include "TPointer.hpp"
-#include "TOwned.inl"
+#include "Ref.hpp"
+#include "Own.inl"
 
 #define TEMPLATE() template<class T>
-#define TME() TPointer<T>
+#define TME() Ref<T>
 
 
 namespace Langulus::Anyness
@@ -21,33 +21,33 @@ namespace Langulus::Anyness
    TEMPLATE() LANGULUS(INLINED)
    auto TME()::GetHandle() const {
       const auto mthis = const_cast<TME()*>(this);
-      return Handle<Type> {mthis->mValue, mthis->mEntry};
+      return Handle {mthis->mValue, mthis->mEntry};
    }
 
    /// Default costructor                                                     
    TEMPLATE() LANGULUS(INLINED)
-   constexpr TME()::TPointer() noexcept
+   constexpr TME()::Ref() noexcept
       : Base {nullptr}
       , mEntry {nullptr} {}
 
    /// Refer constructor                                                      
    ///   @param other - pointer to reference                                  
    TEMPLATE() LANGULUS(INLINED)
-   constexpr TME()::TPointer(const TPointer& other)
-      : TPointer {Refer(other)} {}
+   constexpr TME()::Ref(const Ref& other)
+      : Ref {Refer(other)} {}
 
    /// Move constructor                                                       
    ///   @param other - pointer to move                                       
    TEMPLATE() LANGULUS(INLINED)
-   constexpr TME()::TPointer(TPointer&& other)
-      : TPointer {Move(other)} {}
+   constexpr TME()::Ref(Ref&& other)
+      : Ref {Move(other)} {}
    
    /// Semantic construction                                                  
    ///   @param other - the value to initialize with                          
    TEMPLATE() template<template<class> class S> 
    requires CT::Inner::SemanticMakable<S, T*> LANGULUS(INLINED)
-   constexpr TME()::TPointer(S<TPointer>&& other) {
-      using SS = S<TPointer>;
+   constexpr TME()::Ref(S<Ref>&& other) {
+      using SS = S<Ref>;
       GetHandle().CreateSemantic(SS::Nest(other->GetHandle()));
    }
 
@@ -57,7 +57,7 @@ namespace Langulus::Anyness
    ///   @param other - the pointer                                           
    TEMPLATE() template<class A>
    requires CT::MakableFrom<T*, A> LANGULUS(INLINED)
-   constexpr TME()::TPointer(A&& other) {
+   constexpr TME()::Ref(A&& other) {
       using S = SemanticOf<decltype(other)>;
       using ST = TypeOf<S>;
 
@@ -74,7 +74,7 @@ namespace Langulus::Anyness
 
    /// Shared pointer destruction                                             
    TEMPLATE() LANGULUS(INLINED)
-   TME()::~TPointer() {
+   TME()::~Ref() {
       if (mEntry)
          ResetInner();
    }
@@ -85,7 +85,7 @@ namespace Langulus::Anyness
    TEMPLATE() template<class...A>
    requires ::std::constructible_from<T, A...> LANGULUS(INLINED)
    void TME()::New(A&&...arguments) {
-      TPointer pointer;
+      Ref pointer;
       pointer.mEntry = Allocator::Allocate(MetaDataOf<T>(), sizeof(T));
       LANGULUS_ASSERT(pointer.mEntry, Allocate, "Out of memory");
       pointer.mValue = reinterpret_cast<T*>(pointer.mEntry->GetBlockStart());
@@ -116,7 +116,7 @@ namespace Langulus::Anyness
    ///   @param rhs - pointer to reference                                    
    ///   @return a reference to this shared pointer                           
    TEMPLATE() LANGULUS(INLINED)
-   constexpr TME()& TME()::operator = (const TPointer& rhs) {
+   constexpr TME()& TME()::operator = (const Ref& rhs) {
       return operator = (Refer(rhs));
    }
 
@@ -124,7 +124,7 @@ namespace Langulus::Anyness
    ///   @param rhs - pointer to move                                         
    ///   @return a reference to this shared pointer                           
    TEMPLATE() LANGULUS(INLINED)
-   constexpr TME()& TME()::operator = (TPointer&& rhs) {
+   constexpr TME()& TME()::operator = (Ref&& rhs) {
       return operator = (Move(rhs));
    }
 
@@ -133,10 +133,10 @@ namespace Langulus::Anyness
    ///   @return a reference to this shared pointer                           
    TEMPLATE() template<template<class> class S>
    requires CT::Inner::SemanticAssignable<S, T*> LANGULUS(INLINED)
-   TME()& TME()::operator = (S<TPointer>&& rhs) {
+   TME()& TME()::operator = (S<Ref>&& rhs) {
       if (mEntry)
          ResetInner();
-      new (this) TPointer {rhs.Forward()};
+      new (this) Ref {rhs.Forward()};
       return *this;
    }
 
@@ -157,7 +157,7 @@ namespace Langulus::Anyness
          // Assign a new pointer                                        
          if (mEntry)
             ResetInner();
-         new (this) TPointer {Forward<A>(rhs)};
+         new (this) Ref {Forward<A>(rhs)};
       }
 
       return *this;
@@ -166,7 +166,7 @@ namespace Langulus::Anyness
    /// Cast to a constant pointer, if mutable                                 
    ///   @return the constant equivalent to this pointer                      
    TEMPLATE() LANGULUS(INLINED)
-   TME()::operator TPointer<const T>() const noexcept requires CT::Mutable<T> {
+   TME()::operator Ref<const T>() const noexcept requires CT::Mutable<T> {
       return {mValue};
    }
 

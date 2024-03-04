@@ -7,4 +7,4 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #pragma once
-#include "../../source/one/TOwned.inl"
+#include "../../source/one/Own.inl"

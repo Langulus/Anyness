@@ -7,7 +7,7 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #pragma once
-#include "TOwned.hpp"
+#include "Own.hpp"
 
 
 namespace Langulus::Anyness
@@ -21,10 +21,10 @@ namespace Langulus::Anyness
    /// it's equivalent to std::shared_ptr                                     
    ///                                                                        
    template<class T>
-   class TPointer : public TOwned<T*> {
+   class Ref : public Own<T*> {
    protected:
-      using Base = TOwned<T*>;
-      using Self = TPointer<T>;
+      using Base = Own<T*>;
+      using Self = Ref<T>;
       using Type = TypeOf<Base>;
 
       using Base::mValue;
@@ -36,18 +36,18 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Construction                                                      
       ///                                                                     
-      constexpr TPointer() noexcept;
-      constexpr TPointer(const TPointer&);
-      constexpr TPointer(TPointer&&);
+      constexpr Ref() noexcept;
+      constexpr Ref(const Ref&);
+      constexpr Ref(Ref&&);
 
       template<template<class> class S>
       requires CT::Inner::SemanticMakable<S, T*>
-      constexpr TPointer(S<TPointer>&&);
+      constexpr Ref(S<Ref>&&);
 
       template<class A> requires CT::MakableFrom<T*, A>
-      constexpr TPointer(A&&);
+      constexpr Ref(A&&);
 
-      ~TPointer();
+      ~Ref();
 
       template<class...A> requires ::std::constructible_from<T, A...>
       void New(A&&...);
@@ -55,15 +55,15 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Assignment                                                        
       ///                                                                     
-      constexpr TPointer& operator = (const TPointer&);
-      constexpr TPointer& operator = (TPointer&&);
+      constexpr Ref& operator = (const Ref&);
+      constexpr Ref& operator = (Ref&&);
 
       template<template<class> class S>
       requires CT::Inner::SemanticAssignable<S, T*>
-      TPointer& operator = (S<TPointer>&&);
+      Ref& operator = (S<Ref>&&);
 
       template<CT::NotOwned A> requires CT::AssignableFrom<T*, A>
-      TPointer& operator = (A&&);
+      Ref& operator = (A&&);
 
       ///                                                                     
       ///   Capsulation                                                       
@@ -76,7 +76,7 @@ namespace Langulus::Anyness
       using Base::operator ->;
       using Base::operator *;
 
-      /// Makes TOwned CT::Resolvable                                         
+      /// Makes Own CT::Resolvable                                            
       NOD() Block GetBlock() const;
 
       ///                                                                     
@@ -84,12 +84,13 @@ namespace Langulus::Anyness
       ///                                                                     
       void Reset();
 
-      NOD() operator TPointer<const T>() const noexcept requires CT::Mutable<T>;
+      NOD() operator Ref<const T>() const noexcept requires CT::Mutable<T>;
       NOD() operator const T& () const noexcept;
    };
 
+
    /// Deduction guides                                                       
    template<CT::Sparse T>
-   TPointer(T) -> TPointer<Deptr<T>>;
+   Ref(T&&) -> Ref<Deptr<T>>;
 
 } // namespace Langulus::Anyness

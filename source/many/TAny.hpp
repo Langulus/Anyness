@@ -441,4 +441,9 @@ namespace Langulus::Anyness
       using Any::GetBlockDeep;
    };
 
+
+   /// Deduction guides                                                       
+   template<CT::Data T>
+   TAny(T&&) -> TAny<T>;
+
 } // namespace Langulus::Anyness

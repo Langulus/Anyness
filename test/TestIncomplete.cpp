@@ -26,7 +26,7 @@ using TraitMap = TUnorderedMap<TMeta, TAny<Trait>>;
 
 struct Thing final : Resolvable {
    static_assert(CT::Complete<Resolvable>);
-   static_assert(CT::Complete<TOwned<Thing*>>);
+   static_assert(CT::Complete<Own<Thing*>>);
    static_assert(CT::Complete<Ref<Thing>>);
    static_assert(CT::Complete<TAny<Thing*>>);
    static_assert(CT::Complete<UnitMap>);
@@ -39,7 +39,7 @@ struct Thing final : Resolvable {
 
    Thing();
 
-   TOwned<Thing*> mOwned;
+   Own<Thing*> mOwned;
    Ref<Thing> mOwner;
    TAny<Thing*> mChildren;
    UnitMap mUnits;

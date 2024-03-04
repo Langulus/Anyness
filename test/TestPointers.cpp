@@ -12,7 +12,7 @@
 
 
 ///                                                                           
-TEMPLATE_TEST_CASE("Double-referenced shared pointer", "[TPointer]",
+TEMPLATE_TEST_CASE("Shared pointer", "[Ref]",
    Ref<int>, Ref<RT>, Ref<Any>
 ) {
    static Allocator::State memoryState;

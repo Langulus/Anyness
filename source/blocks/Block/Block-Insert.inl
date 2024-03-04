@@ -1505,9 +1505,9 @@ namespace Langulus::Anyness
             auto rhsEntry = other->template GetEntries<THIS>();
 
             while (lhs != lhsEnd) {
-               Handle<Byte*>(*lhs, *lhsEntry)
+               Handle (*lhs, *lhsEntry)
                   .AssignSemanticUnknown(mType,
-                     SS::Nest(Handle<Byte*>(*rhs, *rhsEntry)));
+                     SS::Nest(Handle (*rhs, *rhsEntry)));
 
                ++lhs;
                ++rhs;
