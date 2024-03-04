@@ -200,7 +200,7 @@ namespace Langulus::Anyness
 
       template<CT::Data>
       friend class TOwned;
-      template<class, bool>
+      template<class>
       friend class TPointer;
 
       friend class Neat;
@@ -673,7 +673,6 @@ namespace Langulus::Anyness
       template<CT::Block>
       void AllocateFresh(const AllocationRequest&);
 
-      void Reference(Count) const noexcept;
       void Keep() const noexcept;
       template<CT::Block = Any>
       void Free();
@@ -792,8 +791,10 @@ namespace Langulus::Anyness
       void Reset();
 
    protected:
-      template<CT::Block = Any>
-      void Destroy() const;
+      template<CT::Block = Any, bool FORCE = true, class MASK = std::nullptr_t>
+      void Destroy(MASK = {}) const;
+      template<CT::Block, class MASK>
+      void DestroySparse(MASK) const;
 
       constexpr void ResetMemory() noexcept;
 
@@ -858,9 +859,9 @@ namespace Langulus::Anyness
       ///   Flow                                                              
       ///                                                                     
       // Intentionally undefined, because it requires Langulus::Flow    
-      void Run(Flow::Verb&) const;
+      Flow::Verb& Run(Flow::Verb&) const;
       // Intentionally undefined, because it requires Langulus::Flow    
-      void Run(Flow::Verb&);
+      Flow::Verb& Run(Flow::Verb&);
    };
 
    namespace Inner

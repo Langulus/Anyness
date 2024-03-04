@@ -19,27 +19,31 @@
 /// to complex, from flat to deep                                             
 TEMPLATE_TEST_CASE(
    "Sparse TOrderedMap/TUnorderedMap/OrderedMap/UnorderedMap", "[map]",
-   (MapPair<TUnorderedMap<Text, Traits::Count*>, Text, Traits::Count*>),
+   (MapPair<UnorderedMap, Text, RT*>),
 
    (MapPair<TUnorderedMap<Text, int*>, Text, int*>),
    (MapPair<TUnorderedMap<Text, Trait*>, Text, Trait*>),
-
+   (MapPair<TUnorderedMap<Text, Traits::Count*>, Text, Traits::Count*>),
    (MapPair<TUnorderedMap<Text, Any*>, Text, Any*>),
+   (MapPair<TUnorderedMap<Text, RT*>, Text, RT*>),
 
    (MapPair<TOrderedMap<Text, int*>, Text, int*>),
    (MapPair<TOrderedMap<Text, Trait*>, Text, Trait*>),
    (MapPair<TOrderedMap<Text, Traits::Count*>, Text, Traits::Count*>),
    (MapPair<TOrderedMap<Text, Any*>, Text, Any*>),
+   (MapPair<TOrderedMap<Text, RT*>, Text, RT*>),
 
    (MapPair<UnorderedMap, Text, int*>),
    (MapPair<UnorderedMap, Text, Trait*>),
    (MapPair<UnorderedMap, Text, Traits::Count*>),
    (MapPair<UnorderedMap, Text, Any*>),
 
+
    (MapPair<OrderedMap, Text, int*>),
    (MapPair<OrderedMap, Text, Trait*>),
    (MapPair<OrderedMap, Text, Traits::Count*>),
-   (MapPair<OrderedMap, Text, Any*>)
+   (MapPair<OrderedMap, Text, Any*>),
+   (MapPair<OrderedMap, Text, RT*>)
 ) {
    IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
 
@@ -715,34 +719,40 @@ TEMPLATE_TEST_CASE(
       }
 
       WHEN("Map is cloned") {
-         T clone = Langulus::Clone(map);
+         if constexpr (CT::CloneMakable<K> and CT::CloneMakable<V>) {
+            T clone = Langulus::Clone(map);
 
-         REQUIRE((clone != map) == (CT::Sparse<K> or CT::Sparse<V>));
-         REQUIRE(clone.GetKeyType()->template Is<K>());
-         REQUIRE(clone.GetValueType()->template Is<V>());
-         REQUIRE(clone.IsAllocated());
-         REQUIRE(clone.HasAuthority());
-         REQUIRE(clone.GetUses() == 1);
-         REQUIRE(clone.GetCount() == map.GetCount());
-         REQUIRE(clone.GetCount() == 5);
-         REQUIRE(clone.GetRawKeysMemory() != map.GetRawKeysMemory());
-         REQUIRE(clone.GetRawValsMemory() != map.GetRawValsMemory());
-         for (auto& comparer : darray1) {
-            if constexpr (CT::Sparse<V>) {
-               REQUIRE(clone[comparer.mKey] != comparer.mValue);
-               REQUIRE(map[comparer.mKey] != clone[comparer.mKey]);
+            REQUIRE((clone != map) == (CT::Sparse<K> or CT::Sparse<V>));
+            REQUIRE(clone.GetKeyType()->template Is<K>());
+            REQUIRE(clone.GetValueType()->template Is<V>());
+            REQUIRE(clone.IsAllocated());
+            REQUIRE(clone.HasAuthority());
+            REQUIRE(clone.GetUses() == 1);
+            REQUIRE(clone.GetCount() == map.GetCount());
+            REQUIRE(clone.GetCount() == 5);
+            REQUIRE(clone.GetRawKeysMemory() != map.GetRawKeysMemory());
+            REQUIRE(clone.GetRawValsMemory() != map.GetRawValsMemory());
+            for (auto& comparer : darray1) {
+               if constexpr (CT::Sparse<V>) {
+                  REQUIRE(clone[comparer.mKey] != comparer.mValue);
+                  REQUIRE(map[comparer.mKey] != clone[comparer.mKey]);
+               }
+               else {
+                  REQUIRE(clone[comparer.mKey] == comparer.mValue);
+                  REQUIRE(map[comparer.mKey] == clone[comparer.mKey]);
+               }
+
+               REQUIRE(map[comparer.mKey] == comparer.mValue);
+
+               if constexpr (CT::Typed<T>)
+                  REQUIRE(&map[comparer.mKey] != &clone[comparer.mKey]);
+               else
+                  REQUIRE(map[comparer.mKey].GetRaw() != clone[comparer.mKey].GetRaw());
             }
-            else {
-               REQUIRE(clone[comparer.mKey] == comparer.mValue);
-               REQUIRE(map[comparer.mKey] == clone[comparer.mKey]);
-            }
-               
-            REQUIRE(map[comparer.mKey] == comparer.mValue);
-               
-            if constexpr (CT::Typed<T>)
-               REQUIRE(&map[comparer.mKey] != &clone[comparer.mKey]);
-            else
-               REQUIRE(map[comparer.mKey].GetRaw() != clone[comparer.mKey].GetRaw());
+         }
+         else if constexpr (CT::Untyped<T>) {
+            T clone;
+            REQUIRE_THROWS(new (&clone) T {Langulus::Clone(map)});
          }
       }
 
@@ -773,15 +783,18 @@ TEMPLATE_TEST_CASE(
       WHEN("Maps are compared") {
          T sameMap;
          sameMap << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
-         T clonedMap {Clone(map)};
          T copiedMap {map};
          T differentMap1;
          differentMap1 << darray1[0] << darray1[0] << darray1[2] << darray1[3] << darray1[4];
 
          REQUIRE(map == sameMap);
-         REQUIRE((map != clonedMap) == (CT::Sparse<K> || CT::Sparse<V>));
          REQUIRE(map == copiedMap);
          REQUIRE(map != differentMap1);
+
+         if constexpr (CT::CloneMakable<K> and CT::CloneMakable<V>) {
+            T clonedMap {Clone(map)};
+            REQUIRE((map != clonedMap) == (CT::Sparse<K> or CT::Sparse<V>));
+         }
       }
 
       WHEN("Maps are iterated with ranged-for") {

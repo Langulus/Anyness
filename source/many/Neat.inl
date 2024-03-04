@@ -216,19 +216,20 @@ namespace Langulus::Anyness
       or mTraits.GetCount() != rhs.mTraits.GetCount())
          return false;
 
-      for (Offset i = 0; i < mTraits.GetCount(); ++i) {
-         auto lp = mTraits.GetPair(i);
-         auto rp = rhs.mTraits.GetPair(i);
-         if (lp.mKey != rp.mKey)
+      for (auto lp : mTraits) {
+         auto rp = rhs.mTraits.FindIt(lp.mKey);
+         if (not rp)
             // Early failure on key mismatch                            
             return false;
 
          // Traits::Parent never participate in the comparison          
+         //TODO change this to skip missing instead
          if (lp.mKey->Is<Traits::Parent>())
             continue;
 
          if (lp.mValue != rp.mValue)
             // Early failure on value mismatch                          
+            //TODO if missing, compare only by value container type?
             return false;
       }
 

@@ -235,7 +235,6 @@ namespace Langulus::Anyness
    requires CT::Semantic<S<FROM>> LANGULUS(INLINED)
    void Block::BlockTransfer(S<FROM>&& from) {
       using SS = S<FROM>;
-      mCount = from->mCount;
 
       if constexpr (not CT::Typed<TO>) {
          // TO is not statically typed, so we can safely                
@@ -258,6 +257,7 @@ namespace Langulus::Anyness
                mEntry = from->mEntry;
                mRaw = from->mRaw;
                mReserved = from->mReserved;
+               mCount = from->mCount;
 
                if constexpr (not FROM::Ownership) {
                   // Since we are not aware if that block is referenced 
@@ -279,6 +279,7 @@ namespace Langulus::Anyness
                   mRaw = from->mRaw;
                   mReserved = from->mReserved;
                   mEntry = from->mEntry;
+                  mCount = from->mCount;
                   Keep();
                }
                else {
@@ -287,13 +288,28 @@ namespace Langulus::Anyness
                   // data is no longer static and constant (unless      
                   // mType is constant)                                 
                   mState -= DataState::Static | DataState::Constant;
-                  if (0 == mCount)
+                  if (0 == from->mCount)
                      return;
 
                   // Pick a preferably typed block to optimize          
                   using B = Conditional<CT::Typed<FROM>, FROM, TO>;
-                  AllocateFresh<B>(RequestSize<B>(mCount));
+
+                  if constexpr (CT::Untyped<B>) {
+                     // A runtime check is required before allocating            
+                     LANGULUS_ASSERT(mType->mReferConstructor, Construct,
+                        "Can't refer-construct elements"
+                        " - no refer-constructor was reflected for type ", mType);
+                  }
+                  else {
+                     static_assert(CT::Inner::ReferMakable<TypeOf<B>>,
+                        "Contained type is not refer-constructible");
+                  }
+
+                  AllocateFresh<B>(RequestSize<B>(from->mCount));
                   CreateSemantic<B>(Refer(from));
+                  // This validates elements, do it last in case        
+                  // something throws along the way                     
+                  mCount = from->mCount;
                }
             }
          }
@@ -302,25 +318,42 @@ namespace Langulus::Anyness
             mRaw = from->mRaw;
             mReserved = from->mReserved;
             mEntry = from->mEntry;
+            mCount = from->mCount;
             from->mEntry = nullptr;
          }
          else {
             // Disown                                                   
             mRaw = from->mRaw;
             mReserved = from->mReserved;
+            mCount = from->mCount;
          }
       }
       else {
          // We're cloning, so we guarantee, that data is no longer      
          // static and constant (unless mType is constant)              
          mState -= DataState::Static | DataState::Constant;
-         if (0 == mCount)
+         if (0 == from->mCount)
             return;
          
          // Pick a preferably typed block to optimize the construction  
          using B = Conditional<CT::Typed<FROM>, FROM, TO>;
-         AllocateFresh<B>(RequestSize<B>(mCount));
+
+         if constexpr (CT::Untyped<B>) {
+            // A runtime check is required before allocating            
+            LANGULUS_ASSERT(mType->mCloneConstructor, Construct,
+               "Can't clone-construct elements"
+               " - no clone-constructor was reflected for type ", mType);
+         }
+         else {
+            static_assert(CT::CloneMakable<TypeOf<B>>,
+               "Contained type is not clone-constructible");
+         }
+
+         AllocateFresh<B>(RequestSize<B>(from->mCount));
          CreateSemantic<B>(from.Forward());
+
+         // This validates elements, do it last in case something throw 
+         mCount = from->mCount;
       }
    }
 

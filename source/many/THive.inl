@@ -245,16 +245,23 @@ namespace Langulus::Anyness
          const auto rawEnd = frame.GetRaw() + frame.GetReserved();
          while (raw != rawEnd and frame.mCount) {
             if (not raw->mNextFreeCell) {
-               if (raw->mData.GetReferences() == 1) {
+               if (raw->mData.Reference(-1) == 0) {
                   // Safe to destroy the instance from here             
+                  // Otherwise hive cell is in use somewhere else. It   
+                  // will continue to live as a Ref<T> somewhere, until 
+                  // the handle's destructor is called, and the last    
+                  // reference is released                              
+                  LANGULUS_ASSUME(DevAssumes, frame.GetUses() >= 1,
+                     "A populated cell must have references");
                   raw->~Cell();
                }
-               else {
-                  // The particular hive cell is in use somewhere else  
-                  // so just dereference it from here                   
-                  raw->mData.Free();
-                  LANGULUS_ASSUME(DevAssumes, frame.GetUses() > 1,
-                     "Hive cell referenced elsewhere, but frame memory isn't");
+               else if constexpr (requires (T a) { a.Detach(); }) {
+                  // Even if the cell is still referenced, it no longer 
+                  // is part of the factory, and should be detached.    
+                  // Detachment is like pre-destruction, where all ties 
+                  // in a hierarchical element are severed, so that any 
+                  // circular dependencies are accounted for.           
+                  raw->mData.Detach();
                }
 
                --frame.mCount;

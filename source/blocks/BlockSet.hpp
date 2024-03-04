@@ -307,7 +307,6 @@ namespace Langulus::Anyness
       template<CT::Set>
       void AllocateInner(Count);
 
-      void Reference(Count) const noexcept;
       void Keep() const noexcept;
       template<CT::Set>
       void Free();
@@ -364,7 +363,7 @@ namespace Langulus::Anyness
       void Compact();
 
    protected:
-      template<CT::Set>
+      template<CT::Set, bool FORCE = true>
       void ClearInner();
 
       template<CT::Set>

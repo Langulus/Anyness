@@ -359,18 +359,11 @@ namespace Langulus::Anyness
       mReserved = request.mElementCount;
    }
 
-   /// Reference memory block if we own it                                    
-   ///   @param times - number of references to add                           
-   LANGULUS(INLINED)
-   void Block::Reference(Count times) const noexcept {
-      if (mEntry)
-         const_cast<Allocation*>(mEntry)->Keep(times);
-   }
-   
    /// Reference memory block once                                            
    LANGULUS(INLINED)
    void Block::Keep() const noexcept {
-      Reference(1);
+      if (mEntry)
+         const_cast<Allocation*>(mEntry)->Keep(1);
    }
 
    /// Dereference memory block once and destroy all elements if data was     
@@ -385,14 +378,15 @@ namespace Langulus::Anyness
          mEntry->GetUses() >= 1, "Bad memory dereferencing");
 
       if (mEntry->GetUses() == 1) {
-         // Destroy all elements                                        
+         // Free memory                                                 
          if (mCount)
             Destroy<THIS>();
-
-         // Free memory                                                 
          Allocator::Deallocate(const_cast<Allocation*>(mEntry));
       }
       else {
+         // Dereference memory                                          
+         if (mCount and not mState.IsStatic())
+            Destroy<THIS, false>();
          const_cast<Allocation*>(mEntry)->Free();
       }
 

@@ -15,7 +15,7 @@ using namespace Langulus::Anyness;
 //#define LANGULUS_STD_BENCHMARK
 
 //#ifdef LANGULUS_STD_BENCHMARK
-#define CATCH_CONFIG_ENABLE_BENCHMARKING
+//#define CATCH_CONFIG_ENABLE_BENCHMARKING
 //#endif
 
 inline Byte* asbytes(void* a) noexcept {
@@ -89,16 +89,42 @@ P CreatePair(const ALT_K& key, const ALT_V& value) {
 
 void DestroyPair(auto& pair) {
    if constexpr (requires { pair.mKey; }) {
-      if constexpr (CT::Sparse<decltype(pair.mKey)>)
+      if constexpr (CT::Sparse<decltype(pair.mKey)>) {
+         if constexpr (CT::Referencable<decltype(pair.mKey)>)
+            pair.mKey->Reference(-1);
          delete pair.mKey;
-      if constexpr (CT::Sparse<decltype(pair.mValue)>)
+      }
+
+      if constexpr (CT::Sparse<decltype(pair.mValue)>) {
+         if constexpr (CT::Referencable<decltype(pair.mValue)>)
+            pair.mValue->Reference(-1);
          delete pair.mValue;
+      }
    }
    else if constexpr (requires { pair.first; }) {
-      if constexpr (CT::Sparse<decltype(pair.first)>)
+      if constexpr (CT::Sparse<decltype(pair.first)>) {
+         if constexpr (CT::Referencable<decltype(pair.first)>)
+            pair.first->Reference(-1);
          delete pair.first;
-      if constexpr (CT::Sparse<decltype(pair.second)>)
+      }
+
+      if constexpr (CT::Sparse<decltype(pair.second)>) {
+         if constexpr (CT::Referencable<decltype(pair.second)>)
+            pair.second->Reference(-1);
          delete pair.second;
+      }
    }
    else LANGULUS_ERROR("What kind of pair is this?");
 }
+
+/// Simple type for testing references                                        
+struct RT : Referenced {
+   int data;
+
+   RT() : data {0} {}
+   RT(int a) : data {a} {}
+
+   operator const int& () const noexcept {
+      return data;
+   }
+};

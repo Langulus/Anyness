@@ -34,7 +34,7 @@ namespace Langulus::Anyness
    constexpr HAND()::Handle(T& v, const Allocation* e) IF_UNSAFE(noexcept)
    requires (EMBED and CT::Dense<T>)
       : mValue {&v}
-      , mEntry {e} {
+      , mEntry { e} {
       static_assert(CT::NotHandle<T>, "Handles can't be nested");
    }
 
@@ -287,8 +287,11 @@ namespace Langulus::Anyness
             }
             else if constexpr (SS::Keep) {
                // Copying RHS, but keep it only if not disowning it     
-               if (GetEntry())
+               if (GetEntry()) {
                   const_cast<Allocation*>(GetEntry())->Keep();
+                  if constexpr (CT::Referencable<T>)
+                     Get()->Reference(1);
+               }
             }
          }
          else if constexpr (CT::Nullptr<ST>) {
@@ -304,8 +307,13 @@ namespace Langulus::Anyness
             GetEntry() = rhsh.GetEntry();
 
             if constexpr (SS::Keep) {
-               if (GetEntry())
+               // Raw pointers are always referenced, even when moved   
+               // (as long as it's a keeper semantic)                   
+               if (GetEntry()) {
                   const_cast<Allocation*>(GetEntry())->Keep();
+                  if constexpr (CT::Referencable<T>)
+                     Get()->Reference(1);
+               }
             }
          }
          else LANGULUS_ERROR("Can't initialize sparse T");
@@ -350,8 +358,110 @@ namespace Langulus::Anyness
          }
       }
       else {
-         //clone an indirection layer by nesting semanticnewhandle      
+         // Pointers of pointers                                        
+         // Clone indirection layers by nesting                         
          TODO();
+      }
+   }
+   
+   /// Semantically assign anything at the handle                             
+   ///   @attention this overwrites previous handle without dereferencing it, 
+   ///      and without destroying anything                                   
+   ///   @param rhs - what are we assigning                                   
+   TEMPLATE() template<template<class> class S, class ST>
+   requires CT::Semantic<S<ST>> LANGULUS(INLINED)
+   void HAND()::CreateSemanticUnknown(DMeta type, S<ST>&& rhs) {
+      using SS = S<ST>;
+
+      if (type->mIsSparse) {
+         if constexpr (SS::Shallow) {
+            // Do a copy/disown/abandon/move sparse LHS                 
+            if constexpr (CT::Handle<ST>) {
+               // RHS is a handle                                       
+               using HT = TypeOf<ST>;
+               static_assert(CT::Sparse<T> == CT::Sparse<HT>);
+               Get() = rhs->Get();
+
+               if constexpr (SS::Keep or SS::Move)
+                  GetEntry() = rhs->GetEntry();
+               else
+                  GetEntry() = nullptr;
+
+               if constexpr (SS::Move) {
+                  // We're moving RHS, so we need to clear it up        
+                  if constexpr (SS::Keep)
+                     rhs->Get() = nullptr;
+
+                  // Clearing entry is mandatory, because we're         
+                  // transferring the ownership                         
+                  rhs->GetEntry() = nullptr;
+               }
+               else if constexpr (SS::Keep) {
+                  // Copying RHS, but keep it only if not disowning it  
+                  if (GetEntry()) {
+                     const_cast<Allocation*>(GetEntry())->Keep();
+                     if (type->mReference)
+                        type->mReference(Get(), 1);
+                  }
+               }
+            }
+            else if constexpr (CT::Nullptr<ST>) {
+               // RHS is a simple nullptr                               
+               Get() = nullptr;
+               GetEntry() = nullptr;
+            }
+            else {
+               // RHS is not a handle, but we'll wrap it in a handle, in
+               // order to find its entry (if managed memory is enabled)
+               static_assert(CT::Sparse<T> == CT::Sparse<ST>);
+               HandleLocal<T> rhsh {rhs.Forward()};
+               Get() = rhsh.Get();
+               GetEntry() = rhsh.GetEntry();
+
+               if constexpr (SS::Keep) {
+                  // Raw pointers are always referenced, even when moved
+                  // (as long as it's a keeper semantic)                
+                  if (GetEntry()) {
+                     const_cast<Allocation*>(GetEntry())->Keep();
+                     if (type->mReference)
+                        type->mReference(Get(), 1);
+                  }
+               }
+            }
+         }
+         else {
+            //TODO clone pointers
+            TODO();
+         }
+      }
+      else {
+         // Do a copy/disown/abandon/move/clone inside a dense handle   
+         if constexpr (CT::Handle<ST>) {
+            // RHS is a handle                                       
+            using HT = TypeOf<ST>;
+            static_assert(CT::Sparse<T> == CT::Sparse<HT>);
+            TODO();
+         }
+         else {
+            static_assert(CT::Sparse<T> == CT::Sparse<ST>);
+
+            if constexpr (SS::Move) {
+               if constexpr (SS::Keep)
+                  type->mMoveAssigner(&Get(), &*rhs);
+               else
+                  type->mAbandonAssigner(&Get(), &*rhs);
+            }
+            else if constexpr (SS::Shallow) {
+               if constexpr (SS::Keep) {
+                  if constexpr (CT::Referred<SS>)
+                     type->mReferAssigner(&Get(), const_cast<void*>(reinterpret_cast<const void*>(&*rhs)));
+                  else
+                     type->mCopyAssigner(&Get(), &*rhs);
+               }
+               else type->mDisownAssigner(&Get(), &*rhs);
+            }
+            else type->mCloneAssigner(&Get(), &*rhs);
+         }
       }
    }
 
@@ -362,6 +472,15 @@ namespace Langulus::Anyness
    void HAND()::AssignSemantic(S<ST>&& rhs) {
       Destroy();
       CreateSemantic(rhs.Forward());
+   }
+   
+   /// Dereference/destroy the current handle contents, and set new ones      
+   ///   @param rhs - new contents to assign                                  
+   TEMPLATE() template<template<class> class S, class ST>
+   requires CT::Semantic<S<ST>> LANGULUS(INLINED)
+   void HAND()::AssignSemanticUnknown(DMeta type, S<ST>&& rhs) {
+      DestroyUnknown(type);
+      CreateSemanticUnknown(type, rhs.Forward());
    }
    
    /// Swap two handles                                                       
@@ -396,12 +515,14 @@ namespace Langulus::Anyness
    /// Does absolutely nothing for dense handles, they are destroyed when     
    /// handle is destroyed                                                    
    ///   @tparam RESET - whether or not to reset pointers to null             
+   ///   @tparam DEALLOCATE - are we allowed to deallocate the memory?        
    TEMPLATE() template<bool RESET, bool DEALLOCATE>
    void HAND()::Destroy() const {
       if constexpr (CT::Sparse<T>) {
          // Handle is sparse, we should handle each indirection layer   
          if (GetEntry()) {
             if (1 == GetEntry()->GetUses()) {
+               // This is the last occurence of that element            
                LANGULUS_ASSUME(DevAssumes, Get(), "Null pointer");
 
                if constexpr (CT::Sparse<Deptr<T>>) {
@@ -413,13 +534,38 @@ namespace Langulus::Anyness
                   // Pointer to a complete, destroyable dense           
                   // Call the destructor                                
                   using DT = Decay<T>;
-                  Get()->~DT();
+
+                  if constexpr (CT::Referencable<T>) {
+                     if (Get()->Reference(-1) == 0)
+                        Get()->~DT();
+                     else {
+                        LANGULUS_OOPS(Destruct,
+                           "Destroying a referenced element, "
+                           "that's still in use");
+                     }
+                  }
+                  else Get()->~DT();
                }
 
                if constexpr (DEALLOCATE)
                   Allocator::Deallocate(const_cast<Allocation*>(GetEntry()));
             }
-            else const_cast<Allocation*>(GetEntry())->Free();
+            else {
+               // This element occurs in more than one place            
+               // We're not allowed to deallocate the memory behind it, 
+               // but we must call destructors if T is referencable,    
+               // and its individual references have reached 1. This    
+               // usually happens when elements from a THive are        
+               // referenced.                                           
+               if constexpr (CT::Dense<Deptr<T>> and CT::Referencable<T>) {
+                  if (Get()->Reference(-1) == 0) {
+                     using DT = Decay<T>;
+                     Get()->~DT();
+                  }
+               }
+
+               const_cast<Allocation*>(GetEntry())->Free();
+            }
          }
 
          if constexpr (RESET) {
@@ -440,35 +586,65 @@ namespace Langulus::Anyness
    /// Does absolutely nothing for dense handles, they are destroyed when     
    /// handle is destroyed                                                    
    ///   @tparam RESET - whether or not to reset pointers to null             
+   ///   @tparam DEALLOCATE - are we allowed to deallocate the memory?        
    ///   @param meta - the true type behind the pointer in this handle        
    TEMPLATE() template<bool RESET, bool DEALLOCATE>
    void HAND()::DestroyUnknown(DMeta meta) const {
       if constexpr (CT::Sparse<T>) {
+         // Handle is sparse, we should handle each indirection layer   
          LANGULUS_ASSUME(DevAssumes, meta->mIsSparse,
             "Provided meta must match T sparseness");
 
          if (GetEntry()) {
             if (1 == GetEntry()->GetUses()) {
+               // This is the last occurence of that element            
                LANGULUS_ASSUME(DevAssumes, Get(), "Null pointer");
 
                if (meta->mDeptr->mIsSparse) {
+                  // Pointer to pointer                                 
                   // Release all nested indirection layers              
                   HandleLocal<Byte*> {
                      *reinterpret_cast<Byte**>(Get())
                   }.DestroyUnknown(meta->mDeptr);
                }
                else if (meta->mDestructor) {
-                  // Call the origin's destructor, if available         
+                  // Pointer to a complete, destroyable dense           
+                  // Call the destructor                                
+                  if (meta->mReference) {
+                     if (meta->mReference(Get(), -1) == 0)
+                        meta->mDestructor(Get());
+                     else {
+                        LANGULUS_OOPS(Destruct,
+                           "Destroying a referenced element, "
+                           "that's still in use");
+                     }
+                  }
+
                   meta->mDestructor(Get());
                }
 
                if constexpr (DEALLOCATE)
                   Allocator::Deallocate(const_cast<Allocation*>(GetEntry()));
             }
-            else const_cast<Allocation*>(GetEntry())->Free();
+            else {
+               // This element occurs in more than one place            
+               // We're not allowed to deallocate the memory behind it, 
+               // but we must call destructors if T is referencable,    
+               // and its individual references have reached 0. This    
+               // usually happens when elements from a THive are        
+               // referenced.                                           
+               if (not meta->mDeptr->mIsSparse and meta->mReference) {
+                  if (meta->mReference(Get(), -1) == 0)
+                     meta->mDestructor(Get());
+               }
+
+               const_cast<Allocation*>(GetEntry())->Free();
+            }
          }
 
          if constexpr (RESET) {
+            // Handle is dense and embedded, we should call the remote  
+            // destructor, but don't touch the entry, its irrelevant    
             Get() = nullptr;
             GetEntry() = nullptr;
          }

@@ -84,14 +84,17 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
    (TypePair<TAny<Traits::Count*>, Traits::Count*>),
    (TypePair<TAny<Any*>, Any*>),
    (TypePair<TAny<Text*>, Text*>),
+   (TypePair<TAny<RT*>, RT*>),
 
    (TypePair<Any, int*>),
    (TypePair<Any, Trait*>),
    (TypePair<Any, Traits::Count*>),
    (TypePair<Any, Any*>),
    (TypePair<Any, Text*>),
+   (TypePair<Any, RT*>),
 
-   (TypePair<Traits::Name, Text*>)
+   (TypePair<Traits::Name, Text*>),
+   (TypePair<Traits::Name, RT*>)
 ) {
    static Allocator::State memoryState;
 
@@ -271,21 +274,22 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
          #endif
       }
       
-      WHEN("Assigned cloned value") {
-         pack = Clone(element);
+      if constexpr (CT::CloneAssignable<E>) {
+         WHEN("Assigned cloned value") {
+            pack = Clone(element);
 
-         CheckState_OwnedFull<E>(pack);
+            CheckState_OwnedFull<E>(pack);
 
-         REQUIRE(pack.GetCount() == 1);
-         REQUIRE(pack.GetUses() == 1);
-         REQUIRE(pack.GetReserved() >= 1);
+            REQUIRE(pack.GetCount() == 1);
+            REQUIRE(pack.GetUses() == 1);
+            REQUIRE(pack.GetReserved() >= 1);
 
-         for (auto& it : pack) {
-            REQUIRE( it !=  element);
-            REQUIRE(*it == *element);
-         }
+            for (auto& it : pack) {
+               REQUIRE(it != element);
+               REQUIRE(*it == *element);
+            }
 
-         IF_LANGULUS_MANAGED_MEMORY(REQUIRE(*pack.template GetEntries<T>()));
+            IF_LANGULUS_MANAGED_MEMORY(REQUIRE(*pack.template GetEntries<T>()));
 
          #ifdef LANGULUS_STD_BENCHMARK
             BENCHMARK_ADVANCED("operator = (single cloned value)") (timer meter) {
@@ -293,7 +297,7 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
                some<T> storage(meter.runs());
                meter.measure([&](int i) {
                   return storage[i] = Clone(value);
-               });
+                  });
             };
 
             BENCHMARK_ADVANCED("std::vector::operator = (single value copy)") (timer meter) {
@@ -301,7 +305,7 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
                some<StdT> storage(meter.runs());
                meter.measure([&](int i) {
                   return storage[i] = {value};
-               });
+                  });
             };
 
             BENCHMARK_ADVANCED("std::any::operator = (single value copy)") (timer meter) {
@@ -309,9 +313,10 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
                some<std::any> storage(meter.runs());
                meter.measure([&](int i) {
                   return storage[i] = value;
-               });
+                  });
             };
          #endif
+         }
       }
       
       WHEN("Assigned abandoned value") {
@@ -564,8 +569,11 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
             };
          #endif
 
-         for (auto i : darray3)
+         for (auto i : darray3) {
+            if constexpr (CT::Referencable<E>)
+               i->Reference(-1);
             delete i;
+         }
       }
 
       WHEN("Move more of the same stuff to the front (>>)") {
@@ -623,8 +631,11 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
             };
          #endif
 
-         for (auto i : darray3)
+         for (auto i : darray3) {
+            if constexpr (CT::Referencable<E>)
+               i->Reference(-1);
             delete i;
+         }
       }
 
       WHEN("Emplace item at the front") {
@@ -666,6 +677,8 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
             CheckState_Default<E>(pack);
          }
 
+         if constexpr (CT::Referencable<E>)
+            i666->Reference(-1);
          delete i666;
       }
       
@@ -708,6 +721,8 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
             CheckState_Default<E>(pack);
          }
 
+         if constexpr (CT::Referencable<E>)
+            i666->Reference(-1);
          delete i666;
       }
 
@@ -753,13 +768,15 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
          REQUIRE(copy.GetUses() == 0);
       }
 
-      WHEN("Empty pack with state is cloned") {
-         pack.MakeOr();
-         T clone = Clone(pack);
+      if constexpr (CT::CloneMakable<T>) {
+         WHEN("Empty pack with state is cloned") {
+            pack.MakeOr();
+            T clone = Clone(pack);
 
-         Helper_TestSame(clone, pack);
-         REQUIRE(clone.GetState() == pack.GetState());
-         REQUIRE(clone.GetUses() == 0);
+            Helper_TestSame(clone, pack);
+            REQUIRE(clone.GetState() == pack.GetState());
+            REQUIRE(clone.GetUses() == 0);
+         }
       }
 
       WHEN("Empty pack with state is moved") {
@@ -1730,8 +1747,11 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
             };
          #endif
 
-         for (auto i : darray3)
+         for (auto i : darray3) {
+            if constexpr (CT::Referencable<E>)
+               i->Reference(-1);
             delete i;
+         }
       }
 
       WHEN("Move more of the same stuff to the front (>>)") {
@@ -1800,8 +1820,11 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
             };
          #endif
 
-         for (auto i : darray3)
+         for (auto i : darray3) {
+            if constexpr (CT::Referencable<E>)
+               i->Reference(-1);
             delete i;
+         }
       }
       
       WHEN("Insert single item at a specific place by shallow-copy") {
@@ -1843,6 +1866,8 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
             };
          #endif
 
+         if constexpr (CT::Referencable<E>)
+            i666->Reference(-1);
          delete i666;
       }
 
@@ -1929,6 +1954,8 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
             };
          #endif
 
+         if constexpr (CT::Referencable<E>)
+            i666->Reference(-1);
          delete i666;
       }
 
@@ -1972,6 +1999,8 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
             };
          #endif
 
+         if constexpr (CT::Referencable<E>)
+            i666->Reference(-1);
          delete i666;
       }
 
@@ -2015,6 +2044,8 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
             };
          #endif
 
+         if constexpr (CT::Referencable<E>)
+            i666->Reference(-1);
          delete i666;
       }
       
@@ -2058,6 +2089,8 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
             };
          #endif
 
+         if constexpr (CT::Referencable<E>)
+            i666->Reference(-1);
          delete i666;
       }
 
@@ -2099,6 +2132,8 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
             };
          #endif
 
+         if constexpr (CT::Referencable<E>)
+            temp->Reference(-1);
          delete temp;
       }
 
@@ -2185,20 +2220,27 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
 
       WHEN("Pack is cloned") {
          pack.MakeOr();
-         T clone = Langulus::Clone(pack);
 
-         REQUIRE(clone.GetRaw() != pack.GetRaw());
-         REQUIRE(clone.GetCount() == pack.GetCount());
-         REQUIRE(clone.GetReserved() >= clone.GetCount());
-         REQUIRE(clone.GetState() == pack.GetState());
-         REQUIRE(clone.GetType() == pack.GetType());
-         REQUIRE(clone.GetUses() == 1);
-         REQUIRE(pack.GetUses() == 1);
+         if constexpr (CT::CloneMakable<E>) {
+            T clone = Clone(pack);
 
-         for (unsigned i = 0; i < 5; ++i) {
-            REQUIRE(pack[i] == darray1[i]);
-            REQUIRE(clone[i] != darray1[i]);
-            REQUIRE(*clone[i] == *darray1[i]);
+            REQUIRE(clone.GetRaw() != pack.GetRaw());
+            REQUIRE(clone.GetCount() == pack.GetCount());
+            REQUIRE(clone.GetReserved() >= clone.GetCount());
+            REQUIRE(clone.GetState() == pack.GetState());
+            REQUIRE(clone.GetType() == pack.GetType());
+            REQUIRE(clone.GetUses() == 1);
+            REQUIRE(pack.GetUses() == 1);
+
+            for (unsigned i = 0; i < 5; ++i) {
+               REQUIRE(pack[i] == darray1[i]);
+               REQUIRE(clone[i] != darray1[i]);
+               REQUIRE(*clone[i] == *darray1[i]);
+            }
+         }
+         else if constexpr (CT::Untyped<T>) {
+            T clone;
+            REQUIRE_THROWS(new (&clone) T {Langulus::Clone(pack)});
          }
       }
 
@@ -2427,6 +2469,10 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
                REQUIRE(i == it + 1);
                ++it;
             },
+            [&](const RT& i) {
+               REQUIRE(i == it + 1);
+               ++it;
+            },
             [&](const Any& i) {
                const auto temp = CreateElement<DenseE>(it + 1);
                REQUIRE(i == static_cast<const Any&>(temp));
@@ -2448,11 +2494,15 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
                REQUIRE(i == it + 1);
                ++it;
             },
-            [&](const Trait& i) {
+            [&](Trait& i) {
                REQUIRE(i == it + 1);
                ++it;
             },
-            [&](const Any& i) {
+            [&](RT& i) {
+               REQUIRE(i == it + 1);
+               ++it;
+            },
+            [&](Any& i) {
                const auto temp = CreateElement<DenseE>(it + 1);
                REQUIRE(i == static_cast<const Any&>(temp));
                ++it;
@@ -2460,7 +2510,7 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
          );
 
          REQUIRE(static_cast<unsigned>(it) == foreachit);
-         if constexpr (CT::Same<E, Text>)
+         if constexpr (CT::TextBased<Decay<E>>)
             REQUIRE(it == 0);
          else
             REQUIRE(static_cast<unsigned>(it) == pack.GetCount());
@@ -2477,6 +2527,10 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
                REQUIRE(*i == it + 1);
                ++it;
             },
+            [&](const RT* i) {
+               REQUIRE(*i == it + 1);
+               ++it;
+            },
             [&](const Any* i) {
                const auto temp = CreateElement<DenseE>(it + 1);
                REQUIRE(*i == static_cast<const Any&>(temp));
@@ -2485,7 +2539,7 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
          );
 
          REQUIRE(static_cast<unsigned>(it) == foreachit);
-         if constexpr (CT::Same<E, Text>)
+         if constexpr (CT::TextBased<Decay<E>>)
             REQUIRE(it == 0);
          else
             REQUIRE(static_cast<unsigned>(it) == pack.GetCount());
@@ -2498,11 +2552,15 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
                REQUIRE(*i == it + 1);
                ++it;
             },
-            [&](const Trait* i) {
+            [&](Trait* i) {
                REQUIRE(*i == it + 1);
                ++it;
             },
-            [&](const Any* i) {
+            [&](RT* i) {
+               REQUIRE(*i == it + 1);
+               ++it;
+            },
+            [&](Any* i) {
                const auto temp = CreateElement<DenseE>(it + 1);
                REQUIRE(*i == static_cast<const Any&>(temp));
                ++it;
@@ -2510,7 +2568,7 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
          );
 
          REQUIRE(static_cast<unsigned>(it) == foreachit);
-         if constexpr (CT::Same<E, Text>)
+         if constexpr (CT::TextBased<Decay<E>>)
             REQUIRE(it == 0);
          else
             REQUIRE(static_cast<unsigned>(it) == pack.GetCount());
@@ -2527,6 +2585,10 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
                REQUIRE(i == 5 - it);
                ++it;
             },
+            [&](const RT& i) {
+               REQUIRE(i == 5 - it);
+               ++it;
+            },
             [&](const Any& i) {
                const auto temp = CreateElement<DenseE>(5 - it);
                REQUIRE(i == static_cast<const Any&>(temp));
@@ -2535,7 +2597,7 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
          );
 
          REQUIRE(static_cast<unsigned>(it) == foreachit);
-         if constexpr (CT::Same<E, Text>)
+         if constexpr (CT::TextBased<Decay<E>>)
             REQUIRE(it == 0);
          else
             REQUIRE(static_cast<unsigned>(it) == pack.GetCount());
@@ -2548,11 +2610,15 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
                REQUIRE(i == 5 - it);
                ++it;
             },
-            [&](const Trait& i) {
+            [&](Trait& i) {
                REQUIRE(i == 5 - it);
                ++it;
             },
-            [&](const Any& i) {
+            [&](RT& i) {
+               REQUIRE(i == 5 - it);
+               ++it;
+            },
+            [&](Any& i) {
                const auto temp = CreateElement<DenseE>(5 - it);
                REQUIRE(i == static_cast<const Any&>(temp));
                ++it;
@@ -2560,7 +2626,7 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
          );
 
          REQUIRE(static_cast<unsigned>(it) == foreachit);
-         if constexpr (CT::Same<E, Text>)
+         if constexpr (CT::TextBased<Decay<E>>)
             REQUIRE(it == 0);
          else
             REQUIRE(static_cast<unsigned>(it) == pack.GetCount());
@@ -2577,6 +2643,10 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
                REQUIRE(*i == 5 - it);
                ++it;
             },
+            [&](const RT* i) {
+               REQUIRE(*i == 5 - it);
+               ++it;
+            },
             [&](const Any* i) {
                const auto temp = CreateElement<DenseE>(5 - it);
                REQUIRE(*i == static_cast<const Any&>(temp));
@@ -2585,7 +2655,7 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
          );
 
          REQUIRE(static_cast<unsigned>(it) == foreachit);
-         if constexpr (CT::Same<E, Text>)
+         if constexpr (CT::TextBased<Decay<E>>)
             REQUIRE(it == 0);
          else
             REQUIRE(static_cast<unsigned>(it) == pack.GetCount());
@@ -2598,11 +2668,15 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
                REQUIRE(*i == 5 - it);
                ++it;
             },
-            [&](const Trait* i) {
+            [&](Trait* i) {
                REQUIRE(*i == 5 - it);
                ++it;
             },
-            [&](const Any* i) {
+            [&](RT* i) {
+               REQUIRE(*i == 5 - it);
+               ++it;
+            },
+            [&](Any* i) {
                const auto temp = CreateElement<DenseE>(5 - it);
                REQUIRE(*i == static_cast<const Any&>(temp));
                ++it;
@@ -2610,7 +2684,7 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
          );
 
          REQUIRE(static_cast<unsigned>(it) == foreachit);
-         if constexpr (CT::Same<E, Text>)
+         if constexpr (CT::TextBased<Decay<E>>)
             REQUIRE(it == 0);
          else
             REQUIRE(static_cast<unsigned>(it) == pack.GetCount());
@@ -2618,8 +2692,6 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
    }
 
    GIVEN("Two containers with some items") {
-      IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
-
       T pack1 {darray1[0], darray1[1], darray1[2], darray1[3], darray1[4]};
       T pack2 {darray2[0], darray2[1], darray2[2], darray2[3], darray2[4]};
       const T memory1 = pack1;
@@ -2710,24 +2782,31 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
          REQUIRE(pack2 == memory1);
       }
 
-      WHEN("Clone-assign pack1 in pack2") {
-         pack2 = Langulus::Clone(pack1);
+      if constexpr (CT::CloneAssignable<E>) {
+         WHEN("Clone-assign pack1 in pack2") {
+            pack2 = Langulus::Clone(pack1);
 
-         REQUIRE(pack1.GetUses() == 2);
-         REQUIRE(pack2.GetUses() == 1);
-         REQUIRE(pack1 != pack2);
-         REQUIRE(pack2 != memory1);
-         REQUIRE(pack2 != memory2);
+            REQUIRE(pack1.GetUses() == 2);
+            REQUIRE(pack2.GetUses() == 1);
+            REQUIRE(pack1 != pack2);
+            REQUIRE(pack2 != memory1);
+            REQUIRE(pack2 != memory2);
+         }
+
+         WHEN("Clone-assign pack1 in pack2, then reset pack1") {
+            pack2 = Langulus::Clone(pack1);
+            const T memory3 = pack2;
+            pack1.Reset();
+
+            REQUIRE_FALSE(pack1.HasAuthority());
+            REQUIRE(pack2.GetUses() == 2);
+            REQUIRE(memory3.GetUses() == 2);
+         }
       }
-
-      WHEN("Clone-assign pack1 in pack2, then reset pack1") {
-         pack2 = Langulus::Clone(pack1);
-         const T memory3 = pack2;
-         pack1.Reset();
-
-         REQUIRE_FALSE(pack1.HasAuthority());
-         REQUIRE(pack2.GetUses() == 2);
-         REQUIRE(memory3.GetUses() == 2);
+      else if constexpr (CT::Untyped<T>) {
+         WHEN("Clone-assign pack1 in pack2") {
+            REQUIRE_THROWS(pack2 = Langulus::Clone(pack1));
+         }
       }
 
       WHEN("Concatenate both packs to a third pack") {
@@ -2740,11 +2819,21 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
       }
    }
 
+   if constexpr (CT::Referencable<E>)
+      element->Reference(-1);
    delete element;
-   for (auto item : darray1)
+
+   for (auto item : darray1) {
+      if constexpr (CT::Referencable<E>)
+         item->Reference(-1);
       delete item;
-   for (auto item : darray2)
+   }
+
+   for (auto item : darray2) {
+      if constexpr (CT::Referencable<E>)
+         item->Reference(-1);
       delete item;
+   }
 
    REQUIRE(memoryState.Assert());
 }

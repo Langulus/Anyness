@@ -16,15 +16,15 @@ namespace Langulus::Anyness
    ///                                                                        
    ///   A shared pointer                                                     
    ///                                                                        
-   ///   Provides ownership and referencing. Also, for single-element         
+   ///   Provides ownership for a single pointer. Also, for single-element    
    /// containment, it is a lot more efficient than TAny. So, essentially     
    /// it's equivalent to std::shared_ptr                                     
    ///                                                                        
-   template<class T, bool DR>
+   template<class T>
    class TPointer : public TOwned<T*> {
    protected:
       using Base = TOwned<T*>;
-      using Self = TPointer<T, DR>;
+      using Self = TPointer<T>;
       using Type = TypeOf<Base>;
 
       using Base::mValue;
@@ -84,8 +84,12 @@ namespace Langulus::Anyness
       ///                                                                     
       void Reset();
 
-      NOD() operator TPointer<const T, DR>() const noexcept requires CT::Mutable<T>;
+      NOD() operator TPointer<const T>() const noexcept requires CT::Mutable<T>;
       NOD() operator const T& () const noexcept;
    };
+
+   /// Deduction guides                                                       
+   template<CT::Sparse T>
+   TPointer(T) -> TPointer<Deptr<T>>;
 
 } // namespace Langulus::Anyness

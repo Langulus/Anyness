@@ -145,6 +145,8 @@ namespace Langulus::Anyness
       else {
          // Data is used from multiple locations, don't change data     
          // We're forced to dereference and reset memory pointers       
+         ClearInner<THIS, false>();
+
          mInfo = nullptr;
          const_cast<Allocation*>(mKeys.mEntry)->Free();
          mKeys.ResetMemory();
@@ -157,13 +159,17 @@ namespace Langulus::Anyness
       if (mKeys.mEntry) {
          if (mKeys.mEntry->GetUses() == 1) {
             // Remove all used keys and values, they're used only here  
-            ClearInner<THIS>();
+            if (not IsEmpty())
+               ClearInner<THIS>();
 
             // No point in resetting info, we'll be deallocating it     
             Allocator::Deallocate(const_cast<Allocation*>(mKeys.mEntry));
          }
          else {
             // Data is used from multiple locations, just deref values  
+            if (not IsEmpty())
+               ClearInner<THIS, false>();
+
             const_cast<Allocation*>(mKeys.mEntry)->Free();
          }
 
@@ -182,163 +188,11 @@ namespace Langulus::Anyness
    
    /// Destroy everything valid inside the set, but don't deallocate          
    ///   @attention doesn't affect count, or any container state              
-   template<CT::Set THIS> LANGULUS(INLINED)
+   ///   @tparam FORCE - used only when GetUses() == 1                        
+   template<CT::Set THIS, bool FORCE> LANGULUS(INLINED)
    void BlockSet::ClearInner() {
-      LANGULUS_ASSUME(DevAssumes, mKeys.GetUses() == 1,
-         "Attempting to destroy elements used from multiple locations");
-      LANGULUS_ASSUME(DevAssumes, not IsEmpty(),
-         "Attempting to destroy elements in an empty container");
-      LANGULUS_ASSUME(DevAssumes, not mKeys.IsStatic(),
-         "Destroying elements in a static container is not allowed");
-
       using B = Deref<decltype(GetValues<THIS>())>;
-      auto remaining = GetCount();
-      auto inf = GetInfo();
-      const auto infEnd = GetInfoEnd();
-      
-      if constexpr (CT::Typed<B>) {
-         using T = TypeOf<B>;
-
-         if constexpr (CT::Sparse<T>) {
-            // Destroy all indirection layers, if their references reach
-            // 1, and destroy the dense element, if it has destructor   
-            // This is done in the following way:                       
-            //    1. First dereference all handles that point to the    
-            //       same memory together as one                        
-            //    2. Destroy those groups, that are fully dereferenced  
-            while (inf != infEnd and remaining) {
-               if (not *inf) {
-                  ++inf;
-                  continue;
-               }
-
-               --remaining;
-               auto handle = GetHandle<THIS>(inf - GetInfo());
-               if (not handle.GetEntry()) {
-                  ++inf;
-                  continue;
-               }
-
-               // Count all handles that match the current entry        
-               auto matches = 0;
-               auto inf2 = inf + 1;
-               while (inf2 != infEnd) {
-                  if (*inf2) {
-                     auto handle2 = GetHandle<THIS>(inf2 - GetInfo());
-                     if (handle.GetEntry() == handle2.GetEntry())
-                        ++matches;
-                  }
-                  ++inf2;
-               }
-
-               const_cast<Allocation*>(handle.GetEntry())->Free(matches);
-
-               if (1 == handle.GetEntry()->GetUses()) {
-                  // Destroy all matching handles, but deallocate only  
-                  // once after that                                    
-                  if (matches) {
-                     auto inf3 = inf + 1;
-                     while (inf3 != infEnd) {
-                        if (*inf3) {
-                           auto handle3 = GetHandle<THIS>(inf3 - GetInfo());
-                           if (handle.GetEntry() == handle3.GetEntry())
-                              handle3.template Destroy<true, false>();
-                        }
-                        ++inf3;
-                     }
-                  }
-                  handle.Destroy();
-               }
-               else {
-                  // Just dereference once more                         
-                  const_cast<Allocation*>(handle.GetEntry())->Free(1);
-               }
-
-               ++inf;
-            }
-            LANGULUS_ASSUME(DevAssumes, not remaining, "Leftover");
-         }
-         else if constexpr (CT::Destroyable<T>) {
-            // Destroy every dense element                              
-            using DT = Decay<T>;
-            while (inf != infEnd and remaining) {
-               if (*inf) {
-                  mKeys.GetRaw<B>()[inf - GetInfo()].~DT();
-                  --remaining;
-               }
-               ++inf;
-            }
-            LANGULUS_ASSUME(DevAssumes, not remaining, "Leftover");
-         }
-      }
-      else {
-         if (mKeys.mType->mIsSparse) {
-            // Destroy all indirection layers, if their references reach
-            // 1, and destroy the dense element, if it has destructor   
-            while (inf != infEnd and remaining) {
-               if (not *inf) {
-                  ++inf;
-                  continue;
-               }
-
-               --remaining;
-               auto handle = mKeys.GetHandle<Byte*, B>(inf - GetInfo());
-               if (not handle.GetEntry()) {
-                  ++inf;
-                  continue;
-               }
-
-               // Count all handles that match the current entry        
-               auto matches = 0;
-               auto inf2 = inf + 1;
-               while (inf2 != infEnd) {
-                  if (*inf2) {
-                     auto handle2 = mKeys.GetHandle<Byte*, B>(inf2 - GetInfo());
-                     if (handle.GetEntry() == handle2.GetEntry())
-                        ++matches;
-                  }
-                  ++inf2;
-               }
-
-               const_cast<Allocation*>(handle.GetEntry())->Free(matches);
-
-               if (1 == handle.GetEntry()->GetUses()) {
-                  // Destroy all matching handles, but deallocate only  
-                  // once after that                                    
-                  if (matches) {
-                     auto inf3 = inf + 1;
-                     while (inf3 != infEnd) {
-                        if (*inf3) {
-                           auto handle3 = mKeys.GetHandle<Byte*, B>(inf3 - GetInfo());
-                           if (handle.GetEntry() == handle3.GetEntry())
-                              handle3.template DestroyUnknown<true, false>(mKeys.mType);
-                        }
-                        ++inf3;
-                     }
-                  }
-                  handle.DestroyUnknown(mKeys.mType);
-               }
-               else {
-                  // Just dereference once more                         
-                  const_cast<Allocation*>(handle.GetEntry())->Free(1);
-               }
-
-               ++inf;
-            }
-            LANGULUS_ASSUME(DevAssumes, not remaining, "Leftover");
-         }
-         else if (mKeys.mType->mDestructor) {
-            // Destroy every dense element                              
-            while (inf != infEnd and remaining) {
-               if (*inf) {
-                  mKeys.mType->mDestructor(mKeys.mRaw + (inf - GetInfo()) * mKeys.mType->mSize);
-                  --remaining;
-               }
-               ++inf;
-            }
-            LANGULUS_ASSUME(DevAssumes, not remaining, "Leftover");
-         }
-      }
+      mKeys.Destroy<B, FORCE>(mInfo);
    }
 
 } // namespace Langulus::Anyness
