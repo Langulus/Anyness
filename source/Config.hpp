@@ -120,18 +120,9 @@ namespace Langulus
       struct Path;
 
       template<CT::Data>
-      class TOwned;
+      class Own;
       template<class>
-      class TPointer;
-
-      /// A shared pointer, that provides ownership and more reference counting  
-      /// Referencing comes first from the block of memory that the pointer      
-      /// points to, and second - the instance's individual reference counter    
-      /// Useful for keeping track not only of the memory, but of the individual 
-      /// element inside the memory block. Used to keep track of elements inside 
-      /// THive and Hive (component factories for example)                       
-      template<class T>
-      using Ref = TPointer<T>;
+      class Ref;
 
       class Construct;
       using Messy = Any;

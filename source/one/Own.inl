@@ -7,10 +7,10 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #pragma once
-#include "TOwned.hpp"
+#include "Own.hpp"
 
 #define TEMPLATE() template<CT::Data T>
-#define TME() TOwned<T>
+#define TME() Own<T>
 
 
 namespace Langulus::Anyness
@@ -19,52 +19,56 @@ namespace Langulus::Anyness
    /// Default constructor                                                    
    ///   @param value - owned value to reference                              
    TEMPLATE() LANGULUS(INLINED)
-   constexpr TME()::TOwned() requires CT::Inner::Defaultable<T>
+   constexpr TME()::Own() requires CT::Inner::Defaultable<T>
       : mValue {} {}
 
    /// Refer constructor                                                      
    ///   @param value - owned value to reference                              
    TEMPLATE() LANGULUS(INLINED)
-   constexpr TME()::TOwned(const TOwned& value) requires (CT::Sparse<T> or CT::Inner::ReferMakable<T>)
-      : TOwned {Refer(value)} {}
+   constexpr TME()::Own(const Own& value)
+   requires (CT::Sparse<T> or CT::Inner::ReferMakable<T>)
+      : Own {Refer(value)} {}
 
    /// Move constructor                                                       
    ///   @param value - owned value to move                                   
    TEMPLATE() LANGULUS(INLINED)
-   constexpr TME()::TOwned(TOwned&& value) requires (CT::Sparse<T> or CT::Inner::MoveMakable<T>)
-      : TOwned {Move(value)} {}
+   constexpr TME()::Own(Own&& value)
+   requires (CT::Sparse<T> or CT::Inner::MoveMakable<T>)
+      : Own {Move(value)} {}
    
    /// Generic constructor                                                    
    TEMPLATE() template<template<class> class S>
    requires CT::Inner::SemanticMakable<S, T> LANGULUS(INLINED)
-   constexpr TME()::TOwned(S<TOwned>&& other)
-      : mValue {S<TOwned>::Nest(other->mValue)} {}
+   constexpr TME()::Own(S<Own>&& other)
+      : mValue {S<Own>::Nest(other->mValue)} {}
 
    /// Argument forwarding constructor                                        
    TEMPLATE() template<CT::NotOwned...A>
    requires ::std::constructible_from<T, A...> LANGULUS(INLINED)
-   constexpr TME()::TOwned(A&&...args)
+   constexpr TME()::Own(A&&...args)
       : mValue {Forward<A>(args)...} {}
 
    /// Refer assignment                                                       
    ///   @param value - the value to reference                                
    TEMPLATE() LANGULUS(INLINED)
-   constexpr TME()& TME()::operator = (const TOwned& value) requires (CT::Sparse<T> or CT::Inner::ReferAssignable<T>) {
+   constexpr TME()& TME()::operator = (const Own& value)
+   requires (CT::Sparse<T> or CT::Inner::ReferAssignable<T>) {
       return operator = (Refer(value));
    }
 
    /// Move assignment                                                        
    ///   @param value - the value to move                                     
    TEMPLATE() LANGULUS(INLINED)
-   constexpr TME()& TME()::operator = (TOwned&& value) requires (CT::Sparse<T> or CT::Inner::MoveAssignable<T>) {
+   constexpr TME()& TME()::operator = (Own&& value)
+   requires (CT::Sparse<T> or CT::Inner::MoveAssignable<T>) {
       return operator = (Move(value));
    }
    
    /// Generic assignment                                                     
    TEMPLATE() template<template<class> class S>
    requires CT::Inner::SemanticAssignable<S, T> LANGULUS(INLINED)
-   constexpr TME()& TME()::operator = (S<TOwned>&& rhs) {
-      mValue = S<TOwned>::Nest(rhs->mValue);
+   constexpr TME()& TME()::operator = (S<Own>&& rhs) {
+      mValue = S<Own>::Nest(rhs->mValue);
       return *this;
    }
 
@@ -93,7 +97,7 @@ namespace Langulus::Anyness
    constexpr Block TME()::GetBlock() const {
       return {
          DataState::Member, GetType(), 1, &mValue
-         // Notice entry is missing, which means it will be searched    
+         // Notice entry is missing, which means it will be sought      
       };
    }
 

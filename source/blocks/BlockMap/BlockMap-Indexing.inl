@@ -270,13 +270,13 @@ namespace Langulus::Anyness
          // We can't rely on Block::GetHandle, because it uses mReserved
          const auto mthis = const_cast<Block*>(&mValues);
          if constexpr (CT::Sparse<V>) {
-            return Handle<V> {
+            return Handle {
                mthis->template GetRawAs<V, TAny<V>>()[i],
                const_cast<const Allocation**>(
                   reinterpret_cast<Allocation**>(mthis->mRawSparse + mKeys.mReserved))[i]
             };
          }
-         else return Handle<V> {
+         else return Handle {
             mthis->template GetRawAs<V, TAny<V>>()[i],
             mthis->mEntry
          };

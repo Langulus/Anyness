@@ -199,9 +199,9 @@ namespace Langulus::Anyness
       friend struct Path;
 
       template<CT::Data>
-      friend class TOwned;
+      friend class Own;
       template<class>
-      friend class TPointer;
+      friend class Ref;
 
       friend class Neat;
       friend class Construct;
