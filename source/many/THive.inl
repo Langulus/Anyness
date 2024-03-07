@@ -176,9 +176,11 @@ namespace Langulus::Anyness
 
       if (mReusable) {
          // Reuse a slot                                                
-         const auto memory = mReusable;
-         mReusable = mReusable->mNextFreeCell;
-         result = new (memory) Cell {Forward<A>(args)...};
+         const auto nextReusable = mReusable->mNextFreeCell;
+         try { result = new (mReusable) Cell {Forward<A>(args)...}; }
+         catch (...) { return nullptr; }
+
+         mReusable = nextReusable;
 
          // Make sure that the mReusable is inside limits, as it may    
          // go out of bounds in edge cases                              
@@ -194,17 +196,30 @@ namespace Langulus::Anyness
             ? mFrames.Last().GetReserved() * 2
             : DefaultFrameSize;
 
-         mFrames.New(1);
-         auto& frame = mFrames.Last();
-         frame.Reserve(nextReserved);
-
          // Use first cell to initialize our object                     
-         result = new (frame.GetRaw()) Cell {Forward<A>(args)...};
-         ++frame.mCount;
+         Frame* frame = nullptr;
+         try {
+            mFrames.New(1);
+            frame = &mFrames.Last();
+            frame->Reserve(nextReserved);
+
+            result = new (frame->GetRaw()) Cell {Forward<A>(args)...};
+         }
+         catch (...) {
+            // Pass through all new unused cells, and set their markers 
+            // We allocated a new frame, let's not let it go to waste   
+            mReusable = frame->GetRaw();
+            const auto cellEnd = frame->GetRaw() + frame->GetReserved();
+            for (auto cell = mReusable; cell < cellEnd; ++cell)
+               cell->mNextFreeCell = cell + 1;
+            return nullptr;
+         }
+
+         ++frame->mCount;
 
          // Pass through all new unused cells, and set their markers    
-         mReusable = frame.GetRaw() + 1;
-         const auto cellEnd = frame.GetRaw() + frame.GetReserved();
+         mReusable = frame->GetRaw() + 1;
+         const auto cellEnd = frame->GetRaw() + frame->GetReserved();
          for (auto cell = mReusable; cell < cellEnd; ++cell)
             cell->mNextFreeCell = cell + 1;
       }
