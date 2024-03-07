@@ -66,7 +66,8 @@ namespace Langulus::Anyness
    ///   @return a trait preconfigured with the provided types and contents   
    template<CT::Trait T> LANGULUS(INLINED)
    Trait Trait::From(auto&& stuff) {
-      Trait temp {Forward<Deref<decltype(stuff)>>(stuff)};
+      using S = SemanticOf<decltype(stuff)>;
+      Trait temp {S {stuff}};
       temp.SetTrait<T>();
       return Abandon(temp);
    }
@@ -77,7 +78,8 @@ namespace Langulus::Anyness
    ///   @return the trait                                                    
    LANGULUS(INLINED)
    Trait Trait::From(TMeta meta, auto&& stuff) {
-      Trait temp {Forward<Deref<decltype(stuff)>>(stuff)};
+      using S = SemanticOf<decltype(stuff)>;
+      Trait temp {S {stuff}};
       temp.SetTrait(meta);
       return Abandon(temp);
    }

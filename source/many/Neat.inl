@@ -720,7 +720,7 @@ namespace Langulus::Anyness
          if (found)
             *found.mValue << Abandon(wrapper);
          else
-            mTraits.Insert(meta, /*TAny<Any> {*/Abandon(wrapper)/*}*/);
+            mTraits.Insert(meta, Abandon(wrapper));
       }
       else if constexpr (CT::Exact<T, TMeta>) {
          // Insert trait without contents                               
@@ -729,7 +729,7 @@ namespace Langulus::Anyness
          if (found)
             *found.mValue << Any {};
          else
-            mTraits.Insert(trait, /*TAny<Any> {*/ Any {} /*}*/);
+            mTraits.Insert(trait, Any {});
       }
       else LANGULUS_ERROR("Can't insert trait");
    }
