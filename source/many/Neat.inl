@@ -91,7 +91,7 @@ namespace Langulus::Anyness
 
    /// Turn the neat container to a messy one                                 
    ///   @return the messy container                                          
-   inline Messy Neat::MakeMessy() const {
+   /*inline Messy Neat::MakeMessy() const {
       // Un-neat and push all traits                                    
       TAny<Trait> traits;
       for (auto pair : mTraits) {
@@ -148,7 +148,7 @@ namespace Langulus::Anyness
       }
 
       return Abandon(result);
-   }
+   }*/
 
    /// Get the hash of a neat container (and cache it)                        
    ///   @attention Traits::Parent never participate in hashing/comparison    
@@ -771,6 +771,9 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    void Neat::AddVerb(auto&& verb) {
       using S = SemanticOf<decltype(verb)>;
+      static_assert(CT::VerbBased<TypeOf<S>>);
+      if constexpr (CT::Verb<TypeOf<S>>)
+         (void) DesemCast(verb).GetVerb();
 
       // Insert deep data - we have to flatten it                       
       static const auto meta = MetaDataOf<A::Verb>();
@@ -843,7 +846,7 @@ namespace Langulus::Anyness
    ///   @tparam F - the function(s) signature(s) (deducible)                 
    ///   @param call - the function(s) to execute for each element            
    ///   @return the number of executions of 'call'                           
-   template<bool MUTABLE, class...F>
+   template<bool MUTABLE, class...F> LANGULUS(INLINED)
    Count Neat::ForEach(F&&...call) {
       if (IsEmpty())
          return 0;
@@ -856,7 +859,7 @@ namespace Langulus::Anyness
    }
 
    ///                                                                        
-   template<class...F>
+   template<class...F> LANGULUS(INLINED)
    Count Neat::ForEach(F&&...call) const {
       return const_cast<Neat*>(this)->template 
          ForEach<false>(Forward<F>(call)...);
@@ -871,7 +874,7 @@ namespace Langulus::Anyness
    ///   @tparam F - the function(s) signature(s) (deducible)                 
    ///   @param call - the function(s) to execute for each element            
    ///   @return the number of executions of all calls                        
-   template<bool MUTABLE, class...F>
+   template<bool MUTABLE, class...F> LANGULUS(INLINED)
    Count Neat::ForEachDeep(F&&...call) {
       Count executions = 0;
       ((executions += ForEachInner<MUTABLE>(Forward<F>(call))), ...);
@@ -879,7 +882,7 @@ namespace Langulus::Anyness
    }
 
    /// Neat containers are always flat, so deep iteration is same as flat one 
-   template<class...F>
+   template<class...F> LANGULUS(INLINED)
    Count Neat::ForEachDeep(F&&...call) const {
       return const_cast<Neat*>(this)->template
          ForEachDeep<false>(Forward<F>(call)...);
@@ -896,7 +899,7 @@ namespace Langulus::Anyness
    ///   @tparam MUTABLE - whether changes inside container are allowed       
    ///   @param call - the function to execute for each element               
    ///   @return the number of executions of 'call'                           
-   template<bool MUTABLE, class F>
+   template<bool MUTABLE, class F> LANGULUS(INLINED)
    Count Neat::ForEachInner(F&& call) {
       using A = ArgumentOf<F>;
       static_assert(CT::Constant<Deptr<A>> or MUTABLE,
@@ -925,7 +928,7 @@ namespace Langulus::Anyness
    }
 
    ///                                                                        
-   template<class F>
+   template<class F> LANGULUS(INLINED)
    Count Neat::ForEachInner(F&& call) const {
       return const_cast<Neat*>(this)->template 
          ForEach<false>(Forward<F>(call));
@@ -1032,7 +1035,7 @@ namespace Langulus::Anyness
    }
 
    ///                                                                        
-   template<class F>
+   template<class F> LANGULUS(INLINED)
    Count Neat::ForEachTrait(F&& call) const {
       return const_cast<Neat*>(this)->template
          ForEachTrait<false>(Forward<F>(call));
@@ -1120,7 +1123,7 @@ namespace Langulus::Anyness
    }
 
    ///                                                                        
-   template<class F>
+   template<class F> LANGULUS(INLINED)
    Count Neat::ForEachConstruct(F&& call) const {
       return const_cast<Neat*>(this)->template
          ForEachConstruct<false>(Forward<F>(call));
@@ -1211,7 +1214,7 @@ namespace Langulus::Anyness
    }
 
    ///                                                                        
-   template<class F>
+   template<class F> LANGULUS(INLINED)
    Count Neat::ForEachTail(F&& call) const {
       return const_cast<Neat*>(this)->template
          ForEachTail<false>(Forward<F>(call));

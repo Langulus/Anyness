@@ -859,9 +859,11 @@ namespace Langulus::Anyness
       ///   Flow                                                              
       ///                                                                     
       // Intentionally undefined, because it requires Langulus::Flow    
-      Flow::Verb& Run(Flow::Verb&) const;
+      /*template<CT::VerbBased V>
+      V& Run(V&) const;
       // Intentionally undefined, because it requires Langulus::Flow    
-      Flow::Verb& Run(Flow::Verb&);
+      template<CT::VerbBased V>
+      V& Run(V&);*/
    };
 
    namespace Inner
