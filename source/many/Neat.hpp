@@ -106,7 +106,7 @@ namespace Langulus::Anyness
       void Clear();
       void Reset();
 
-      NOD() Messy MakeMessy() const;
+      //NOD() Messy MakeMessy() const;
 
       ///                                                                     
       ///   Encapsulation                                                     
