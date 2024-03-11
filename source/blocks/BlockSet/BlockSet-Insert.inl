@@ -195,27 +195,57 @@ namespace Langulus::Anyness
    Count BlockSet::InsertBlock(T&& item) {
       using S = SemanticOf<decltype(item)>;
       using ST = TypeOf<S>;
-
       const auto count = DesemCast(item).GetCount();
+      if (not count)
+         return 0;
+
       Reserve(GetCount() + count);
 
-      if constexpr (CT::Typed<ST> or CT::Typed<THIS>) {
-         // Merging with a statically typed sets                        
-         using B = Conditional<CT::Typed<ST>, ST, THIS>;
-         for (auto& it : reinterpret_cast<const B&>(DesemCast(item))) {
-            InsertInner<THIS, true>(
-               GetBucket(GetReserved() - 1, it),
-               S::Nest(it)
-            );
+      if (IsEmpty()) {
+         // This set was empty, so no chance of collision, and since    
+         // we're inserting a set, we can save a lot of CPU by not      
+         // checking for matches                                        
+         if constexpr (CT::Typed<ST> or CT::Typed<THIS>) {
+            // Merging with a statically typed sets                     
+            using B = Conditional<CT::Typed<ST>, ST, THIS>;
+            for (auto& it : reinterpret_cast<const B&>(DesemCast(item))) {
+               InsertInner<THIS, false>(
+                  GetBucket(GetReserved() - 1, it),
+                  S::Nest(it)
+               );
+            }
+         }
+         else {
+            // Merging type-erased sets                                 
+            for (auto& it : DesemCast(item)) {
+               InsertBlockInner<THIS, false>(
+                  GetBucketUnknown(GetReserved() - 1, it),
+                  S::Nest(it)
+               );
+            }
          }
       }
       else {
-         // Merging type-erased sets                                    
-         for (auto& it : DesemCast(item)) {
-            InsertBlockInner<THIS, true>(
-               GetBucketUnknown(GetReserved() - 1, it),
-               S::Nest(it)
-            );
+         // This set already contains some stuff, so be careful when    
+         // inserting elements from the other set - they might repeat   
+         if constexpr (CT::Typed<ST> or CT::Typed<THIS>) {
+            // Merging with a statically typed sets                     
+            using B = Conditional<CT::Typed<ST>, ST, THIS>;
+            for (auto& it : reinterpret_cast<const B&>(DesemCast(item))) {
+               InsertInner<THIS, true>(
+                  GetBucket(GetReserved() - 1, it),
+                  S::Nest(it)
+               );
+            }
+         }
+         else {
+            // Merging type-erased sets                                 
+            for (auto& it : DesemCast(item)) {
+               InsertBlockInner<THIS, true>(
+                  GetBucketUnknown(GetReserved() - 1, it),
+                  S::Nest(it)
+               );
+            }
          }
       }
 
@@ -229,8 +259,10 @@ namespace Langulus::Anyness
    Count BlockSet::InsertBlock(T&& item) {
       using S = SemanticOf<decltype(item)>;
       using ST = TypeOf<S>;
-
       const auto count = DesemCast(item).GetCount();
+      if (not count)
+         return 0;
+
       Reserve(GetCount() + count);
 
       if constexpr (CT::Typed<ST> or CT::Typed<THIS>) {
