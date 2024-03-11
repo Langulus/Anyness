@@ -295,16 +295,6 @@ namespace Langulus::Anyness
 
 
 
-   
-   /// Cell construction                                                      
-   ///   @param args... - arguments to forward to T's constructor             
-   TEMPLATE() template<class...A> requires ::std::constructible_from<T, A...>
-   LANGULUS(INLINED) TME()::Cell::Cell(A&&...args)
-      : mData {Forward<A>(args)...} {}
-
-
-
-
    /// Construct an iterator                                                  
    ///   @param start - the current iterator position                         
    ///   @param end - the ending marker                                       
