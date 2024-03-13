@@ -853,17 +853,6 @@ namespace Langulus::Anyness
       NOD() Offset DeserializeAtom(Offset&, Offset, const Header&, Loader) const;
       template<CT::Block>
       NOD() Offset DeserializeMeta(CT::Meta auto&, Offset, const Header&, Loader) const;
-
-   public:
-      ///                                                                     
-      ///   Flow                                                              
-      ///                                                                     
-      // Intentionally undefined, because it requires Langulus::Flow    
-      /*template<CT::VerbBased V>
-      V& Run(V&) const;
-      // Intentionally undefined, because it requires Langulus::Flow    
-      template<CT::VerbBased V>
-      V& Run(V&);*/
    };
 
    namespace Inner
