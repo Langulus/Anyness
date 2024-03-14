@@ -586,7 +586,9 @@ namespace Langulus::Anyness
       NOD() constexpr Iterator operator ++ (int) noexcept;
 
       constexpr explicit operator bool() const noexcept;
-      constexpr operator Iterator<const MAP>() const noexcept requires Mutable;
+      constexpr operator Iterator<const MAP>() const noexcept requires Mutable {
+         return {mInfo, mSentinel, mKey, mValue};
+      }
    };
 
 } // namespace Langulus::Anyness

@@ -586,10 +586,4 @@ namespace Langulus::Anyness
       return *this != A::IteratorEnd {};
    }
 
-   /// Implicitly convert to a constant iterator                              
-   template<class T> LANGULUS(INLINED)
-   constexpr Block::Iterator<T>::operator Iterator<const T>() const noexcept requires Mutable {
-      return {mValue, mEnd};
-   }
-
 } // namespace Langulus::Anyness
