@@ -576,10 +576,4 @@ namespace Langulus::Anyness
       return mInfo < mSentinel;
    }
 
-   /// Implicitly convert to a constant iterator                              
-   template<class T> LANGULUS(INLINED)
-   constexpr BlockMap::Iterator<T>::operator Iterator<const T>() const noexcept requires Mutable {
-      return {mInfo, mSentinel, mKey, mValue};
-   }
-
 } // namespace Langulus::Anyness
