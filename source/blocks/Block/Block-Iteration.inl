@@ -149,7 +149,7 @@ namespace Langulus::Anyness
       using F = Deref<decltype(f)>;
       using A = ArgumentOf<F>;
       using R = ReturnOf<F>;
-      static constexpr auto NOE = NoexceptIterator<decltype(f)>;
+      UNUSED() static constexpr auto NOE = NoexceptIterator<decltype(f)>;
 
       if constexpr (CT::Typed<THIS>) {
          using T = TypeOf<THIS>;
