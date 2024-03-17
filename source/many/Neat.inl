@@ -11,6 +11,7 @@
 #include "../many/TAny.inl"
 #include "../maps/TMap.inl"
 #include "../many/TTrait.inl"
+#include "../one/Ref.inl"
 #include "../verbs/Verb.hpp"
 
 
@@ -88,67 +89,6 @@ namespace Langulus::Anyness
       mConstructs.Reset();
       mAnythingElse.Reset();
    }
-
-   /// Turn the neat container to a messy one                                 
-   ///   @return the messy container                                          
-   /*inline Messy Neat::MakeMessy() const {
-      // Un-neat and push all traits                                    
-      TAny<Trait> traits;
-      for (auto pair : mTraits) {
-         for (auto& data : pair.mValue) {
-            if (data.Is<Neat>())
-               traits << Trait::From(pair.mKey, data.Get<Neat>().MakeMessy());
-            else
-               traits << Trait::From(pair.mKey, data);
-         }
-      }
-      
-      // Un-neat and push all constructs                                
-      TAny<Construct> constructs;
-      for (auto pair : mConstructs) {
-         for (auto& construct : pair.mValue) {
-            if (construct.mData.Is<Neat>()) {
-               constructs << Construct {
-                  pair.mKey,
-                  construct.mData.Get<Neat>().MakeMessy(),
-                  construct.mCharge
-               };
-            }
-            else {
-               constructs << Construct {
-                  pair.mKey,
-                  construct.mData,
-                  construct.mCharge
-               };
-            }
-         }
-      }
-      
-      // Un-neat and push all the rest                                  
-      Messy result;
-      for (auto pair : mAnythingElse) {
-         if (mAnythingElse.GetCount() == 1)
-            result = pair.mValue;
-         else
-            result << pair.mValue;
-      }
-
-      if (traits) {
-         if (result)
-            result << Abandon(traits);
-         else
-            result = Abandon(traits);
-      }
-
-      if (constructs) {
-         if (result)
-            result << Abandon(constructs);
-         else
-            result = Abandon(constructs);
-      }
-
-      return Abandon(result);
-   }*/
 
    /// Get the hash of a neat container (and cache it)                        
    ///   @attention Traits::Parent never participate in hashing/comparison    
@@ -506,10 +446,28 @@ namespace Langulus::Anyness
          // same mAnythingElse[AVerb] bucket                            
          AddVerb(S::Nest(item));
       }
+      else if constexpr (CT::Owned<T>) {
+         // Make sure we strip any owning handle away                   
+         InsertInner(S::Nest(DesemCast(item).Get()));
+      }
+      else if constexpr (CT::Deep<T>) {
+         // Pushing an entire pack, make sure we flatten it, if it is   
+         // allowed                                                     
+         const auto meta = DesemCast(item).GetUnconstrainedState()
+            ? MetaDataOf<Decay<T>>()
+            : DesemCast(item).GetType();
+         const auto found = mAnythingElse.FindIt(meta);
+
+         if (found)
+            *found.mValue << S::Nest(item);
+         else
+            mAnythingElse.Insert(meta, S::Nest(item));
+      }
       else {
          // RHS is nothing special, just add it as it is                
          const auto meta = MetaDataOf<Decay<T>>();
          const auto found = mAnythingElse.FindIt(meta);
+
          if (found)
             *found.mValue << Messy {S::Nest(item)};
          else
@@ -1195,15 +1153,14 @@ namespace Langulus::Anyness
          // Iterate all relevant datas                                  
          Count index = 0;
          for (auto& data : *found.mValue) {
-            auto& dataTyped = reinterpret_cast<TAny<Deref<A>>&>(data);
-            for (auto& element : dataTyped) {
+            for (auto element : data) {
                if constexpr (CT::Bool<R>) {
                   // If F returns bool, you can decide when to break    
                   // the loop by returning Flow::Break (or just false)  
-                  if (not call(element))
+                  if (not call(element.template Get<A>()))
                      return index + 1;
                }
-               else call(element);
+               else call(element.template Get<A>());
             }
 
             ++index;
