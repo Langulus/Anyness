@@ -1296,7 +1296,7 @@ namespace Langulus::Anyness
                to += ", ";
 
             if (trait.IsValid())
-               to += Trait::From(pair.mKey, trait).Serialize(to);
+               Trait::From(pair.mKey, trait).Serialize(to);
             else
                to += static_cast<OUT>(pair.mKey);
             separator = true;
@@ -1309,7 +1309,7 @@ namespace Langulus::Anyness
                to += ", ";
 
             if (construct.mData.IsValid() or not construct.mCharge.IsDefault()) {
-               to += Construct(pair.mKey, construct.mData, construct.mCharge)
+               Construct(pair.mKey, construct.mData, construct.mCharge)
                   .Serialize(to);
             }
             else to += static_cast<OUT>(pair.mKey);
