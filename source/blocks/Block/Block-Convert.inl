@@ -186,10 +186,10 @@ namespace Langulus::Anyness
          return to.GetCount() - initial;
       }
 
-      if (IsConstant()) {
+      /*if (IsConstant()) {
          to += OUT::Operator::Constant;
          to += ' ';
-      }
+      }*/
 
       if (IsDeep<THIS>()) {
          // Nested serialization, wrap it in content scope              
@@ -255,6 +255,23 @@ namespace Langulus::Anyness
                //OUT::SerializationRules::EndScope(*this, to);
                return to.GetCount() - initial;
             }
+         }
+
+         if (mType->mNamedValues.size()) {
+            // Serialize as a named value                               
+            for (Offset i = 0; i < GetCount(); ++i) {
+               for (auto& named : mType->mNamedValues) {
+                  const Block constant {{}, named};
+                  if (GetElementDense(i) == constant) {
+                     to += named->GetShortestUnambiguousToken();
+                     break;
+                  }
+               }
+
+               if (i < GetCount() - 1)
+                  OUT::SerializationRules::Separate(*this, to);
+            }
+            return to.GetCount() - initial;
          }
          
          // No rules defined, or didn't apply to data, so time to rely  
