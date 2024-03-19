@@ -50,11 +50,11 @@ namespace Langulus::Anyness
       LANGULUS(TYPED) T;
       LANGULUS(ABSTRACT) false;
 
-      static_assert(CT::Complete<T>, "T must be a complete type");
-      static_assert(CT::Dense<T>, "T must be a dense type");
-      static_assert(CT::Data<T>, "T can't be void");
-      static_assert(CT::Referencable<T>, "T must be referencable");
-      static_assert(not CT::Abstract<T>, "T can't be abstract");
+      static_assert(CT::Complete<T>,      "T must be a complete type");
+      static_assert(CT::Dense<T>,         "T must be a dense type");
+      static_assert(CT::Data<T>,          "T can't be void");
+      static_assert(CT::Referencable<T>,  "T must be referencable");
+      static_assert(not CT::Abstract<T>,  "T can't be abstract");
 
       static constexpr Count DefaultFrameSize = 8;
 

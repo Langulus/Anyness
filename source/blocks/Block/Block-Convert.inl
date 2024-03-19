@@ -263,7 +263,7 @@ namespace Langulus::Anyness
                for (auto& named : mType->mNamedValues) {
                   const Block constant {{}, named};
                   if (GetElementDense(i) == constant) {
-                     to += named->GetShortestUnambiguousToken();
+                     to += named->mToken;
                      break;
                   }
                }
