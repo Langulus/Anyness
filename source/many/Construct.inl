@@ -153,12 +153,12 @@ namespace Langulus::Anyness
 #endif
    
    /// Rehash the construct                                                   
-   /// The hash is cached, so this is a cheap function                        
+   /// The hash is (mostly) cached, so this is a (relatively) cheap function  
    ///   @return the hash of the content                                      
    LANGULUS(INLINED)
    Hash Construct::GetHash() const {
       // Hash is the same as the Neat base, but with the type on top    
-      return mType ? HashOf(mType, mDescriptor) : mDescriptor.GetHash();
+      return mType ? HashOf(mType->mDecvq, mDescriptor) : mDescriptor.GetHash();
    }
 
    /// Clears arguments and charge, but doesn't deallocate                    
@@ -187,25 +187,10 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    bool Construct::operator == (const Construct& rhs) const {
       return GetHash() == rhs.GetHash()
-         and mType == rhs.mType and mDescriptor == rhs.mDescriptor;
+         and mType & rhs.mType
+         and mDescriptor == rhs.mDescriptor;
    }
-
-   /// Check if construct type can be interpreted as another type             
-   ///   @param type - the type check if current type interprets to           
-   ///   @return true if able to interpret current header to 'type'           
-   LANGULUS(INLINED)
-   bool Construct::CastsTo(DMeta type) const {
-      return not type or (mType == type or mType->CastsTo(type));
-   }
-
-   /// Check if constructor header is exactly another type                    
-   ///   @param type - the type to check for (must be a dense type)           
-   ///   @return true if current header is 'type'                             
-   LANGULUS(INLINED)
-   bool Construct::Is(DMeta type) const {
-      return not type or (mType and mType->Is(type));
-   }
-
+   
    /// Check if construct type can be interpreted as a given static type      
    ///   @tparam T - type of the construct to compare against                 
    template<CT::Data T> LANGULUS(INLINED)
@@ -213,11 +198,43 @@ namespace Langulus::Anyness
       return mType ? CastsTo(MetaDataOf<T>()) : false;
    }
 
-   /// Check if construct type fully matches a given static type              
-   ///   @tparam T - type of the construct to compare against                 
+   /// Check if construct type can be interpreted as another type             
+   ///   @param type - the type check if current type interprets to           
+   ///   @return true if able to interpret current header to 'type'           
+   LANGULUS(INLINED)
+   bool Construct::CastsTo(DMeta type) const {
+      return mType & type or mType->CastsTo(type);
+   }
+   
+   /// Check if construct type is similar to another type                     
+   ///   @tparam T - the type to check for                                    
    template<CT::Data T> LANGULUS(INLINED)
    bool Construct::Is() const {
       return mType ? Is(MetaDataOf<T>()) : false;
+   }
+
+   /// Check if construct type is similar to another type                     
+   ///   @param type - the type to check for                                  
+   ///   @return true if current header is similar to 'type'                  
+   LANGULUS(INLINED)
+   bool Construct::Is(DMeta type) const {
+      return mType & type;
+   }
+   
+   /// Change the type of the construct                                       
+   ///   @attention will cause a rehash if type differs                       
+   ///   @tparam T - the new type of the construct                            
+   template<CT::Data T> LANGULUS(INLINED)
+   void Construct::SetType() {
+      SetType(MetaDataOf<T>());
+   }
+
+   /// Check if constructor header is exactly another type                    
+   ///   @param type - the type to check for (must be a dense type)           
+   ///   @return true if current header is 'type'                             
+   LANGULUS(INLINED)
+   void Construct::SetType(DMeta type) noexcept {
+      mType = type;
    }
 
    /// Get the argument for the construct                                     
@@ -228,9 +245,15 @@ namespace Langulus::Anyness
    }
 
    /// Get the argument for the construct                                     
+   ///   @attention this will force a rehash to guarantee that any changes    
+   ///      made through the mutable Neat reference are accounted for on next 
+   ///      GetHash() request                                                 
    ///   @return the mutable arguments container                              
    LANGULUS(INLINED)
    Neat& Construct::GetDescriptor() noexcept {
+      // Reset hash preventively, because we're exposing a mutable ref, 
+      // which is likely to change, and thus a rehash will be needed    
+      mDescriptor.mHash = {};
       return mDescriptor;
    }
 
@@ -275,6 +298,18 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    bool Construct::IsExecutable() const noexcept {
       return mDescriptor.IsExecutable();
+   }
+   
+   /// Check if construct is typed                                            
+   LANGULUS(INLINED)
+   bool Construct::IsTyped() const noexcept {
+      return not not mType;
+   }
+   
+   /// Check if construct is untyped                                          
+   LANGULUS(INLINED)
+   bool Construct::IsUntyped() const noexcept {
+      return not mType;
    }
 
    /// Push anything to the descriptor                                        
