@@ -106,8 +106,6 @@ namespace Langulus::Anyness
       void Clear();
       void Reset();
 
-      //NOD() Messy MakeMessy() const;
-
       ///                                                                     
       ///   Encapsulation                                                     
       ///                                                                     
@@ -136,6 +134,10 @@ namespace Langulus::Anyness
       
       template<CT::Data>
       TAny<Inner::DeConstruct>* GetConstructs();
+
+      template<CT::Data>
+      DMeta FindType() const;
+      DMeta FindType(DMeta) const;
 
       template<CT::Data>
       const TAny<Inner::DeConstruct>* GetConstructs() const;
@@ -170,36 +172,30 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Iteration                                                         
       ///                                                                     
-      template<bool MUTABLE = true, class...F>
-      Count ForEach(F&&...);
-      template<class...F>
-      Count ForEach(F&&...) const;
+      template<bool MUTABLE = true>
+      Count ForEach(auto&&...);
+      Count ForEach(auto&&...) const;
 
-      template<bool MUTABLE = true, class...F>
-      Count ForEachDeep(F&&...);
-      template<class...F>
-      Count ForEachDeep(F&&...) const;
+      template<bool MUTABLE = true>
+      Count ForEachDeep(auto&&...);
+      Count ForEachDeep(auto&&...) const;
 
-      template<bool MUTABLE = true, class F>
-      Count ForEachTrait(F&&);
-      template<class F>
-      Count ForEachTrait(F&&) const;
+      template<bool MUTABLE = true>
+      Count ForEachTrait(auto&&);
+      Count ForEachTrait(auto&&) const;
 
-      template<bool MUTABLE = true, class F>
-      Count ForEachConstruct(F&&);
-      template<class F>
-      Count ForEachConstruct(F&&) const;
+      template<bool MUTABLE = true>
+      Count ForEachConstruct(auto&&);
+      Count ForEachConstruct(auto&&) const;
 
-      template<bool MUTABLE = true, class F>
-      Count ForEachTail(F&&);
-      template<class F>
-      Count ForEachTail(F&&) const;
+      template<bool MUTABLE = true>
+      Count ForEachTail(auto&&);
+      Count ForEachTail(auto&&) const;
 
    protected:
-      template<bool MUTABLE = true, class F>
-      Count ForEachInner(F&&);
-      template<class F>
-      Count ForEachInner(F&&) const;
+      template<bool MUTABLE = true>
+      Count ForEachInner(auto&&);
+      Count ForEachInner(auto&&) const;
 
    public:
       ///                                                                     
@@ -220,10 +216,10 @@ namespace Langulus::Anyness
       Count UnfoldInsert(auto&&);
       void InsertInner(auto&&);
 
-      void AddTrait(auto&&);
-      void AddData(auto&&);
-      void AddConstruct(auto&&);
-      void AddVerb(auto&&);
+      void AddTrait(CT::Semantic auto&&);
+      void AddData(CT::Semantic auto&&);
+      void AddConstruct(CT::Semantic auto&&);
+      void AddVerb(CT::Semantic auto&&);
 
       template<Offset... IDX>
       bool ExtractTraitInner(const TAny<Any>&, ::std::integer_sequence<Offset, IDX...>, CT::Data auto&...) const;

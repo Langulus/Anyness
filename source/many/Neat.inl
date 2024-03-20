@@ -298,6 +298,48 @@ namespace Langulus::Anyness
       return const_cast<Neat*>(this)->GetConstructs(d);
    }
 
+   /// Find data in constructs or tail, that casts to T                       
+   ///   @tparam T - type requirement                                         
+   ///   @return the first type that matches                                  
+   template<CT::Data T> LANGULUS(INLINED)
+   DMeta Neat::FindType() const {
+      return FindType(MetaDataOf<T>());
+   }
+
+   /// Find data in constructs or tail, that casts to a type                  
+   ///   @param type - type requirement                                       
+   ///   @return the first type that matches                                  
+   inline DMeta Neat::FindType(DMeta type) const {
+      DMeta primitive;
+      bool  ambiguous = false;
+
+      ForEachConstruct([&](const Construct& c) noexcept {
+         if (not c.CastsTo(type))
+            return;
+
+         if (not primitive) primitive = c.GetType();
+         else ambiguous = true;
+      });
+
+      ForEachTail([&](const Block& c) noexcept {
+         if (not c.CastsToMeta(type))
+            return;
+
+         if (not primitive) primitive = c.GetType();
+         else ambiguous = true;
+      });
+
+      if (ambiguous) {
+         Logger::Warning(
+            "Multiple primitives defined in a single Neat on FindData"
+            " - all except the first `", primitive, "` will be ignored"
+         );
+      }
+
+      return primitive;
+   }
+
+
    /// Set a default trait, if such wasn't already set                        
    //TODO isn't this like simply merge?? also make merge test only by trait id when merging traits!
    ///   @tparam T - trait to set                                             
@@ -308,7 +350,7 @@ namespace Langulus::Anyness
       if (found and *found)
          return;
 
-      *found = ::std::move(value);
+      AddTrait(Abandon(T {Forward<Deref<decltype(value)>>(value)}));
    }
 
    /// Overwrite trait, or add a new one, if not already set                  
@@ -661,7 +703,7 @@ namespace Langulus::Anyness
    ///   @attention this is an inner function that doesn't affect the hash    
    ///   @param messy - the trait (and semantic) to insert                    
    LANGULUS(INLINED)
-   void Neat::AddTrait(auto&& messy) {
+   void Neat::AddTrait(CT::Semantic auto&& messy) {
       using S = SemanticOf<decltype(messy)>;
       using T = TypeOf<S>;
 
@@ -696,7 +738,7 @@ namespace Langulus::Anyness
    ///   @attention this is an inner function that doesn't affect the hash    
    ///   @param messy - the data (and semantic) to insert                     
    LANGULUS(INLINED)
-   void Neat::AddData(auto&& messy) {
+   void Neat::AddData(CT::Semantic auto&& messy) {
       using S = SemanticOf<decltype(messy)>;
       using T = TypeOf<S>;
 
@@ -727,26 +769,26 @@ namespace Langulus::Anyness
    ///   @attention this is an inner function that doesn't affect the hash    
    ///   @param verb - the verb (and semantic) to insert                      
    LANGULUS(INLINED)
-   void Neat::AddVerb(auto&& verb) {
+   void Neat::AddVerb(CT::Semantic auto&& verb) {
       using S = SemanticOf<decltype(verb)>;
       static_assert(CT::VerbBased<TypeOf<S>>);
       if constexpr (CT::Verb<TypeOf<S>>)
-         (void) DesemCast(verb).GetVerb();
+         (void) verb->GetVerb();
 
       // Insert deep data - we have to flatten it                       
       static const auto meta = MetaDataOf<A::Verb>();
       auto found = mAnythingElse.FindIt(meta);
       if (found)
-         *found.mValue << S::Nest(verb).template Forward<A::Verb>();
+         *found.mValue << verb.template Forward<A::Verb>();
       else
-         mAnythingElse.Insert(meta, S::Nest(verb).template Forward<A::Verb>());
+         mAnythingElse.Insert(meta, verb.template Forward<A::Verb>());
    }
 
    /// Push a construct to the appropriate bucket                             
    ///   @attention this is an inner function that doesn't affect the hash    
    ///   @param messy - the construct and semantic to use                     
    LANGULUS(INLINED)
-   void Neat::AddConstruct(auto&& messy) {
+   void Neat::AddConstruct(CT::Semantic auto&& messy) {
       using S = SemanticOf<decltype(messy)>;
       using T = TypeOf<S>;
 
@@ -801,26 +843,25 @@ namespace Langulus::Anyness
    ///      stack when iterated. If MUTABLE is true, any changes to these     
    ///      temporary instances will be used to overwite the real contents.   
    ///   @tparam MUTABLE - whether changes inside container are allowed       
-   ///   @tparam F - the function(s) signature(s) (deducible)                 
    ///   @param call - the function(s) to execute for each element            
    ///   @return the number of executions of 'call'                           
-   template<bool MUTABLE, class...F> LANGULUS(INLINED)
-   Count Neat::ForEach(F&&...call) {
+   template<bool MUTABLE> LANGULUS(INLINED)
+   Count Neat::ForEach(auto&&...call) {
       if (IsEmpty())
          return 0;
 
       Count result = 0;
       (void) (... or (0 != (result = 
-         ForEachInner<MUTABLE>(Forward<F>(call))
+         ForEachInner<MUTABLE>(Forward<Deref<decltype(call)>>(call))
       )));
       return result;
    }
 
    ///                                                                        
-   template<class...F> LANGULUS(INLINED)
-   Count Neat::ForEach(F&&...call) const {
+   LANGULUS(INLINED)
+   Count Neat::ForEach(auto&&...call) const {
       return const_cast<Neat*>(this)->template 
-         ForEach<false>(Forward<F>(call)...);
+         ForEach<false>(Forward<Deref<decltype(call)>>(call)...);
    }
    
    /// Iterate through all relevant bucketed items, inclusively               
@@ -829,21 +870,21 @@ namespace Langulus::Anyness
    ///      stack when iterated. If MUTABLE is true, any changes to these     
    ///      temporary instances will be used to overwite the real contents.   
    ///   @tparam MUTABLE - whether changes inside container are allowed       
-   ///   @tparam F - the function(s) signature(s) (deducible)                 
    ///   @param call - the function(s) to execute for each element            
    ///   @return the number of executions of all calls                        
-   template<bool MUTABLE, class...F> LANGULUS(INLINED)
-   Count Neat::ForEachDeep(F&&...call) {
+   template<bool MUTABLE> LANGULUS(INLINED)
+   Count Neat::ForEachDeep(auto&&...call) {
       Count executions = 0;
-      ((executions += ForEachInner<MUTABLE>(Forward<F>(call))), ...);
+      ((executions += ForEachInner<MUTABLE>(
+         Forward<Deref<decltype(call)>>(call))), ...);
       return executions;
    }
 
    /// Neat containers are always flat, so deep iteration is same as flat one 
-   template<class...F> LANGULUS(INLINED)
-   Count Neat::ForEachDeep(F&&...call) const {
+   LANGULUS(INLINED)
+   Count Neat::ForEachDeep(auto&&...call) const {
       return const_cast<Neat*>(this)->template
-         ForEachDeep<false>(Forward<F>(call)...);
+         ForEachDeep<false>(Forward<Deref<decltype(call)>>(call)...);
    }
    
    /// Iterate through all relevant bucketed items                            

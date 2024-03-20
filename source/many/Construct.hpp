@@ -72,13 +72,17 @@ namespace Langulus::Anyness
    public:
       NOD() bool operator == (const Construct&) const;
 
-      NOD() bool CastsTo(DMeta type) const;
       template<CT::Data>
       NOD() bool CastsTo() const;
+      NOD() bool CastsTo(DMeta) const;
 
-      NOD() bool Is(DMeta) const;
       template<CT::Data>
       NOD() bool Is() const;
+      NOD() bool Is(DMeta) const;
+
+      template<CT::Data>
+      void SetType();
+      void SetType(DMeta) noexcept;
 
       NOD() Neat const& GetDescriptor() const noexcept;
       NOD() Neat&       GetDescriptor()       noexcept;
@@ -88,7 +92,9 @@ namespace Langulus::Anyness
       NOD() DMeta GetType() const noexcept;
       NOD() Token GetToken() const noexcept;
       NOD() DMeta GetProducer() const noexcept;
-      NOD() bool IsExecutable() const noexcept;
+      NOD() bool  IsExecutable() const noexcept;
+      NOD() bool  IsTyped() const noexcept;
+      NOD() bool  IsUntyped() const noexcept;
 
       void Clear();
       void Reset();
