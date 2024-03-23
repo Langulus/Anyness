@@ -32,6 +32,10 @@ namespace Langulus::Anyness
       TTrait(const TTrait&);
       TTrait(TTrait&&);
 
+      template<CT::Trait T>
+      requires (not CT::Same<typename T::TraitType, TRAIT>)
+      TTrait(T&&);
+
       template<CT::Data>
       NOD() static TRAIT OfType();
       NOD() static TRAIT OfType(DMeta);

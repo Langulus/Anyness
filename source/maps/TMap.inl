@@ -450,6 +450,12 @@ namespace Langulus::Anyness
       return BlockMap::Insert<TMap>(Forward<K1>(key), Forward<V1>(val));
    }
    
+   TEMPLATE() template<class K1>
+   requires (CT::MakableFrom<K, K1> and CT::Defaultable<V>)
+   LANGULUS(INLINED) Count TABLE()::Insert(K1&& key) {
+      return BlockMap::Insert<TMap>(Forward<K1>(key), V {});
+   }
+   
    /// Insert pair(s) by manually providing key and value blocks              
    ///   @attention only the overlapping elements will be inserted            
    ///   @param key - the key block to insert                                 

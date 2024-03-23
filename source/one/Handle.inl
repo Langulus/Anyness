@@ -43,7 +43,7 @@ namespace Langulus::Anyness
    TEMPLATE() template<template<class> class S, CT::Handle H>
    requires CT::Inner::SemanticMakable<S, T> LANGULUS(INLINED)
    constexpr HAND()::Handle(S<H>&& other)
-      : mValue {S<T>(other->Get())}
+      : mValue (S<T>(other->Get()))
       , mEntry {other->GetEntry()} {
       using HT = TypeOf<H>;
       static_assert(CT::Similar<T, HT>, "Type mismatch");
@@ -76,7 +76,7 @@ namespace Langulus::Anyness
    TEMPLATE() template<class T1>
    requires (not EMBED and CT::MakableFrom<T, T1>) LANGULUS(INLINED)
    constexpr HAND()::Handle(T1&& other, const Allocation* e)
-      : mValue {Forward<T1>(other)}
+      : mValue (Forward<T1>(other))
       , mEntry {e} {
       using S = SemanticOf<T1>;
 
@@ -320,14 +320,13 @@ namespace Langulus::Anyness
       }
       else if constexpr (CT::Dense<T>) {
          // Do a copy/disown/abandon/move/clone inside a dense handle   
+         // Notice the parentheses used for the constructors - they are 
+         // required to avoid construction being satisfied by a member  
+         // when T is an aggregate type                                 
          if constexpr (CT::Handle<ST> and CT::MakableFrom<T, TypeOf<ST>>)
-            new (&Get()) T {SS::Nest(rhs->Get())};
+            new (&Get()) T (SS::Nest(rhs->Get()));
          else if constexpr (CT::MakableFrom<T, SS>)
-            new (&Get()) T {rhs.Forward()};
-         else if constexpr (CT::SemanticMakable<S, T> and CT::Similar<T, ST>)
-            new (&Get()) T (rhs.Forward()); // notice the parenthesis:  
-                                            // required in case T is    
-                                            // an aggregate type        
+            new (&Get()) T (rhs.Forward());
          else LANGULUS_ERROR("Can't initialize dense T");
       }
       else if constexpr (CT::Dense<Deptr<T>>) {

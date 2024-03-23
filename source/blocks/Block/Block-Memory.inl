@@ -251,26 +251,27 @@ namespace Langulus::Anyness
       #endif
    }
 
-   /// Duplicate all elements inside this memory block into another block,    
+   /// Shallow-copy all elements inside this memory block into another block, 
    /// that is owned by us. Preserve hierarchy, density and state, but remove 
    /// size constraints and constness. If we already own this block's memory, 
-   /// then nothing happens                                                   
-   //TODO now can be substituded using the Copy semantic, instead of the Refer semantic
+   /// then only a Keep() is done                                             
    template<CT::Block THIS> LANGULUS(INLINED)
    void Block::TakeAuthority() {
-      if (mEntry or not mRaw)
+      if (not mRaw)
          return;
 
-      // Copy all elements                                              
-      Block clone {*this};
-      clone.AllocateFresh<THIS>(RequestSize<THIS>(mCount));
-      clone.CreateSemantic<THIS>(Refer(*this));
+      if (mEntry) {
+         // We already have authority, but to enforce it, we must ref   
+         const_cast<Allocation*>(mEntry)->Keep();
+         return;
+      }
 
-      // Discard constness and staticness                               
-      clone.mState -= DataState::Static | DataState::Constant;
-
-      // Overwrite this block directly                                  
-      CopyMemory(this, &clone);
+      // Shallow-copy all elements (equivalent to a Copy semantic)      
+      Block shallowCopy {*this};
+      shallowCopy.AllocateFresh<THIS>(RequestSize<THIS>(mCount));
+      shallowCopy.CreateSemantic<THIS>(Refer(*this));
+      shallowCopy.mState -= DataState::Static | DataState::Constant;
+      CopyMemory(this, &shallowCopy);
    }
 
    /// Allocate a number of elements, relying on the type of the container    
@@ -374,11 +375,16 @@ namespace Langulus::Anyness
       if (not mEntry)
          return;
 
-      LANGULUS_ASSUME(DevAssumes, 
-         mEntry->GetUses() >= 1, "Bad memory dereferencing");
+      LANGULUS_ASSUME(DevAssumes, mEntry->GetUses() >= 1,
+         "Bad memory dereferencing");
 
       if (mEntry->GetUses() == 1) {
          // Free memory                                                 
+         LANGULUS_ASSUME(DevAssumes, not IsStatic(),
+            "Last reference, but container was marked static"
+            " - make sure initialization of this container was correct, "
+            "did you forget to add a reference?");
+
          if (mCount)
             Destroy<THIS>();
          Allocator::Deallocate(const_cast<Allocation*>(mEntry));

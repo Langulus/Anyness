@@ -73,6 +73,8 @@ namespace Langulus::Anyness
       TUnorderedMap<DMeta, TAny<Messy>> mAnythingElse;
 
    public:
+      LANGULUS(DEEP) true;
+
       ///                                                                     
       ///   Construction                                                      
       ///                                                                     

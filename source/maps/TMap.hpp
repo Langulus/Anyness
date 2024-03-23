@@ -267,6 +267,10 @@ namespace Langulus::Anyness
       requires (CT::MakableFrom<K, K1> and CT::MakableFrom<V, V1>)
       Count Insert(K1&&, V1&&);
 
+      template<class K1>
+      requires (CT::MakableFrom<K, K1> and CT::Defaultable<V>)
+      Count Insert(K1&&);
+
       Count InsertBlock(auto&&, auto&&);
 
       template<class T1, class...TN>
