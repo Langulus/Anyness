@@ -894,14 +894,14 @@ namespace Langulus::Anyness
    ///      in this container, temporary instances will be created on the     
    ///      stack when iterated. If MUTABLE is true, any changes to these     
    ///      temporary instances will be used to overwite the real contents.   
-   ///   @tparam F - the function signature (deducible)                       
    ///   @tparam MUTABLE - whether changes inside container are allowed       
+   ///   @tparam F - the function signature (deducible)                       
    ///   @param call - the function to execute for each element               
    ///   @return the number of executions of 'call'                           
    template<bool MUTABLE, class F> LANGULUS(INLINED)
    Count Neat::ForEachInner(F&& call) {
       using A = ArgumentOf<F>;
-      static_assert(CT::Constant<Deptr<A>> or MUTABLE,
+      static_assert(CT::Slab<A> or CT::Constant<Deptr<A>> or MUTABLE,
          "Non constant iterator for constant Neat block");
 
       if constexpr (CT::Deep<A>) {
@@ -952,7 +952,7 @@ namespace Langulus::Anyness
 
       static_assert(CT::TraitBased<A> or CT::Deep<A>,
          "Iterator must be either trait-based or deep");
-      static_assert(CT::Constant<A> or MUTABLE,
+      static_assert(CT::Slab<A> or CT::Constant<A> or MUTABLE,
          "Non constant iterator for constant Neat block");
 
       Count index = 0;
@@ -972,7 +972,7 @@ namespace Langulus::Anyness
                // If F returns bool, you can decide when to break the   
                // loop by simply returning Flow::Break (or just false)  
                if (not call(temporaryTrait)) {
-                  if constexpr (CT::Mutable<A>) {
+                  if constexpr (CT::Mutable<A> and not CT::Slab<A>) {
                      // Make sure change is commited before proceeding  
                      data = static_cast<const Any&>(temporaryTrait);
                   }
@@ -982,7 +982,7 @@ namespace Langulus::Anyness
             else {
                call(temporaryTrait);
 
-               if constexpr (CT::Mutable<A>) {
+               if constexpr (CT::Mutable<A> and not CT::Slab<A>) {
                   // Make sure change is commited before proceeding     
                   data = static_cast<const Any&>(temporaryTrait);
                }
@@ -1003,7 +1003,7 @@ namespace Langulus::Anyness
                   // If F returns bool, you can decide when to break    
                   // the loop by simply returning Flow::Break           
                   if (not call(temporaryTrait)) {
-                     if constexpr (CT::Mutable<A>) {
+                     if constexpr (CT::Mutable<A> and not CT::Slab<A>) {
                         // Make sure change is committed                
                         if constexpr (CT::Deep<A>)
                            data = static_cast<const Any&>(temporaryTrait.template Get<Trait>());
@@ -1016,7 +1016,7 @@ namespace Langulus::Anyness
                else {
                   call(temporaryTrait);
 
-                  if constexpr (CT::Mutable<A>) {
+                  if constexpr (CT::Mutable<A> and not CT::Slab<A>) {
                      // Make sure change is commited before proceeding  
                      if constexpr (CT::Deep<A>)
                         data = static_cast<const Any&>(temporaryTrait.template Get<Trait>());
@@ -1058,7 +1058,7 @@ namespace Langulus::Anyness
 
       static_assert(CT::Construct<A> or CT::Deep<A>,
          "Iterator must be either a Construct or deep");
-      static_assert(CT::Constant<A> or MUTABLE,
+      static_assert(CT::Slab<A> or CT::Constant<A> or MUTABLE,
          "Non constant iterator for constant Neat block");
 
       // Iterate all constructs                                         
@@ -1073,7 +1073,7 @@ namespace Langulus::Anyness
                // If F returns bool, you can decide when to break the   
                // loop by simply returning Flow::Break (or just false)  
                if (not call(temporaryConstruct)) {
-                  if constexpr (CT::Mutable<A>) {
+                  if constexpr (CT::Mutable<A> and not CT::Slab<A>) {
                      // Make sure change is commited before proceeding  
                      if constexpr (CT::Deep<A>) {
                         data.mHash = temporaryConstruct.template
@@ -1096,7 +1096,7 @@ namespace Langulus::Anyness
             else {
                call(temporaryConstruct);
 
-               if constexpr (CT::Mutable<A>) {
+               if constexpr (CT::Mutable<A> and not CT::Slab<A>) {
                   // Make sure change is commited before proceeding     
                   if constexpr (CT::Deep<A>) {
                      data.mHash = temporaryConstruct.template
@@ -1138,7 +1138,7 @@ namespace Langulus::Anyness
    Count Neat::ForEachTail(F&& call) {
       using A = ArgumentOf<F>;
       using R = ReturnOf<F>;
-      static_assert(CT::Constant<Deptr<A>> or MUTABLE,
+      static_assert(CT::Slab<A> or CT::Constant<Deptr<A>> or MUTABLE,
          "Non constant iterator for constant Neat block");
 
       if constexpr (CT::Deep<A> and CT::Typed<A>) {

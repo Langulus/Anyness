@@ -10,8 +10,8 @@
 #include "TTrait.hpp"
 #include "Trait.inl"
 
-#define TEMPLATE() template<class TRAIT>
-#define TME() TTrait<TRAIT>
+#define TEMPLATE()   template<class TRAIT>
+#define TME()        TTrait<TRAIT>
 
 
 namespace Langulus::Anyness
@@ -26,6 +26,14 @@ namespace Langulus::Anyness
    TEMPLATE() LANGULUS(INLINED)
    TME()::TTrait(TTrait&& other)
       : Trait {Move(Forward<Any>(other))} {}
+
+   /// Never absorb different traits, if known at compile-time                
+   TEMPLATE() template<CT::Trait T>
+   requires (not CT::Same<typename T::TraitType, TRAIT>) LANGULUS(INLINED)
+   TME()::TTrait(T&& other)
+      : Trait {} {
+      *this << Forward<Deref<decltype(other)>>(other);
+   }
 
    /// Refer-assignment                                                       
    TEMPLATE() LANGULUS(INLINED)

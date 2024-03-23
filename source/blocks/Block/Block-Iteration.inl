@@ -26,7 +26,7 @@ namespace Langulus::Anyness
 
       static_assert(CT::Block<A>,
          "Function argument must be a CT::Block binary-compatible type");
-      static_assert(CT::Constant<A> or CT::Mutable<THIS>,
+      static_assert(CT::Slab<A> or CT::Constant<A> or CT::Mutable<THIS>,
          "Non constant iterator for constant memory block");
 
       Count index = REVERSE ? mCount - 1 : 0;
@@ -159,6 +159,7 @@ namespace Langulus::Anyness
                    or (CT::Same<A, T>)
          ) {
             using IT = Conditional<CT::Mutable<THIS>, T&, const T&>;
+
             return IterateInner<THIS, REVERSE>(mCount,
                [&index, &f](IT element) noexcept(NOE) -> R {
                   ++index;
@@ -185,6 +186,7 @@ namespace Langulus::Anyness
          if (mType->mIsSparse) {
             // Iterate sparse container                                 
             using DA = Conditional<CT::Mutable<THIS>, void*&, const void* const&>;
+
             return IterateInner<THIS, REVERSE>(mCount,
                [&index, &f](DA element) noexcept(NOE) -> R {
                   ++index;
@@ -201,6 +203,7 @@ namespace Langulus::Anyness
          else {
             // Iterate dense container                                  
             using DA = Conditional<CT::Mutable<THIS>, Decay<A>&, const Decay<A>&>;
+
             return IterateInner<THIS, REVERSE>(mCount,
                [&index, &f](DA element) noexcept(NOE) -> R {
                   ++index;
@@ -229,7 +232,7 @@ namespace Langulus::Anyness
       static_assert(CT::Dense<A>, "Iterator must be dense value/reference");
 
       if constexpr (CT::Deep<A>) {
-         if (not SKIP or not IsDeep<THIS>()) {
+         if (not SKIP or (not IsDeep<THIS>() and not Is<THIS, Neat>())) {
             // Always execute for intermediate/non-deep *this           
             ++counter;
 
@@ -267,6 +270,7 @@ namespace Langulus::Anyness
       if (IsDeep<THIS>()) {
          // Iterate subblocks                                           
          Count intermediateCounterSink = 0;
+
          return ForEachInner<THIS, REVERSE>(
             [&counter, &call](SubBlock group) {
                return DenseCast(group).template
@@ -275,6 +279,17 @@ namespace Langulus::Anyness
                   );
             },
             intermediateCounterSink
+         );
+      }
+      else if (Is<THIS, Neat>()) {
+         // Iterate normalized subblocks                                
+         using SubNeat = Conditional<CT::Mutable<THIS>, Neat&, const Neat&>;
+
+         return ForEachInner<THIS, REVERSE>(
+            [&call](SubNeat neat) {
+               return neat.ForEachDeep(::std::move(call));
+            },
+            counter
          );
       }
       else if constexpr (not CT::Deep<A>) {
@@ -301,7 +316,7 @@ namespace Langulus::Anyness
 
       static_assert(CT::Complete<Decay<A>> or CT::Sparse<A>,
          "Can't iterate with incomplete type, use pointer instead");
-      static_assert(CT::Constant<Deptr<A>> or CT::Mutable<THIS>,
+      static_assert(CT::Slab<A> or CT::Constant<Deptr<A>> or CT::Mutable<THIS>,
          "Non-constant iterator for constant memory is not allowed");
 
       LANGULUS_ASSUME(DevAssumes, IsTyped<THIS>(),

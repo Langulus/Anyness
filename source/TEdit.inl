@@ -10,6 +10,7 @@
 #include "TEdit.hpp"
 
 #define TEMPLATE() template<DenseTypedBlock T>
+#define TME() Edit<T>
 
 
 namespace Langulus::Anyness
@@ -20,16 +21,20 @@ namespace Langulus::Anyness
    ///   @param start - the starting marker of the selection (optional)       
    ///   @param end - the ending marker of the selection (optional)           
    TEMPLATE() LANGULUS(INLINED)
-   TEdit<T>::TEdit(T& container, Offset start, Offset end) noexcept
+   TME()::Edit(T& container, Offset start, Offset end) noexcept
       : mSource {container}
       , mStart {start}
       , mEnd {end} {}
+
+   TEMPLATE() LANGULUS(INLINED)
+   TME()::Edit(T* container, Offset start, Offset end) noexcept
+      : Edit {*container, start, end} {}
 
    /// Select a subpattern                                                    
    ///   @param pattern - the pattern to select                               
    ///   @return a reference to this editor                                   
    TEMPLATE() LANGULUS(INLINED)
-   TEdit<T>& TEdit<T>::Select(const T& pattern) {
+   TME()& TME()::Select(const T& pattern) {
       if (mSource.IsEmpty() or pattern.IsEmpty())
          return *this;
 
@@ -72,7 +77,7 @@ namespace Langulus::Anyness
    ///   @param end - the ending marker of the selection                      
    ///   @return a reference to this editor                                   
    TEMPLATE() LANGULUS(INLINED)
-   TEdit<T>& TEdit<T>::Select(Offset start, Offset end) {
+   TME()& TME()::Select(Offset start, Offset end) {
       mStart = ::std::min(start, mSource.GetCount());
       mEnd = ::std::max(::std::min(end, mSource.GetCount()), mStart);
       return *this;
@@ -82,7 +87,7 @@ namespace Langulus::Anyness
    ///   @param start - the starting marker of the selection                  
    ///   @return a reference to this editor                                   
    TEMPLATE() LANGULUS(INLINED)
-   TEdit<T>& TEdit<T>::Select(Offset start) {
+   TME()& TME()::Select(Offset start) {
       mEnd = mStart = ::std::min(start, mSource.GetCount());
       return *this;
    }
@@ -90,28 +95,28 @@ namespace Langulus::Anyness
    /// Get the container we're editing                                        
    ///   @return a constant reference to the source container                 
    TEMPLATE() LANGULUS(INLINED)
-   const T& TEdit<T>::GetSource() const noexcept {
+   const T& TME()::GetSource() const noexcept {
       return mSource;
    }
 
    /// Get the start of the selection                                         
    ///   @return the start of the selection                                   
    TEMPLATE() LANGULUS(INLINED)
-   Offset TEdit<T>::GetStart() const noexcept {
+   Offset TME()::GetStart() const noexcept {
       return mStart;
    }
 
    /// Get the end of the selection                                           
    ///   @return the end of the selection                                     
    TEMPLATE() LANGULUS(INLINED)
-   Offset TEdit<T>::GetEnd() const noexcept {
+   Offset TME()::GetEnd() const noexcept {
       return mEnd;
    }
 
    /// Get the size of the selection                                          
    ///   @return the size of the selection                                    
    TEMPLATE() LANGULUS(INLINED)
-   Count TEdit<T>::GetLength() const noexcept {
+   Count TME()::GetLength() const noexcept {
       return mEnd - mStart;
    }
 
@@ -119,7 +124,7 @@ namespace Langulus::Anyness
    ///   @param index - the index to get                                      
    ///   @return a reference to the element at that index                     
    TEMPLATE() LANGULUS(INLINED)
-   auto& TEdit<T>::operator[] (Offset index) const noexcept {
+   auto& TME()::operator[] (Offset index) const noexcept {
       return mSource[mStart + index];
    }
 
@@ -127,7 +132,7 @@ namespace Langulus::Anyness
    ///   @param index - the index to get                                      
    ///   @return a reference to the element at that index                     
    TEMPLATE() LANGULUS(INLINED)
-   auto& TEdit<T>::operator[] (Offset index) noexcept {
+   auto& TME()::operator[] (Offset index) noexcept {
       return mSource[mStart + index];
    }
 
@@ -135,7 +140,7 @@ namespace Langulus::Anyness
    ///   @param other - the container to concatenate                          
    ///   @return a reference to the editor for chaining                       
    TEMPLATE() LANGULUS(INLINED)
-   TEdit<T>& TEdit<T>::operator << (const T& other) {
+   TME()& TME()::operator << (const T& other) {
       mSource.InsertBlock(mEnd, other);
       return *this;
    }
@@ -144,7 +149,7 @@ namespace Langulus::Anyness
    ///   @param other - the container to concatenate                          
    ///   @return a reference to the editor for chaining                       
    TEMPLATE() LANGULUS(INLINED)
-   TEdit<T>& TEdit<T>::operator >> (const T& other) {
+   TME()& TME()::operator >> (const T& other) {
       const auto concatenated = mSource.InsertBlock(mStart, other);
       mStart += concatenated;
       mEnd += concatenated;
@@ -156,7 +161,7 @@ namespace Langulus::Anyness
    /// replacement                                                            
    ///   @param other - the container to use for replacement                  
    TEMPLATE() LANGULUS(INLINED)
-   TEdit<T>& TEdit<T>::Replace(const T& other) {
+   TME()& TME()::Replace(const T& other) {
       if constexpr (CT::POD<CTTI_InnerType> or CT::Sparse<CTTI_InnerType>) {
          const auto offset = mStart * mSource.GetStride();
 
@@ -205,7 +210,7 @@ namespace Langulus::Anyness
    ///   @param other - the element to insert                                 
    ///   @return a reference to the editor for chaining                       
    TEMPLATE() LANGULUS(INLINED)
-   TEdit<T>& TEdit<T>::operator << (const TypeOf<T>& other) {
+   TME()& TME()::operator << (const TypeOf<T>& other) {
       mSource.InsertAt(other, mEnd);
       return *this;
    }
@@ -214,7 +219,7 @@ namespace Langulus::Anyness
    ///   @param other - the element to insert                                 
    ///   @return a reference to the editor for chaining                       
    TEMPLATE() LANGULUS(INLINED)
-   TEdit<T>& TEdit<T>::operator >> (const TypeOf<T>& other) {
+   TME()& TME()::operator >> (const TypeOf<T>& other) {
       const auto concatenated = mSource.InsertAt(other, mStart);
       mStart += concatenated;
       mEnd += concatenated;
@@ -227,7 +232,7 @@ namespace Langulus::Anyness
    ///   @param other - the element to use for replacement                    
    ///   @return a reference to the editor for chaining                       
    TEMPLATE() LANGULUS(INLINED)
-   TEdit<T>& TEdit<T>::Replace(const TypeOf<T>& other) {
+   TME()& TME()::Replace(const TypeOf<T>& other) {
       return Replace(T {other});
    }
 
@@ -235,7 +240,7 @@ namespace Langulus::Anyness
    /// selection marker                                                       
    ///   @return a reference to the editor for chaining                       
    TEMPLATE() LANGULUS(INLINED)
-   TEdit<T>& TEdit<T>::Delete() {
+   TME()& TME()::Delete() {
       const auto length = GetLength();
       if (length) {
          mSource.RemoveIndex(mStart, length);
@@ -256,7 +261,7 @@ namespace Langulus::Anyness
    /// selection marker                                                       
    ///   @return a reference to the editor for chaining                       
    TEMPLATE() LANGULUS(INLINED)
-   TEdit<T>& TEdit<T>::Backspace() {
+   TME()& TME()::Backspace() {
       const auto length = GetLength();
       if (length) {
          mSource.RemoveIndex(mStart, length);
@@ -277,3 +282,4 @@ namespace Langulus::Anyness
 } // namespace Langulus::Anyness
 
 #undef TEMPLATE
+#undef TME
