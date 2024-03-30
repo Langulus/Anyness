@@ -229,11 +229,23 @@ namespace Langulus::Anyness
       NOD() const T& operator [] (CT::Index auto) const;
       NOD()       T& operator [] (CT::Index auto);
 
-      //NOD() decltype(auto) GetHandle(Offset)       IF_UNSAFE(noexcept);
-      //NOD() decltype(auto) GetHandle(Offset) const IF_UNSAFE(noexcept);
-
       NOD() TAny Crop(Offset, Count) const;
       NOD() TAny Crop(Offset, Count);
+
+      template<CT::Data>
+      NOD() decltype(auto) As(CT::Index auto);
+      template<CT::Data>
+      NOD() decltype(auto) As(CT::Index auto) const;
+
+      template<CT::Data T1>
+      NOD() LANGULUS(INLINED) decltype(auto) As() {
+         return As<T1>(0);
+      }
+
+      template<CT::Data T1>
+      NOD() LANGULUS(INLINED) decltype(auto) As() const {
+         return As<T1>(0);
+      }
 
       ///                                                                     
       ///   Iteration                                                         
@@ -378,6 +390,9 @@ namespace Langulus::Anyness
 
       void Null(Count);
 
+      template<class A> requires CT::AssignableFrom<T, A>
+      void Fill(A&&);
+
       NOD() TAny<T> Extend(Count);
 
       template<class T1>
@@ -418,16 +433,6 @@ namespace Langulus::Anyness
 
       template<class T1> requires CT::DeepMakable<T, T1>
       TAny& operator += (T1&&);
-
-      ///                                                                     
-      ///   Flow                                                              
-      ///                                                                     
-      // Intentionally undefined, because it requires Langulus::Flow    
-      /*template<CT::VerbBased V>
-      V& Run(V&) const;
-      // Intentionally undefined, because it requires Langulus::Flow    
-      template<CT::VerbBased V>
-      V& Run(V&);*/
 
    private:
       /// Services graveyard - disallowed interface for typed containers      

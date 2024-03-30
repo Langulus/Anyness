@@ -715,6 +715,9 @@ namespace Langulus::Anyness
       template<CT::Block>
       void Null(Count);
 
+      template<CT::Block>
+      void Fill(auto&&);
+
       template<CT::Block THIS>
       NOD() THIS Extend(Count);
 

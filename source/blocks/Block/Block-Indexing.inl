@@ -99,8 +99,29 @@ namespace Langulus::Anyness
          LANGULUS_ASSERT(idx < mCount, Access, "Index out of range");
          return Get<T>(idx);
       }
+      
+      // Optimize if we're interpreting as a container                  
+      if constexpr (CT::Deep<T>) {
+         if (not IsDeep())
+            LANGULUS_THROW(Access, "Type mismatch");
 
-      // Second fallback stage for compatible bases and mappings        
+         const auto idx = SimplifyIndex<TAny<Any>>(index);
+         LANGULUS_ASSERT(idx < mCount, Access, "Index out of range");
+         Block& result = Get<Block>(idx);
+
+         if constexpr (CT::Typed<T>) {
+            // Additional check, if T is a typed block                  
+            if (not result.template IsSimilar<Any, TypeOf<T>>())
+               LANGULUS_THROW(Access, "Deep type mismatch");
+         }
+
+         if constexpr (CT::Sparse<T>)
+            return reinterpret_cast<T>(&result);
+         else
+            return reinterpret_cast<T&>(result);
+      }
+
+      // Fallback stage for compatible bases and mappings               
       const auto idx = SimplifyIndex<Any>(index);
       LANGULUS_ASSERT(idx < mCount, Access, "Index out of range");
       RTTI::Base base;
