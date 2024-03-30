@@ -404,6 +404,15 @@ namespace Langulus::Anyness
    void TAny<T>::Null(Count count) {
       return Block::Null<TAny>(count);
    }
+   
+   /// Never allocate new elements, instead assign all currently initialized  
+   /// elements a single value                                                
+   ///   @param what - the value to assign                                    
+   TEMPLATE() template<class A> requires CT::AssignableFrom<T, A>
+   LANGULUS(INLINED)
+   void TAny<T>::Fill(A&& what){
+      return Block::Fill<TAny>(Forward<Deref<decltype(what)>>(what));
+   }
 
    /// Clear the container, destroying all elements,                          
    /// but retaining allocation if possible                                   
@@ -525,6 +534,72 @@ namespace Langulus::Anyness
    TEMPLATE() LANGULUS(INLINED)
    T& TAny<T>::operator [] (const CT::Index auto index) {
       return Block::operator [] <TAny> (index);
+   }
+   
+   /// Get an element at an index, trying to interpret it as T                
+   /// No conversion or copying shall occur in this routine, only pointer     
+   /// arithmetic based on CTTI or RTTI                                       
+   ///   @tparam T1 - the type to interpret to                                
+   ///   @param index - the index                                             
+   ///   @return either pointer or reference to the element (depends on T)    
+   TEMPLATE() template<CT::Data T1>
+   decltype(auto) TAny<T>::As(CT::Index auto index) {
+      if constexpr (CT::Deep<T1>) {
+         // Optimize if we're interpreting as a container               
+         static_assert(CT::Deep<Decay<T>>, "Type mismatch");
+         const auto idx = SimplifyIndex<TAny<T>>(index);
+         LANGULUS_ASSERT(idx < mCount, Access, "Index out of range");
+         Block& result = Get<Block>(idx);
+
+         if constexpr (CT::Typed<T1>) {
+            // Additional check, if T is a typed block                  
+            if (not result.template IsSimilar<Any, TypeOf<T1>>())
+               LANGULUS_THROW(Access, "Deep type mismatch");
+         }
+
+         if constexpr (CT::Sparse<T1>)
+            return reinterpret_cast<T1>(&result);
+         else
+            return reinterpret_cast<T1&>(result);
+      }
+      else if constexpr (CT::Sparse<T1>
+      and requires (Decay<T>* e) { dynamic_cast<T1>(e); }) {
+         // Do a dynamic_cast whenever possible                         
+         const auto idx = SimplifyIndex<TAny<T>>(index);
+         LANGULUS_ASSERT(idx < mCount, Access, "Index out of range");
+
+         Decvq<T1> ptr;
+         if constexpr (CT::Sparse<T>)
+            ptr = dynamic_cast<T1>(Get<T>(idx));
+         else
+            ptr = dynamic_cast<T1>(Get<T*>(idx));
+         LANGULUS_ASSERT(ptr, Access, "Failed dynamic_cast");
+         return ptr;
+      }
+      else if constexpr (requires (Decay<T>* e) { static_cast<Decay<T1>*>(e); }) {
+         // Do a quick static_cast whenever possible                    
+         const auto idx = SimplifyIndex<TAny<T>>(index);
+         LANGULUS_ASSERT(idx < mCount, Access, "Index out of range");
+
+         if constexpr (CT::Sparse<T1>) {
+            if constexpr (CT::Sparse<T>)
+               return static_cast<T1>(Get<T>(idx));
+            else
+               return static_cast<T1>(Get<T*>(idx));
+         }
+         else {
+            if constexpr (CT::Sparse<T>)
+               return static_cast<T1&>(*Get<T>(idx));
+            else
+               return static_cast<T1&>(Get<T>(idx));
+         }
+      }
+      else LANGULUS_ERROR("Type mismatch");
+   }
+
+   TEMPLATE() template<CT::Data T1> LANGULUS(INLINED)
+   decltype(auto) TAny<T>::As(CT::Index auto index) const {
+      return const_cast<TAny&>(*this).As<T1>(index);
    }
 
    /// Access last element                                                    

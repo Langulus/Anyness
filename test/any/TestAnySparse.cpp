@@ -25,8 +25,11 @@ void CheckState_ContainsOne(auto& pack, const CT::Sparse auto& e, Allocation* en
    REQUIRE(*pack.template As<E>() == *e);
    REQUIRE(*pack.template GetRawSparse<T>() == e);
    IF_LANGULUS_MANAGED_MEMORY(REQUIRE(*pack.template GetEntries<T>() == entry));
-   REQUIRE_THROWS(pack.template As<float>() == 0.0f);
-   REQUIRE_THROWS(pack.template As<float*>() == nullptr);
+
+   if constexpr (not CT::Typed<T>) {
+      REQUIRE_THROWS(pack.template As<float>() == 0.0f);
+      REQUIRE_THROWS(pack.template As<float*>() == nullptr);
+   }
 }
 
 void CheckState_ContainsN(Count n, auto& pack, const CT::Sparse auto& e, Allocation* entry = nullptr) {
@@ -46,8 +49,11 @@ void CheckState_ContainsN(Count n, auto& pack, const CT::Sparse auto& e, Allocat
       REQUIRE(*pack.template As<E>(i) == *e);
       REQUIRE(pack.template GetRawSparse<T>()[i] == e);
       IF_LANGULUS_MANAGED_MEMORY(REQUIRE(pack.template GetEntries<T>()[i] == entry));
-      REQUIRE_THROWS(pack.template As<float>(i) == 0.0f);
-      REQUIRE_THROWS(pack.template As<float*>(i) == nullptr);
+
+      if constexpr (not CT::Typed<T>) {
+         REQUIRE_THROWS(pack.template As<float>(i) == 0.0f);
+         REQUIRE_THROWS(pack.template As<float*>(i) == nullptr);
+      }
    }
 }
 
@@ -71,8 +77,11 @@ void CheckState_ContainsArray(auto& pack, const CT::Array auto& e, Allocation* e
       REQUIRE(*pack.template As<E>(i) == *e[i]);
       REQUIRE(pack.template GetRawSparse<T>()[i] == e[i]);
       IF_LANGULUS_MANAGED_MEMORY(REQUIRE(pack.template GetEntries<T>()[i] == entry));
-      REQUIRE_THROWS(pack.template As<float>(i) == 0.0f);
-      REQUIRE_THROWS(pack.template As<float*>(i) == nullptr);
+
+      if constexpr (not CT::Typed<T>) {
+         REQUIRE_THROWS(pack.template As<float>(i) == 0.0f);
+         REQUIRE_THROWS(pack.template As<float*>(i) == nullptr);
+      }
    }
 }
 
@@ -1031,7 +1040,7 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
    }
 
    GIVEN("Container constructed by same container copy") {
-      if constexpr (CT::Deep<E> && CT::Typed<T>)
+      if constexpr (CT::Deep<E> and CT::Typed<T>)
          REQUIRE_THROWS(T {element});
       else {
          const T source {element};
@@ -1041,8 +1050,11 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
          REQUIRE(pack.template As<DenseE>() == denseValue);
          REQUIRE(*pack.template As<DenseE*>() == denseValue);
          REQUIRE(pack.GetUses() == 2);
-         REQUIRE_THROWS(pack.template As<float>() == 0.0f);
-         REQUIRE_THROWS(pack.template As<float*>() == nullptr);
+
+         if constexpr (not CT::Typed<T>) {
+            REQUIRE_THROWS(pack.template As<float>() == 0.0f);
+            REQUIRE_THROWS(pack.template As<float*>() == nullptr);
+         }
 
          #ifdef LANGULUS_STD_BENCHMARK
             BENCHMARK_ADVANCED("construction (single container copy)") (timer meter) {
@@ -1084,8 +1096,11 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
          REQUIRE(pack.template As<DenseE>() == denseValue);
          REQUIRE(*pack.template As<DenseE*>() == denseValue);
          REQUIRE(pack.GetUses() == 1);
-         REQUIRE_THROWS(pack.template As<float>() == 0.0f);
-         REQUIRE_THROWS(pack.template As<float*>() == nullptr);
+
+         if constexpr (not CT::Typed<T>) {
+            REQUIRE_THROWS(pack.template As<float>() == 0.0f);
+            REQUIRE_THROWS(pack.template As<float*>() == nullptr);
+         }
 
          #ifdef LANGULUS_STD_BENCHMARK
             BENCHMARK_ADVANCED("construction (single value copy)") (timer meter) {
@@ -1123,8 +1138,11 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
             REQUIRE(pack.GetUses() == 1);
             REQUIRE(*pack.template GetRawSparse<T>() == sparseValue);
             IF_LANGULUS_MANAGED_MEMORY(REQUIRE(*pack.template GetEntries<T>() == nullptr));
-            REQUIRE_THROWS(pack.template As<float>() == 0.0f);
-            REQUIRE_THROWS(pack.template As<float*>() == nullptr);
+
+            if constexpr (not CT::Typed<T>) {
+               REQUIRE_THROWS(pack.template As<float>() == 0.0f);
+               REQUIRE_THROWS(pack.template As<float*>() == nullptr);
+            }
 
             #ifdef LANGULUS_STD_BENCHMARK
                BENCHMARK_ADVANCED("operator = (single value copy)") (timer meter) {
@@ -1164,8 +1182,11 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
             REQUIRE(pack.GetUses() == 1);
             REQUIRE(*pack.template GetRawSparse<T>() == sparseValue);
             IF_LANGULUS_MANAGED_MEMORY(REQUIRE(*pack.template GetEntries<T>() == nullptr));
-            REQUIRE_THROWS(pack.template As<float>() == 0.0f);
-            REQUIRE_THROWS(pack.template As<float*>() == nullptr);
+
+            if constexpr (not CT::Typed<T>) {
+               REQUIRE_THROWS(pack.template As<float>() == 0.0f);
+               REQUIRE_THROWS(pack.template As<float*>() == nullptr);
+            }
 
             #ifdef LANGULUS_STD_BENCHMARK
                BENCHMARK_ADVANCED("operator = (single value move)") (timer meter) {
@@ -1204,8 +1225,11 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
             REQUIRE(pack.GetUses() == 1);
             REQUIRE(*pack.template GetRawSparse<T>() == sparseValue);
             IF_LANGULUS_MANAGED_MEMORY(REQUIRE(*pack.template GetEntries<T>() == nullptr));
-            REQUIRE_THROWS(pack.template As<float>() == 0.0f);
-            REQUIRE_THROWS(pack.template As<float*>() == nullptr);
+
+            if constexpr (not CT::Typed<T>) {
+               REQUIRE_THROWS(pack.template As<float>() == 0.0f);
+               REQUIRE_THROWS(pack.template As<float*>() == nullptr);
+            }
 
             #ifdef LANGULUS_STD_BENCHMARK
                BENCHMARK_ADVANCED("operator = (single disowned value)") (timer meter) {
@@ -1245,8 +1269,11 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
             REQUIRE(pack.GetUses() == 1);
             REQUIRE(*pack.template GetRawSparse<T>() == sparseValue);
             IF_LANGULUS_MANAGED_MEMORY(REQUIRE(*pack.template GetEntries<T>() == nullptr));
-            REQUIRE_THROWS(pack.template As<float>() == 0.0f);
-            REQUIRE_THROWS(pack.template As<float*>() == nullptr);
+
+            if constexpr (not CT::Typed<T>) {
+               REQUIRE_THROWS(pack.template As<float>() == 0.0f);
+               REQUIRE_THROWS(pack.template As<float*>() == nullptr);
+            }
 
             #ifdef LANGULUS_STD_BENCHMARK
                BENCHMARK_ADVANCED("operator = (single abandoned value)") (timer meter) {
@@ -1360,8 +1387,11 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
          REQUIRE(pack.GetUses() == 1);
          REQUIRE(*pack.template GetRawSparse<T>() == sparseValue);
          IF_LANGULUS_MANAGED_MEMORY(REQUIRE(*pack.template GetEntries<T>() == nullptr));
-         REQUIRE_THROWS(pack.template As<float>() == 0.0f);
-         REQUIRE_THROWS(pack.template As<float*>() == nullptr);
+
+         if constexpr (not CT::Typed<T>) {
+            REQUIRE_THROWS(pack.template As<float>() == 0.0f);
+            REQUIRE_THROWS(pack.template As<float*>() == nullptr);
+         }
 
          #ifdef LANGULUS_STD_BENCHMARK
             BENCHMARK_ADVANCED("construction (single value move)") (timer meter) {
@@ -1404,8 +1434,11 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
          REQUIRE(pack.GetUses() == 1);
          REQUIRE(*pack.template GetRawSparse<T>() == sparseValue);
          IF_LANGULUS_MANAGED_MEMORY(REQUIRE(*pack.template GetEntries<T>() == nullptr));
-         REQUIRE_THROWS(pack.template As<float>() == 0.0f);
-         REQUIRE_THROWS(pack.template As<float*>() == nullptr);
+
+         if constexpr (not CT::Typed<T>) {
+            REQUIRE_THROWS(pack.template As<float>() == 0.0f);
+            REQUIRE_THROWS(pack.template As<float*>() == nullptr);
+         }
 
          #ifdef LANGULUS_STD_BENCHMARK
             BENCHMARK_ADVANCED("construction (single disowned value)") (timer meter) {
@@ -1451,8 +1484,11 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
          REQUIRE(pack.GetUses() == 1);
          REQUIRE(*pack.template GetRawSparse<T>() == sparseValue);
          IF_LANGULUS_MANAGED_MEMORY(REQUIRE(*pack.template GetEntries<T>() == nullptr));
-         REQUIRE_THROWS(pack.template As<float>() == 0.0f);
-         REQUIRE_THROWS(pack.template As<float*>() == nullptr);
+
+         if constexpr (not CT::Typed<T>) {
+            REQUIRE_THROWS(pack.template As<float>() == 0.0f);
+            REQUIRE_THROWS(pack.template As<float*>() == nullptr);
+         }
 
          #ifdef LANGULUS_STD_BENCHMARK
             BENCHMARK_ADVANCED("construction (single abandoned value)") (timer meter) {

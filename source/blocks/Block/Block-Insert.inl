@@ -1554,4 +1554,77 @@ namespace Langulus::Anyness
       }
    }
 
+   /// Never allocate new elements, instead assign all currently initialized  
+   /// elements a single value                                                
+   ///   @param what - the value to assign                                    
+   ///   @attention be careful when filling using a move/abandon semantic -   
+   ///      'what' can be reset after the first assignment if not trivial     
+   template<CT::Block THIS> LANGULUS(INLINED)
+   void Block::Fill(auto&& what) {
+      if (IsEmpty())
+         return;
+
+      using S = SemanticOf<decltype(what)>;
+      using ST = TypeOf<S>;
+      auto mthis = reinterpret_cast<THIS*>(const_cast<Block*>(this));
+
+      if constexpr (CT::Typed<THIS>) {
+         // Assign by directly checking if argument satisfies an        
+         // assignment signature, knowing what the contained type is    
+         // at compile time                                             
+         using T = TypeOf<THIS>;
+
+         if constexpr (CT::AssignableFrom<T, decltype(what)>) {
+            auto lhs = mthis->template GetRaw<THIS>();
+            const auto lhsEnd = lhs + mCount;
+            while (lhs != lhsEnd)
+               *(lhs++) = S::Nest(what);
+
+            if constexpr (CT::Sparse<T>) {
+               // We just copied a pointer multiple times, make sure    
+               // we dereference the old entries, and reference the new 
+               // memory multiple times, if we own it                   
+               auto ent = mthis->template GetEntries<THIS>();
+               const auto entEnd = ent + mCount;
+               auto allocation = Allocator::Find(MetaDataOf<Deptr<T>>(), *(--lhs));
+
+               if (allocation) {
+                  while (ent != entEnd) {
+                     if (*ent)
+                        const_cast<Allocation*>(*ent)->Free();
+                     *(ent++) = allocation;
+                  }
+                  const_cast<Allocation*>(allocation)->Keep(mCount);
+               }
+               else {
+                  // New pointer is out of jurisdiction, just reset     
+                  // the current entries                                
+                  while (ent != entEnd) {
+                     if (*ent) {
+                        const_cast<Allocation*>(*ent)->Free();
+                        *ent = nullptr;
+                     }
+                  }
+               }
+            }
+         }
+         else LANGULUS_ERROR("Can't fill using that value "
+            "- contained type is not assignable by it");
+      }
+      else {
+         // Assigning type-erased items                                 
+         // We expect, that type has been previously set                
+         LANGULUS_ASSUME(DevAssumes, IsTyped(),
+            "Block was expected to be typed");
+         LANGULUS_ASSERT((IsSimilar<THIS, ST>()), Mutate,
+            "Type mismatch");
+
+         // Wrap argument into a block, and assign it to each element   
+         auto rhs = Block::From(DesemCast(what));
+
+         for (auto block : *this)
+            block.AssignSemantic<THIS>(S::Nest(rhs));
+      }
+   }
+
 } // namespace Langulus::Anyness

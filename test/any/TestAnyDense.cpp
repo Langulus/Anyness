@@ -99,8 +99,10 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
             REQUIRE(pack.HasAuthority() == element.HasAuthority());
          }
 
-         REQUIRE_THROWS(pack.template As<float>() == 0.0f);
-         REQUIRE_THROWS(pack.template As<float*>() == nullptr);
+         if constexpr (not CT::Typed<T>) {
+            REQUIRE_THROWS(pack.template As<float>() == 0.0f);
+            REQUIRE_THROWS(pack.template As<float*>() == nullptr);
+         }
 
          #ifdef LANGULUS_STD_BENCHMARK
             BENCHMARK_ADVANCED("operator = (single value copy)") (timer meter) {
@@ -152,8 +154,10 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
             REQUIRE(pack.HasAuthority() == element.HasAuthority());
          }
 
-         REQUIRE_THROWS(pack.template As<float>() == 0.0f);
-         REQUIRE_THROWS(pack.template As<float*>() == nullptr);
+         if constexpr (not CT::Typed<T>) {
+            REQUIRE_THROWS(pack.template As<float>() == 0.0f);
+            REQUIRE_THROWS(pack.template As<float*>() == nullptr);
+         }
 
          #ifdef LANGULUS_STD_BENCHMARK
             BENCHMARK_ADVANCED("operator = (single value move)") (timer meter) {
@@ -200,8 +204,10 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
             REQUIRE_FALSE(pack.HasAuthority());
          }
 
-         REQUIRE_THROWS(pack.template As<float>() == 0.0f);
-         REQUIRE_THROWS(pack.template As<float*>() == nullptr);
+         if constexpr (not CT::Typed<T>) {
+            REQUIRE_THROWS(pack.template As<float>() == 0.0f);
+            REQUIRE_THROWS(pack.template As<float*>() == nullptr);
+         }
 
          #ifdef LANGULUS_STD_BENCHMARK
             BENCHMARK_ADVANCED("operator = (single disowned value)") (timer meter) {
@@ -252,8 +258,10 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
             REQUIRE(pack.HasAuthority() == element.HasAuthority());
          }
 
-         REQUIRE_THROWS(pack.template As<float>() == 0.0f);
-         REQUIRE_THROWS(pack.template As<float*>() == nullptr);
+         if constexpr (not CT::Typed<T>) {
+            REQUIRE_THROWS(pack.template As<float>() == 0.0f);
+            REQUIRE_THROWS(pack.template As<float*>() == nullptr);
+         }
 
          #ifdef LANGULUS_STD_BENCHMARK
             BENCHMARK_ADVANCED("operator = (single abandoned value)") (timer meter) {
@@ -979,8 +987,10 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
          REQUIRE(pack.GetUses() == 3);
       }
 
-      REQUIRE_THROWS(pack.template As<float>() == 0.0f);
-      REQUIRE_THROWS(pack.template As<float*>() == nullptr);
+      if constexpr (not CT::Typed<T>) {
+         REQUIRE_THROWS(pack.template As<float>() == 0.0f);
+         REQUIRE_THROWS(pack.template As<float*>() == nullptr);
+      }
 
       #ifdef LANGULUS_STD_BENCHMARK
          BENCHMARK_ADVANCED("construction (single container copy)") (timer meter) {
@@ -1025,8 +1035,10 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
          REQUIRE(pack.GetUses() == 2);
       }
 
-      REQUIRE_THROWS(pack.template As<float>() == 0.0f);
-      REQUIRE_THROWS(pack.template As<float*>() == nullptr);
+      if constexpr (not CT::Typed<T>) {
+         REQUIRE_THROWS(pack.template As<float>() == 0.0f);
+         REQUIRE_THROWS(pack.template As<float*>() == nullptr);
+      }
 
       #ifdef LANGULUS_STD_BENCHMARK
          BENCHMARK_ADVANCED("construction (single value copy)") (timer meter) {
@@ -1071,8 +1083,10 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
             REQUIRE(pack.HasAuthority() == element.HasAuthority());
          }
 
-         REQUIRE_THROWS(pack.template As<float>() == 0.0f);
-         REQUIRE_THROWS(pack.template As<float*>() == nullptr);
+         if constexpr (not CT::Typed<T>) {
+            REQUIRE_THROWS(pack.template As<float>() == 0.0f);
+            REQUIRE_THROWS(pack.template As<float*>() == nullptr);
+         }
 
          #ifdef LANGULUS_STD_BENCHMARK
             BENCHMARK_ADVANCED("operator = (single value copy)") (timer meter) {
@@ -1121,8 +1135,10 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
             REQUIRE(pack.HasAuthority() == element.HasAuthority());
          }
 
-         REQUIRE_THROWS(pack.template As<float>() == 0.0f);
-         REQUIRE_THROWS(pack.template As<float*>() == nullptr);
+         if constexpr (not CT::Typed<T>) {
+            REQUIRE_THROWS(pack.template As<float>() == 0.0f);
+            REQUIRE_THROWS(pack.template As<float*>() == nullptr);
+         }
 
          #ifdef LANGULUS_STD_BENCHMARK
             BENCHMARK_ADVANCED("operator = (single value move)") (timer meter) {
@@ -1167,8 +1183,10 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
             REQUIRE_FALSE(pack.HasAuthority());
          }
 
-         REQUIRE_THROWS(pack.template As<float>() == 0.0f);
-         REQUIRE_THROWS(pack.template As<float*>() == nullptr);
+         if constexpr (not CT::Typed<T>) {
+            REQUIRE_THROWS(pack.template As<float>() == 0.0f);
+            REQUIRE_THROWS(pack.template As<float*>() == nullptr);
+         }
 
          #ifdef LANGULUS_STD_BENCHMARK
             BENCHMARK_ADVANCED("operator = (single disowned value)") (timer meter) {
@@ -1217,8 +1235,10 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
             REQUIRE(pack.HasAuthority() == element.HasAuthority());
          }
 
-         REQUIRE_THROWS(pack.template As<float>() == 0.0f);
-         REQUIRE_THROWS(pack.template As<float*>() == nullptr);
+         if constexpr (not CT::Typed<T>) {
+            REQUIRE_THROWS(pack.template As<float>() == 0.0f);
+            REQUIRE_THROWS(pack.template As<float*>() == nullptr);
+         }
 
          #ifdef LANGULUS_STD_BENCHMARK
             BENCHMARK_ADVANCED("operator = (single abandoned value)") (timer meter) {
@@ -1358,8 +1378,10 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
          REQUIRE(pack.HasAuthority());
       }
 
-      REQUIRE_THROWS(pack.template As<float>() == 0.0f);
-      REQUIRE_THROWS(pack.template As<float*>() == nullptr);
+      if constexpr (not CT::Typed<T>) {
+         REQUIRE_THROWS(pack.template As<float>() == 0.0f);
+         REQUIRE_THROWS(pack.template As<float*>() == nullptr);
+      }
 
       #ifdef LANGULUS_STD_BENCHMARK
          BENCHMARK_ADVANCED("construction (single value move)") (timer meter) {
@@ -1423,8 +1445,10 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
          REQUIRE(pack.IsDeep());
       }
 
-      REQUIRE_THROWS(pack.template As<float>() == 0.0f);
-      REQUIRE_THROWS(pack.template As<float*>() == nullptr);
+      if constexpr (not CT::Typed<T>) {
+         REQUIRE_THROWS(pack.template As<float>() == 0.0f);
+         REQUIRE_THROWS(pack.template As<float*>() == nullptr);
+      }
 
    #ifdef LANGULUS_STD_BENCHMARK
       BENCHMARK_ADVANCED("construction (single disowned value)") (timer meter) {
@@ -1493,8 +1517,10 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
          REQUIRE(pack.HasAuthority());
       }
 
-      REQUIRE_THROWS(pack.template As<float>() == 0.0f);
-      REQUIRE_THROWS(pack.template As<float*>() == nullptr);
+      if constexpr (not CT::Typed<T>) {
+         REQUIRE_THROWS(pack.template As<float>() == 0.0f);
+         REQUIRE_THROWS(pack.template As<float*>() == nullptr);
+      }
 
    #ifdef LANGULUS_STD_BENCHMARK
       BENCHMARK_ADVANCED("construction (single abandoned value)") (timer meter) {
