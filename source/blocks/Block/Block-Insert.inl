@@ -1623,7 +1623,7 @@ namespace Langulus::Anyness
          auto rhs = Block::From(DesemCast(what));
 
          for (auto block : *this)
-            block.AssignSemantic<THIS>(S::Nest(rhs));
+            block.template AssignSemantic<THIS>(S::Nest(rhs));
       }
    }
 
