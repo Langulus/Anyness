@@ -1621,9 +1621,13 @@ namespace Langulus::Anyness
 
          // Wrap argument into a block, and assign it to each element   
          auto rhs = Block::From(DesemCast(what));
-
-         for (auto block : *this)
-            block.template AssignSemantic<THIS>(S::Nest(rhs));
+         auto lhs = GetElement();
+         const auto size = GetBytesize();
+         const auto lhsEnd = mRaw + size;
+         while (lhs.mRaw < lhsEnd) {
+            lhs.template AssignSemantic<THIS>(S::Nest(rhs));
+            lhs.mRaw += size;
+         }
       }
    }
 
