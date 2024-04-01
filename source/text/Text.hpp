@@ -169,6 +169,7 @@ namespace Langulus::CT
       /// are defined by Langulus::Logger, etc.                               
       template<class...T>
       concept FmtStringifiable = ((not BuiltinText<T>
+          and not Nullptr<T>
           and not Meta<T>
           and not Exception<T>
           and not DenseBuiltinNumber<T>
@@ -434,7 +435,7 @@ namespace fmt
       }
 
       template<class CONTEXT> LANGULUS(INLINED)
-      auto format(const T& element, CONTEXT& ctx) {
+      auto format(const T& element, CONTEXT& ctx) const {
          using namespace Langulus;
          static_assert(CT::Complete<T>, "T isn't complete");
          auto& me = const_cast<T&>(element);
