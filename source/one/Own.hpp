@@ -173,7 +173,7 @@ namespace fmt
       }
 
       template<class CONTEXT> LANGULUS(INLINED)
-      auto format(T const& element, CONTEXT& ctx) {
+      auto format(T const& element, CONTEXT& ctx) const {
          using namespace Langulus;
          if constexpr (CT::Sparse<TypeOf<T>>) {
             if (element == nullptr) {
