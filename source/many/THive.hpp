@@ -196,15 +196,16 @@ namespace Langulus::Anyness
 
       // Current frame                                                  
       Frame* mFrame;
-      // The frame that is considered end of frames                     
-      Frame const* mFrameEnd;
+      // The last valid frame                                           
+      // @attention this is not the one-past-count!                     
+      Frame const* mFrameLast;
 
       constexpr Iterator(Cell*, Cell const*, Frame*, Frame const*) noexcept;
 
    public:
       Iterator() noexcept = delete;
-      constexpr Iterator(const Iterator&) noexcept = default;
-      constexpr Iterator(Iterator&&) noexcept = default;
+      constexpr Iterator(const Iterator& other) noexcept = default;
+      constexpr Iterator(Iterator&& other) noexcept = default;
       constexpr Iterator(const A::IteratorEnd&) noexcept;
 
       constexpr Iterator& operator = (const Iterator&) noexcept = default;
