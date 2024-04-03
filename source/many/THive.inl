@@ -17,14 +17,20 @@
 namespace Langulus::Anyness
 {
 
+   /// Refer-constructor                                                      
+   ///   @param other - the hive to refer to                                  
    TEMPLATE() LANGULUS(INLINED)
    TME()::THive(const THive& other)
       : THive {Refer(other)} {}
 
+   /// Move-constructor                                                       
+   ///   @param other - the hive to move                                      
    TEMPLATE() LANGULUS(INLINED)
    TME()::THive(THive&& other)
       : THive {Move(other)} {}
 
+   /// Semantic constructor                                                   
+   ///   @param other - the hive and semantic to use                          
    TEMPLATE() template<template<class> class S> LANGULUS(INLINED)
    THive<T>::THive(S<THive>&&) requires CT::Semantic<S<THive>> {
       TODO();
@@ -51,7 +57,7 @@ namespace Langulus::Anyness
    }
 
    /// Semantic assignment                                                    
-   ///   @param other - the have to assign                                    
+   ///   @param other - the hive to assign                                    
    TEMPLATE() template<template<class> class S> LANGULUS(INLINED)
    THive<T>& THive<T>::operator = (S<THive>&& other) requires CT::Semantic<S<THive>> {
       using SS = S<THive>;
@@ -113,8 +119,8 @@ namespace Langulus::Anyness
          return end();
 
       auto& firstFrame = mFrames[0];
-      auto cell = firstFrame.GetRaw();
-      const auto cellEnd = cell + firstFrame.GetReserved();
+      Cell* cell = firstFrame.GetRaw();
+      Cell const* const cellEnd = cell + firstFrame.GetReserved();
       while (cell->mNextFreeCell and cell < cellEnd)
          ++cell;
 
@@ -122,7 +128,7 @@ namespace Langulus::Anyness
          cell,
          cellEnd,
          &firstFrame,
-         &firstFrame + mFrames.GetCount()
+         &firstFrame + mFrames.GetCount() - 1
       };
    }
 
@@ -148,7 +154,7 @@ namespace Langulus::Anyness
          cell,
          cell + lastFrame.GetReserved(),
          &lastFrame,
-         &lastFrame + 1
+         &lastFrame
       };
    }
 
@@ -299,11 +305,13 @@ namespace Langulus::Anyness
    ///   @param start - the current iterator position                         
    ///   @param end - the ending marker                                       
    TEMPLATE() template<class HIVE> LANGULUS(INLINED)
-   constexpr THive<T>::Iterator<HIVE>::Iterator(Cell* start, Cell const* end, Frame* startf, Frame const* endf) noexcept
+   constexpr THive<T>::Iterator<HIVE>::Iterator(
+      Cell* start, Cell const* end, Frame* startf, Frame const* lastf
+   ) noexcept
       : mCell {start}
       , mCellEnd {end}
       , mFrame {startf}
-      , mFrameEnd {endf} {}
+      , mFrameLast {lastf} {}
 
    /// Construct an end iterator                                              
    TEMPLATE() template<class HIVE> LANGULUS(INLINED)
@@ -311,7 +319,7 @@ namespace Langulus::Anyness
       : mCell {nullptr}
       , mCellEnd {nullptr}
       , mFrame {nullptr}
-      , mFrameEnd {nullptr} {}
+      , mFrameLast {nullptr} {}
 
    /// Compare two iterators                                                  
    ///   @param rhs - the other iterator                                      
@@ -326,7 +334,7 @@ namespace Langulus::Anyness
    ///   @return true element is at or beyond the end marker                  
    TEMPLATE() template<class HIVE> LANGULUS(INLINED)
    constexpr bool THive<T>::Iterator<HIVE>::operator == (const A::IteratorEnd&) const noexcept {
-      return mCell ? mCell >= mFrameEnd->GetRawEnd() : true;
+      return mCell ? mCell >= mFrameLast->GetRawEnd() : true;
    }
    
    /// Iterator access operator                                               
@@ -358,7 +366,7 @@ namespace Langulus::Anyness
          // If end of frame was reached, move to the next frame         
          ++mFrame;
 
-         if (mFrame < mFrameEnd) {
+         if (mFrame <= mFrameLast) {
             mCell = mFrame->GetRaw();
             mCellEnd = mCell + mFrame->GetReserved();
          }
@@ -387,7 +395,7 @@ namespace Langulus::Anyness
    /// Implicitly convert to a constant iterator                              
    TEMPLATE() template<class HIVE> LANGULUS(INLINED)
    constexpr THive<T>::Iterator<HIVE>::operator Iterator<const HIVE>() const noexcept requires Mutable {
-      return {mCell, mCellEnd, mFrame, mFrameEnd};
+      return {mCell, mCellEnd, mFrame, mFrameLast};
    }
 
 } // namespace Langulus::Flow
