@@ -66,7 +66,7 @@ namespace Langulus::Anyness
       NOD() static constexpr Offset GetMinAllocation() noexcept;
 
       NOD() constexpr Count GetUses() const noexcept;
-      NOD() Byte* GetBlockStart() noexcept;
+      NOD() Byte* GetBlockStart() const noexcept;
       NOD() Byte const* GetBlockEnd() const noexcept;
       NOD() constexpr Offset GetTotalSize() const noexcept;
       NOD() constexpr Offset GetAllocatedSize() const noexcept;

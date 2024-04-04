@@ -101,14 +101,6 @@ namespace Langulus::Anyness
       return mReferences;
    }
 
-   /// Return the aligned start of usable block memory (const)                
-   ///   @return pointer to the entry's memory                                
-   LANGULUS(INLINED)
-   Byte const* Allocation::GetBlockStart() const noexcept {
-      const auto entryStart = reinterpret_cast<const Byte*>(this);
-      return entryStart + Allocation::GetSize();
-   }
-
    /// Return the end of usable block memory (always const)                   
    ///   @return pointer to the entry's memory end                            
    LANGULUS(INLINED)
@@ -119,9 +111,9 @@ namespace Langulus::Anyness
    /// Return the aligned start of usable block memory                        
    ///   @return pointer to the entry's publicly usable memory                
    LANGULUS(INLINED)
-   Byte* Allocation::GetBlockStart() noexcept {
-      const auto entryStart = reinterpret_cast<Byte*>(this);
-      return entryStart + Allocation::GetSize();
+   Byte* Allocation::GetBlockStart() const noexcept {
+      const auto entryStart = reinterpret_cast<const Byte*>(this);
+      return const_cast<Byte*>(entryStart + Allocation::GetSize());
    }
    
    /// Get the total of the entry, and its allocated data, in bytes           
