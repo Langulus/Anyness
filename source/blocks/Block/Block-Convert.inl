@@ -562,6 +562,7 @@ namespace Langulus::Anyness
          ReadInner<THIS>(read, count, loader);
          const Token token {GetRawAs<Letter, THIS>() + read, count};
 
+      #if LANGULUS_FEATURE(MANAGED_REFLECTION)
          if constexpr (CT::Same<META, DMeta>)
             result = RTTI::GetMetaData(token);
          else if constexpr (CT::Same<META, VMeta>)
@@ -576,6 +577,14 @@ namespace Langulus::Anyness
          LANGULUS_ASSERT(result, Meta,
             "Deserialized meta for token `", token, "` doesn't exist");
          return read + count;
+      #else
+         LANGULUS_OOPS(Meta,
+            "The build doesn't include managed reflection, "
+            "so it can't deserialize meta from token: ", token,
+            " unless it's a built-in type"
+         );
+         return read;
+      #endif
       }
 
       result = {};
