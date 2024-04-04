@@ -7,9 +7,7 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #pragma once
-#include <RTTI/MetaData.hpp>
-#include <RTTI/MetaTrait.hpp>
-#include <RTTI/MetaVerb.hpp>
+#include <RTTI/Meta.hpp>
 
 
 namespace Langulus::Anyness
