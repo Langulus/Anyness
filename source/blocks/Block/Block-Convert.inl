@@ -555,7 +555,6 @@ namespace Langulus::Anyness
    Offset Block::DeserializeMeta(
       CT::Meta auto& result, Offset read, const Header& header, Loader loader
    ) const {
-      using META = Deref<decltype(result)>;
       Count count = 0;
       read = DeserializeAtom<THIS>(count, read, header, loader);
       if (count) {
@@ -563,6 +562,8 @@ namespace Langulus::Anyness
          const Token token {GetRawAs<Letter, THIS>() + read, count};
 
       #if LANGULUS_FEATURE(MANAGED_REFLECTION)
+         using META = Deref<decltype(result)>;
+
          if constexpr (CT::Same<META, DMeta>)
             result = RTTI::GetMetaData(token);
          else if constexpr (CT::Same<META, VMeta>)

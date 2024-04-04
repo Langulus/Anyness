@@ -47,7 +47,7 @@ namespace Langulus::Anyness
    struct Allocator {
       /// No state when MANAGED_MEMORY feature is disabled                    
       struct State {
-         consteval bool Assert() const noexcept { return true; }
+         constexpr bool Assert() const noexcept { return true; }
       };
 
       NOD() LANGULUS(INLINED)
