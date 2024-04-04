@@ -50,6 +50,9 @@ namespace Langulus::Anyness
          Allocation* mNextFreeEntry;
       };
 
+      // Acts like a timestamp of when the allocation happened          
+      IF_LANGULUS_MEMORY_STATISTICS(Count mStep);
+
    public:
       Allocation() = delete;
       Allocation(const Allocation&) = delete;

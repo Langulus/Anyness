@@ -65,11 +65,7 @@ namespace Langulus::Anyness
    constexpr Allocation::Allocation(Offset bytes, Pool* pool) noexcept
       : mAllocatedBytes {bytes}
       , mReferences {1}
-      , mPool {pool} {
-      #if LANGULUS_FEATURE(MEMORY_STATISTICS)
-         mStep = Instance.GetStatistics().mStep;
-      #endif
-   }
+      , mPool {pool} {}
 
    /// Get the size of the Allocation structure, rounded up for alignment     
    ///   @return the byte size of the entry, including alignment              
