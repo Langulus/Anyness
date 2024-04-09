@@ -170,10 +170,11 @@ namespace Langulus::Anyness
       return {mValue};
    }
 
-   TEMPLATE() LANGULUS(INLINED)
-   TME()::operator const T& () const noexcept {
+   /// Implicitly convert to the contained pointer                            
+   /*TEMPLATE() LANGULUS(INLINED)
+   TME()::operator T* () const noexcept {
       return mValue;
-   }
+   }*/
 
    /// Check if we have authority over the memory                             
    ///   @return true if we own the memory behind the pointer                 

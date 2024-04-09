@@ -85,7 +85,7 @@ namespace Langulus::Anyness
       void Reset();
 
       NOD() operator Ref<const T>() const noexcept requires CT::Mutable<T>;
-      NOD() operator const T& () const noexcept;
+      //NOD() operator T* () const noexcept;
    };
 
 

@@ -17,17 +17,17 @@ namespace Langulus::CT
    /// pair can be constructed                                                
    template<class K, class V, class A>
    concept PairMakable = Pair<Desem<A>> and not Reference<K, V>
-       and (SemanticOf<A>::Shallow or (
+       and //(SemanticOf<A>::Shallow or (
             Inner::SemanticMakableAlt<typename SemanticOf<A>::template As<K>>
-        and Inner::SemanticMakableAlt<typename SemanticOf<A>::template As<V>>));
+        and Inner::SemanticMakableAlt<typename SemanticOf<A>::template As<V>>;//));
 
    /// Concept for recognizing argument, with which a statically typed        
    /// pair can be assigned                                                   
    template<class K, class V, class A>
    concept PairAssignable = Pair<Desem<A>> and not Reference<K, V>
-       and (SemanticOf<A>::Shallow or (
+       and //(SemanticOf<A>::Shallow or (
             Inner::SemanticAssignableAlt<typename SemanticOf<A>::template As<K>>
-        and Inner::SemanticAssignableAlt<typename SemanticOf<A>::template As<V>>));
+        and Inner::SemanticAssignableAlt<typename SemanticOf<A>::template As<V>>;//));
 
    /// Concept for recognizing argument, against which a pair can be compared 
    template<class K, class V, class A>
@@ -92,5 +92,9 @@ namespace Langulus::Anyness
       operator TPair<const Deref<K>&, const Deref<V>&>() const noexcept
       requires CT::Reference<K, V>;
    };
+
+   /// Deduction guides                                                       
+   template<class K, class V>
+   TPair(K&&, V&&) -> TPair<Deref<K>, Deref<V>>;
 
 } // namespace Langulus::Anyness
