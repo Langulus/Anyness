@@ -606,7 +606,7 @@ namespace Langulus::Anyness
    ///   @attention hashing is slow, it is recommended to cache the value     
    ///   @return the cache                                                    
    TEMPLATE() LANGULUS(INLINED)
-   Hash TABLE()::GetHash() const {
+   Hash TABLE()::GetHash() const requires CT::Hashable<K, V> {
       return BlockMap::GetHash<TMap>();
    }
 

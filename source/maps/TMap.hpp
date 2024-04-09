@@ -223,7 +223,7 @@ namespace Langulus::Anyness
       bool operator == (CT::Map  auto const&) const requires CT::Inner::Comparable<V>;
       bool operator == (CT::Pair auto const&) const requires CT::Inner::Comparable<V>;
 
-      NOD() Hash GetHash() const;
+      NOD() Hash GetHash() const requires CT::Hashable<K, V>;
 
       template<CT::NotSemantic K1> requires CT::Inner::Comparable<K, K1>
       NOD() bool ContainsKey(K1 const&) const;
