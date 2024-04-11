@@ -301,7 +301,7 @@ namespace Langulus::Anyness
                         " - no refer-constructor was reflected for type ", mType);
                   }
                   else {
-                     static_assert(CT::Inner::ReferMakable<TypeOf<B>>,
+                     static_assert(CT::ReferMakable<TypeOf<B>>,
                         "Contained type is not refer-constructible");
                   }
 

@@ -32,9 +32,6 @@ SCENARIO("Data normalization", "[neat]") {
    static_assert(CT::SemanticMakable<Copied, Any>);
    static_assert(CT::SemanticMakable<Referred, Any>);
 
-   static_assert(CT::Inner::SemanticMakable<Copied, Any>);
-   static_assert(CT::Inner::SemanticMakable<Referred, Any>);
-
    static_assert(CT::DeepMakable<Any, Cloned<TAny<Any>>>);
    static_assert(CT::CopyMakable<Any>);
    static_assert(CT::ReferMakable<Any>);
@@ -73,17 +70,17 @@ SCENARIO("Data normalization", "[neat]") {
    static_assert(CT::PairMakable<TMeta, TAny<Any>, Cloned<TPair<TMeta, TAny<Any>>>>);
    static_assert(CT::PairAssignable<TMeta, TAny<Any>, Cloned<TPair<TMeta, TAny<Any>>>>);
 
-   static_assert(CT::Inner::SemanticMakableAlt<Copied<TMeta>>);
-   static_assert(CT::Inner::SemanticMakableAlt<Referred<TMeta>>);
-   static_assert(CT::Inner::SemanticMakableAlt<Cloned<TMeta>>);
+   static_assert(CT::SemanticMakableAlt<Copied<TMeta>>);
+   static_assert(CT::SemanticMakableAlt<Referred<TMeta>>);
+   static_assert(CT::SemanticMakableAlt<Cloned<TMeta>>);
 
-   static_assert(CT::Inner::SemanticMakableAlt<Copied<TAny<Any>>>);
-   static_assert(CT::Inner::SemanticMakableAlt<Referred<TAny<Any>>>);
-   static_assert(CT::Inner::SemanticMakableAlt<Cloned<TAny<Any>>>);
+   static_assert(CT::SemanticMakableAlt<Copied<TAny<Any>>>);
+   static_assert(CT::SemanticMakableAlt<Referred<TAny<Any>>>);
+   static_assert(CT::SemanticMakableAlt<Cloned<TAny<Any>>>);
 
-   static_assert(CT::Inner::SemanticMakableAlt<Copied<TPair<TMeta, TAny<Any>>>>);
-   static_assert(CT::Inner::SemanticMakableAlt<Referred<TPair<TMeta, TAny<Any>>>>);
-   static_assert(CT::Inner::SemanticMakableAlt<Cloned<TPair<TMeta, TAny<Any>>>>);
+   static_assert(CT::SemanticMakableAlt<Copied<TPair<TMeta, TAny<Any>>>>);
+   static_assert(CT::SemanticMakableAlt<Referred<TPair<TMeta, TAny<Any>>>>);
+   static_assert(CT::SemanticMakableAlt<Cloned<TPair<TMeta, TAny<Any>>>>);
 
    static_assert(CT::CopyMakable<TUnorderedMap<TMeta, TAny<Any>>>);
    static_assert(CT::ReferMakable<TUnorderedMap<TMeta, TAny<Any>>>);

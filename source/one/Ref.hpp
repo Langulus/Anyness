@@ -37,12 +37,12 @@ namespace Langulus::Anyness
       ///   Construction                                                      
       ///                                                                     
       constexpr Ref() noexcept;
-      constexpr Ref(const Ref&);
-      constexpr Ref(Ref&&);
+      explicit constexpr Ref(const Ref&);
+      explicit constexpr Ref(Ref&&);
 
       template<template<class> class S>
-      requires CT::Inner::SemanticMakable<S, T*>
-      constexpr Ref(S<Ref>&&);
+      requires CT::SemanticMakable<S, T*>
+      explicit constexpr Ref(S<Ref>&&);
 
       template<class A> requires CT::MakableFrom<T*, A>
       constexpr Ref(A&&);
@@ -59,7 +59,7 @@ namespace Langulus::Anyness
       constexpr Ref& operator = (Ref&&);
 
       template<template<class> class S>
-      requires CT::Inner::SemanticAssignable<S, T*>
+      requires CT::SemanticAssignable<S, T*>
       Ref& operator = (S<Ref>&&);
 
       template<CT::NotOwned A> requires CT::AssignableFrom<T*, A>
@@ -85,7 +85,6 @@ namespace Langulus::Anyness
       void Reset();
 
       NOD() operator Ref<const T>() const noexcept requires CT::Mutable<T>;
-      //NOD() operator T* () const noexcept;
    };
 
 

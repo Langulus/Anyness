@@ -41,7 +41,7 @@ namespace Langulus::Anyness
    /// Semantically construct using handle of any compatible type             
    ///   @param other - the handle and semantic to construct with             
    TEMPLATE() template<template<class> class S, CT::Handle H>
-   requires CT::Inner::SemanticMakable<S, T> LANGULUS(INLINED)
+   requires CT::SemanticMakable<S, T> LANGULUS(INLINED)
    constexpr HAND()::Handle(S<H>&& other)
       : mValue (S<T>(other->Get()))
       , mEntry {other->GetEntry()} {
@@ -102,7 +102,7 @@ namespace Langulus::Anyness
    /// Compare a handle with a comparable value                               
    ///   @attention this compares contents and isn't suitable for iteration   
    TEMPLATE() template<class T1>
-   requires CT::Inner::Comparable<T, T1> LANGULUS(INLINED)
+   requires CT::Comparable<T, T1> LANGULUS(INLINED)
    constexpr bool HAND()::operator == (const T1& rhs) const noexcept {
       if constexpr (Embedded)
          return *mValue == rhs;
@@ -113,7 +113,7 @@ namespace Langulus::Anyness
    /// Compare handles                                                        
    ///   @attention this compares contents and isn't suitable for iteration   
    TEMPLATE() template<class T1, bool EMBED1>
-   requires CT::Inner::Comparable<T, T1> LANGULUS(INLINED)
+   requires CT::Comparable<T, T1> LANGULUS(INLINED)
    constexpr bool HAND()::operator == (const Handle<T1, EMBED1>& rhs) const noexcept {
       if constexpr (Embedded) {
          if constexpr (EMBED1)
@@ -495,7 +495,7 @@ namespace Langulus::Anyness
    /// Compare the contents of the handle with content                        
    ///   @param rhs - data to compare against                                 
    ///   @return true if contents are equal                                   
-   TEMPLATE() template<class T1> requires CT::Inner::Comparable<T, T1>
+   TEMPLATE() template<class T1> requires CT::Comparable<T, T1>
    LANGULUS(INLINED) bool HAND()::Compare(const T1& rhs) const {
       return Get() == rhs;
    }
@@ -504,7 +504,7 @@ namespace Langulus::Anyness
    ///   @param rhs - handle to compare against                               
    ///   @return true if contents are equal                                   
    TEMPLATE() template<class T1, bool RHS_EMBED>
-   requires CT::Inner::Comparable<T, T1> LANGULUS(INLINED)
+   requires CT::Comparable<T, T1> LANGULUS(INLINED)
    bool HAND()::Compare(const Handle<T1, RHS_EMBED>& rhs) const {
       return Get() == rhs.Get();
    }

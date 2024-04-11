@@ -15,8 +15,8 @@ namespace Langulus::CT
 
    /// Any dense value or array of values, that isn't CT::Block               
    template<class...T>
-   concept BinablePOD = (
-         (Inner::POD<Deext<T>> and Dense<Deext<T>> and not Block<Deext<T>> and not Meta<Deext<T>>
+   concept BinablePOD = ((POD<Deext<T>> and Dense<Deext<T>>
+          and not Block<Deext<T>> and not Meta<Deext<T>>
       ) and ...);
 
    namespace Inner
@@ -62,7 +62,7 @@ namespace Langulus::Anyness
    ///   Byte sequence container                                              
    ///                                                                        
    ///   Convenient wrapper for count-terminated raw byte sequences. Can      
-   /// represent any POD type as a sequence of bytes. Used as a binary        
+   /// represent any POD type as a sequence of bytes. Also used as a binary   
    /// serializer.                                                            
    ///                                                                        
    struct Bytes : TAny<Byte> {
@@ -94,7 +94,7 @@ namespace Langulus::Anyness
       requires CT::Inner::Binable<T1, T2, TN...>
       Bytes(T1&&, T2&&, TN&&...);
 
-      template<class T> requires (CT::Sparse<Desem<T>> and CT::Byte<Desem<T>>)
+      template<class T> requires (CT::Sparse<Desem<T>> and CT::Byte<Decay<Desem<T>>>)
       static Bytes From(T&&, Count);
 
       ///                                                                     

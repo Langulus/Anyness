@@ -820,7 +820,7 @@ namespace Langulus::Anyness
    ///   @param count - number of elements to construct                       
    ///   @return the number of new elements                                   
    TEMPLATE() LANGULUS(INLINED)
-   Count TAny<T>::New(const Count count) requires CT::Inner::Defaultable<T> {
+   Count TAny<T>::New(const Count count) requires CT::Defaultable<T> {
       return Block::New<TAny>(count);
    }
 
@@ -882,7 +882,7 @@ namespace Langulus::Anyness
    ///   @param cookie - resume search from a given index                     
    ///   @return the index of the found item, or IndexNone if none found      
    TEMPLATE() template<bool REVERSE, CT::NotSemantic T1>
-   requires CT::Inner::Comparable<T, T1>
+   requires CT::Comparable<T, T1>
    Index TAny<T>::Find(const T1& item, Offset cookie) const noexcept {
       return Block::Find<REVERSE, TAny>(item, cookie);
    }
@@ -928,7 +928,7 @@ namespace Langulus::Anyness
    }
 
    /// Sort the pack                                                          
-   TEMPLATE() template<bool ASCEND> requires CT::Inner::Sortable<T>
+   TEMPLATE() template<bool ASCEND> requires CT::Sortable<T>
    LANGULUS(INLINED) void TAny<T>::Sort() {
       Block::Sort<ASCEND, TAny>();
    }
@@ -1071,8 +1071,8 @@ namespace Langulus::Anyness
    ///   @return true if both containers are identical                        
    TEMPLATE() template<CT::NotSemantic T1>
    requires (CT::UntypedBlock<T1>
-      or (CT::TypedBlock<T1> and CT::Inner::Comparable<T, TypeOf<T1>>)
-      or CT::Inner::Comparable<T, T1>) LANGULUS(INLINED)
+      or (CT::TypedBlock<T1> and CT::Comparable<T, TypeOf<T1>>)
+      or CT::Comparable<T, T1>) LANGULUS(INLINED)
    bool TAny<T>::operator == (const T1& other) const {
       return Block::operator == <TAny> (other);
    }

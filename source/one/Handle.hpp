@@ -82,7 +82,7 @@ namespace Langulus::Anyness
       requires (EMBED and CT::Dense<T>);
 
       template<template<class> class S, CT::Handle H>
-      requires CT::Inner::SemanticMakable<S, T>
+      requires CT::SemanticMakable<S, T>
       constexpr Handle(S<H>&&);
 
       template<class T1> requires (not EMBED and CT::MakableFrom<T, T1>)
@@ -91,9 +91,9 @@ namespace Langulus::Anyness
       constexpr Handle& operator = (const Handle&) noexcept = default;
       constexpr Handle& operator = (Handle&&) noexcept = default;
 
-      template<class T1> requires CT::Inner::Comparable<T, T1>
+      template<class T1> requires CT::Comparable<T, T1>
       constexpr bool operator == (const T1&) const noexcept;
-      template<class T1, bool EMBED1> requires CT::Inner::Comparable<T, T1>
+      template<class T1, bool EMBED1> requires CT::Comparable<T, T1>
       constexpr bool operator == (const Handle<T1, EMBED1>&) const noexcept;
 
       NOD() T& Get() const noexcept;
@@ -116,9 +116,9 @@ namespace Langulus::Anyness
       template<bool RHS_EMBED>
       void Swap(Handle<T, RHS_EMBED>&);
 
-      template<class T1> requires CT::Inner::Comparable<T, T1>
+      template<class T1> requires CT::Comparable<T, T1>
       NOD() bool Compare(const T1&) const;
-      template<class T1, bool RHS_EMBED> requires CT::Inner::Comparable<T, T1>
+      template<class T1, bool RHS_EMBED> requires CT::Comparable<T, T1>
       NOD() bool Compare(const Handle<T1, RHS_EMBED>&) const;
 
       // Prefix operators                                               
@@ -198,8 +198,8 @@ namespace Langulus
 
       /// Check if T is insertable to containers, either directly, or while   
       /// wrapped in a semantic                                               
-      template<class T1, class...TAIL>
-      concept UnfoldInsertable = Insertable<Desem<T1>, Desem<TAIL>...>;
+      template<class T1, class...TN>
+      concept UnfoldInsertable = Insertable<Desem<T1>, Desem<TN>...>;
 
    } // namespace Langulus::CT::Inner
 

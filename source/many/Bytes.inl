@@ -87,7 +87,8 @@ namespace Langulus::Anyness
    /// Semantic construction from count-terminated array                      
    ///   @param text - text memory to wrap                                    
    ///   @param count - number of characters inside text                      
-   template<class T> requires (CT::Sparse<Desem<T>> and CT::Byte<Desem<T>>)
+   ///   @return the byte container                                           
+   template<class T> requires (CT::Sparse<Desem<T>> and CT::Byte<Decay<Desem<T>>>)
    LANGULUS(INLINED) Bytes Bytes::From(T&& text, Count count) {
       auto block = Base::From(Forward<T>(text), count);
       return Abandon(reinterpret_cast<Bytes&>(block));
@@ -111,8 +112,8 @@ namespace Langulus::Anyness
 
    /// Assign any Bytes block                                                 
    ///   @param rhs - the block to assign                                     
-   template<class T> requires CT::Bytes<Desem<T>>
-   LANGULUS(INLINED) Bytes& Bytes::operator = (T&& rhs) {
+   template<class T> requires CT::Bytes<Desem<T>> LANGULUS(INLINED)
+   Bytes& Bytes::operator = (T&& rhs) {
       Base::operator = (Forward<T>(rhs));
       return *this;
    }

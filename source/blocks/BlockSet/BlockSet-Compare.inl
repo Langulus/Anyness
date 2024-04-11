@@ -134,7 +134,7 @@ namespace Langulus::Anyness
       else {
          if constexpr (CT::Typed<THIS>) {
             // Types known at compile-time                              
-            static_assert(CT::Inner::Comparable<TypeOf<THIS>, K>,
+            static_assert(CT::Comparable<TypeOf<THIS>, K>,
                "Types not comparable");            
          }
          else if (not CT::Deep<K>

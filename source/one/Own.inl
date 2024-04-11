@@ -19,26 +19,26 @@ namespace Langulus::Anyness
    /// Default constructor                                                    
    ///   @param value - owned value to reference                              
    TEMPLATE() LANGULUS(INLINED)
-   constexpr TME()::Own() requires CT::Inner::Defaultable<T>
+   constexpr TME()::Own() requires CT::Defaultable<T>
       : mValue {} {}
 
    /// Refer constructor                                                      
    ///   @param value - owned value to reference                              
    TEMPLATE() LANGULUS(INLINED)
    constexpr TME()::Own(const Own& value)
-   requires (CT::Sparse<T> or CT::Inner::ReferMakable<T>)
+   requires (CT::Sparse<T> or CT::ReferMakable<T>)
       : Own {Refer(value)} {}
 
    /// Move constructor                                                       
    ///   @param value - owned value to move                                   
    TEMPLATE() LANGULUS(INLINED)
    constexpr TME()::Own(Own&& value)
-   requires (CT::Sparse<T> or CT::Inner::MoveMakable<T>)
+   requires (CT::Sparse<T> or CT::MoveMakable<T>)
       : Own {Move(value)} {}
    
    /// Generic constructor                                                    
    TEMPLATE() template<template<class> class S>
-   requires CT::Inner::SemanticMakable<S, T> LANGULUS(INLINED)
+   requires CT::SemanticMakable<S, T> LANGULUS(INLINED)
    constexpr TME()::Own(S<Own>&& other)
       : mValue {S<Own>::Nest(other->mValue)} {}
 
@@ -52,7 +52,7 @@ namespace Langulus::Anyness
    ///   @param value - the value to reference                                
    TEMPLATE() LANGULUS(INLINED)
    constexpr TME()& TME()::operator = (const Own& value)
-   requires (CT::Sparse<T> or CT::Inner::ReferAssignable<T>) {
+   requires (CT::Sparse<T> or CT::ReferAssignable<T>) {
       return operator = (Refer(value));
    }
 
@@ -60,13 +60,13 @@ namespace Langulus::Anyness
    ///   @param value - the value to move                                     
    TEMPLATE() LANGULUS(INLINED)
    constexpr TME()& TME()::operator = (Own&& value)
-   requires (CT::Sparse<T> or CT::Inner::MoveAssignable<T>) {
+   requires (CT::Sparse<T> or CT::MoveAssignable<T>) {
       return operator = (Move(value));
    }
    
    /// Generic assignment                                                     
    TEMPLATE() template<template<class> class S>
-   requires CT::Inner::SemanticAssignable<S, T> LANGULUS(INLINED)
+   requires CT::SemanticAssignable<S, T> LANGULUS(INLINED)
    constexpr TME()& TME()::operator = (S<Own>&& rhs) {
       mValue = S<Own>::Nest(rhs->mValue);
       return *this;

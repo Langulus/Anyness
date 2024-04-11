@@ -301,7 +301,7 @@ namespace Langulus::Anyness
    template<CT::BlockBased THIS> LANGULUS(INLINED)
    constexpr bool Block::IsPOD() const noexcept {
       if constexpr (CT::Typed<THIS>)
-         return CT::POD<TypeOf<THIS>>;
+         return CT::POD<Decay<TypeOf<THIS>>>;
       else
          return mType and mType->mIsPOD;
    }

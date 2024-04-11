@@ -89,7 +89,7 @@ namespace Langulus::Anyness
                      " - no refer-constructor was reflected for type ", asFrom->mKeys.mType);
                }
                else {
-                  static_assert(CT::Inner::ReferMakable<K>,
+                  static_assert(CT::ReferMakable<K>,
                      "Type is not refer-constructible");
                }
 
@@ -98,7 +98,7 @@ namespace Langulus::Anyness
 
                if constexpr (CT::Typed<B>) {
                   // At least one of the sets is typed                  
-                  if constexpr (CT::Inner::POD<K>) {
+                  if constexpr (CT::POD<K>) {
                      // Data is POD, we can directly copy all keys      
                      CopyMemory(
                         mKeys.mRaw, asFrom->mKeys.mRaw,
@@ -189,7 +189,7 @@ namespace Langulus::Anyness
                " - no clone-constructor was reflected for type ", asFrom->mKeys.mType);
          }
          else {
-            static_assert(CT::Inner::CloneMakable<K>,
+            static_assert(CT::CloneMakable<K>,
                "Key type is not clone-constructible");
          }
 
@@ -201,7 +201,7 @@ namespace Langulus::Anyness
                // each element will end up in the same place            
                CopyMemory(mInfo, other->mInfo, GetReserved() + 1);
 
-               if constexpr (CT::Inner::POD<TypeOf<B>>) {
+               if constexpr (CT::POD<TypeOf<B>>) {
                   // Data is POD, we can directly copy the entire table 
                   CopyMemory(
                      mKeys.mRaw, asFrom->mKeys.mRaw,
