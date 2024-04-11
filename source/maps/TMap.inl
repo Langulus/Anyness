@@ -532,7 +532,7 @@ namespace Langulus::Anyness
    ///   @param key - the key to search for                                   
    ///   @return 1 if key was found and pair was removed                      
    TEMPLATE() template<CT::NotSemantic K1>
-   requires CT::Inner::Comparable<K, K1> LANGULUS(INLINED)
+   requires CT::Comparable<K, K1> LANGULUS(INLINED)
    Count TABLE()::RemoveKey(const K1& key) {
       return BlockMap::RemoveKey<TMap>(key);
    }
@@ -541,7 +541,7 @@ namespace Langulus::Anyness
    ///   @param value - the match to search for                               
    ///   @return the number of removed pairs                                  
    TEMPLATE() template<CT::NotSemantic V1>
-   requires CT::Inner::Comparable<V, V1> LANGULUS(INLINED)
+   requires CT::Comparable<V, V1> LANGULUS(INLINED)
    Count TABLE()::RemoveValue(const V1& value) {
       return BlockMap::RemoveValue<TMap>(value);
    }
@@ -550,7 +550,7 @@ namespace Langulus::Anyness
    ///   @param value - the match to search for                               
    ///   @return the number of removed pairs                                  
    TEMPLATE() template<CT::Pair P>
-   requires CT::Inner::Comparable<TPair<K, V>, P> LANGULUS(INLINED)
+   requires CT::Comparable<TPair<K, V>, P> LANGULUS(INLINED)
    Count TABLE()::RemovePair(const P& pair) {
       return BlockMap::RemovePair<TMap>(pair);
    }
@@ -589,7 +589,7 @@ namespace Langulus::Anyness
    ///   @return true if contents of both maps are the same                   
    TEMPLATE() LANGULUS(INLINED)
    bool TABLE()::operator == (CT::Map auto const& rhs) const
-   requires CT::Inner::Comparable<V> {
+   requires CT::Comparable<V, V> {
       return BlockMap::operator == <TMap> (rhs);
    }
 
@@ -598,7 +598,7 @@ namespace Langulus::Anyness
    ///   @return true this map contains only this exact pair                  
    TEMPLATE() LANGULUS(INLINED)
    bool TABLE()::operator == (CT::Pair auto const& rhs) const
-   requires CT::Inner::Comparable<V> {
+   requires CT::Comparable<V, V> {
       return BlockMap::operator == <TMap> (rhs);
    }
 
@@ -614,7 +614,7 @@ namespace Langulus::Anyness
    ///   @param key - the key to search for                                   
    ///   @return true if key is found, false otherwise                        
    TEMPLATE() template<CT::NotSemantic K1>
-   requires CT::Inner::Comparable<K, K1> LANGULUS(INLINED)
+   requires CT::Comparable<K, K1> LANGULUS(INLINED)
    bool TABLE()::ContainsKey(K1 const& key) const {
       return BlockMap::ContainsKey<TMap>(key);
    }
@@ -623,7 +623,7 @@ namespace Langulus::Anyness
    ///   @param val - the value to search for                                 
    ///   @return true if value is found, false otherwise                      
    TEMPLATE() template<CT::NotSemantic V1>
-   requires CT::Inner::Comparable<V, V1> LANGULUS(INLINED)
+   requires CT::Comparable<V, V1> LANGULUS(INLINED)
    bool TABLE()::ContainsValue(V1 const& val) const {
       return BlockMap::ContainsValue<TMap>(val);
    }
@@ -632,7 +632,7 @@ namespace Langulus::Anyness
    ///   @param pair - the pair to search for                                 
    ///   @return true if pair is found, false otherwise                       
    TEMPLATE() template<CT::Pair P>
-   requires CT::Inner::Comparable<TPair<K, V>, P>
+   requires CT::Comparable<TPair<K, V>, P>
    LANGULUS(INLINED) bool TABLE()::ContainsPair(P const& pair) const {
       return BlockMap::ContainsPair<TMap>(pair);
    }
@@ -641,7 +641,7 @@ namespace Langulus::Anyness
    ///   @param key - the key to search for                                   
    ///   @return the index if key was found, or IndexNone if not              
    TEMPLATE() template<CT::NotSemantic K1>
-   requires CT::Inner::Comparable<K, K1> LANGULUS(INLINED)
+   requires CT::Comparable<K, K1> LANGULUS(INLINED)
    Index TABLE()::Find(K1 const& key) const {
       return BlockMap::Find<TMap>(key);
    }
@@ -650,13 +650,13 @@ namespace Langulus::Anyness
    ///   @param key - the key to search for                                   
    ///   @return the iterator                                                 
    TEMPLATE() template<CT::NotSemantic K1>
-   requires CT::Inner::Comparable<K, K1> LANGULUS(INLINED)
+   requires CT::Comparable<K, K1> LANGULUS(INLINED)
    typename TABLE()::Iterator TABLE()::FindIt(K1 const& key) {
       return BlockMap::FindIt<TMap>(key);
    }
 
    TEMPLATE() template<CT::NotSemantic K1>
-   requires CT::Inner::Comparable<K, K1> LANGULUS(INLINED)
+   requires CT::Comparable<K, K1> LANGULUS(INLINED)
    typename TABLE()::ConstIterator TABLE()::FindIt(K1 const& key) const {
       return BlockMap::FindIt<TMap>(key);
    }
@@ -666,13 +666,13 @@ namespace Langulus::Anyness
    ///   @param key - the key to search for                                   
    ///   @return a reference to the value                                     
    TEMPLATE() template<CT::NotSemantic K1>
-   requires CT::Inner::Comparable<K, K1> LANGULUS(INLINED)
+   requires CT::Comparable<K, K1> LANGULUS(INLINED)
    decltype(auto) TABLE()::At(K1 const& key) {
       return BlockMap::At<TMap>(key);
    }
 
    TEMPLATE() template<CT::NotSemantic K1>
-   requires CT::Inner::Comparable<K, K1> LANGULUS(INLINED)
+   requires CT::Comparable<K, K1> LANGULUS(INLINED)
    decltype(auto) TABLE()::At(K1 const& key) const {
       return BlockMap::At<TMap>(key);
    }
@@ -681,13 +681,13 @@ namespace Langulus::Anyness
    ///   @param key - the key to find                                         
    ///   @return a reference to the value                                     
    TEMPLATE() template<CT::NotSemantic K1>
-   requires CT::Inner::Comparable<K, K1> LANGULUS(INLINED)
+   requires CT::Comparable<K, K1> LANGULUS(INLINED)
    decltype(auto) TABLE()::operator[] (K1 const& key) {
       return BlockMap::operator [] <TMap>(key);
    }
 
    TEMPLATE() template<CT::NotSemantic K1>
-   requires CT::Inner::Comparable<K, K1> LANGULUS(INLINED)
+   requires CT::Comparable<K, K1> LANGULUS(INLINED)
    decltype(auto) TABLE()::operator[] (K1 const& key) const {
       return BlockMap::operator [] <TMap>(key);
    }

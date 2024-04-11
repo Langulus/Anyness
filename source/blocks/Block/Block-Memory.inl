@@ -106,10 +106,10 @@ namespace Langulus::Anyness
                   // chance for a move). Sparse containers have         
                   // additional memory allocated for each pointer's     
                   // entry, if managed memory is enabled                
-                  if constexpr (CT::Inner::AbandonMakable<T>
-                            or  CT::Inner::MoveMakable<T>
-                            or  CT::Inner::ReferMakable<T>
-                            or  CT::Inner::CopyMakable<T>
+                  if constexpr (CT::AbandonMakable<T>
+                            or  CT::MoveMakable<T>
+                            or  CT::ReferMakable<T>
+                            or  CT::CopyMakable<T>
                   ) {
                      mRaw = const_cast<Byte*>(mEntry->GetBlockStart());
                      CreateSemantic<THIS>(Abandon(previousBlock));
@@ -122,11 +122,11 @@ namespace Langulus::Anyness
                   // Memory is used from multiple locations, and we must
                   // copy the memory for this block - we can't move it! 
                   // This will throw, if data is not copiable/referable 
-                  if constexpr (CT::Inner::ReferMakable<T>) {
+                  if constexpr (CT::ReferMakable<T>) {
                      AllocateFresh<THIS>(request);
                      CreateSemantic<THIS>(Refer(previousBlock));
                   }
-                  else if constexpr (CT::Inner::CopyMakable<T>) {
+                  else if constexpr (CT::CopyMakable<T>) {
                      AllocateFresh<THIS>(request);
                      CreateSemantic<THIS>(Copy(previousBlock));
                   }

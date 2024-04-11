@@ -17,23 +17,23 @@ namespace Langulus::CT
    /// pair can be constructed                                                
    template<class K, class V, class A>
    concept PairMakable = Pair<Desem<A>> and not Reference<K, V>
-       and //(SemanticOf<A>::Shallow or (
-            Inner::SemanticMakableAlt<typename SemanticOf<A>::template As<K>>
-        and Inner::SemanticMakableAlt<typename SemanticOf<A>::template As<V>>;//));
+       and (SemanticOf<A>::Shallow or (
+            SemanticMakableAlt<typename SemanticOf<A>::template As<K>>
+        and SemanticMakableAlt<typename SemanticOf<A>::template As<V>>));
 
    /// Concept for recognizing argument, with which a statically typed        
    /// pair can be assigned                                                   
    template<class K, class V, class A>
    concept PairAssignable = Pair<Desem<A>> and not Reference<K, V>
-       and //(SemanticOf<A>::Shallow or (
-            Inner::SemanticAssignableAlt<typename SemanticOf<A>::template As<K>>
-        and Inner::SemanticAssignableAlt<typename SemanticOf<A>::template As<V>>;//));
+       and (SemanticOf<A>::Shallow or (
+            SemanticAssignableAlt<typename SemanticOf<A>::template As<K>>
+        and SemanticAssignableAlt<typename SemanticOf<A>::template As<V>>));
 
    /// Concept for recognizing argument, against which a pair can be compared 
    template<class K, class V, class A>
    concept PairComparable = Pair<A>
-       and Inner::Comparable<K, typename A::Key>
-       and Inner::Comparable<V, typename A::Value>;
+       and Comparable<K, typename A::Key>
+       and Comparable<V, typename A::Value>;
 
 } // namespace Langulus::CT
 

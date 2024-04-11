@@ -115,10 +115,8 @@ namespace Langulus::Anyness
             return false;
       }
       else {
-         static_assert(
-            CT::Inner::Comparable<typename THIS::Value, V>,
-            "Provided value is not comparable to map's value type"
-         );
+         static_assert(CT::Comparable<typename THIS::Value, V>,
+            "Provided value is not comparable to map's value type");
       }
 
       auto info = GetInfo();
@@ -149,8 +147,7 @@ namespace Langulus::Anyness
          // Search for a typed pair                                     
          using V = typename P::Value;
          if (not me.template ValueIsSimilar<V>()
-         and not (CT::Typed<THIS>
-             and CT::Inner::Comparable<typename THIS::Value, V>))
+         and not (CT::Typed<THIS> and CT::Comparable<typename THIS::Value, V>))
             return false;
 
          found = FindInner<THIS>(pair.mKey);

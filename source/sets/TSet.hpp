@@ -19,7 +19,7 @@ namespace Langulus::CT
    concept DeepSetMakable = Inner::UnfoldMakableFrom<T, A...>
         or (sizeof...(A) == 1 and Set<Desem<FirstOf<A...>>> and (
               SemanticOf<FirstOf<A...>>::Shallow
-           or Inner::SemanticMakableAlt<typename SemanticOf<FirstOf<A...>>::template As<T>>
+           or SemanticMakableAlt<typename SemanticOf<FirstOf<A...>>::template As<T>>
         ));
 
    /// Concept for recognizing argument, with which a statically typed        
@@ -27,7 +27,7 @@ namespace Langulus::CT
    template<class T, class A>
    concept DeepSetAssignable = Inner::UnfoldMakableFrom<T, A> or (Set<Desem<A>> and (
             SemanticOf<A>::Shallow
-         or Inner::SemanticAssignableAlt<typename SemanticOf<A>::template As<T>>)
+         or SemanticAssignableAlt<typename SemanticOf<A>::template As<T>>)
       );
 
 } // namespace Langulus::CT
@@ -50,7 +50,7 @@ namespace Langulus::Anyness
       LANGULUS_BASES(Set<ORDERED>);
 
    protected:
-      static_assert(CT::Inner::Comparable<T>,
+      static_assert(CT::Comparable<T, T>,
          "Set's type must be equality-comparable to itself");
 
       friend struct BlockSet;
@@ -169,19 +169,19 @@ namespace Langulus::Anyness
       ///   Comparison                                                        
       ///                                                                     
       template<CT::NotSemantic T1>
-      requires (CT::Set<T1> or CT::Inner::Comparable<T, T1>)
+      requires (CT::Set<T1> or CT::Comparable<T, T1>)
       bool operator == (const T1&) const;
 
-      template<CT::NotSemantic T1> requires CT::Inner::Comparable<T, T1>
+      template<CT::NotSemantic T1> requires CT::Comparable<T, T1>
       NOD() bool Contains(T1 const&) const;
 
-      template<CT::NotSemantic T1> requires CT::Inner::Comparable<T, T1>
+      template<CT::NotSemantic T1> requires CT::Comparable<T, T1>
       NOD() Index Find(T1 const&) const;
 
-      template<CT::NotSemantic T1> requires CT::Inner::Comparable<T, T1>
+      template<CT::NotSemantic T1> requires CT::Comparable<T, T1>
       NOD() Iterator FindIt(T1 const&);
 
-      template<CT::NotSemantic T1> requires CT::Inner::Comparable<T, T1>
+      template<CT::NotSemantic T1> requires CT::Comparable<T, T1>
       NOD() ConstIterator FindIt(T1 const&) const;
 
       ///                                                                     

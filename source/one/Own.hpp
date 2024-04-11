@@ -62,8 +62,8 @@ namespace Langulus::Anyness
       T mValue;
 
    public:
-      LANGULUS(NULLIFIABLE) CT::Inner::Nullifiable<T>;
-      LANGULUS(POD) not CT::Sparse<T> and CT::Inner::POD<T>;
+      LANGULUS(NULLIFIABLE) CT::Nullifiable<T>;
+      LANGULUS(POD) not CT::Sparse<T> and CT::POD<T>;
       LANGULUS(ABSTRACT) false;
       LANGULUS(TYPED) T;
 
@@ -72,12 +72,12 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Construction                                                      
       ///                                                                     
-      constexpr Own() requires CT::Inner::Defaultable<T>;
-      constexpr Own(const Own&) requires (CT::Sparse<T> or CT::Inner::ReferMakable<T>);
-      constexpr Own(Own&&) requires (CT::Sparse<T> or CT::Inner::MoveMakable<T>);
+      constexpr Own() requires CT::Defaultable<T>;
+      constexpr Own(const Own&) requires (CT::Sparse<T> or CT::ReferMakable<T>);
+      constexpr Own(Own&&) requires (CT::Sparse<T> or CT::MoveMakable<T>);
 
       template<template<class> class S>
-      requires CT::Inner::SemanticMakable<S, T>
+      requires CT::SemanticMakable<S, T>
       constexpr Own(S<Own>&&);
 
       template<CT::NotOwned...A>
@@ -87,11 +87,11 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Assignment                                                        
       ///                                                                     
-      constexpr Own& operator = (const Own&) requires (CT::Sparse<T> or CT::Inner::ReferAssignable<T>);
-      constexpr Own& operator = (Own&&) requires (CT::Sparse<T> or CT::Inner::MoveAssignable<T>);
+      constexpr Own& operator = (const Own&) requires (CT::Sparse<T> or CT::ReferAssignable<T>);
+      constexpr Own& operator = (Own&&) requires (CT::Sparse<T> or CT::MoveAssignable<T>);
 
       template<template<class> class S>
-      requires CT::Inner::SemanticAssignable<S, T>
+      requires CT::SemanticAssignable<S, T>
       constexpr Own& operator = (S<Own>&&);
 
       template<CT::NotOwned A> requires CT::AssignableFrom<T, A>
@@ -130,19 +130,19 @@ namespace Langulus::Anyness
    };
 
    template<CT::Data T1, CT::Data T2>
-   requires CT::Inner::Comparable<T1, T2> LANGULUS(INLINED)
+   requires CT::Comparable<T1, T2> LANGULUS(INLINED)
    constexpr bool operator == (const Own<T1>& lhs, const Own<T2>& rhs) noexcept {
       return lhs.Get() == rhs.Get();
    }
 
    template<CT::Data T1, CT::NotOwned T2>
-   requires CT::Inner::Comparable<T1, T2> LANGULUS(INLINED)
+   requires CT::Comparable<T1, T2> LANGULUS(INLINED)
    constexpr bool operator == (const Own<T1>& lhs, const T2& rhs) noexcept {
       return lhs.Get() == rhs;
    }
 
    template<CT::Data T1, CT::NotOwned T2>
-   requires CT::Inner::Comparable<T2, T1> LANGULUS(INLINED)
+   requires CT::Comparable<T2, T1> LANGULUS(INLINED)
    constexpr bool operator == (const T2& lhs, const Own<T1>& rhs) noexcept {
       return lhs == rhs.Get();
    }

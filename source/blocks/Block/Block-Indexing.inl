@@ -488,7 +488,7 @@ namespace Langulus::Anyness
    ///   @return the index of the biggest element T inside this block         
    template<Index INDEX, CT::Block THIS> LANGULUS(INLINED)
    Index Block::GetIndex() const IF_UNSAFE(noexcept) {
-      if constexpr (CT::Typed<THIS> and CT::Inner::Sortable<TypeOf<THIS>>) {
+      if constexpr (CT::Typed<THIS> and CT::Sortable<TypeOf<THIS>, TypeOf<THIS>>) {
          if (IsEmpty())
             return IndexNone;
 
@@ -519,7 +519,7 @@ namespace Langulus::Anyness
    ///   @return the index of the first found mode                            
    template<CT::Block THIS>
    Index Block::GetIndexMode(Count& count) const IF_UNSAFE(noexcept) {
-      if constexpr (CT::Typed<THIS> and CT::Inner::Comparable<TypeOf<THIS>>) {
+      if constexpr (CT::Typed<THIS> and CT::Comparable<TypeOf<THIS>, TypeOf<THIS>>) {
          if (IsEmpty()) {
             count = 0;
             return IndexNone;

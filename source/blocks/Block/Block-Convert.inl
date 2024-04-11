@@ -43,7 +43,7 @@ namespace Langulus::Anyness
             out.template InsertBlockInner<OUT, void, false>(
                IndexBack, Refer(me));
          }
-         else if constexpr (CT::Inner::Convertible<FROM, TO>) {
+         else if constexpr (CT::Convertible<FROM, TO>) {
             // Types are statically convertible                         
             out.template AllocateMore<OUT>(out.mCount + mCount);
             for (auto& from : me) {
@@ -56,11 +56,11 @@ namespace Langulus::Anyness
          // Types are already the same, don't convert anything          
          if (out.IsEmpty())
             out = me;
-         else if constexpr ((CT::Typed<THIS> and CT::Inner::ReferMakable<TypeOf<THIS>>)
-                        or  (CT::Typed<OUT>  and CT::Inner::ReferMakable<TypeOf<OUT>>))
+         else if constexpr ((CT::Typed<THIS> and CT::ReferMakable<TypeOf<THIS>>)
+                        or  (CT::Typed<OUT>  and CT::ReferMakable<TypeOf<OUT>>))
             out.InsertBlock(IndexBack, Refer(me));
-         else if constexpr ((CT::Typed<THIS> and CT::Inner::CopyMakable<TypeOf<THIS>>)
-                        or  (CT::Typed<OUT>  and CT::Inner::CopyMakable<TypeOf<OUT>>))
+         else if constexpr ((CT::Typed<THIS> and CT::CopyMakable<TypeOf<THIS>>)
+                        or  (CT::Typed<OUT>  and CT::CopyMakable<TypeOf<OUT>>))
             out.InsertBlock(IndexBack, Copy(me));
          else LANGULUS_OOPS(Convert, 
             "Unable to append uncopyable elements of type ",
@@ -185,11 +185,6 @@ namespace Langulus::Anyness
             to += OUT::Operator::Future;
          return to.GetCount() - initial;
       }
-
-      /*if (IsConstant()) {
-         to += OUT::Operator::Constant;
-         to += ' ';
-      }*/
 
       if (IsDeep<THIS>()) {
          // Nested serialization, wrap it in content scope              

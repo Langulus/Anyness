@@ -158,9 +158,10 @@ namespace Langulus::Anyness
 
       for (auto lp : mTraits) {
          auto rp = rhs.mTraits.FindIt(lp.mKey);
-         if (not rp)
+         if (not rp) {
             // Early failure on key mismatch                            
             return false;
+         }
 
          // Traits::Parent never participate in the comparison          
          //TODO change this to skip missing instead

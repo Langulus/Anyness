@@ -60,7 +60,7 @@ namespace Langulus::Anyness
                // Batch compare pods or pointers                        
                return 0 == ::std::memcmp(mRaw, right.mRaw, GetBytesize<THIS>());
             }
-            else if constexpr (CT::Inner::Comparable<T>) {
+            else if constexpr (CT::Comparable<T, T>) {
                // Use comparison operator between all elements          
                auto t1 = GetRaw<THIS>();
                auto t2 = right.GetRaw();
@@ -282,7 +282,7 @@ namespace Langulus::Anyness
 
       if constexpr (CT::Typed<THIS>) {
          // Both sides are statically typed                             
-         if constexpr (CT::Inner::Comparable<TypeOf<THIS>, T>)
+         if constexpr (CT::Comparable<TypeOf<THIS>, T>)
             return *GetRaw<THIS>() == rhs;
          else
             return false;
@@ -309,7 +309,7 @@ namespace Langulus::Anyness
             }
             else return false;
          }
-         else if constexpr (CT::Inner::Comparable<T>) {
+         else if constexpr (CT::Comparable<T, T>) {
             // Non-deep element compare                                 
             if (not mType->template IsSimilar<T>())
                return false;
@@ -419,7 +419,7 @@ namespace Langulus::Anyness
 
       if constexpr (CT::Typed<THIS>) {
          using T = TypeOf<THIS>;
-         if constexpr (not CT::Inner::Comparable<T, ALT_T>)
+         if constexpr (not CT::Comparable<T, ALT_T>)
             return IndexNone;
 
          auto start = REVERSE
@@ -502,7 +502,7 @@ namespace Langulus::Anyness
 
          if constexpr (CT::Typed<THIS, B>) {
             // Leverage the fact, that both participants are typed      
-            if constexpr (not CT::Inner::Comparable<TL, TR>)
+            if constexpr (not CT::Comparable<TL, TR>)
                return IndexNone;
          }
          else {
@@ -527,8 +527,8 @@ namespace Langulus::Anyness
                ++lhs;
                ++rhs;
 
-               if constexpr (CT::Inner::BinaryCompatible<TL, TR>
-                        and  CT::Inner::POD<TL, TR>) {
+               if constexpr (CT::BinaryCompatible<TL, TR>
+                        and  CT::POD<TL, TR>) {
                   // We can use batch-compare                           
                   if (0 == memcmp(rhs, lhs, bytesize))
                      return cookie;
@@ -783,7 +783,8 @@ namespace Langulus::Anyness
    ///   @return true if both containers match loosely                        
    template<CT::Block THIS> LANGULUS(INLINED)
    bool Block::CompareLoose(const CT::Block auto& other) const noexcept {
-      return (IsEmpty() and other.IsEmpty() and IsSimilar<THIS>(other.GetType()))
+      return (IsEmpty() and other.IsEmpty()
+         and IsSimilar<THIS>(other.GetType()))
           or MatchesLoose<THIS>(other) == mCount;
    }
 
@@ -800,7 +801,7 @@ namespace Langulus::Anyness
          using T1 = TypeOf<THIS>;
          using T2 = TypeOf<OTHER>;
 
-         if constexpr (CT::Inner::Comparable<T1, T2>) {
+         if constexpr (CT::Comparable<T1, T2>) {
             auto t1 = GetRaw<THIS>();
             auto t2 = other.template GetRaw<OTHER>();
             const auto t1end = GetRawEnd<THIS>();

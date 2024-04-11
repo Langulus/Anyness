@@ -383,7 +383,7 @@ namespace Langulus::Anyness
    ///   @param other - the table to compare against                          
    ///   @return true if tables match                                         
    TEMPLATE() template<CT::NotSemantic T1>
-   requires (CT::Set<T1> or CT::Inner::Comparable<T, T1>) LANGULUS(INLINED)
+   requires (CT::Set<T1> or CT::Comparable<T, T1>) LANGULUS(INLINED)
    bool TABLE()::operator == (const T1& other) const {
       return BlockSet::operator == <TSet> (other);
    }
@@ -392,7 +392,7 @@ namespace Langulus::Anyness
    ///   @param key - the key to search for                                   
    ///   @return true if key is found, false otherwise                        
    TEMPLATE() template<CT::NotSemantic T1>
-   requires CT::Inner::Comparable<T, T1> LANGULUS(INLINED)
+   requires CT::Comparable<T, T1> LANGULUS(INLINED)
    bool TABLE()::Contains(T1 const& key) const {
       return BlockSet::Contains<TSet>(key);
    }
@@ -401,7 +401,7 @@ namespace Langulus::Anyness
    ///   @param key - the key to search for                                   
    ///   @return the index if key was found, or IndexNone if not              
    TEMPLATE() template<CT::NotSemantic T1>
-   requires CT::Inner::Comparable<T, T1> LANGULUS(INLINED)
+   requires CT::Comparable<T, T1> LANGULUS(INLINED)
    Index TABLE()::Find(T1 const& key) const {
       return BlockSet::Find<TSet>(key);
    }
@@ -410,7 +410,7 @@ namespace Langulus::Anyness
    ///   @param key - the key to search for                                   
    ///   @return the iterator                                                 
    TEMPLATE() template<CT::NotSemantic T1>
-   requires CT::Inner::Comparable<T, T1> LANGULUS(INLINED)
+   requires CT::Comparable<T, T1> LANGULUS(INLINED)
    typename TABLE()::Iterator TABLE()::FindIt(T1 const& key) {
       const auto found = FindInner<TABLE()>(key);
       if (found == InvalidOffset)
@@ -423,7 +423,7 @@ namespace Langulus::Anyness
    }
 
    TEMPLATE() template<CT::NotSemantic T1>
-   requires CT::Inner::Comparable<T, T1> LANGULUS(INLINED)
+   requires CT::Comparable<T, T1> LANGULUS(INLINED)
    typename TABLE()::ConstIterator TABLE()::FindIt(T1 const& key) const {
       return const_cast<TABLE()*>(this)->FindIt(key);
    }

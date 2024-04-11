@@ -68,7 +68,7 @@ namespace Langulus::Anyness
             else return 0;
          }
          else if (IsKeySimilar<THIS, Deext<K>>()
-         or (CT::Typed<THIS> and CT::Inner::Comparable<typename THIS::Key, Deext<K>>)) {
+         or (CT::Typed<THIS> and CT::Comparable<typename THIS::Key, Deext<K>>)) {
             // Remove all matching keys in the array                    
             Count removed = 0;
             for (auto& element : key)
@@ -77,7 +77,7 @@ namespace Langulus::Anyness
          }
       }
       else if (IsKeySimilar<THIS, K>()
-      or (CT::Typed<THIS> and CT::Inner::Comparable<typename THIS::Key, K>)) {
+      or (CT::Typed<THIS> and CT::Comparable<typename THIS::Key, K>)) {
          // Remove a single key                                         
          return RemoveKeyInner<THIS>(key);
       }
@@ -122,7 +122,7 @@ namespace Langulus::Anyness
             else return 0;
          }
          else if (IsValueSimilar<THIS, Deext<V>>()
-         or (CT::Typed<THIS> and CT::Inner::Comparable<typename THIS::Value, Deext<V>>)) {
+         or (CT::Typed<THIS> and CT::Comparable<typename THIS::Value, Deext<V>>)) {
             // Remove all matching values in the array                  
             Count removed = 0;
             for (auto& element : value)
@@ -131,7 +131,7 @@ namespace Langulus::Anyness
          }
       }
       else if (IsValueSimilar<THIS, V>()
-      or (CT::Typed<THIS> and CT::Inner::Comparable<typename THIS::Value, V>)) {
+      or (CT::Typed<THIS> and CT::Comparable<typename THIS::Value, V>)) {
          // Remove a single value                                       
          return RemoveValInner<THIS>(value);
       }

@@ -311,8 +311,8 @@ namespace Langulus::Anyness
       ///                                                                     
       template<CT::NotSemantic T1>
       requires (CT::UntypedBlock<T1>
-            or (CT::TypedBlock<T1> and CT::Inner::Comparable<T, TypeOf<T1>>)
-            or CT::Inner::Comparable<T, T1>)
+            or (CT::TypedBlock<T1> and CT::Comparable<T, TypeOf<T1>>)
+            or CT::Comparable<T, T1>)
       bool operator == (const T1&) const;
 
       template<bool RESOLVE = true>
@@ -320,15 +320,15 @@ namespace Langulus::Anyness
       NOD() Hash GetHash() const requires CT::Hashable<T>;
 
       template<bool REVERSE = false, CT::NotSemantic T1>
-      requires CT::Inner::Comparable<T, T1>
+      requires CT::Comparable<T, T1>
       NOD() Index Find(const T1&, Offset = 0) const noexcept;
 
       template<CT::NotSemantic T1>
-      requires CT::Inner::Comparable<T, T1>
+      requires CT::Comparable<T, T1>
       NOD() Iterator FindIt(const T1&);
 
       template<CT::NotSemantic T1>
-      requires CT::Inner::Comparable<T, T1>
+      requires CT::Comparable<T, T1>
       NOD() ConstIterator FindIt(const T1&) const;
 
       template<bool REVERSE = false>
@@ -339,7 +339,7 @@ namespace Langulus::Anyness
       NOD() Count MatchesLoose(const CT::Block auto&) const noexcept;
 
       template<bool ASCEND = false>
-      requires CT::Inner::Sortable<T>
+      requires CT::Sortable<T>
       void Sort();
 
       void Swap(CT::Index auto, CT::Index auto);
@@ -382,7 +382,7 @@ namespace Langulus::Anyness
       requires ::std::constructible_from<T, A...>
       Count New(Count, A&&...);
 
-      Count New(Count = 1) requires CT::Inner::Defaultable<T>;
+      Count New(Count = 1) requires CT::Defaultable<T>;
 
       template<CT::Deep T1, bool TRANSFER_OR = true>
       requires CT::CanBeDeepened<T1, TAny>

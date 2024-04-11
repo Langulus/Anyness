@@ -19,7 +19,7 @@ namespace Langulus::CT
    concept DeepMapMakable = Inner::UnfoldMakableFrom<Anyness::TPair<K, V>, A...>
         or (sizeof...(A) == 1
            and Map<Desem<FirstOf<A...>>> and (SemanticOf<FirstOf<A...>>::Shallow
-            or Inner::SemanticMakableAlt<
+            or SemanticMakableAlt<
               typename SemanticOf<FirstOf<A...>>::template As<Anyness::TPair<K, V>>>
         ));
 
@@ -28,7 +28,7 @@ namespace Langulus::CT
    template<class K, class V, class A>
    concept DeepMapAssignable = Inner::UnfoldMakableFrom<Anyness::TPair<K, V>, A>
         or (Map<Desem<A>> and (SemanticOf<A>::Shallow 
-           or Inner::SemanticAssignableAlt<
+           or SemanticAssignableAlt<
              typename SemanticOf<A>::template As<Anyness::TPair<K, V>>>));
 
 } // namespace Langulus::CT
@@ -54,7 +54,7 @@ namespace Langulus::Anyness
       LANGULUS_BASES(Map<ORDERED>);
 
    protected:
-      static_assert(CT::Inner::Comparable<K>,
+      static_assert(CT::Comparable<K, K>,
          "Map's key type must be equality-comparable to itself");
 
       friend struct BlockMap;
@@ -220,39 +220,39 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Comparison                                                        
       ///                                                                     
-      bool operator == (CT::Map  auto const&) const requires CT::Inner::Comparable<V>;
-      bool operator == (CT::Pair auto const&) const requires CT::Inner::Comparable<V>;
+      bool operator == (CT::Map  auto const&) const requires CT::Comparable<V, V>;
+      bool operator == (CT::Pair auto const&) const requires CT::Comparable<V, V>;
 
       NOD() Hash GetHash() const requires CT::Hashable<K, V>;
 
-      template<CT::NotSemantic K1> requires CT::Inner::Comparable<K, K1>
+      template<CT::NotSemantic K1> requires CT::Comparable<K, K1>
       NOD() bool ContainsKey(K1 const&) const;
 
-      template<CT::NotSemantic V1> requires CT::Inner::Comparable<V, V1>
+      template<CT::NotSemantic V1> requires CT::Comparable<V, V1>
       NOD() bool ContainsValue(V1 const&) const;
 
-      template<CT::Pair P> requires CT::Inner::Comparable<TPair<K, V>, P>
+      template<CT::Pair P> requires CT::Comparable<TPair<K, V>, P>
       NOD() bool ContainsPair(P const&) const;
 
-      template<CT::NotSemantic K1> requires CT::Inner::Comparable<K, K1>
+      template<CT::NotSemantic K1> requires CT::Comparable<K, K1>
       NOD() Index Find(K1 const&) const;
 
-      template<CT::NotSemantic K1> requires CT::Inner::Comparable<K, K1>
+      template<CT::NotSemantic K1> requires CT::Comparable<K, K1>
       NOD() Iterator FindIt(K1 const&);
 
-      template<CT::NotSemantic K1> requires CT::Inner::Comparable<K, K1>
+      template<CT::NotSemantic K1> requires CT::Comparable<K, K1>
       NOD() ConstIterator FindIt(K1 const&) const;
 
-      template<CT::NotSemantic K1> requires CT::Inner::Comparable<K, K1>
+      template<CT::NotSemantic K1> requires CT::Comparable<K, K1>
       NOD() decltype(auto) At(K1 const&);
 
-      template<CT::NotSemantic K1> requires CT::Inner::Comparable<K, K1>
+      template<CT::NotSemantic K1> requires CT::Comparable<K, K1>
       NOD() decltype(auto) At(K1 const&) const;
 
-      template<CT::NotSemantic K1> requires CT::Inner::Comparable<K, K1>
+      template<CT::NotSemantic K1> requires CT::Comparable<K, K1>
       NOD() decltype(auto) operator[] (K1 const&);
 
-      template<CT::NotSemantic K1> requires CT::Inner::Comparable<K, K1>
+      template<CT::NotSemantic K1> requires CT::Comparable<K, K1>
       NOD() decltype(auto) operator[] (K1 const&) const;
 
       ///                                                                     
@@ -290,11 +290,11 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Removal                                                           
       ///                                                                     
-      template<CT::NotSemantic K1> requires CT::Inner::Comparable<K, K1>
+      template<CT::NotSemantic K1> requires CT::Comparable<K, K1>
       Count RemoveKey(const K1&);
-      template<CT::NotSemantic V1> requires CT::Inner::Comparable<V, V1>
+      template<CT::NotSemantic V1> requires CT::Comparable<V, V1>
       Count RemoveValue(const V1&);
-      template<CT::Pair P> requires CT::Inner::Comparable<TPair<K, V>, P>
+      template<CT::Pair P> requires CT::Comparable<TPair<K, V>, P>
       Count RemovePair(const P&);
 
       Iterator RemoveIt(const Iterator&);

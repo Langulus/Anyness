@@ -103,9 +103,9 @@ namespace Langulus::Anyness
                      " - no refer-constructor was reflected for type ", asFrom->mValues.mType);
                }
                else {
-                  static_assert(CT::Inner::ReferMakable<K>,
+                  static_assert(CT::ReferMakable<K>,
                      "Key type is not refer-constructible");
-                  static_assert(CT::Inner::ReferMakable<V>,
+                  static_assert(CT::ReferMakable<V>,
                      "Value type is not refer-constructible");
                }
 
@@ -114,7 +114,7 @@ namespace Langulus::Anyness
 
                if constexpr (CT::Typed<B>) {
                   // At least one of the maps is typed                  
-                  if constexpr (CT::Inner::POD<K>) {
+                  if constexpr (CT::POD<K>) {
                      // Data is POD, we can directly copy all keys      
                      CopyMemory(
                         mKeys.mRaw, asFrom->mKeys.mRaw,
@@ -215,9 +215,9 @@ namespace Langulus::Anyness
                " - no clone-constructor was reflected for type ", asFrom->mValues.mType);
          }
          else {
-            static_assert(CT::Inner::CloneMakable<K>,
+            static_assert(CT::CloneMakable<K>,
                "Key type is not clone-constructible");
-            static_assert(CT::Inner::CloneMakable<V>,
+            static_assert(CT::CloneMakable<V>,
                "Value type is not clone-constructible");
          }
 
@@ -230,7 +230,7 @@ namespace Langulus::Anyness
                // each pair will end up in the same place               
                CopyMemory(mInfo, other->mInfo, GetReserved() + 1);
 
-               if constexpr (CT::Inner::POD<K>) {
+               if constexpr (CT::POD<K>) {
                   // Data is POD, we can directly copy all keys         
                   CopyMemory(
                      mKeys.mRaw, asFrom->mKeys.mRaw,
@@ -351,8 +351,7 @@ namespace Langulus::Anyness
    ///   @attention assumes key type is dense, and values go into the same    
    ///      places                                                            
    ///   @attention assumes key and value types are clone-constructible       
-   template<template<class> class S, CT::Map B>
-   requires CT::Semantic<S<B>>
+   template<template<class> class S, CT::Map B> requires CT::Semantic<S<B>>
    void BlockMap::CloneValuesInner(S<B>&& asFrom) {
       using SS = S<B>;
 
@@ -363,7 +362,7 @@ namespace Langulus::Anyness
          // We're cloning dense keys or shallow-copying any keys, so    
          // we're 100% sure, that each pair will end up in the same spot
          if constexpr (CT::Dense<V> or CT::ShallowSemantic<SS>) {
-            if constexpr (CT::Inner::POD<V>) {
+            if constexpr (CT::POD<V>) {
                // Data is POD, we can directly copy all values          
                CopyMemory(
                   mValues.mRaw, asFrom->mValues.mRaw,
@@ -475,8 +474,7 @@ namespace Langulus::Anyness
    ///   @attention assumes keys are sparse and all pairs will end up in      
    ///      different places                                                  
    ///   @attention assumes key and value types are clone-constructible       
-   template<template<class> class S, CT::Map B>
-   requires CT::Semantic<S<B>>
+   template<template<class> class S, CT::Map B> requires CT::Semantic<S<B>>
    void BlockMap::CloneValuesReinsertInner(CT::Block auto& coalescedKeys, S<B>&& asFrom) {
       using SS = S<B>;
 

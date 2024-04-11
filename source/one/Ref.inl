@@ -45,7 +45,7 @@ namespace Langulus::Anyness
    /// Semantic construction                                                  
    ///   @param other - the value to initialize with                          
    TEMPLATE() template<template<class> class S> 
-   requires CT::Inner::SemanticMakable<S, T*> LANGULUS(INLINED)
+   requires CT::SemanticMakable<S, T*> LANGULUS(INLINED)
    constexpr TME()::Ref(S<Ref>&& other) {
       using SS = S<Ref>;
       GetHandle().CreateSemantic(SS::Nest(other->GetHandle()));
@@ -132,7 +132,7 @@ namespace Langulus::Anyness
    ///   @param rhs - the value and semantic to assign                        
    ///   @return a reference to this shared pointer                           
    TEMPLATE() template<template<class> class S>
-   requires CT::Inner::SemanticAssignable<S, T*> LANGULUS(INLINED)
+   requires CT::SemanticAssignable<S, T*> LANGULUS(INLINED)
    TME()& TME()::operator = (S<Ref>&& rhs) {
       if (mEntry)
          ResetInner();
@@ -170,12 +170,6 @@ namespace Langulus::Anyness
       return {mValue};
    }
 
-   /// Implicitly convert to the contained pointer                            
-   /*TEMPLATE() LANGULUS(INLINED)
-   TME()::operator T* () const noexcept {
-      return mValue;
-   }*/
-
    /// Check if we have authority over the memory                             
    ///   @return true if we own the memory behind the pointer                 
    TEMPLATE() LANGULUS(INLINED)
@@ -200,7 +194,7 @@ namespace Langulus::Anyness
          DataState::Constrained,
          Base::GetType(), 1, &(mValue),
          // Notice entry is here, no search will occur                  
-         nullptr//mEntry
+         nullptr
       };
    }
 
