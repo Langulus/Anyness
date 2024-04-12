@@ -154,7 +154,7 @@ namespace Langulus::CT
       /// constructor can accept                                              
       template<class...T>
       concept Stringifiable = ((Text<T>
-           or DenseBuiltinNumber<T>
+           or BuiltinNumber<T>
            or Exception<T>
            or Meta<T>
            or Bytes<T>
@@ -172,7 +172,7 @@ namespace Langulus::CT
           and not Nullptr<T>
           and not Meta<T>
           and not Exception<T>
-          and not DenseBuiltinNumber<T>
+          and not BuiltinNumber<T>
           and not HasNamedValues<T>
           and (StringifiableByOperator<T> or StringifiableByConstructor<T>)
          ) and ...);
@@ -293,7 +293,7 @@ namespace Langulus::Anyness
       explicit Text(Operator);
 
       explicit Text(const CT::HasNamedValues auto&);
-      explicit Text(const CT::DenseBuiltinNumber auto&);
+      explicit Text(const CT::BuiltinNumber auto&);
 
       template<class T1, class T2, class...TN>
       requires CT::Inner::Stringifiable<T1, T2, TN...>

@@ -180,7 +180,7 @@ namespace Langulus::Anyness
    /// Convert a number type to text                                          
    ///   @param number - the number to stringify                              
    LANGULUS(INLINED)
-   Text::Text(const CT::DenseBuiltinNumber auto& number) {
+   Text::Text(const CT::BuiltinNumber auto& number) {
       using T = Decay<decltype(number)>;
 
       if constexpr (CT::Real<T>) {
