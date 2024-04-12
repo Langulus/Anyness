@@ -16,7 +16,7 @@ namespace Langulus::CT
    /// Concept for recognizing arguments, with which a statically typed       
    /// pair can be constructed                                                
    template<class K, class V, class A>
-   concept PairMakable = Pair<Desem<A>> and not Reference<K, V>
+   concept PairMakable = Pair<Desem<A>> and NotReference<K, V>
        and (SemanticOf<A>::Shallow or (
             SemanticMakableAlt<typename SemanticOf<A>::template As<K>>
         and SemanticMakableAlt<typename SemanticOf<A>::template As<V>>));
@@ -24,7 +24,7 @@ namespace Langulus::CT
    /// Concept for recognizing argument, with which a statically typed        
    /// pair can be assigned                                                   
    template<class K, class V, class A>
-   concept PairAssignable = Pair<Desem<A>> and not Reference<K, V>
+   concept PairAssignable = Pair<Desem<A>> and NotReference<K, V>
        and (SemanticOf<A>::Shallow or (
             SemanticAssignableAlt<typename SemanticOf<A>::template As<K>>
         and SemanticAssignableAlt<typename SemanticOf<A>::template As<V>>));
@@ -66,10 +66,21 @@ namespace Langulus::Anyness
 
       template<class K1, class V1>
       requires (CT::MakableFrom<K, K1> and CT::MakableFrom<V, V1>
-           and not CT::Reference<K, V>)
+           and  CT::NotReference<K, V> and CT::NotAggregate<K, V>)
       TPair(K1&&, V1&&);
 
-      TPair(K&&, V&&) noexcept requires CT::Reference<K, V>;
+      template<class K1, class V1>
+      requires (CT::MakableFrom<K, K1> and CT::MakableFrom<V, V1>
+           and  CT::NotReference<K, V> and not CT::Aggregate<K> and CT::Aggregate<V>)
+      TPair(K1&&, V1&&);
+           
+      template<class K1, class V1>
+      requires (CT::MakableFrom<K, K1> and CT::MakableFrom<V, V1>
+           and  CT::NotReference<K, V> and CT::Aggregate<K> and not CT::Aggregate<V>)
+      TPair(K1&&, V1&&);
+
+      TPair(K&&, V&&) noexcept
+      requires (CT::Reference<K, V> or CT::Aggregate<K, V>);
 
       TPair& operator = (TPair const&) = default;
       TPair& operator = (TPair&&) = default;
