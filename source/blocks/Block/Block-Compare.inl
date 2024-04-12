@@ -56,7 +56,7 @@ namespace Langulus::Anyness
             else if (mCount != right.mCount)
                return false;
 
-            if constexpr (CT::Sparse<T> or CT::POD<T>) {
+            if constexpr (CT::POD<T>) {
                // Batch compare pods or pointers                        
                return 0 == ::std::memcmp(mRaw, right.mRaw, GetBytesize<THIS>());
             }
