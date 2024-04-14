@@ -32,23 +32,22 @@ namespace Langulus::Anyness
       TTrait(const TTrait&);
       TTrait(TTrait&&);
 
-      template<CT::Trait T>
-      requires (not CT::Same<typename T::TraitType, TRAIT>)
+      template<class T> requires (
+      CT::Trait<Desem<T>> and not CT::Same<typename T::TraitType, TRAIT>)
       TTrait(T&&);
 
       template<CT::Data>
       NOD() static TRAIT OfType();
       NOD() static TRAIT OfType(DMeta);
 
-      using Trait::operator =;
-      TTrait& operator = (const TTrait&);
-      TTrait& operator = (TTrait&&);
+      TRAIT& operator = (const TTrait&);
+      TRAIT& operator = (TTrait&&);
+      TRAIT& operator = (CT::UnfoldInsertable auto&&);
 
    public:
       template<CT::Trait>
       NOD() constexpr bool IsTrait() const;
-      template<CT::Trait...TN>
-      NOD() constexpr bool IsTrait(TMeta, TN...) const;
+      NOD() constexpr bool IsTrait(TMeta, auto...) const;
 
       NOD() TMeta GetTrait() const noexcept;
 
@@ -64,8 +63,8 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Concatenation                                                     
       ///                                                                     
-      NOD() TRAIT  operator +  (CT::Inner::UnfoldInsertable auto&&) const;
-            TRAIT& operator += (CT::Inner::UnfoldInsertable auto&&);
+      NOD() TRAIT  operator +  (CT::UnfoldInsertable auto&&) const;
+            TRAIT& operator += (CT::UnfoldInsertable auto&&);
 
       ///                                                                     
       ///   Conversion                                                        
@@ -86,11 +85,11 @@ namespace Langulus::Anyness
    { \
       struct T : Anyness::TTrait<T> { \
          LANGULUS(INFO) INFOSTRING; \
-         using TTrait::TTrait; \
-         using TTrait::operator =; \
-         using TTrait::operator ==; \
-         using TTrait::operator +; \
-         using TTrait::operator +=; \
+         using TTrait<T>::TTrait; \
+         using TTrait<T>::operator =; \
+         using TTrait<T>::operator ==; \
+         using TTrait<T>::operator +; \
+         using TTrait<T>::operator +=; \
       }; \
    }
 
@@ -99,11 +98,11 @@ namespace Langulus::Anyness
    { \
       struct T : Anyness::TTrait<T> { \
          LANGULUS(INFO) INFOSTRING; \
-         using TTrait::TTrait; \
-         using TTrait::operator =; \
-         using TTrait::operator ==; \
-         using TTrait::operator +; \
-         using TTrait::operator +=; \
+         using TTrait<T>::TTrait; \
+         using TTrait<T>::operator =; \
+         using TTrait<T>::operator ==; \
+         using TTrait<T>::operator +; \
+         using TTrait<T>::operator +=; \
          PROPERTIES; \
       }; \
    }

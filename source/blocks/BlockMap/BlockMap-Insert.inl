@@ -14,26 +14,34 @@
 namespace Langulus::Anyness
 {
 
+   /// Wrap the argument semantically into a handle with key's type           
+   ///   @param key - the key to wrap                                         
+   ///   @return the handle object                                            
    template<CT::Map THIS>
-   auto BlockMap::CreateKeyHandle(CT::Semantic auto&& key) {
-      using T = Deref<decltype(key)>;
+   auto BlockMap::CreateKeyHandle(auto&& key) {
+      using S = SemanticOf<decltype(key)>;
+      using T = TypeOf<S>;
 
       if constexpr (CT::Typed<THIS>) {
          using K = Conditional<CT::Typed<THIS>, typename THIS::Key, TypeOf<T>>;
-         return HandleLocal<K> {key.Forward()};
+         return HandleLocal<K> {S::Nest(key)};
       }
-      else return Any::Wrap(key.Forward());
+      else return Any::Wrap(S::Nest(key));
    }
 
+   /// Wrap the argument semantically into a handle with value's type         
+   ///   @param val - the val to wrap                                         
+   ///   @return the handle object                                            
    template<CT::Map THIS>
-   auto BlockMap::CreateValHandle(CT::Semantic auto&& val) {
-      using T = Deref<decltype(val)>;
+   auto BlockMap::CreateValHandle(auto&& val) {
+      using S = SemanticOf<decltype(val)>;
+      using T = TypeOf<S>;
 
       if constexpr (CT::Typed<THIS>) {
          using V = Conditional<CT::Typed<THIS>, typename THIS::Value, TypeOf<T>>;
-         return HandleLocal<V> {val.Forward()};
+         return HandleLocal<V> {S::Nest(val)};
       }
-      else return Any::Wrap(val.Forward());
+      else return Any::Wrap(S::Nest(val));
    }
 
    /// Insert a pair, or an array of pairs                                    
@@ -214,13 +222,13 @@ namespace Langulus::Anyness
 
    /// Unfold-insert pairs, semantically or not                               
    ///   @param t1 - the first pair to insert                                 
-   ///   @param tail... - the rest of the pairs to insert (optional)          
+   ///   @param tn... - the rest of the pairs to insert (optional)            
    ///   @return the number of inserted pairs                                 
-   template<CT::Map THIS, class T1, class...TAIL>
-   Count BlockMap::InsertPair(T1&& t1, TAIL&&...tail) {
+   template<CT::Map THIS, class T1, class...TN>
+   Count BlockMap::InsertPair(T1&& t1, TN&&...tn) {
       Count inserted = 0;
         inserted += UnfoldInsert<THIS>(Forward<T1>(t1));
-      ((inserted += UnfoldInsert<THIS>(Forward<TAIL>(tail))), ...);
+      ((inserted += UnfoldInsert<THIS>(Forward<TN>(tn))), ...);
       return inserted;
    }
 
@@ -552,13 +560,14 @@ namespace Langulus::Anyness
    ///      provided arguments                                                
    ///   @tparam CHECK_FOR_MATCH - false if you guarantee key doesn't exist   
    ///   @param start - the starting index                                    
-   ///   @param key - key & semantic to insert                                
-   ///   @param val - value & semantic to insert                              
+   ///   @param key - key to insert (can be semantic)                         
+   ///   @param val - value to insert (can be semantic)                       
    ///   @return the offset at which pair was inserted                        
    template<CT::Map THIS, bool CHECK_FOR_MATCH>
-   Offset BlockMap::InsertInner(
-      const Offset start, CT::Semantic auto&& key, CT::Semantic auto&& val
-   ) {
+   Offset BlockMap::InsertInner(const Offset start, auto&& key, auto&& val) {
+      using SK = SemanticOf<decltype(key)>;
+      using SV = SemanticOf<decltype(val)>;
+
       if (GetUses() > 1) {
          // Map is used from multiple locations, and we must branch out 
          // before changing it - only this copy will be affected        
@@ -567,8 +576,8 @@ namespace Langulus::Anyness
          new (this) THIS {Copy(reinterpret_cast<const THIS&>(backup))};
       }
 
-      auto keyswapper = CreateKeyHandle<THIS>(key.Forward());
-      auto valswapper = CreateValHandle<THIS>(val.Forward());
+      auto keyswapper = CreateKeyHandle<THIS>(SK::Nest(key));
+      auto valswapper = CreateValHandle<THIS>(SV::Nest(val));
 
       // Get the starting index based on the key hash                   
       auto psl = GetInfo() + start;

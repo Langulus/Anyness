@@ -100,11 +100,10 @@ namespace Langulus::Anyness
       NOD() const Allocation*& GetEntry() const noexcept;
 
       void Create(T,        const Allocation* = nullptr) noexcept requires CT::Sparse<T>;
-      void Create(const T&, const Allocation* = nullptr) noexcept requires CT::Dense<T>;
+      void Create(T const&, const Allocation* = nullptr) noexcept requires CT::Dense<T>;
       void Create(T&&,      const Allocation* = nullptr) noexcept requires CT::Dense<T>;
 
-      template<template<class> class S, class T1> requires CT::Semantic<S<T1>>
-      void CreateSemantic(S<T1>&&);
+      void CreateSemantic(auto&&);
       template<template<class> class S, class T1> requires CT::Semantic<S<T1>>
       void CreateSemanticUnknown(DMeta, S<T1>&&);
 
@@ -185,7 +184,7 @@ namespace Langulus
    template<class T>
    using Unfold = Deptr<decltype(CT::Inner::Unfold<T>())>;
 
-   namespace CT::Inner
+   namespace CT
    {
 
       /// Check if T is constructible with each of the provided arguments,    
@@ -201,6 +200,6 @@ namespace Langulus
       template<class T1, class...TN>
       concept UnfoldInsertable = Insertable<Desem<T1>, Desem<TN>...>;
 
-   } // namespace Langulus::CT::Inner
+   } // namespace Langulus::CT
 
 } // namespace Langulus

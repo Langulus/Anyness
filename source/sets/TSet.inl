@@ -294,7 +294,7 @@ namespace Langulus::Anyness
    ///   @param tn... - the rest of the elements (optional)                   
    ///   @return the number of inserted elements                              
    TEMPLATE() template<class T1, class...TN>
-   requires CT::Inner::UnfoldMakableFrom<T, T1, TN...> LANGULUS(INLINED)
+   requires CT::UnfoldMakableFrom<T, T1, TN...> LANGULUS(INLINED)
    Count TABLE()::Insert(T1&& t1, TN&&...tn) {
       return BlockSet::Insert<TSet>(Forward<T1>(t1), Forward<TN>(tn)...);
    }
@@ -319,7 +319,7 @@ namespace Langulus::Anyness
    ///   @param rhs - the pair to insert                                      
    ///   @return a reference to this table for chaining                       
    TEMPLATE() template<class T1>
-   requires CT::Inner::UnfoldMakableFrom<T, T1> LANGULUS(INLINED)
+   requires CT::UnfoldMakableFrom<T, T1> LANGULUS(INLINED)
    TABLE()& TABLE()::operator << (T1&& rhs){
       Insert(Forward<T1>(rhs));
       return *this;

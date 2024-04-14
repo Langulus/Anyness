@@ -258,12 +258,12 @@ namespace Langulus::Anyness
    ///   @attention this overwrites previous handle without dereferencing it, 
    ///      and without destroying anything                                   
    ///   @param rhs - what are we assigning                                   
-   TEMPLATE() template<template<class> class S, class ST>
-   requires CT::Semantic<S<ST>> LANGULUS(INLINED)
-   void HAND()::CreateSemantic(S<ST>&& rhs) {
-      using SS = S<ST>;
+   TEMPLATE() LANGULUS(INLINED)
+   void HAND()::CreateSemantic(auto&& rhs) {
+      using S = SemanticOf<decltype(rhs)>;
+      using ST = TypeOf<S>;
 
-      if constexpr (SS::Shallow and CT::Sparse<T>) {
+      if constexpr (S::Shallow and CT::Sparse<T>) {
          // Do a copy/disown/abandon/move sparse LHS                    
          if constexpr (CT::Handle<ST>) {
             // RHS is a handle                                          
@@ -271,25 +271,25 @@ namespace Langulus::Anyness
             static_assert(CT::Similar<T, HT>, "Handle type mismatch");
             Get() = rhs->Get();
 
-            if constexpr (SS::Keep or SS::Move)
+            if constexpr (S::Keep or S::Move)
                GetEntry() = rhs->GetEntry();
             else
                GetEntry() = nullptr;
 
-            if constexpr (SS::Move) {
+            if constexpr (S::Move) {
                // We're moving RHS, so we need to clear it up           
-               if constexpr (SS::Keep)
+               if constexpr (S::Keep)
                   rhs->Get() = nullptr;
 
                // Clearing entry is mandatory, because we're            
                // transferring the ownership                            
                rhs->GetEntry() = nullptr;
             }
-            else if constexpr (SS::Keep) {
+            else if constexpr (S::Keep) {
                // Copying RHS, but keep it only if not disowning it     
                if (GetEntry()) {
                   const_cast<Allocation*>(GetEntry())->Keep();
-                  if constexpr (CT::Referencable<T>)
+                  if constexpr (CT::Referencable<Deptr<T>>)
                      Get()->Reference(1);
                }
             }
@@ -302,16 +302,16 @@ namespace Langulus::Anyness
          else if constexpr (CT::MakableFrom<T, ST>) {
             // RHS is not a handle, but we'll wrap it in a handle, in   
             // order to find its entry (if managed memory is enabled)   
-            HandleLocal<T> rhsh {rhs.Forward()};
+            HandleLocal<T> rhsh {S::Nest(rhs)};
             Get() = rhsh.Get();
             GetEntry() = rhsh.GetEntry();
 
-            if constexpr (SS::Keep) {
+            if constexpr (S::Keep) {
                // Raw pointers are always referenced, even when moved   
                // (as long as it's a keeper semantic)                   
                if (GetEntry()) {
                   const_cast<Allocation*>(GetEntry())->Keep();
-                  if constexpr (CT::Referencable<T>)
+                  if constexpr (CT::Referencable<Deptr<T>>)
                      Get()->Reference(1);
                }
             }
@@ -320,18 +320,16 @@ namespace Langulus::Anyness
       }
       else if constexpr (CT::Dense<T>) {
          // Do a copy/disown/abandon/move/clone inside a dense handle   
-         // Notice the parentheses used for the constructors - they are 
-         // required to avoid construction being satisfied by a member  
-         // when T is an aggregate type                                 
          if constexpr (CT::Handle<ST> and CT::MakableFrom<T, TypeOf<ST>>)
-            new (&Get()) T (SS::Nest(rhs->Get()));
-         else if constexpr (CT::MakableFrom<T, SS>)
-            new (&Get()) T (rhs.Forward());
-         else LANGULUS_ERROR("Can't initialize dense T");
+            new ((void*) &Get()) T (S::Nest(rhs->Get()));
+         else if constexpr (CT::MakableFrom<T, S>)
+            new ((void*) &Get()) T (S::Nest(rhs));
+         else
+            LANGULUS_ERROR("Can't initialize dense T");
       }
       else if constexpr (CT::Dense<Deptr<T>>) {
          // Clone sparse/dense data                                     
-         if constexpr (CT::Resolvable<T>) {
+         if constexpr (CT::Resolvable<Decay<T>>) {
             // If T is resolvable, we need to always clone the resolved 
             // (a.k.a the most concrete) type                           
             TODO();
@@ -345,11 +343,11 @@ namespace Langulus::Anyness
 
             if constexpr (CT::Handle<ST>) {
                static_assert(CT::Exact<T, TypeOf<ST>>, "Type mismatch");
-               SemanticNew(pointer, SS::Nest(*rhs->Get()));
+               SemanticNew(pointer, S::Nest(*rhs->Get()));
             }
             else {
                static_assert(CT::Exact<T, ST>, "Type mismatch");
-               SemanticNew(pointer, SS::Nest(**rhs));
+               SemanticNew(pointer, S::Nest(**rhs));
             }
 
             Get() = pointer;
@@ -517,6 +515,8 @@ namespace Langulus::Anyness
    ///   @tparam DEALLOCATE - are we allowed to deallocate the memory?        
    TEMPLATE() template<bool RESET, bool DEALLOCATE>
    void HAND()::Destroy() const {
+      using DT = Decay<T>;
+
       if constexpr (CT::Sparse<T>) {
          // Handle is sparse, we should handle each indirection layer   
          if (GetEntry()) {
@@ -529,12 +529,10 @@ namespace Langulus::Anyness
                   // Release all nested indirection layers              
                   HandleLocal<Deptr<T>> {*Get()}.Destroy();
                }
-               else if constexpr (CT::Destroyable<T>) {
+               else if constexpr (CT::Destroyable<DT>) {
                   // Pointer to a complete, destroyable dense           
                   // Call the destructor                                
-                  using DT = Decay<T>;
-
-                  if constexpr (CT::Referencable<T>) {
+                  if constexpr (CT::Referencable<DT>) {
                      if (Get()->Reference(-1) == 0)
                         Get()->~DT();
                      else {
@@ -556,11 +554,9 @@ namespace Langulus::Anyness
                // and its individual references have reached 1. This    
                // usually happens when elements from a THive are        
                // referenced.                                           
-               if constexpr (CT::Dense<Deptr<T>> and CT::Referencable<T>) {
-                  if (Get()->Reference(-1) == 0) {
-                     using DT = Decay<T>;
+               if constexpr (CT::Dense<Deptr<T>> and CT::Referencable<DT>) {
+                  if (Get()->Reference(-1) == 0)
                      Get()->~DT();
-                  }
                }
 
                const_cast<Allocation*>(GetEntry())->Free();
@@ -575,8 +571,8 @@ namespace Langulus::Anyness
       else if constexpr (EMBED) {
          // Handle is dense and embedded, we should call the remote     
          // destructor, but don't touch the entry, its irrelevant       
-         if constexpr (CT::Destroyable<T>)
-            Get().~T();
+         if constexpr (CT::Destroyable<DT>)
+            Get().~DT();
       }
    }
    

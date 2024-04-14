@@ -16,7 +16,7 @@ namespace Langulus::CT
    /// Concept for recognizing arguments, with which a statically typed       
    /// map can be constructed                                                 
    template<class K, class V, class...A>
-   concept DeepMapMakable = Inner::UnfoldMakableFrom<Anyness::TPair<K, V>, A...>
+   concept DeepMapMakable = UnfoldMakableFrom<Anyness::TPair<K, V>, A...>
         or (sizeof...(A) == 1
            and Map<Desem<FirstOf<A...>>> and (SemanticOf<FirstOf<A...>>::Shallow
             or SemanticMakableAlt<
@@ -26,7 +26,7 @@ namespace Langulus::CT
    /// Concept for recognizing argument, with which a statically typed        
    /// map can be assigned                                                    
    template<class K, class V, class A>
-   concept DeepMapAssignable = Inner::UnfoldMakableFrom<Anyness::TPair<K, V>, A>
+   concept DeepMapAssignable = UnfoldMakableFrom<Anyness::TPair<K, V>, A>
         or (Map<Desem<A>> and (SemanticOf<A>::Shallow 
            or SemanticAssignableAlt<
              typename SemanticOf<A>::template As<Anyness::TPair<K, V>>>));
@@ -274,15 +274,15 @@ namespace Langulus::Anyness
       Count InsertBlock(auto&&, auto&&);
 
       template<class T1, class...TN>
-      requires CT::Inner::UnfoldMakableFrom<TPair<K, V>, T1, TN...>
+      requires CT::UnfoldMakableFrom<TPair<K, V>, T1, TN...>
       Count InsertPair(T1&&, TN&&...);
 
       template<class T1>
-      requires CT::Inner::UnfoldMakableFrom<TPair<K, V>, T1>
+      requires CT::UnfoldMakableFrom<TPair<K, V>, T1>
       TMap& operator << (T1&&);
 
       template<class T1>
-      requires CT::Inner::UnfoldMakableFrom<TPair<K, V>, T1>
+      requires CT::UnfoldMakableFrom<TPair<K, V>, T1>
       TMap& operator >> (T1&&);
 
       TMap& operator += (const TMap&);

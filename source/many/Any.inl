@@ -44,7 +44,7 @@ namespace Langulus::Anyness
    ///   @param t1 - first element (can be semantic)                          
    ///   @param tn... - the rest of the elements (optional, can be semantic)  
    template<class T1, class...TN>
-   requires CT::Inner::UnfoldInsertable<T1, TN...>
+   requires CT::UnfoldInsertable<T1, TN...>
    LANGULUS(INLINED) Any::Any(T1&& t1, TN&&...tn) {
       if constexpr (sizeof...(TN) == 0) {
          using S = SemanticOf<decltype(t1)>;
@@ -120,7 +120,7 @@ namespace Langulus::Anyness
    ///   @param rhs - the element, or container to assign                     
    ///   @return a reference to this container                                
    LANGULUS(INLINED)
-   Any& Any::operator = (CT::Inner::UnfoldInsertable auto&& rhs) {
+   Any& Any::operator = (CT::UnfoldInsertable auto&& rhs) {
       using S = SemanticOf<decltype(rhs)>;
       using T = TypeOf<S>;
 
@@ -151,7 +151,7 @@ namespace Langulus::Anyness
    ///   @param other - the data to insert                                    
    ///   @return a reference to this container for chaining                   
    LANGULUS(INLINED)
-   Any& Any::operator << (CT::Inner::UnfoldInsertable auto&& other) {
+   Any& Any::operator << (CT::UnfoldInsertable auto&& other) {
       Block::Insert<Any, Any, true>(IndexBack, Forward<decltype(other)>(other));
       return *this;
    }
@@ -160,7 +160,7 @@ namespace Langulus::Anyness
    ///   @param other - the data to insert                                    
    ///   @return a reference to this container for chaining                   
    LANGULUS(INLINED)
-   Any& Any::operator >> (CT::Inner::UnfoldInsertable auto&& other) {
+   Any& Any::operator >> (CT::UnfoldInsertable auto&& other) {
       Block::Insert<Any, Any, true>(IndexFront, Forward<decltype(other)>(other));
       return *this;
    }
@@ -169,7 +169,7 @@ namespace Langulus::Anyness
    ///   @param other - the data to insert                                    
    ///   @return a reference to this container for chaining                   
    LANGULUS(INLINED)
-   Any& Any::operator <<= (CT::Inner::UnfoldInsertable auto&& other) {
+   Any& Any::operator <<= (CT::UnfoldInsertable auto&& other) {
       Block::Merge<Any, Any, true>(IndexBack, Forward<decltype(other)>(other));
       return *this;
    }
@@ -178,7 +178,7 @@ namespace Langulus::Anyness
    ///   @param other - the data to insert                                    
    ///   @return a reference to this container for chaining                   
    LANGULUS(INLINED)
-   Any& Any::operator >>= (CT::Inner::UnfoldInsertable auto&& other) {
+   Any& Any::operator >>= (CT::UnfoldInsertable auto&& other) {
       Block::Merge<Any, Any, true>(IndexFront, Forward<decltype(other)>(other));
       return *this;
    }
@@ -312,7 +312,7 @@ namespace Langulus::Anyness
    ///   @param rhs - the right operand                                       
    ///   @return the combined container                                       
    LANGULUS(INLINED)
-   Any Any::operator + (CT::Inner::UnfoldInsertable auto&& rhs) const {
+   Any Any::operator + (CT::UnfoldInsertable auto&& rhs) const {
       using S = SemanticOf<decltype(rhs)>;
       return Block::ConcatBlock<Any>(S::Nest(rhs));
    }
@@ -321,7 +321,7 @@ namespace Langulus::Anyness
    ///   @param rhs - the right operand                                       
    ///   @return a reference to this modified container                       
    LANGULUS(INLINED)
-   Any& Any::operator += (CT::Inner::UnfoldInsertable auto&& rhs) {
+   Any& Any::operator += (CT::UnfoldInsertable auto&& rhs) {
       using S = SemanticOf<decltype(rhs)>;
       Block::InsertBlock<Any, void>(IndexBack, S::Nest(rhs));
       return *this;

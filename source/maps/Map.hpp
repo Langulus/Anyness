@@ -41,7 +41,7 @@ namespace Langulus::Anyness
       Map(Map&&);
 
       template<class T1, class...TN>
-      requires CT::Inner::UnfoldInsertable<T1, TN...>
+      requires CT::UnfoldInsertable<T1, TN...>
       Map(T1&&, TN&&...);
 
       ~Map();
@@ -51,17 +51,17 @@ namespace Langulus::Anyness
       ///                                                                     
       Map& operator = (const Map&);
       Map& operator = (Map&&);
-      Map& operator = (CT::Inner::UnfoldInsertable auto&&);
+      Map& operator = (CT::UnfoldInsertable auto&&);
 
       ///                                                                     
       ///   Indexing                                                          
       ///                                                                     
-      NOD() Block GetKey(CT::Index auto);
-      NOD() Block GetKey(CT::Index auto) const;
+      NOD() Block GetKey  (CT::Index auto);
+      NOD() Block GetKey  (CT::Index auto) const;
       NOD() Block GetValue(CT::Index auto);
       NOD() Block GetValue(CT::Index auto) const;
-      NOD() Pair  GetPair(CT::Index auto);
-      NOD() Pair  GetPair(CT::Index auto) const;
+      NOD() Pair  GetPair (CT::Index auto);
+      NOD() Pair  GetPair (CT::Index auto) const;
 
       ///                                                                     
       ///   Iteration                                                         
@@ -168,8 +168,8 @@ namespace Langulus::Anyness
       template<class T1, class...TAIL>
       Count InsertPair(T1&&, TAIL&&...);
 
-      Map& operator << (CT::Inner::UnfoldInsertable auto&&);
-      Map& operator >> (CT::Inner::UnfoldInsertable auto&&);
+      Map& operator << (CT::UnfoldInsertable auto&&);
+      Map& operator >> (CT::UnfoldInsertable auto&&);
 
       ///                                                                     
       ///   Removal                                                           

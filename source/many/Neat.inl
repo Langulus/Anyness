@@ -49,7 +49,7 @@ namespace Langulus::Anyness
    ///   @param t1 - first element                                            
    ///   @param tn... - the rest of the elements (optional)                   
    template<class T1, class...TN>
-   requires CT::Inner::UnfoldInsertable<T1, TN...> LANGULUS(INLINED)
+   requires CT::UnfoldInsertable<T1, TN...> LANGULUS(INLINED)
    Neat::Neat(T1&& t1, TN&&...tn)
       : Neat {} {
       Insert(Forward<T1>(t1), Forward<TN>(tn)...);
@@ -619,9 +619,9 @@ namespace Langulus::Anyness
    /// Push and sort anything, semantically or not                            
    ///   @param rhs - the pair to insert                                      
    ///   @return a reference to this table for chaining                       
-   LANGULUS(INLINED)
-   Neat& Neat::operator << (auto&& rhs) {
-      Insert(Forward<Deref<decltype(rhs)>>(rhs));
+   template<class T> LANGULUS(INLINED)
+   Neat& Neat::operator << (T&& rhs) {
+      Insert(Forward<T>(rhs));
       return *this;
    }
 

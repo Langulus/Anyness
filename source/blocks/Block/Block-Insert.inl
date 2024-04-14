@@ -574,8 +574,7 @@ namespace Langulus::Anyness
               or me.IsSimilar(value->GetType());
 
       if (not me.IsConstant() and not me.IsStatic() and typeCompliant and sc
-         // Make sure container is or-compliant after the change        
-         and not (me.GetCount() > 1 and not me.IsOr() and state.IsOr())) {
+      and not (me.GetCount() > 1 and not me.IsOr() and state.IsOr())) {
          if (me.IsUntyped()) {
             // Block insert never mutates, so make sure type            
             // is valid before insertion                                
@@ -1301,7 +1300,7 @@ namespace Langulus::Anyness
                   while (entry != entryEnd) {
                      if (*entry) {
                         const_cast<Allocation*>(*entry)->Keep();
-                        if constexpr (CT::Referencable<TypeOf<T>>)
+                        if constexpr (CT::Referencable<Deptr<TypeOf<T>>>)
                            pointersDst[entry - entriesDst]->Reference(1);
                      }
                      ++entry;

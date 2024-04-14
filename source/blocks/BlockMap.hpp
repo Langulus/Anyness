@@ -462,10 +462,10 @@ namespace Langulus::Anyness
       Count InsertPair(T1&&, TAIL&&...);
 
    protected:
-      template<CT::Map THIS>
-      auto CreateKeyHandle(CT::Semantic auto&&);
-      template<CT::Map THIS>
-      auto CreateValHandle(CT::Semantic auto&&);
+      template<CT::Map>
+      auto CreateKeyHandle(auto&&);
+      template<CT::Map>
+      auto CreateValHandle(auto&&);
 
       template<CT::Map>
       NOD() Size RequestKeyAndInfoSize(Count, Offset&) const IF_UNSAFE(noexcept);
@@ -481,7 +481,7 @@ namespace Langulus::Anyness
       void ShiftPairs();
 
       template<CT::Map, bool CHECK_FOR_MATCH>
-      Offset InsertInner(Offset, CT::Semantic auto&&, CT::Semantic auto&&);
+      Offset InsertInner(Offset, auto&&, auto&&);
 
       template<CT::Map, bool CHECK_FOR_MATCH, template<class> class S1, template<class> class S2, CT::Block T>
       requires CT::Semantic<S1<T>, S2<T>>

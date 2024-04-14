@@ -10,6 +10,7 @@
 
 
 TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
+   (TypePair<Trait, Text>),
    (TypePair<Traits::Name, Text>),
 
    (TypePair<TAny<int>, int>),
@@ -23,7 +24,6 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
    (TypePair<Any, Traits::Count>),
    (TypePair<Any, Any>),
    (TypePair<Any, Text>)
-
 ) {
    static Allocator::State memoryState;
 
@@ -49,6 +49,25 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
       CreateElement<E>(9),
       CreateElement<E>(10)
    };
+
+   if constexpr (CT::Untyped<T>) {
+      // All type-erased containers should have all semantic            
+      // constructors and assigners available, and errors will instead  
+      // be thrown as exceptions at runtime                             
+      static_assert(CT::CopyMakable<T>);
+      static_assert(CT::ReferMakable<T>);
+      static_assert(CT::AbandonMakable<T>);
+      static_assert(CT::MoveMakable<T>);
+      static_assert(CT::CloneMakable<T>);
+      static_assert(CT::DisownMakable<T>);
+
+      static_assert(CT::CopyAssignable<T>);
+      static_assert(CT::ReferAssignable<T>);
+      static_assert(CT::AbandonAssignable<T>);
+      static_assert(CT::MoveAssignable<T>);
+      static_assert(CT::CloneAssignable<T>);
+      static_assert(CT::DisownAssignable<T>);
+   }
 
    GIVEN("Default constructed container") {
       T pack;

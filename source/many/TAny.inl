@@ -748,7 +748,7 @@ namespace Langulus::Anyness
    ///   @param tn - the rest of the elements (optional)                      
    ///   @return number of inserted items                                     
    TEMPLATE() template<bool MOVE_ASIDE, class T1, class...TN>
-   requires CT::Inner::UnfoldMakableFrom<T, T1, TN...> LANGULUS(INLINED)
+   requires CT::UnfoldMakableFrom<T, T1, TN...> LANGULUS(INLINED)
    Count TAny<T>::Insert(CT::Index auto index, T1&& t1, TN&&...tn) {
       return Block::Insert<TAny, Any, MOVE_ASIDE>(
          index, Forward<T1>(t1), Forward<TN>(tn)...);
@@ -778,7 +778,7 @@ namespace Langulus::Anyness
    ///   @param tn... - the rest of items to insert (optional)                
    ///   @return the number of inserted items                                 
    TEMPLATE() template<bool MOVE_ASIDE, class T1, class...TN>
-   requires CT::Inner::UnfoldMakableFrom<T, T1, TN...> LANGULUS(INLINED)
+   requires CT::UnfoldMakableFrom<T, T1, TN...> LANGULUS(INLINED)
    Count TAny<T>::Merge(CT::Index auto index, T1&& t1, TN&&...tn) {
       return Block::Merge<TAny, Any, MOVE_ASIDE>(
          index, Forward<T1>(t1), Forward<TN>(tn)...);
@@ -840,7 +840,7 @@ namespace Langulus::Anyness
    ///   @param rhs - the element to insert                                   
    ///   @return a reference to this container for chaining                   
    TEMPLATE() template<class T1>
-   requires CT::Inner::UnfoldMakableFrom<T, T1> LANGULUS(INLINED)
+   requires CT::UnfoldMakableFrom<T, T1> LANGULUS(INLINED)
    TAny<T>& TAny<T>::operator << (T1&& rhs) {
       Insert(IndexBack, Forward<T1>(rhs));
       return *this;
@@ -850,7 +850,7 @@ namespace Langulus::Anyness
    ///   @param rhs - the element to insert                                   
    ///   @return a reference to this container for chaining                   
    TEMPLATE() template<class T1>
-   requires CT::Inner::UnfoldMakableFrom<T, T1> LANGULUS(INLINED)
+   requires CT::UnfoldMakableFrom<T, T1> LANGULUS(INLINED)
    TAny<T>& TAny<T>::operator >> (T1&& rhs) {
       Insert(IndexFront, Forward<T1>(rhs));
       return *this;
@@ -860,7 +860,7 @@ namespace Langulus::Anyness
    ///   @param rhs - the element to insert                                   
    ///   @return a reference to this container for chaining                   
    TEMPLATE() template<class T1>
-   requires CT::Inner::UnfoldMakableFrom<T, T1> LANGULUS(INLINED)
+   requires CT::UnfoldMakableFrom<T, T1> LANGULUS(INLINED)
    TAny<T>& TAny<T>::operator <<= (T1&& rhs) {
       Merge(IndexBack, Forward<T1>(rhs));
       return *this;
@@ -870,7 +870,7 @@ namespace Langulus::Anyness
    ///   @param rhs - the element to insert                                   
    ///   @return a reference to this container for chaining                   
    TEMPLATE() template<class T1>
-   requires CT::Inner::UnfoldMakableFrom<T, T1> LANGULUS(INLINED)
+   requires CT::UnfoldMakableFrom<T, T1> LANGULUS(INLINED)
    TAny<T>& TAny<T>::operator >>= (T1&& rhs) {
       Merge(IndexFront, Forward<T1>(rhs));
       return *this;

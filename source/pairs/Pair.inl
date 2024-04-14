@@ -24,7 +24,7 @@ namespace Langulus::Anyness
    ///   @param key - the key                                                 
    ///   @param value - the value                                             
    template<class K, class V>
-   requires CT::Inner::UnfoldInsertable<K, V> LANGULUS(INLINED)
+   requires CT::UnfoldInsertable<K, V> LANGULUS(INLINED)
    Pair::Pair(K&& key, V&& val)
       : mKey   {Forward<decltype(key)>(key)}
       , mValue {Forward<decltype(val)>(val)} {}

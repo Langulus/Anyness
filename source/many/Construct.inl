@@ -316,9 +316,8 @@ namespace Langulus::Anyness
    ///   @attention resets hash                                               
    ///   @param rhs - stuff to push                                           
    ///   @return a reference to this construct for chaining                   
-   LANGULUS(INLINED)
-   Construct& Construct::operator << (auto&& rhs) {
-      using T = decltype(rhs);
+   template<class T> LANGULUS(INLINED)
+   Construct& Construct::operator << (T&& rhs) {
       if constexpr (requires {mDescriptor << Forward<T>(rhs); }) {
          mDescriptor << Forward<T>(rhs);
          return *this;
@@ -330,9 +329,8 @@ namespace Langulus::Anyness
    ///   @attention resets hash                                               
    ///   @param rhs - stuff to merge                                          
    ///   @return a reference to this construct for chaining                   
-   LANGULUS(INLINED)
-   Construct& Construct::operator <<= (auto&& rhs) {
-      using T = decltype(rhs);
+   template<class T> LANGULUS(INLINED)
+   Construct& Construct::operator <<= (T&& rhs) {
       if constexpr (requires {mDescriptor <<= Forward<T>(rhs); }) {
          mDescriptor <<= Forward<T>(rhs);
          return *this;

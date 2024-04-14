@@ -120,9 +120,11 @@ void DestroyPair(auto& pair) {
 /// Simple type for testing references                                        
 struct RT : Referenced {
    int data;
+   const char* t;
 
-   RT() : data {0} {}
-   RT(int a) : data {a} {}
+   RT() : data {0}, t {nullptr} {}
+   RT(int a) : data {a}, t {nullptr} {}
+   RT(const char* tt) : data(0), t {tt} {}
 
    operator const int& () const noexcept {
       return data;

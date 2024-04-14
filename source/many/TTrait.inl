@@ -18,37 +18,65 @@ namespace Langulus::Anyness
 {
 
    /// Refer-constructor                                                      
+   ///   @param other - the trait to refer to                                 
    TEMPLATE() LANGULUS(INLINED)
    TME()::TTrait(const TTrait& other)
       : Trait {Refer(static_cast<const Any&>(other))} {}
 
    /// Move-constructor                                                       
+   ///   @param other - the trait to move                                     
    TEMPLATE() LANGULUS(INLINED)
    TME()::TTrait(TTrait&& other)
       : Trait {Move(Forward<Any>(other))} {}
 
    /// Never absorb different traits, if known at compile-time                
-   TEMPLATE() template<CT::Trait T>
-   requires (not CT::Same<typename T::TraitType, TRAIT>) LANGULUS(INLINED)
-   TME()::TTrait(T&& other)
-      : Trait {} {
-      *this << Forward<Deref<decltype(other)>>(other);
+   ///   @param other - the trait to semantically construct with              
+   TEMPLATE() template<class T> requires (CT::Trait<Desem<T>>
+   and not CT::Same<typename T::TraitType, TRAIT>) LANGULUS(INLINED)
+   TME()::TTrait(T&& other) {
+      *this << SemanticOf<decltype(other)>::Nest(other);
    }
 
    /// Refer-assignment                                                       
+   ///   @param rhs - the trait to refer-assign                               
    TEMPLATE() LANGULUS(INLINED)
-   TME()& TME()::operator = (const TTrait& rhs) {
+   TRAIT& TME()::operator = (const TTrait& rhs) {
       Trait::operator = (Refer(static_cast<const Any&>(rhs)));
-      return *this;
+      return static_cast<TRAIT&>(*this);
    }
 
    /// Move-assignment                                                        
+   ///   @param rhs - the trait to move-assign                                
    TEMPLATE() LANGULUS(INLINED)
-   TME()& TME()::operator = (TTrait&& rhs) {
+   TRAIT& TME()::operator = (TTrait&& rhs) {
       Trait::operator = (Move(Forward<Any>(rhs)));
-      return *this;
+      return static_cast<TRAIT&>(*this);
    }
    
+   /// Unfold assignment, semantic or not                                     
+   /// If argument is deep or trait, it will be absorbed                      
+   ///   @param rhs - right hand side                                         
+   ///   @return a reference to this trait                                    
+   TEMPLATE() LANGULUS(INLINED)
+   TRAIT& TME()::operator = (CT::UnfoldInsertable auto&& rhs) {
+      using S = SemanticOf<decltype(rhs)>;
+      using T = TypeOf<S>;
+
+      if constexpr (CT::Trait<T>) {
+         if constexpr (not CT::Same<typename T::TraitType, TRAIT>) {
+            // Never absorb different CT::Trait, insert it instead      
+            Block::Reset();
+            *this << SemanticOf<decltype(rhs)>::Nest(rhs);
+         }
+         else Any::operator = (S::Nest(rhs).template Forward<Any>());
+      }
+      else if constexpr (CT::TraitBased<T> or CT::Deep<T>)
+         Any::operator = (S::Nest(rhs).template Forward<Any>());
+      else
+         Any::operator = (S::Nest(rhs));
+      return static_cast<TRAIT&>(*this);
+   }
+
    /// Create a similar trait, that has a specific data type, but no contents 
    ///   @tparam T - the data type to set                                     
    ///   @return the empty trait of the given type                            
@@ -90,11 +118,13 @@ namespace Langulus::Anyness
    }
 
    /// Check if a trait matches one of a set of trait types                   
-   ///   @param traits... - the traits to match                               
+   ///   @param t1... - the first trait to match                              
+   ///   @param tN... - other traits to match                                 
    ///   @return true if this trait is one of the given types                 
-   TEMPLATE() template<CT::Trait...TN> LANGULUS(INLINED)
-   constexpr bool TME()::IsTrait(TMeta t1, TN...tN) const {
-      return Trait::IsTrait<TRAIT>(t1, tN...);
+   TEMPLATE() LANGULUS(INLINED)
+   constexpr bool TME()::IsTrait(TMeta t1, auto...tN) const {
+      return Trait::IsTrait<TRAIT>(t1)
+         or (Trait::IsTrait<TRAIT>(tN) or ...);
    }
 
    /// Check if trait has correct data (always true if trait has no filter)   
@@ -118,7 +148,7 @@ namespace Langulus::Anyness
    ///   @param rhs - the right operand                                       
    ///   @return the combined trait                                           
    TEMPLATE() LANGULUS(INLINED)
-   TRAIT TME()::operator + (CT::Inner::UnfoldInsertable auto&& rhs) const {
+   TRAIT TME()::operator + (CT::UnfoldInsertable auto&& rhs) const {
       return Trait::operator + <TRAIT> (rhs);
    }
 
@@ -126,7 +156,7 @@ namespace Langulus::Anyness
    ///   @param rhs - the right operand                                       
    ///   @return a reference to this modified trait                           
    TEMPLATE() LANGULUS(INLINED)
-   TRAIT& TME()::operator += (CT::Inner::UnfoldInsertable auto&& rhs) {
+   TRAIT& TME()::operator += (CT::UnfoldInsertable auto&& rhs) {
       return Trait::operator += <TRAIT> (rhs);
    }
 

@@ -60,8 +60,7 @@ namespace Langulus
          template<class P> requires CT::Pair<Desem<P>>
          Pair(P&&);
 
-         template<class K, class V>
-         requires CT::Inner::UnfoldInsertable<K, V>
+         template<class K, class V> requires CT::UnfoldInsertable<K, V>
          Pair(K&&, V&&);
 
          Pair& operator = (Pair const&) = default;

@@ -359,7 +359,7 @@ namespace Langulus::Anyness
       ///   Insertion                                                         
       ///                                                                     
       template<bool MOVE_ASIDE = true, class T1, class...TN>
-      requires CT::Inner::UnfoldMakableFrom<T, T1, TN...>
+      requires CT::UnfoldMakableFrom<T, T1, TN...>
       Count Insert(CT::Index auto, T1&&, TN&&...);
 
       template<class FORCE = Any, bool MOVE_ASIDE = true, class T1>
@@ -367,7 +367,7 @@ namespace Langulus::Anyness
       Count InsertBlock(CT::Index auto, T1&&);
 
       template<bool MOVE_ASIDE = true, class T1, class...TN>
-      requires CT::Inner::UnfoldMakableFrom<T, T1, TN...>
+      requires CT::UnfoldMakableFrom<T, T1, TN...>
       Count Merge(CT::Index auto, T1&&, TN&&...);
 
       template<class FORCE = Any, bool MOVE_ASIDE = true, class T1>
@@ -395,20 +395,16 @@ namespace Langulus::Anyness
 
       NOD() TAny<T> Extend(Count);
 
-      template<class T1>
-      requires CT::Inner::UnfoldMakableFrom<T, T1>
+      template<class T1> requires CT::UnfoldMakableFrom<T, T1>
       TAny& operator << (T1&&);
 
-      template<class T1>
-      requires CT::Inner::UnfoldMakableFrom<T, T1>
+      template<class T1> requires CT::UnfoldMakableFrom<T, T1>
       TAny& operator >> (T1&&);
 
-      template<class T1>
-      requires CT::Inner::UnfoldMakableFrom<T, T1>
+      template<class T1> requires CT::UnfoldMakableFrom<T, T1>
       TAny& operator <<= (T1&&);
 
-      template<class T1>
-      requires CT::Inner::UnfoldMakableFrom<T, T1>
+      template<class T1> requires CT::UnfoldMakableFrom<T, T1>
       TAny& operator >>= (T1&&);
 
       ///                                                                     
