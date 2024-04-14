@@ -66,21 +66,10 @@ namespace Langulus::Anyness
 
       template<class K1, class V1>
       requires (CT::MakableFrom<K, K1> and CT::MakableFrom<V, V1>
-           and  CT::NotReference<K, V> and CT::NotAggregate<K, V>)
+           and  CT::NotReference<K, V>)
       TPair(K1&&, V1&&);
 
-      template<class K1, class V1>
-      requires (CT::MakableFrom<K, K1> and CT::MakableFrom<V, V1>
-           and  CT::NotReference<K, V> and not CT::Aggregate<K> and CT::Aggregate<V>)
-      TPair(K1&&, V1&&);
-           
-      template<class K1, class V1>
-      requires (CT::MakableFrom<K, K1> and CT::MakableFrom<V, V1>
-           and  CT::NotReference<K, V> and CT::Aggregate<K> and not CT::Aggregate<V>)
-      TPair(K1&&, V1&&);
-
-      TPair(K&&, V&&) noexcept
-      requires (CT::Reference<K, V> or CT::Aggregate<K, V>);
+      TPair(K&&, V&&) noexcept requires CT::Reference<K, V>;
 
       TPair& operator = (TPair const&) = default;
       TPair& operator = (TPair&&) = default;

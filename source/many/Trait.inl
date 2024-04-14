@@ -31,7 +31,7 @@ namespace Langulus::Anyness
    ///   @param t1 - first argument                                           
    ///   @param tn - the rest of the arguments (optional)                     
    template<class T1, class...TN>
-   requires CT::Inner::UnfoldInsertable<T1, TN...> LANGULUS(INLINED)
+   requires CT::UnfoldInsertable<T1, TN...> LANGULUS(INLINED)
    Trait::Trait(T1&& t1, TN&&...tn) {
       if constexpr (sizeof...(TN) == 0 and not CT::Array<T1>) {
          using S = SemanticOf<decltype(t1)>;
@@ -219,7 +219,7 @@ namespace Langulus::Anyness
    ///   @param rhs - right hand side                                         
    ///   @return a reference to this trait                                    
    LANGULUS(INLINED)
-   Trait& Trait::operator = (CT::Inner::UnfoldInsertable auto&& rhs) {
+   Trait& Trait::operator = (CT::UnfoldInsertable auto&& rhs) {
       using S = SemanticOf<decltype(rhs)>;
       using T = TypeOf<S>;
 
@@ -230,7 +230,7 @@ namespace Langulus::Anyness
       else if constexpr (CT::Deep<T>)
          Any::operator = (S::Nest(rhs).template Forward<Any>());
       else
-         Any::operator = (S::Nest(rhs).Forward());
+         Any::operator = (S::Nest(rhs));
       return *this;
    }
 
@@ -239,7 +239,7 @@ namespace Langulus::Anyness
    ///   @param rhs - the right operand                                       
    ///   @return the combined container                                       
    template<CT::TraitBased THIS> LANGULUS(INLINED)
-   THIS Trait::operator + (CT::Inner::UnfoldInsertable auto&& rhs) const {
+   THIS Trait::operator + (CT::UnfoldInsertable auto&& rhs) const {
       using S = SemanticOf<decltype(rhs)>;
       using T = TypeOf<S>;
 
@@ -270,7 +270,7 @@ namespace Langulus::Anyness
    ///   @param rhs - the right operand                                       
    ///   @return a reference to this modified container                       
    template<CT::TraitBased THIS> LANGULUS(INLINED)
-   THIS& Trait::operator += (CT::Inner::UnfoldInsertable auto&& rhs) {
+   THIS& Trait::operator += (CT::UnfoldInsertable auto&& rhs) {
       using S = SemanticOf<decltype(rhs)>;
       using T = TypeOf<S>;
 

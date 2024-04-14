@@ -13,7 +13,7 @@
 
 ///                                                                           
 TEMPLATE_TEST_CASE("Shared pointer", "[Ref]",
-   Ref<int>, Ref<RT>, Ref<Any>
+   Ref<Any>, Ref<int>, Ref<RT>
 ) {
    static Allocator::State memoryState;
 

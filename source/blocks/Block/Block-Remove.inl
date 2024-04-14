@@ -324,15 +324,15 @@ namespace Langulus::Anyness
 
       if constexpr (CT::Typed<THIS>) {
          using T = TypeOf<THIS>;
+         using DT = Decay<T>;
 
          if constexpr (CT::Sparse<T> and FORCE) {
             // Destroy every sparse element                             
             DestroySparse<THIS>(mask);
          }
-         else if constexpr (CT::Dense<T> and CT::Destroyable<T>
-         and (FORCE or CT::Referencable<T>)) {
+         else if constexpr (CT::Dense<T> and CT::Destroyable<DT>
+         and (FORCE or CT::Referencable<DT>)) {
             // Destroy every dense element                              
-            using DT = Decay<T>;
             const auto count = CT::Nullptr<MASK> ? mCount : mReserved;
             auto data = mthis->GetRaw<THIS>();
             const auto begMarker = data;
@@ -355,12 +355,12 @@ namespace Langulus::Anyness
                }
 
                if constexpr (FORCE) {
-                  if constexpr (CT::Referencable<T>)
+                  if constexpr (CT::Referencable<DT>)
                      data->Reference(-1);
                   data->~DT();
                }
                else {
-                  if constexpr (CT::Referencable<T>) {
+                  if constexpr (CT::Referencable<DT>) {
                      if (not data->Reference(-1))
                         data->~DT();
                   }

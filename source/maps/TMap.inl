@@ -470,7 +470,7 @@ namespace Langulus::Anyness
    ///   @param t1, tn... - pairs, or arrays of pairs, to insert              
    ///   @return the number of inserted pairs                                 
    TEMPLATE() template<class T1, class...TN>
-   requires CT::Inner::UnfoldMakableFrom<TPair<K, V>, T1, TN...>
+   requires CT::UnfoldMakableFrom<TPair<K, V>, T1, TN...>
    LANGULUS(INLINED) Count TABLE()::InsertPair(T1&& t1, TN&&...tn) {
       Count inserted = 0;
         inserted += BlockMap::UnfoldInsert<TMap>(Forward<T1>(t1));
@@ -482,7 +482,7 @@ namespace Langulus::Anyness
    ///   @param pair - the pair to insert                                     
    ///   @return a reference to this map for chaining                         
    TEMPLATE() template<class T1>
-   requires CT::Inner::UnfoldMakableFrom<TPair<K, V>, T1> LANGULUS(INLINED)
+   requires CT::UnfoldMakableFrom<TPair<K, V>, T1> LANGULUS(INLINED)
    TABLE()& TABLE()::operator << (T1&& pair) {
       InsertPair(Forward<T1>(pair));
       return *this;
@@ -492,7 +492,7 @@ namespace Langulus::Anyness
    ///   @param pair - the pair to insert                                     
    ///   @return a reference to this map for chaining                         
    TEMPLATE() template<class T1>
-   requires CT::Inner::UnfoldMakableFrom<TPair<K, V>, T1> LANGULUS(INLINED)
+   requires CT::UnfoldMakableFrom<TPair<K, V>, T1> LANGULUS(INLINED)
    TABLE()& TABLE()::operator >> (T1&& pair) {
       InsertPair(Forward<T1>(pair));
       return *this;

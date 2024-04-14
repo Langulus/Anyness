@@ -30,47 +30,16 @@ namespace Langulus::Anyness
    ///   @param val - the value                                               
    TEMPLATE() template<class K1, class V1>
    requires (CT::MakableFrom<K, K1> and CT::MakableFrom<V, V1>
-   and CT::NotReference<K, V> and CT::NotAggregate<K, V>) LANGULUS(INLINED)
+   and CT::NotReference<K, V>) LANGULUS(INLINED)
    PAIR()::TPair(K1&& key, V1&& val)
-      : mKey   {SemanticOf<decltype(key)> {key}}
-      , mValue {SemanticOf<decltype(val)> {val}} {}
-     
-   /// Semantic constructor from key and value, if K and V aren't references, 
-   /// K is not an aggregate type, but V is. This is a workaround, because    
-   /// semantics don't play well with aggregate initialization - the compiler 
-   /// doesn't recognize arguments as copy/move, instead forward to first     
-   /// member...                                                              
-   ///   @param key - the key                                                 
-   ///   @param val - the value                                               
-   TEMPLATE() template<class K1, class V1>
-   requires (CT::MakableFrom<K, K1> and CT::MakableFrom<V, V1>
-   and CT::NotReference<K, V> and not CT::Aggregate<K> and CT::Aggregate<V>
-   ) LANGULUS(INLINED)
-   PAIR()::TPair(K1&& key, V1&& val)
-      : mKey   {SemanticOf<decltype(key)> {key}}
-      , mValue {Forward<V>(val)} {}
-      
-   /// Semantic constructor from key and value, if K and V aren't references, 
-   /// V is not an aggregate type, but K is. This is a workaround, because    
-   /// semantics don't play well with aggregate initialization - the compiler 
-   /// doesn't recognize arguments as copy/move, instead forward to first     
-   /// member...                                                              
-   ///   @param key - the key                                                 
-   ///   @param val - the value                                               
-   TEMPLATE() template<class K1, class V1>
-   requires (CT::MakableFrom<K, K1> and CT::MakableFrom<V, V1>
-   and CT::NotReference<K, V> and CT::Aggregate<K> and not CT::Aggregate<V>
-   ) LANGULUS(INLINED)
-   PAIR()::TPair(K1&& key, V1&& val)
-      : mKey   {Forward<K>(key)}
-      , mValue {SemanticOf<decltype(val)> {val}} {}
+      : mKey   {SemanticOf<decltype(key)>::Nest(key)}
+      , mValue {SemanticOf<decltype(val)>::Nest(val)} {}
 
    /// Semantic constructor from key and value (if K and V are references)    
    ///   @param key - the key                                                 
    ///   @param val - the value                                               
    TEMPLATE() LANGULUS(INLINED)
-   PAIR()::TPair(K&& key, V&& val) noexcept
-   requires (CT::Reference<K, V> or CT::Aggregate<K, V>)
+   PAIR()::TPair(K&& key, V&& val) noexcept requires CT::Reference<K, V>
       : mKey   {Forward<K>(key)}
       , mValue {Forward<V>(val)} {}
 

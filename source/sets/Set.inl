@@ -42,7 +42,7 @@ namespace Langulus::Anyness
    ///   @param t1 - first element (can be semantic)                          
    ///   @param tn... - the rest of the elements (optional, can be semantic)  
    TEMPLATE() template<class T1, class...TN>
-   requires CT::Inner::UnfoldInsertable<T1, TN...> LANGULUS(INLINED)
+   requires CT::UnfoldInsertable<T1, TN...> LANGULUS(INLINED)
    TABLE()::Set(T1&& t1, TN&&...tn) {
       if constexpr (sizeof...(TN) == 0) {
          using S = SemanticOf<decltype(t1)>;
@@ -82,7 +82,7 @@ namespace Langulus::Anyness
    ///   @param rhs - the pair, or map to assign                              
    ///   @return a reference to this container                                
    TEMPLATE() LANGULUS(INLINED)
-   TABLE()& TABLE()::operator = (CT::Inner::UnfoldInsertable auto&& rhs) {
+   TABLE()& TABLE()::operator = (CT::UnfoldInsertable auto&& rhs) {
       using S = SemanticOf<decltype(rhs)>;
       using T = TypeOf<S>;
 
@@ -274,7 +274,7 @@ namespace Langulus::Anyness
    ///   @param other - the data to insert                                    
    ///   @return a reference to this container for chaining                   
    TEMPLATE() LANGULUS(INLINED)
-   TABLE()& TABLE()::operator << (CT::Inner::UnfoldInsertable auto&& other) {
+   TABLE()& TABLE()::operator << (CT::UnfoldInsertable auto&& other) {
       BlockSet::UnfoldInsert<Set>(Forward<decltype(other)>(other));
       return *this;
    }
@@ -284,7 +284,7 @@ namespace Langulus::Anyness
    ///   @param other - the data to insert                                    
    ///   @return a reference to this container for chaining                   
    TEMPLATE() LANGULUS(INLINED)
-   TABLE()& TABLE()::operator >> (CT::Inner::UnfoldInsertable auto&& other) {
+   TABLE()& TABLE()::operator >> (CT::UnfoldInsertable auto&& other) {
       BlockSet::UnfoldInsert<Set>(Forward<decltype(other)>(other));
       return *this;
    }

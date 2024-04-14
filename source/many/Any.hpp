@@ -53,7 +53,7 @@ namespace Langulus::Anyness
       Any(Any&&) noexcept;
 
       template<class T1, class...TN>
-      requires CT::Inner::UnfoldInsertable<T1, TN...>
+      requires CT::UnfoldInsertable<T1, TN...>
       Any(T1&&, TN&&...);
 
       ~Any();
@@ -69,7 +69,7 @@ namespace Langulus::Anyness
       ///                                                                     
       Any& operator = (const Any&);
       Any& operator = (Any&&) noexcept;
-      Any& operator = (CT::Inner::UnfoldInsertable auto&&);
+      Any& operator = (CT::UnfoldInsertable auto&&);
 
    public:
       NOD() Any Crop(Offset, Count) const;
@@ -119,17 +119,17 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Insertion                                                         
       ///                                                                     
-      Any& operator <<  (CT::Inner::UnfoldInsertable auto&&);
-      Any& operator >>  (CT::Inner::UnfoldInsertable auto&&);
+      Any& operator <<  (CT::UnfoldInsertable auto&&);
+      Any& operator >>  (CT::UnfoldInsertable auto&&);
 
-      Any& operator <<= (CT::Inner::UnfoldInsertable auto&&);
-      Any& operator >>= (CT::Inner::UnfoldInsertable auto&&);
+      Any& operator <<= (CT::UnfoldInsertable auto&&);
+      Any& operator >>= (CT::UnfoldInsertable auto&&);
 
       ///                                                                     
       ///   Concatenation                                                     
       ///                                                                     
-      NOD() Any  operator +  (CT::Inner::UnfoldInsertable auto&&) const;
-            Any& operator += (CT::Inner::UnfoldInsertable auto&&);
+      NOD() Any  operator +  (CT::UnfoldInsertable auto&&) const;
+            Any& operator += (CT::UnfoldInsertable auto&&);
    };
 
 } // namespace Langulus::Anyness

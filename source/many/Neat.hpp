@@ -87,7 +87,7 @@ namespace Langulus::Anyness
       Neat(S<Neat>&&);
 
       template<class T1, class...TN>
-      requires CT::Inner::UnfoldInsertable<T1, TN...>
+      requires CT::UnfoldInsertable<T1, TN...>
       Neat(T1&&, TN&&...);
 
       ///                                                                     

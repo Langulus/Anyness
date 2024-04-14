@@ -16,7 +16,7 @@ namespace Langulus::CT
    /// Concept for recognizing arguments, with which a statically typed       
    /// set can be constructed                                                 
    template<class T, class...A>
-   concept DeepSetMakable = Inner::UnfoldMakableFrom<T, A...>
+   concept DeepSetMakable = UnfoldMakableFrom<T, A...>
         or (sizeof...(A) == 1 and Set<Desem<FirstOf<A...>>> and (
               SemanticOf<FirstOf<A...>>::Shallow
            or SemanticMakableAlt<typename SemanticOf<FirstOf<A...>>::template As<T>>
@@ -25,7 +25,7 @@ namespace Langulus::CT
    /// Concept for recognizing argument, with which a statically typed        
    /// set can be assigned                                                    
    template<class T, class A>
-   concept DeepSetAssignable = Inner::UnfoldMakableFrom<T, A> or (Set<Desem<A>> and (
+   concept DeepSetAssignable = UnfoldMakableFrom<T, A> or (Set<Desem<A>> and (
             SemanticOf<A>::Shallow
          or SemanticAssignableAlt<typename SemanticOf<A>::template As<T>>)
       );
@@ -193,7 +193,7 @@ namespace Langulus::Anyness
       ///   Insertion                                                         
       ///                                                                     
       template<class T1, class...TN>
-      requires CT::Inner::UnfoldMakableFrom<T, T1, TN...>
+      requires CT::UnfoldMakableFrom<T, T1, TN...>
       Count Insert(T1&&, TN&&...);
 
       template<class T1> requires CT::Set<Desem<T1>>
@@ -202,12 +202,10 @@ namespace Langulus::Anyness
       template<class T1> requires CT::Block<Desem<T1>>
       Count InsertBlock(T1&&);
 
-      template<class T1>
-      requires CT::Inner::UnfoldMakableFrom<T, T1>
+      template<class T1> requires CT::UnfoldMakableFrom<T, T1>
       TSet& operator << (T1&&);
 
-      template<class T1>
-      requires CT::Inner::UnfoldMakableFrom<T, T1>
+      template<class T1> requires CT::UnfoldMakableFrom<T, T1>
       TSet& operator >> (T1&&);
 
       ///                                                                     

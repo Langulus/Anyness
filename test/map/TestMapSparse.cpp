@@ -19,13 +19,16 @@
 /// to complex, from flat to deep                                             
 TEMPLATE_TEST_CASE(
    "Sparse TOrderedMap/TUnorderedMap/OrderedMap/UnorderedMap", "[map]",
-   (MapPair<UnorderedMap, Text, RT*>),
-
    (MapPair<TUnorderedMap<Text, int*>, Text, int*>),
    (MapPair<TUnorderedMap<Text, Trait*>, Text, Trait*>),
    (MapPair<TUnorderedMap<Text, Traits::Count*>, Text, Traits::Count*>),
    (MapPair<TUnorderedMap<Text, Any*>, Text, Any*>),
    (MapPair<TUnorderedMap<Text, RT*>, Text, RT*>),
+
+   (MapPair<TUnorderedMap<Trait*, RT*>, Trait*, RT*>),
+   (MapPair<TUnorderedMap<Traits::Count*, RT*>, Traits::Count*, RT*>),
+   (MapPair<TUnorderedMap<Any*, RT*>, Any*, RT*>),
+   (MapPair<TUnorderedMap<RT*, RT*>, RT*, RT*>),
 
    (MapPair<TOrderedMap<Text, int*>, Text, int*>),
    (MapPair<TOrderedMap<Text, Trait*>, Text, Trait*>),
@@ -33,17 +36,32 @@ TEMPLATE_TEST_CASE(
    (MapPair<TOrderedMap<Text, Any*>, Text, Any*>),
    (MapPair<TOrderedMap<Text, RT*>, Text, RT*>),
 
+   (MapPair<TOrderedMap<Trait*, RT*>, Trait*, RT*>),
+   (MapPair<TOrderedMap<Traits::Count*, RT*>, Traits::Count*, RT*>),
+   (MapPair<TOrderedMap<Any*, RT*>, Any*, RT*>),
+   (MapPair<TOrderedMap<RT*, RT*>, RT*, RT*>),
+
    (MapPair<UnorderedMap, Text, int*>),
    (MapPair<UnorderedMap, Text, Trait*>),
    (MapPair<UnorderedMap, Text, Traits::Count*>),
    (MapPair<UnorderedMap, Text, Any*>),
+   (MapPair<UnorderedMap, Text, RT*>),
 
+   (MapPair<UnorderedMap, Trait*, RT*>),
+   (MapPair<UnorderedMap, Traits::Count*, RT*>),
+   (MapPair<UnorderedMap, Any*, RT*>),
+   (MapPair<UnorderedMap, RT*, RT*>),
 
    (MapPair<OrderedMap, Text, int*>),
    (MapPair<OrderedMap, Text, Trait*>),
    (MapPair<OrderedMap, Text, Traits::Count*>),
    (MapPair<OrderedMap, Text, Any*>),
-   (MapPair<OrderedMap, Text, RT*>)
+   (MapPair<OrderedMap, Text, RT*>),
+
+   (MapPair<OrderedMap, Trait*, RT*>),
+   (MapPair<OrderedMap, Traits::Count*, RT*>),
+   (MapPair<OrderedMap, Any*, RT*>),
+   (MapPair<OrderedMap, RT*, RT*>)
 ) {
    IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
 
@@ -56,6 +74,7 @@ TEMPLATE_TEST_CASE(
    using StdPair = ::std::pair<K, V>;
 
    const auto pair = CreatePair<Pair, K, V>("five hundred", 555);
+   const auto pairMissing = CreatePair<Pair, K, V>("missing", 554);
    const auto stdpair = CreatePair<StdPair, K, V>("five hundred", 555);
 
    const Pair darray1[5] {
@@ -89,6 +108,26 @@ TEMPLATE_TEST_CASE(
       CreatePair<StdPair, K, V>("nine", 9),
       CreatePair<StdPair, K, V>("ten", 10)
    };
+
+   if constexpr (CT::Untyped<T>) {
+      // All type-erased containers should have all semantic            
+      // constructors and assigners available, and errors will instead  
+      // be thrown as exceptions at runtime                             
+      static_assert(CT::CopyMakable<T>);
+      static_assert(CT::ReferMakable<T>);
+      static_assert(CT::AbandonMakable<T>);
+      static_assert(CT::MoveMakable<T>);
+      static_assert(CT::CloneMakable<T>);
+      static_assert(CT::DisownMakable<T>);
+
+      static_assert(CT::CopyAssignable<T>);
+      static_assert(CT::ReferAssignable<T>);
+      static_assert(CT::AbandonAssignable<T>);
+      static_assert(CT::MoveAssignable<T>);
+      static_assert(CT::CloneAssignable<T>);
+      static_assert(CT::DisownAssignable<T>);
+   }
+
 
    GIVEN("A default-initialized map instance") {
       T map {};
@@ -143,8 +182,15 @@ TEMPLATE_TEST_CASE(
          REQUIRE(map.GetCount() == 1);
          REQUIRE(map.GetUses() == 1);
          REQUIRE(map[pair.mKey] == pair.mValue);
-         REQUIRE(map["five hundred"] == pair.mValue);
-         REQUIRE_THROWS(map["missing"] != pair.mValue);
+
+         if constexpr (CT::Text<K>) {
+            REQUIRE(map["five hundred"] == pair.mValue);
+            REQUIRE_THROWS(map["missing"] != pair.mValue);
+         }
+         else {
+            REQUIRE(map[pair.mKey] == pair.mValue);
+            REQUIRE_THROWS(map[pairMissing.mKey] != pair.mValue);
+         }
 
          #ifdef LANGULUS_STD_BENCHMARK
             BENCHMARK_ADVANCED("Anyness::TUnorderedMap::operator = (single pair copy)") (timer meter) {
@@ -187,8 +233,15 @@ TEMPLATE_TEST_CASE(
          REQUIRE(map.GetCount() == 1);
          REQUIRE(map.GetUses() == 1);
          REQUIRE(map[pair.mKey] == pair.mValue);
-         REQUIRE(map["five hundred"] == pair.mValue);
-         REQUIRE_THROWS(map["missing"] != pair.mValue);
+
+         if constexpr (CT::Text<K>) {
+            REQUIRE(map["five hundred"] == pair.mValue);
+            REQUIRE_THROWS(map["missing"] != pair.mValue);
+         }
+         else {
+            REQUIRE(map[pair.mKey] == pair.mValue);
+            REQUIRE_THROWS(map[pairMissing.mKey] != pair.mValue);
+         }
 
          //TODO benchmark
       }

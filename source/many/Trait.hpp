@@ -74,12 +74,12 @@ namespace Langulus::Anyness
       Trait(Trait&&) noexcept;
 
       template<class T1, class...TN>
-      requires CT::Inner::UnfoldInsertable<T1, TN...>
+      requires CT::UnfoldInsertable<T1, TN...>
       Trait(T1&&, TN&&...);
 
       Trait& operator = (const Trait&);
       Trait& operator = (Trait&&);
-      Trait& operator = (CT::Inner::UnfoldInsertable auto&&);
+      Trait& operator = (CT::UnfoldInsertable auto&&);
 
       template<CT::Trait, CT::Data>
       NOD() static Trait From();
@@ -125,10 +125,10 @@ namespace Langulus::Anyness
       ///   Concatenation                                                     
       ///                                                                     
       template<CT::TraitBased THIS = Trait>
-      NOD() THIS operator + (CT::Inner::UnfoldInsertable auto&&) const;
+      NOD() THIS operator + (CT::UnfoldInsertable auto&&) const;
 
       template<CT::TraitBased THIS = Trait>
-      THIS& operator += (CT::Inner::UnfoldInsertable auto&&);
+      THIS& operator += (CT::UnfoldInsertable auto&&);
 
       ///                                                                     
       ///   Conversion                                                        

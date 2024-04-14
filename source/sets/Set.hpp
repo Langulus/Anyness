@@ -34,7 +34,7 @@ namespace Langulus::Anyness
       Set(Set&&);
 
       template<class T1, class...TAIL>
-      requires CT::Inner::UnfoldInsertable<T1, TAIL...>
+      requires CT::UnfoldInsertable<T1, TAIL...>
       Set(T1&&, TAIL&&...);
 
       ~Set();
@@ -44,7 +44,7 @@ namespace Langulus::Anyness
       ///                                                                     
       Set& operator = (const Set&);
       Set& operator = (Set&&);
-      Set& operator = (CT::Inner::UnfoldInsertable auto&&);
+      Set& operator = (CT::UnfoldInsertable auto&&);
 
       ///                                                                     
       ///   Indexing                                                          
@@ -111,8 +111,8 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Insertion                                                         
       ///                                                                     
-      Set& operator << (CT::Inner::UnfoldInsertable auto&&);
-      Set& operator >> (CT::Inner::UnfoldInsertable auto&&);
+      Set& operator << (CT::UnfoldInsertable auto&&);
+      Set& operator >> (CT::UnfoldInsertable auto&&);
    };
 
 } // namespace Langulus::Anyness

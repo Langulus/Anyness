@@ -154,7 +154,7 @@ namespace Langulus::CT
 
    /// Concept for recognizing arguments, with which a verb can be constructed
    template<class T1, class...TN>
-   concept VerbMakable = Inner::UnfoldInsertable<T1, TN...>
+   concept VerbMakable = UnfoldInsertable<T1, TN...>
         or (sizeof...(TN) == 0 and VerbBased<Desem<T1>>);
 
    /// Concept for recognizing argument, with which a verb can be assigned    
