@@ -326,8 +326,8 @@ namespace Langulus::Anyness
       Count InsertBlock(T&&);
 
    protected:
-      template<CT::Set THIS>
-      auto CreateValHandle(CT::Semantic auto&&);
+      template<CT::Set>
+      auto CreateValHandle(auto&&);
 
       template<CT::Set>
       NOD() Size RequestKeyAndInfoSize(Count, Offset&) const IF_UNSAFE(noexcept);
@@ -337,9 +337,8 @@ namespace Langulus::Anyness
       template<CT::Set>
       void ShiftPairs();
 
-      template<CT::Set, bool CHECK_FOR_MATCH, template<class> class S, CT::Data T>
-      requires CT::Semantic<S<T>>
-      Offset InsertInner(Offset, S<T>&&);
+      template<CT::Set, bool CHECK_FOR_MATCH>
+      Offset InsertInner(Offset, auto&&);
 
       template<CT::Set, bool CHECK_FOR_MATCH, template<class> class S>
       requires CT::Semantic<S<Block>>

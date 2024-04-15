@@ -89,27 +89,33 @@ P CreatePair(const ALT_K& key, const ALT_V& value) {
 
 void DestroyPair(auto& pair) {
    if constexpr (requires { pair.mKey; }) {
-      if constexpr (CT::Sparse<decltype(pair.mKey)>) {
-         if constexpr (CT::Referencable<decltype(pair.mKey)>)
+      using K = decltype(pair.mKey);
+      using V = decltype(pair.mValue);
+
+      if constexpr (CT::Sparse<K>) {
+         if constexpr (CT::Referencable<Deptr<K>>)
             pair.mKey->Reference(-1);
          delete pair.mKey;
       }
 
-      if constexpr (CT::Sparse<decltype(pair.mValue)>) {
-         if constexpr (CT::Referencable<decltype(pair.mValue)>)
+      if constexpr (CT::Sparse<V>) {
+         if constexpr (CT::Referencable<Deptr<V>>)
             pair.mValue->Reference(-1);
          delete pair.mValue;
       }
    }
    else if constexpr (requires { pair.first; }) {
-      if constexpr (CT::Sparse<decltype(pair.first)>) {
-         if constexpr (CT::Referencable<decltype(pair.first)>)
+      using K = decltype(pair.first);
+      using V = decltype(pair.second);
+
+      if constexpr (CT::Sparse<K>) {
+         if constexpr (CT::Referencable<K>)
             pair.first->Reference(-1);
          delete pair.first;
       }
 
-      if constexpr (CT::Sparse<decltype(pair.second)>) {
-         if constexpr (CT::Referencable<decltype(pair.second)>)
+      if constexpr (CT::Sparse<V>) {
+         if constexpr (CT::Referencable<V>)
             pair.second->Reference(-1);
          delete pair.second;
       }

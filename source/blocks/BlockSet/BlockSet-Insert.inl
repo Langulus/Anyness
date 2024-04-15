@@ -14,15 +14,19 @@
 namespace Langulus::Anyness
 {
 
+   /// Wrap the argument semantically into a handle with value's type         
+   ///   @param val - the val to wrap                                         
+   ///   @return the handle object                                            
    template<CT::Set THIS>
-   auto BlockSet::CreateValHandle(CT::Semantic auto&& val) {
-      using T = Deref<decltype(val)>;
+   auto BlockSet::CreateValHandle(auto&& val) {
+      using S = SemanticOf<decltype(val)>;
+      using T = TypeOf<S>;
 
       if constexpr (CT::Typed<THIS>) {
          using V = Conditional<CT::Typed<THIS>, TypeOf<THIS>, TypeOf<T>>;
-         return HandleLocal<V> {val.Forward()};
+         return HandleLocal<V> {S::Nest(val)};
       }
-      else return Any::Wrap(val.Forward());
+      else return Any::Wrap(S::Nest(val));
    }
 
    /// Insert an element, or an array of elements                             
@@ -433,16 +437,19 @@ namespace Langulus::Anyness
    ///   @param start - the starting index                                    
    ///   @param key - key & semantic to insert                                
    ///   @return the offset at which pair was inserted                        
-   template<CT::Set THIS, bool CHECK_FOR_MATCH, template<class> class S, CT::Data T>
-   requires CT::Semantic<S<T>>
-   Offset BlockSet::InsertInner(const Offset start, S<T>&& key) {
+   template<CT::Set THIS, bool CHECK_FOR_MATCH>
+   Offset BlockSet::InsertInner(const Offset start, auto&& key) {
+      using S = SemanticOf<decltype(key)>;
+
       if (GetUses() > 1) {
-         // Set is used from multiple locations, and we mush branch out 
-         // before changing it                                          
-         TODO();
+         // Set is used from multiple locations, and we must branch out 
+         // before changing it - only this copy will be affected        
+         const BlockSet backup = *this;
+         const_cast<Allocation*>(mKeys.mEntry)->Free();
+         new (this) THIS {Copy(reinterpret_cast<const THIS&>(backup))};
       }
 
-      auto keyswapper = CreateValHandle<THIS>(key.Forward());
+      auto keyswapper = CreateValHandle<THIS>(S::Nest(key));
 
       // Get the starting index based on the key hash                   
       auto psl = GetInfo() + start;
