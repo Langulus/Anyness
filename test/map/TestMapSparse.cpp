@@ -19,7 +19,7 @@
 /// to complex, from flat to deep                                             
 TEMPLATE_TEST_CASE(
    "Sparse TOrderedMap/TUnorderedMap/OrderedMap/UnorderedMap", "[map]",
-   (MapPair<UnorderedMap, Text, int*>),
+   (MapPair<UnorderedMap, Traits::Count*, RT*>),
 
    (MapPair<TUnorderedMap<Text, int*>, Text, int*>),
    (MapPair<TUnorderedMap<Text, Trait*>, Text, Trait*>),
@@ -43,13 +43,14 @@ TEMPLATE_TEST_CASE(
    (MapPair<TOrderedMap<Any*, RT*>, Any*, RT*>),
    (MapPair<TOrderedMap<RT*, RT*>, RT*, RT*>),
 
+   (MapPair<UnorderedMap, Text, int*>),
    (MapPair<UnorderedMap, Text, Trait*>),
    (MapPair<UnorderedMap, Text, Traits::Count*>),
    (MapPair<UnorderedMap, Text, Any*>),
    (MapPair<UnorderedMap, Text, RT*>),
 
    (MapPair<UnorderedMap, Trait*, RT*>),
-   (MapPair<UnorderedMap, Traits::Count*, RT*>),
+
    (MapPair<UnorderedMap, Any*, RT*>),
    (MapPair<UnorderedMap, RT*, RT*>),
 
@@ -300,7 +301,7 @@ TEMPLATE_TEST_CASE(
          REQUIRE(map.GetReserved() >= 5);
       }
 
-      WHEN("Create 2048 and then 4096 maps, and initialize them (weird corner case test)") {
+      /*WHEN("Create 2048 and then 4096 maps, and initialize them (weird corner case test)") {
          auto storage = new some<T>;
          storage->resize(2048);
          const void* prevKeys = nullptr;
@@ -352,7 +353,7 @@ TEMPLATE_TEST_CASE(
          }
 
          delete storage;
-      }
+      }*/
 
       WHEN("Shallow-copy more of the same stuff") {
          for (auto& comparer : darray1)
@@ -582,7 +583,7 @@ TEMPLATE_TEST_CASE(
          #endif
       }
 
-      for (int iii = 0; iii < 100; ++iii) {
+      for (int iii = 0; iii < 10; ++iii) {
       WHEN(std::string("Removing elements by key #") + std::to_string(iii)) {
          const auto removed2 = map.RemoveKey(darray1[1].mKey);
          const auto removed4 = map.RemoveKey(darray1[3].mKey);

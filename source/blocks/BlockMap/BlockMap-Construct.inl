@@ -395,8 +395,10 @@ namespace Langulus::Anyness
                   IndexBack, SS::Nest(*item.mValue));
             }
 
-            //const_cast<Allocation*>(coalescedValues.mEntry)
-            //   ->Keep(asFrom->GetCount());
+            // We're using Handle::Create, instead of CreateSemantic    
+            // so we have to reference here                             
+            const_cast<Allocation*>(coalescedValues.mEntry)
+               ->Keep(asFrom->GetCount());
 
             auto ptrVal = coalescedValues.GetRaw();
             auto info = GetInfo();

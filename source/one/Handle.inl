@@ -64,16 +64,16 @@ namespace Langulus::Anyness
                   // unembedded one always dereferences - it's like     
                   // letting a raw pointer go                           
                   if (mEntry) {
-                     const_cast<Allocation*>(mEntry)->Free();
-                     LANGULUS_ASSUME(DevAssumes, mEntry->GetUses() > 0,
+                     LANGULUS_ASSUME(DevAssumes, mEntry->GetUses() > 1,
                         "A handle shouldn't fully dereference memory upon transfer"
                         " - check the context in which you're using the handle");
+                     const_cast<Allocation*>(mEntry)->Free();
 
                      if constexpr (CT::Referencable<Deptr<T>>) {
-                        mValue->Reference(-1);
-                        LANGULUS_ASSUME(DevAssumes, mValue->Reference(0) > 0,
+                        LANGULUS_ASSUME(DevAssumes, mValue->Reference(0) > 1,
                            "A handle shouldn't fully dereference instance upon transfer"
                            " - check the context in which you're using the handle");
+                        mValue->Reference(-1);
                      }
                   }
                }
