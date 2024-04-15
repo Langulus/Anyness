@@ -41,8 +41,8 @@ namespace Langulus::Anyness
    /// Unfold constructor                                                     
    /// If there's one map argument, it will be absorbed                       
    /// Otherwise, elements are expected to initialize a pair each             
-   ///   @param t1 - first element (can be semantic)                          
-   ///   @param tn... - the rest of the elements (optional, can be semantic)  
+   ///   @param t1 - first pair (can be semantic)                             
+   ///   @param tn... - the rest of the pairs (optional, can be semantic)     
    TEMPLATE() template<class T1, class...TN>
    requires CT::UnfoldInsertable<T1, TN...>
    LANGULUS(INLINED) TABLE()::Map(T1&& t1, TN&&...tn) {

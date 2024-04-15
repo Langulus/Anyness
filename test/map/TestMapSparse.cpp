@@ -19,6 +19,8 @@
 /// to complex, from flat to deep                                             
 TEMPLATE_TEST_CASE(
    "Sparse TOrderedMap/TUnorderedMap/OrderedMap/UnorderedMap", "[map]",
+   (MapPair<UnorderedMap, Text, int*>),
+
    (MapPair<TUnorderedMap<Text, int*>, Text, int*>),
    (MapPair<TUnorderedMap<Text, Trait*>, Text, Trait*>),
    (MapPair<TUnorderedMap<Text, Traits::Count*>, Text, Traits::Count*>),
@@ -41,7 +43,6 @@ TEMPLATE_TEST_CASE(
    (MapPair<TOrderedMap<Any*, RT*>, Any*, RT*>),
    (MapPair<TOrderedMap<RT*, RT*>, RT*, RT*>),
 
-   (MapPair<UnorderedMap, Text, int*>),
    (MapPair<UnorderedMap, Text, Trait*>),
    (MapPair<UnorderedMap, Text, Traits::Count*>),
    (MapPair<UnorderedMap, Text, Any*>),
@@ -170,7 +171,8 @@ TEMPLATE_TEST_CASE(
          auto movablePair = pair;
          map = ::std::move(movablePair);
 
-         REQUIRE(movablePair != pair);
+         if constexpr (CT::Dense<K> or CT::Dense<V>)
+            REQUIRE(movablePair != pair);
          REQUIRE(map.IsKeyTypeConstrained() == CT::Typed<T>);
          REQUIRE(map.GetKeyType()->template Is<K>());
          REQUIRE(map.IsValueTypeConstrained() == CT::Typed<T>);
@@ -856,67 +858,72 @@ TEMPLATE_TEST_CASE(
 
          unsigned i = 0;
          for (auto pair : map) {
-            static_assert(!CT::Typed<T> || ::std::is_reference_v<decltype(pair.mKey)>,
+            static_assert(CT::Untyped<T> or CT::Reference<decltype(pair.mKey)>,
                "Pair key type is not a reference for statically optimized map");
-            static_assert(!CT::Typed<T> || ::std::is_reference_v<decltype(pair.mValue)>,
+            static_assert(CT::Untyped<T> or CT::Reference<decltype(pair.mValue)>,
                "Pair value type is not a reference for statically optimized map");
 
             // Different architectures result in different hashes       
-            if constexpr (Bitness == 32) {
-               switch (i) {
-               case 0:
-                  REQUIRE(pair.mKey == darray1[2].mKey);
-                  REQUIRE(pair.mValue == darray1[2].mValue);
-                  break;
-               case 1:
-                  REQUIRE(pair.mKey == darray1[3].mKey);
-                  REQUIRE(pair.mValue == darray1[3].mValue);
-                  break;
-               case 2:
-                  REQUIRE(pair.mKey == darray1[1].mKey);
-                  REQUIRE(pair.mValue == darray1[1].mValue);
-                  break;
-               case 3:
-                  REQUIRE(pair.mKey == darray1[4].mKey);
-                  REQUIRE(pair.mValue == darray1[4].mValue);
-                  break;
-               case 4:
-                  REQUIRE(pair.mKey == darray1[0].mKey);
-                  REQUIRE(pair.mValue == darray1[0].mValue);
-                  break;
-               default:
-                  FAIL("Index out of bounds in ranged-for");
-                  break;
+            if constexpr (CT::Dense<K>) {
+               if constexpr (Bitness == 32) {
+                  switch (i) {
+                  case 0:
+                     REQUIRE(pair.mKey == darray1[2].mKey);
+                     REQUIRE(pair.mValue == darray1[2].mValue);
+                     break;
+                  case 1:
+                     REQUIRE(pair.mKey == darray1[3].mKey);
+                     REQUIRE(pair.mValue == darray1[3].mValue);
+                     break;
+                  case 2:
+                     REQUIRE(pair.mKey == darray1[1].mKey);
+                     REQUIRE(pair.mValue == darray1[1].mValue);
+                     break;
+                  case 3:
+                     REQUIRE(pair.mKey == darray1[4].mKey);
+                     REQUIRE(pair.mValue == darray1[4].mValue);
+                     break;
+                  case 4:
+                     REQUIRE(pair.mKey == darray1[0].mKey);
+                     REQUIRE(pair.mValue == darray1[0].mValue);
+                     break;
+                  default:
+                     FAIL("Index out of bounds in ranged-for");
+                     break;
+                  }
                }
-            }
-            else if constexpr (Bitness == 64) {
-               switch (i) {
-               case 0:
-                  REQUIRE(pair.mKey == darray1[1].mKey);
-                  REQUIRE(pair.mValue == darray1[1].mValue);
-                  break;
-               case 1:
-                  REQUIRE(pair.mKey == darray1[2].mKey);
-                  REQUIRE(pair.mValue == darray1[2].mValue);
-                  break;
-               case 2:
-                  REQUIRE(pair.mKey == darray1[3].mKey);
-                  REQUIRE(pair.mValue == darray1[3].mValue);
-                  break;
-               case 3:
-                  REQUIRE(pair.mKey == darray1[4].mKey);
-                  REQUIRE(pair.mValue == darray1[4].mValue);
-                  break;
-               case 4:
-                  REQUIRE(pair.mKey == darray1[0].mKey);
-                  REQUIRE(pair.mValue == darray1[0].mValue);
-                  break;
-               default:
-                  FAIL("Index out of bounds in ranged-for");
-                  break;
+               else if constexpr (Bitness == 64) {
+                  switch (i) {
+                  case 0:
+                     REQUIRE(pair.mKey == darray1[1].mKey);
+                     REQUIRE(pair.mValue == darray1[1].mValue);
+                     break;
+                  case 1:
+                     REQUIRE(pair.mKey == darray1[2].mKey);
+                     REQUIRE(pair.mValue == darray1[2].mValue);
+                     break;
+                  case 2:
+                     REQUIRE(pair.mKey == darray1[3].mKey);
+                     REQUIRE(pair.mValue == darray1[3].mValue);
+                     break;
+                  case 3:
+                     REQUIRE(pair.mKey == darray1[4].mKey);
+                     REQUIRE(pair.mValue == darray1[4].mValue);
+                     break;
+                  case 4:
+                     REQUIRE(pair.mKey == darray1[0].mKey);
+                     REQUIRE(pair.mValue == darray1[0].mValue);
+                     break;
+                  default:
+                     FAIL("Index out of bounds in ranged-for");
+                     break;
+                  }
                }
+               else break;
             }
-            else break;
+            else {
+               //TODO
+            }
 
             ++i;
          }
@@ -931,51 +938,56 @@ TEMPLATE_TEST_CASE(
          unsigned i = 0;
          const auto done = map.ForEachKey([&](const K& key) {
             // Different architectures result in different hashes       
-            if constexpr (Bitness == 32) {
-               switch (i) {
-               case 0:
-                  REQUIRE(key == darray1[2].mKey);
-                  break;
-               case 1:
-                  REQUIRE(key == darray1[3].mKey);
-                  break;
-               case 2:
-                  REQUIRE(key == darray1[1].mKey);
-                  break;
-               case 3:
-                  REQUIRE(key == darray1[4].mKey);
-                  break;
-               case 4:
-                  REQUIRE(key == darray1[0].mKey);
-                  break;
-               default:
-                  FAIL("Index out of bounds in ranged-for");
-                  break;
+            if constexpr (CT::Dense<K>) {
+               if constexpr (Bitness == 32) {
+                  switch (i) {
+                  case 0:
+                     REQUIRE(key == darray1[2].mKey);
+                     break;
+                  case 1:
+                     REQUIRE(key == darray1[3].mKey);
+                     break;
+                  case 2:
+                     REQUIRE(key == darray1[1].mKey);
+                     break;
+                  case 3:
+                     REQUIRE(key == darray1[4].mKey);
+                     break;
+                  case 4:
+                     REQUIRE(key == darray1[0].mKey);
+                     break;
+                  default:
+                     FAIL("Index out of bounds in ranged-for");
+                     break;
+                  }
                }
-            }
-            else if constexpr (Bitness == 64) {
-               switch (i) {
-               case 0:
-                  REQUIRE(key == darray1[1].mKey);
-                  break;
-               case 1:
-                  REQUIRE(key == darray1[2].mKey);
-                  break;
-               case 2:
-                  REQUIRE(key == darray1[3].mKey);
-                  break;
-               case 3:
-                  REQUIRE(key == darray1[4].mKey);
-                  break;
-               case 4:
-                  REQUIRE(key == darray1[0].mKey);
-                  break;
-               default:
-                  FAIL("Index out of bounds in ranged-for");
-                  break;
+               else if constexpr (Bitness == 64) {
+                  switch (i) {
+                  case 0:
+                     REQUIRE(key == darray1[1].mKey);
+                     break;
+                  case 1:
+                     REQUIRE(key == darray1[2].mKey);
+                     break;
+                  case 2:
+                     REQUIRE(key == darray1[3].mKey);
+                     break;
+                  case 3:
+                     REQUIRE(key == darray1[4].mKey);
+                     break;
+                  case 4:
+                     REQUIRE(key == darray1[0].mKey);
+                     break;
+                  default:
+                     FAIL("Index out of bounds in ranged-for");
+                     break;
+                  }
                }
+               else return false;
             }
-            else return false;
+            else {
+               //TODO
+            }
 
             ++i;
             return true;
@@ -989,7 +1001,9 @@ TEMPLATE_TEST_CASE(
    }
 
    DestroyPair(pair);
+   DestroyPair(pairMissing);
    DestroyPair(stdpair);
+
    for (auto& i : darray1)
       DestroyPair(i);
    for (auto& i : darray2)

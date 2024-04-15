@@ -58,6 +58,25 @@ namespace Langulus::Anyness
                // Also reset remote value, if not an abandoned pointer  
                if constexpr (S<H>::Keep and CT::Sparse<HT>)
                   other->Get() = nullptr;
+
+               if constexpr (CT::Sparse<HT> and H::Embedded) {
+                  // Moving from an embedded pointer handle to an       
+                  // unembedded one always dereferences - it's like     
+                  // letting a raw pointer go                           
+                  if (mEntry) {
+                     const_cast<Allocation*>(mEntry)->Free();
+                     LANGULUS_ASSUME(DevAssumes, mEntry->GetUses() > 0,
+                        "A handle shouldn't fully dereference memory upon transfer"
+                        " - check the context in which you're using the handle");
+
+                     if constexpr (CT::Referencable<Deptr<T>>) {
+                        mValue->Reference(-1);
+                        LANGULUS_ASSUME(DevAssumes, mValue->Reference(0) > 0,
+                           "A handle shouldn't fully dereference instance upon transfer"
+                           " - check the context in which you're using the handle");
+                     }
+                  }
+               }
             }
             else if constexpr (not S<H>::Keep) {
                // Disown                                                
@@ -264,7 +283,7 @@ namespace Langulus::Anyness
       using ST = TypeOf<S>;
 
       if constexpr (S::Shallow and CT::Sparse<T>) {
-         // Do a copy/disown/abandon/move sparse LHS                    
+         // Do a copy/refer/disown/abandon/move sparse RHS              
          if constexpr (CT::Handle<ST>) {
             // RHS is a handle                                          
             using HT = TypeOf<ST>;
@@ -284,8 +303,19 @@ namespace Langulus::Anyness
                // Clearing entry is mandatory, because we're            
                // transferring the ownership                            
                rhs->GetEntry() = nullptr;
+
+               if constexpr (not ST::Embedded and Embedded) {
+                  // Moving from non-embedded pointer handle to an      
+                  // embedded one always references - it's like pushing 
+                  // a raw pointer                                      
+                  if (GetEntry()) {
+                     const_cast<Allocation*>(GetEntry())->Keep();
+                     if constexpr (CT::Referencable<Deptr<T>>)
+                        Get()->Reference(1);
+                  }
+               }
             }
-            else if constexpr (S::Keep) {
+            else if constexpr (S::Keep and Embedded) { // only if this is embedded?
                // Copying RHS, but keep it only if not disowning it     
                if (GetEntry()) {
                   const_cast<Allocation*>(GetEntry())->Keep();
@@ -306,7 +336,7 @@ namespace Langulus::Anyness
             Get() = rhsh.Get();
             GetEntry() = rhsh.GetEntry();
 
-            if constexpr (S::Keep) {
+            if constexpr (S::Keep and Embedded) { // only if this is embedded?
                // Raw pointers are always referenced, even when moved   
                // (as long as it's a keeper semantic)                   
                if (GetEntry()) {
@@ -392,8 +422,19 @@ namespace Langulus::Anyness
                   // Clearing entry is mandatory, because we're         
                   // transferring the ownership                         
                   rhs->GetEntry() = nullptr;
+
+                  if constexpr (not ST::Embedded and Embedded) {
+                     // Moving from non-embedded pointer handle to an   
+                     // embedded one always references - it's like      
+                     // pushing a raw pointer                           
+                     if (GetEntry()) {
+                        const_cast<Allocation*>(GetEntry())->Keep();
+                        if (type->mReference)
+                           type->mReference(Get(), 1);
+                     }
+                  }
                }
-               else if constexpr (SS::Keep) {
+               else if constexpr (SS::Keep and Embedded) { // only if this is embedded?
                   // Copying RHS, but keep it only if not disowning it  
                   if (GetEntry()) {
                      const_cast<Allocation*>(GetEntry())->Keep();
@@ -415,7 +456,7 @@ namespace Langulus::Anyness
                Get() = rhsh.Get();
                GetEntry() = rhsh.GetEntry();
 
-               if constexpr (SS::Keep) {
+               if constexpr (SS::Keep and Embedded) { // only if this is embedded?
                   // Raw pointers are always referenced, even when moved
                   // (as long as it's a keeper semantic)                
                   if (GetEntry()) {
@@ -480,13 +521,20 @@ namespace Langulus::Anyness
       CreateSemanticUnknown(type, rhs.Forward());
    }
    
-   /// Swap two handles                                                       
+   /// Swap any two handles, often this is embedded, while rhs is not         
    ///   @tparam RHS_EMBED - right handle embedness (deducible)               
    ///   @param rhs - right hand side                                         
    TEMPLATE() template<bool RHS_EMBED> LANGULUS(INLINED)
    void HAND()::Swap(Handle<T, RHS_EMBED>& rhs) {
+      // Transfer this to a temporary handle, which is not embedded     
+      // This means, that once tmp is used in CreateSemantic, contents  
+      // _will be referenced_                                           
       HandleLocal<T> tmp {Abandon(*this)};
+      // Transfer rhs to this, this will reference rhs's contents, if   
+      // rhs is not embedded                                            
       CreateSemantic(Abandon(rhs));
+      // If rhs is embedded, tmp's contents will be referenced          
+      // Otherwise its just a shallow handle copy                       
       rhs.CreateSemantic(Abandon(tmp));
    }
 

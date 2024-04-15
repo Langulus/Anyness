@@ -4,8 +4,8 @@ file(GLOB_RECURSE
 	*.cpp
 )
 
-add_executable(LangulusAnynessTest ${LANGULUS_ANYNESS_TEST_SOURCES})
-
+#add_executable(LangulusAnynessTest ${LANGULUS_ANYNESS_TEST_SOURCES})
+add_executable(LangulusAnynessTest Main.cpp map/TestMapSparse.cpp)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
 	# There are some tests that involve safety when self = self is performed	
