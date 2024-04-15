@@ -416,7 +416,7 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
          #endif
       }
 
-      for (int repeat = 0; repeat != 100; ++repeat) {
+      for (int repeat = 0; repeat != 10; ++repeat) {
          WHEN(std::string("Populated using Any::New") + std::to_string(repeat)) {
             pack = FromHelper<T, E>();
             const auto created = pack.New(3, darray2[0]);

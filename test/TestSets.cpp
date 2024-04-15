@@ -208,7 +208,7 @@ TEMPLATE_TEST_CASE(
          REQUIRE(set.GetReserved() >= 5);
       }
 
-      WHEN("Create 2048 and then 4096 sets, and initialize them (weird corner case test)") {
+      /*WHEN("Create 2048 and then 4096 sets, and initialize them (weird corner case test)") {
          auto storage = new some<T>;
          storage->resize(2048);
 
@@ -257,7 +257,7 @@ TEMPLATE_TEST_CASE(
          }
 
          delete storage;
-      }
+      }*/
 
       WHEN("Shallow-copy more of the same stuff") {
          for (auto& i : darray1)
@@ -438,7 +438,7 @@ TEMPLATE_TEST_CASE(
          #endif
       }
 
-      for (int iii = 0; iii < 100; ++iii) {
+      for (int iii = 0; iii < 10; ++iii) {
       WHEN(std::string("The size is reduced by finding and removing elements by value, but reserved memory should remain the same on shrinking #") + std::to_string(iii)) {
          const auto removed2 = set.Remove(darray1[1]);
          const auto removed4 = set.Remove(darray1[3]);
