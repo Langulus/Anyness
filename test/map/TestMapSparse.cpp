@@ -520,7 +520,8 @@ TEMPLATE_TEST_CASE(
          #endif
       }
 
-      WHEN("Removing elements by value") {
+      for (int iii = 0; iii < 10; ++iii) {
+      WHEN(std::string("Removing elements by value #") + std::to_string(iii)) {
          const auto removed2 = map.RemoveValue(darray1[1].mValue);
          const auto removed4 = map.RemoveValue(darray1[3].mValue);
 
@@ -581,6 +582,7 @@ TEMPLATE_TEST_CASE(
                });
             };
          #endif
+      }
       }
 
       for (int iii = 0; iii < 10; ++iii) {
