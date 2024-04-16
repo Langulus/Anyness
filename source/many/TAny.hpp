@@ -247,6 +247,10 @@ namespace Langulus::Anyness
          return As<T1>(0);
       }
 
+   protected: IF_LANGULUS_TESTING(public:)
+      NOD() Handle<T> GetHandle(Offset) const IF_UNSAFE(noexcept);
+
+   public:
       ///                                                                     
       ///   Iteration                                                         
       ///                                                                     

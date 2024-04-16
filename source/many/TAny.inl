@@ -602,6 +602,12 @@ namespace Langulus::Anyness
       return const_cast<TAny&>(*this).As<T1>(index);
    }
 
+   /// Get the handle of an element                                           
+   TEMPLATE() LANGULUS(INLINED)
+   Handle<T> TAny<T>::GetHandle(Offset i) const IF_UNSAFE(noexcept) {
+      return Block::GetHandle<T, TAny<T>>(i);
+   }
+
    /// Access last element                                                    
    ///   @attention assumes container has at least one item                   
    ///   @return a mutable reference to the last element                      

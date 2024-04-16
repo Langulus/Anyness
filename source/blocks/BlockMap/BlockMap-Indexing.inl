@@ -245,7 +245,7 @@ namespace Langulus::Anyness
          LANGULUS_ASSUME(DevAssumes, (IsKeySimilar<THIS, K>()),
             "Wrong type when accessing ", NameOf<THIS>(), " key",
             ", using type `", NameOf<K>(), "` instead of `", GetKeyType(), '`');
-         return GetKeys<THIS>().template GetHandle<K, TAny<K>>(i);
+         return GetKeys<THIS>().GetHandle(i);
       }
       else return GetKeys<THIS>().GetElementInner(i);
    }
