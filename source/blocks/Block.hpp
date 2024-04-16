@@ -462,14 +462,10 @@ namespace Langulus::Anyness
       NOD() IF_UNSAFE(constexpr)
       Byte* At(Offset = 0) IF_UNSAFE(noexcept);
       NOD() IF_UNSAFE(constexpr)
-      const Byte* At(Offset = 0) const IF_UNSAFE(noexcept);
+      Byte const* At(Offset = 0) const IF_UNSAFE(noexcept);
    
       template<CT::Block>
       NOD() Index Constrain(Index) const IF_UNSAFE(noexcept);
-
-      template<CT::Data T, CT::Block>
-      NOD() Handle<T> GetHandle(Offset) const IF_UNSAFE(noexcept);
-
       NOD() Block CropInner(Offset, Count) const IF_UNSAFE(noexcept);
 
       template<CT::Block, bool SAFE = true, CT::Index INDEX>
@@ -477,6 +473,9 @@ namespace Langulus::Anyness
       noexcept(not LANGULUS_SAFE() and CT::BuiltinInteger<INDEX>);
 
    IF_LANGULUS_TESTING(public:)
+      template<CT::Data T, CT::Block>
+      NOD() Handle<T> GetHandle(Offset) const IF_UNSAFE(noexcept);
+
       template<CT::Data> NOD() IF_UNSAFE(constexpr)
       decltype(auto) Get(Offset = 0, Offset = 0) IF_UNSAFE(noexcept);
       template<CT::Data> NOD() IF_UNSAFE(constexpr)

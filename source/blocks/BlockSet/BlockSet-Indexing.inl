@@ -197,15 +197,15 @@ namespace Langulus::Anyness
    template<CT::Set THIS> LANGULUS(INLINED)
    auto BlockSet::GetHandle(const Offset i) IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, i < GetReserved(),
-         "Index out of limits when accessing map key",
+         "Index out of limits when accessing set",
          ", index ", i, " is beyond the reserved ", GetReserved(), " elements");
 
       if constexpr (CT::Typed<THIS>) {
          using K = TypeOf<THIS>;
          LANGULUS_ASSUME(DevAssumes, (IsSimilar<THIS, K>()),
-            "Wrong type when accessing map key",
+            "Wrong type when accessing set",
             ", using type `", NameOf<K>(), "` instead of `", GetType(), '`');
-         return GetValues<THIS>().template GetHandle<K, TAny<K>>(i);
+         return GetValues<THIS>().GetHandle(i);
       }
       else return GetValues<THIS>().GetElementInner(i);
    }

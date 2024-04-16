@@ -528,7 +528,7 @@ namespace Langulus::Anyness
                to -= mKeys.mReserved;
 
             InfoType attempt = 1;
-            while (mInfo[to] and attempt <= *oldInfo) {
+            while (mInfo[to] and attempt < *oldInfo) {
                // Might loop around                                     
                ++to;
                if (to >= mKeys.mReserved)
@@ -536,7 +536,7 @@ namespace Langulus::Anyness
                ++attempt;
             }
 
-            if (not mInfo[to] and attempt <= *oldInfo) {
+            if (not mInfo[to] and attempt < *oldInfo) {
                // Empty spot found, so move pair there                  
                auto key = GetKeyHandle<THIS>(oldIndex);
                GetKeyHandle<THIS>(to).CreateSemantic(Abandon(key));

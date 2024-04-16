@@ -44,7 +44,7 @@ namespace Langulus::Anyness
    requires CT::SemanticMakable<S, T> LANGULUS(INLINED)
    constexpr HAND()::Handle(S<H>&& other)
       : mValue (S<T>(other->Get()))
-      , mEntry {other->GetEntry()} {
+      , mEntry {nullptr} {
       using HT = TypeOf<H>;
       static_assert(CT::Similar<T, HT>, "Type mismatch");
 
@@ -52,8 +52,11 @@ namespace Langulus::Anyness
          if constexpr (S<H>::Shallow) {
             // Copy/Refer/Disown/Move/Abandon a handle                  
             if constexpr (S<H>::Move) {
-               // Always reset remote entry, when moving                
-               other->GetEntry() = nullptr;
+               // Always reset remote entry, when moving (if sparse)    
+               if constexpr (CT::Sparse<HT>) {
+                  mEntry = other->GetEntry();
+                  other->GetEntry() = nullptr;
+               }
 
                // Also reset remote value, if not an abandoned pointer  
                if constexpr (S<H>::Keep and CT::Sparse<HT>)
@@ -69,18 +72,14 @@ namespace Langulus::Anyness
                         " - check the context in which you're using the handle");
                      const_cast<Allocation*>(mEntry)->Free();
 
-                     if constexpr (CT::Referencable<Deptr<T>>) {
+                     /*if constexpr (CT::Referencable<Deptr<T>>) {
                         LANGULUS_ASSUME(DevAssumes, mValue->Reference(0) > 1,
                            "A handle shouldn't fully dereference instance upon transfer"
                            " - check the context in which you're using the handle");
                         mValue->Reference(-1);
-                     }
+                     }*/
                   }
                }
-            }
-            else if constexpr (not S<H>::Keep) {
-               // Disown                                                
-               mEntry = nullptr;
             }
          }
          else {
@@ -88,6 +87,7 @@ namespace Langulus::Anyness
             TODO();
          }
       }
+      else mEntry = other->GetEntry();
    }
       
    /// Semantically construct using compatible non-handle type                

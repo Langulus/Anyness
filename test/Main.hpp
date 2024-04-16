@@ -127,10 +127,39 @@ void DestroyPair(auto& pair) {
 struct RT : Referenced {
    int data;
    const char* t;
+   bool destroyed = false;
+   bool copied_in = false;
+   bool moved_in = false;
+   bool moved_out = false;
 
    RT() : data {0}, t {nullptr} {}
    RT(int a) : data {a}, t {nullptr} {}
    RT(const char* tt) : data(0), t {tt} {}
+   RT(const RT& rhs) : data(rhs.data), t {rhs.t}, copied_in {true} { }
+   RT(RT&& rhs) : data(rhs.data), t {rhs.t}, moved_in {true} { rhs.moved_out = true; }
+   ~RT() {
+      destroyed = true;
+   }
+
+   RT& operator = (const RT& rhs) {
+      data = rhs.data;
+      t = rhs.t;
+      copied_in = true;
+      moved_in = moved_out = false;
+      return *this;
+   }
+
+   RT& operator = (RT&& rhs) {
+      data = rhs.data;
+      t = rhs.t;
+      copied_in = false;
+      moved_in = true;
+      moved_out = false;
+      rhs.copied_in = false;
+      rhs.moved_in = false;
+      rhs.moved_out = true;
+      return *this;
+   }
 
    operator const int& () const noexcept {
       return data;
