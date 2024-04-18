@@ -243,8 +243,8 @@ namespace Langulus::Anyness
                      IndexBack, SS::Nest(*item));
                }
 
-               //const_cast<Allocation*>(coalesced.mEntry)
-               //   ->Keep(asFrom->GetCount());
+               const_cast<Allocation*>(coalesced.mEntry)
+                  ->Keep(asFrom->GetCount());
 
                // Zero info bytes and insert pointers                   
                ZeroMemory(mInfo, mKeys.mReserved);
@@ -308,8 +308,8 @@ namespace Langulus::Anyness
                      IndexBack, SS::Nest(*item));
                }
 
-               //const_cast<Allocation*>(coalesced.mEntry)
-               //   ->Keep(asFrom->GetCount());
+               const_cast<Allocation*>(coalesced.mEntry)
+                  ->Keep(asFrom->GetCount());
 
                // Zero info bytes and insert pointers                   
                ZeroMemory(mInfo, mKeys.mReserved);

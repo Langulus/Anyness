@@ -88,6 +88,8 @@ namespace Langulus::Anyness
       template<class T1> requires (not EMBED and CT::MakableFrom<T, T1>)
       constexpr Handle(T1&&, const Allocation* = nullptr);
 
+      ~Handle();
+
       constexpr Handle& operator = (const Handle&) noexcept = default;
       constexpr Handle& operator = (Handle&&) noexcept = default;
 

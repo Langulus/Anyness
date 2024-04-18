@@ -61,25 +61,6 @@ namespace Langulus::Anyness
                // Also reset remote value, if not an abandoned pointer  
                if constexpr (S<H>::Keep and CT::Sparse<HT>)
                   other->Get() = nullptr;
-
-               if constexpr (CT::Sparse<HT> and H::Embedded) {
-                  // Moving from an embedded pointer handle to an       
-                  // unembedded one always dereferences - it's like     
-                  // letting a raw pointer go                           
-                  if (mEntry) {
-                     LANGULUS_ASSUME(DevAssumes, mEntry->GetUses() > 1,
-                        "A handle shouldn't fully dereference memory upon transfer"
-                        " - check the context in which you're using the handle");
-                     const_cast<Allocation*>(mEntry)->Free();
-
-                     /*if constexpr (CT::Referencable<Deptr<T>>) {
-                        LANGULUS_ASSUME(DevAssumes, mValue->Reference(0) > 1,
-                           "A handle shouldn't fully dereference instance upon transfer"
-                           " - check the context in which you're using the handle");
-                        mValue->Reference(-1);
-                     }*/
-                  }
-               }
             }
          }
          else {
@@ -117,6 +98,19 @@ namespace Langulus::Anyness
          }
       }
    }
+
+   TEMPLATE()
+   HAND()::~Handle() {
+      if constexpr (not EMBED) {
+         if constexpr (CT::Dense<T> and CT::Referencable<T>) {
+            // Will call value destructor at end of scope, just suppress
+            // the reference warning                                    
+            mValue.Reference(-1);
+         }
+         else Destroy<false, true>();
+      }
+   }
+
 
    /// Compare a handle with a comparable value                               
    ///   @attention this compares contents and isn't suitable for iteration   
@@ -303,19 +297,8 @@ namespace Langulus::Anyness
                // Clearing entry is mandatory, because we're            
                // transferring the ownership                            
                rhs->GetEntry() = nullptr;
-
-               if constexpr (not ST::Embedded and Embedded) {
-                  // Moving from non-embedded pointer handle to an      
-                  // embedded one always references - it's like pushing 
-                  // a raw pointer                                      
-                  if (GetEntry()) {
-                     const_cast<Allocation*>(GetEntry())->Keep();
-                     if constexpr (CT::Referencable<Deptr<T>>)
-                        Get()->Reference(1);
-                  }
-               }
             }
-            else if constexpr (S::Keep and Embedded) { // only if this is embedded?
+            else if constexpr (S::Keep and Embedded) {
                // Copying RHS, but keep it only if not disowning it     
                if (GetEntry()) {
                   const_cast<Allocation*>(GetEntry())->Keep();
@@ -330,13 +313,14 @@ namespace Langulus::Anyness
             GetEntry() = nullptr;
          }
          else if constexpr (CT::MakableFrom<T, ST>) {
-            // RHS is not a handle, but we'll wrap it in a handle, in   
-            // order to find its entry (if managed memory is enabled)   
-            HandleLocal<T> rhsh {S::Nest(rhs)};
-            Get() = rhsh.Get();
-            GetEntry() = rhsh.GetEntry();
+            using DT = Deptr<T>;
+            Get() = DesemCast(rhs);
+            if constexpr (CT::Allocatable<DT> and (S::Keep or S::Move))
+               GetEntry() = Allocator::Find(MetaDataOf<DT>(), Get());
+            else
+               GetEntry() = nullptr;
 
-            if constexpr (S::Keep and Embedded) { // only if this is embedded?
+            if constexpr (S::Keep and Embedded) {
                // Raw pointers are always referenced, even when moved   
                // (as long as it's a keeper semantic)                   
                if (GetEntry()) {
@@ -434,7 +418,7 @@ namespace Langulus::Anyness
                      }
                   }
                }
-               else if constexpr (SS::Keep and Embedded) { // only if this is embedded?
+               else if constexpr (SS::Keep and Embedded) {
                   // Copying RHS, but keep it only if not disowning it  
                   if (GetEntry()) {
                      const_cast<Allocation*>(GetEntry())->Keep();
@@ -456,7 +440,7 @@ namespace Langulus::Anyness
                Get() = rhsh.Get();
                GetEntry() = rhsh.GetEntry();
 
-               if constexpr (SS::Keep and Embedded) { // only if this is embedded?
+               if constexpr (SS::Keep and Embedded) {
                   // Raw pointers are always referenced, even when moved
                   // (as long as it's a keeper semantic)                
                   if (GetEntry()) {
@@ -526,15 +510,9 @@ namespace Langulus::Anyness
    ///   @param rhs - right hand side                                         
    TEMPLATE() template<bool RHS_EMBED> LANGULUS(INLINED)
    void HAND()::Swap(Handle<T, RHS_EMBED>& rhs) {
-      // Transfer this to a temporary handle, which is not embedded     
-      // This means, that once tmp is used in CreateSemantic, contents  
-      // _will be referenced_                                           
       HandleLocal<T> tmp {Abandon(*this)};
-      // Transfer rhs to this, this will reference rhs's contents, if   
-      // rhs is not embedded                                            
+      Destroy<false, true>();
       CreateSemantic(Abandon(rhs));
-      // If rhs is embedded, tmp's contents will be referenced          
-      // Otherwise its just a shallow handle copy                       
       rhs.CreateSemantic(Abandon(tmp));
    }
 
@@ -616,11 +594,12 @@ namespace Langulus::Anyness
             GetEntry() = nullptr;
          }
       }
-      else if constexpr (EMBED) {
+      else if constexpr (EMBED and CT::Destroyable<DT>) {
          // Handle is dense and embedded, we should call the remote     
          // destructor, but don't touch the entry, its irrelevant       
-         if constexpr (CT::Destroyable<DT>)
-            Get().~DT();
+         if constexpr (CT::Referencable<DT>)
+            Get().Reference(-1);
+         Get().~DT();
       }
    }
    
