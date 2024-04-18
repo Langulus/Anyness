@@ -28,9 +28,24 @@ TAny<T> CreateManagedElements(FROM&&...from) {
    }
 }
 
+/// Create a dense or sparse local handle by providing simple arguments       
+template<class T, class FROM>
+HandleLocal<T> CreateHandle(FROM&& from) {
+   static_assert(CT::MakableFrom<Decay<T>, Decay<FROM>>);
+
+   if constexpr (CT::Similar<T, Decay<T>>)
+      return {Forward<FROM>(from)};
+   else {
+      if constexpr (CT::Sparse<T> and CT::Dense<Deptr<T>>)
+         return {new Decay<T> {Forward<FROM>(from)}};
+      else
+         LANGULUS_ERROR("TODO sparser T");
+   }
+}
+
 ///                                                                           
 TEMPLATE_TEST_CASE("Handles from sequential containers", "[handle]",
-   int, int*, RT, RT*
+   RT*, int, int*, RT
 ) {
    static Allocator::State memoryState;
 
@@ -184,6 +199,137 @@ TEMPLATE_TEST_CASE("Handles from sequential containers", "[handle]",
                REQUIRE(h0.Get() == n0p);
                REQUIRE(h0.GetEntry() == n0e);
                REQUIRE(h0.GetEntry()->GetUses() == 1);
+
+               REQUIRE(n.Get() == h0p);
+               REQUIRE(n.GetEntry() == h0e);
+               REQUIRE(n.GetEntry()->GetUses() == 3);
+            }
+            else {
+               REQUIRE(h0.Get() == n0p);
+               REQUIRE(h0.GetEntry() == h0e);
+
+               REQUIRE(n.Get() == h0p);
+               REQUIRE(n.GetEntry() == n0e);
+            }
+         }
+      }
+
+      WHEN("An element is taken out of the container and swapped with managed local") {
+         TAny<T> next = CreateManagedElements<T>(0);
+         HandleLocal<T> n = next[0];
+         T const n0p = n.Get();
+         const Allocation* const n0e = n.GetEntry();
+
+         if constexpr (SPARSE)
+            REQUIRE(n0e->GetUses() == 1);
+         else
+            REQUIRE(n0e == nullptr);
+
+         n.Swap(h0);
+
+         if constexpr (REFERENCABLE) {
+            if constexpr (SPARSE) {
+               REQUIRE(h0.Get() == n0p);
+               REQUIRE(h0.GetEntry() == n0e);
+               REQUIRE(h0.Get()->Reference(0) == 1);
+               REQUIRE(h0.GetEntry()->GetUses() == 1);
+               REQUIRE(h0.Get()->data == n0p->data);
+               REQUIRE(h0.Get()->destroyed == false);
+               REQUIRE(h0.Get()->moved_in == false);
+               REQUIRE(h0.Get()->moved_out == false);
+
+               REQUIRE(n.Get() == h0p);
+               REQUIRE(n.GetEntry() == h0e);
+               REQUIRE(n.Get()->Reference(0) == 1);
+               REQUIRE(n.GetEntry()->GetUses() == 3);
+               REQUIRE(n.Get()->data == h0p->data);
+               REQUIRE(n.Get()->destroyed == false);
+               REQUIRE(n.Get()->moved_in == false);
+               REQUIRE(n.Get()->moved_out == false);
+            }
+            else {
+               REQUIRE(h0.Get().data == n0p.data);
+               REQUIRE(h0.GetEntry() == h0e);
+               REQUIRE(h0.Get().Reference(0) == 1);
+               REQUIRE(h0.Get().destroyed == false);
+               REQUIRE(h0.Get().moved_in == true);
+               REQUIRE(h0.Get().moved_out == false);
+
+               REQUIRE(n.Get().data == h0p.data);
+               REQUIRE(n.GetEntry() == n0e);
+               REQUIRE(n.Get().Reference(0) == 1);
+               REQUIRE(n.Get().destroyed == false);
+               REQUIRE(n.Get().moved_in == true);
+               REQUIRE(n.Get().moved_out == false);
+            }
+         }
+         else {
+            if constexpr (SPARSE) {
+               REQUIRE(h0.Get() == n0p);
+               REQUIRE(h0.GetEntry() == n0e);
+               REQUIRE(h0.GetEntry()->GetUses() == 1);
+
+               REQUIRE(n.Get() == h0p);
+               REQUIRE(n.GetEntry() == h0e);
+               REQUIRE(n.GetEntry()->GetUses() == 3);
+            }
+            else {
+               REQUIRE(h0.Get() == n0p);
+               REQUIRE(h0.GetEntry() == h0e);
+
+               REQUIRE(n.Get() == h0p);
+               REQUIRE(n.GetEntry() == n0e);
+            }
+         }
+      }
+
+      WHEN("An element is taken out of the container and swapped with a unmanaged local") {
+         HandleLocal<T> n = CreateHandle<T>(42);
+         T const n0p = n.Get();
+         const Allocation* const n0e = n.GetEntry();
+         REQUIRE(n0e == nullptr);
+
+         n.Swap(h0);
+
+         if constexpr (REFERENCABLE) {
+            if constexpr (SPARSE) {
+               REQUIRE(h0.Get() == n0p);
+               REQUIRE(h0.GetEntry() == n0e);
+               REQUIRE(h0.Get()->Reference(0) == 1);
+               REQUIRE(h0.Get()->data == n0p->data);
+               REQUIRE(h0.Get()->destroyed == false);
+               REQUIRE(h0.Get()->moved_in == false);
+               REQUIRE(h0.Get()->moved_out == false);
+
+               REQUIRE(n.Get() == h0p);
+               REQUIRE(n.GetEntry() == h0e);
+               REQUIRE(n.Get()->Reference(0) == 1);
+               REQUIRE(n.GetEntry()->GetUses() == 3);
+               REQUIRE(n.Get()->data == h0p->data);
+               REQUIRE(n.Get()->destroyed == false);
+               REQUIRE(n.Get()->moved_in == false);
+               REQUIRE(n.Get()->moved_out == false);
+            }
+            else {
+               REQUIRE(h0.Get().data == n0p.data);
+               REQUIRE(h0.GetEntry() == h0e);
+               REQUIRE(h0.Get().Reference(0) == 1);
+               REQUIRE(h0.Get().destroyed == false);
+               REQUIRE(h0.Get().moved_in == true);
+               REQUIRE(h0.Get().moved_out == false);
+
+               REQUIRE(n.Get().data == h0p.data);
+               REQUIRE(n.GetEntry() == n0e);
+               REQUIRE(n.Get().Reference(0) == 1);
+               REQUIRE(n.Get().destroyed == false);
+               REQUIRE(n.Get().moved_in == true);
+               REQUIRE(n.Get().moved_out == false);
+            }
+         }
+         else {
+            if constexpr (SPARSE) {
+               REQUIRE(h0.Get() == n0p);
+               REQUIRE(h0.GetEntry() == n0e);
 
                REQUIRE(n.Get() == h0p);
                REQUIRE(n.GetEntry() == h0e);
