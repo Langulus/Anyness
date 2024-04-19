@@ -397,39 +397,45 @@ namespace Langulus::Anyness
    /// Shift elements left, where possible                                    
    template<CT::Set THIS>
    void BlockSet::ShiftPairs() {
-      auto oldInfo = mInfo;
-      const auto newInfoEnd = GetInfoEnd();
-      while (oldInfo != newInfoEnd) {
-         if (*oldInfo > 1) {
-            const Offset oldIndex = oldInfo - GetInfo();
+      int moves_performed;
+      do {
+         moves_performed = 0;
+         auto oldInfo = mInfo;
+         const auto newInfoEnd = GetInfoEnd();
+         while (oldInfo != newInfoEnd) {
+            if (*oldInfo > 1) {
+               // Entry can be moved by *oldInfo - 1 cells to the left  
+               const Offset oldIndex = oldInfo - GetInfo();
 
-            // Might loop around                                        
-            Offset to = (mKeys.mReserved + oldIndex) - *oldInfo + 1;
-            if (to >= mKeys.mReserved)
-               to -= mKeys.mReserved;
-
-            InfoType attempt = 1;
-            while (mInfo[to] and attempt < *oldInfo) {
                // Might loop around                                     
-               ++to;
+               Offset to = mKeys.mReserved + oldIndex - *oldInfo + 1;
                if (to >= mKeys.mReserved)
                   to -= mKeys.mReserved;
-               ++attempt;
+
+               InfoType attempt = 1;
+               while (mInfo[to] and attempt < *oldInfo) {
+                  // Might loop around                                  
+                  ++to;
+                  if (to >= mKeys.mReserved)
+                     to -= mKeys.mReserved;
+                  ++attempt;
+               }
+
+               if (not mInfo[to] and attempt < *oldInfo) {
+                  // Empty spot found, so move element there            
+                  auto key = GetHandle<THIS>(oldIndex);
+                  GetHandle<THIS>(to).CreateSemantic(Abandon(key));
+                  key.Destroy();
+
+                  mInfo[to] = attempt;
+                  *oldInfo = 0;
+                  ++moves_performed;
+               }
             }
 
-            if (not mInfo[to] and attempt < *oldInfo) {
-               // Empty spot found, so move element there               
-               auto key   = GetHandle<THIS>(oldIndex);
-               auto tokey = GetHandle<THIS>(to);
-               tokey.CreateSemantic(Abandon(key));
-               key.Destroy();
-               mInfo[to] = attempt;
-               *oldInfo = 0;
-            }
+            ++oldInfo;
          }
-
-         ++oldInfo;
-      }
+      } while (moves_performed);
    }
 
    /// Inner insertion function                                               

@@ -515,7 +515,6 @@ namespace Langulus::Anyness
    
    /// Shift elements left where possible                                     
    /// Repeat this couple of times until no more moves are possible           
-   //TODO maybe in order to not repeat this, just check all cells that point to the bucket?
    template<CT::Map THIS>
    void BlockMap::ShiftPairs() {
       int moves_performed;
