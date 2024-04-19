@@ -536,17 +536,66 @@ TEMPLATE_TEST_CASE(
          REQUIRE(map.GetRawValsMemory() == valueMemory);
          REQUIRE(map.GetReserved() >= 5);
 
-         REQUIRE(map.ContainsKey(darray1[0].mKey));
-         REQUIRE_FALSE(map.ContainsKey(darray1[1].mKey));
-         REQUIRE(map.ContainsKey(darray1[2].mKey));
-         REQUIRE_FALSE(map.ContainsKey(darray1[3].mKey));
-         REQUIRE(map.ContainsKey(darray1[4].mKey));
-
-         REQUIRE(map.ContainsValue(darray1[0].mValue));
+         REQUIRE      (map.ContainsValue(darray1[0].mValue));
          REQUIRE_FALSE(map.ContainsValue(darray1[1].mValue));
-         REQUIRE(map.ContainsValue(darray1[2].mValue));
+         REQUIRE      (map.ContainsValue(darray1[2].mValue));
          REQUIRE_FALSE(map.ContainsValue(darray1[3].mValue));
-         REQUIRE(map.ContainsValue(darray1[4].mValue));
+         REQUIRE      (map.ContainsValue(darray1[4].mValue));
+
+         REQUIRE      (map.ContainsKey(darray1[0].mKey));
+         REQUIRE_FALSE(map.ContainsKey(darray1[1].mKey));
+         REQUIRE      (map.ContainsKey(darray1[2].mKey));
+         REQUIRE_FALSE(map.ContainsKey(darray1[3].mKey));
+         REQUIRE      (map.ContainsKey(darray1[4].mKey));
+
+         const auto removed3 = map.RemoveValue(darray1[2].mValue);
+         REQUIRE(removed3 == 1);
+         REQUIRE(map.GetCount() == 2);
+
+         REQUIRE      (map.ContainsValue(darray1[0].mValue));
+         REQUIRE_FALSE(map.ContainsValue(darray1[1].mValue));
+         REQUIRE_FALSE(map.ContainsValue(darray1[2].mValue));
+         REQUIRE_FALSE(map.ContainsValue(darray1[3].mValue));
+         REQUIRE      (map.ContainsValue(darray1[4].mValue));
+
+         REQUIRE      (map.ContainsKey(darray1[0].mKey));
+         REQUIRE_FALSE(map.ContainsKey(darray1[1].mKey));
+         REQUIRE_FALSE(map.ContainsKey(darray1[2].mKey));
+         REQUIRE_FALSE(map.ContainsKey(darray1[3].mKey));
+         REQUIRE      (map.ContainsKey(darray1[4].mKey));
+
+         const auto removed1 = map.RemoveValue(darray1[0].mValue);
+         REQUIRE(removed1 == 1);
+         REQUIRE(map.GetCount() == 1);
+
+         REQUIRE_FALSE(map.ContainsValue(darray1[0].mValue));
+         REQUIRE_FALSE(map.ContainsValue(darray1[1].mValue));
+         REQUIRE_FALSE(map.ContainsValue(darray1[2].mValue));
+         REQUIRE_FALSE(map.ContainsValue(darray1[3].mValue));
+         REQUIRE      (map.ContainsValue(darray1[4].mValue));
+
+         REQUIRE_FALSE(map.ContainsKey(darray1[0].mKey));
+         REQUIRE_FALSE(map.ContainsKey(darray1[1].mKey));
+         REQUIRE_FALSE(map.ContainsKey(darray1[2].mKey));
+         REQUIRE_FALSE(map.ContainsKey(darray1[3].mKey));
+         REQUIRE      (map.ContainsKey(darray1[4].mKey));
+
+         const auto removed5 = map.RemoveValue(darray1[4].mValue);
+         REQUIRE(removed5 == 1);
+         REQUIRE(map.GetCount() == 0);
+
+         REQUIRE_FALSE(map.ContainsValue(darray1[0].mValue));
+         REQUIRE_FALSE(map.ContainsValue(darray1[1].mValue));
+         REQUIRE_FALSE(map.ContainsValue(darray1[2].mValue));
+         REQUIRE_FALSE(map.ContainsValue(darray1[3].mValue));
+         REQUIRE_FALSE(map.ContainsValue(darray1[4].mValue));
+
+         REQUIRE_FALSE(map.ContainsKey(darray1[0].mKey));
+         REQUIRE_FALSE(map.ContainsKey(darray1[1].mKey));
+         REQUIRE_FALSE(map.ContainsKey(darray1[2].mKey));
+         REQUIRE_FALSE(map.ContainsKey(darray1[3].mKey));
+         REQUIRE_FALSE(map.ContainsKey(darray1[4].mKey));
+
 
          #ifdef LANGULUS_STD_BENCHMARK
             BENCHMARK_ADVANCED("Anyness::TUnorderedMap::RemoveValue") (timer meter) {
