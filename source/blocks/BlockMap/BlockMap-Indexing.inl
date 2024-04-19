@@ -262,7 +262,7 @@ namespace Langulus::Anyness
          ", index ", i, " is beyond the reserved ", GetReserved(), " elements");
 
       if constexpr (CT::Typed<THIS>) {
-         IF_SAFE(using V = typename THIS::Value);
+         using V = typename THIS::Value;
          LANGULUS_ASSUME(DevAssumes, (IsValueSimilar<THIS, V>()),
             "Wrong type when accessing ", NameOf<THIS>(), " value",
             ", using type `", NameOf<V>(), "` instead of `", GetValueType(), '`');
