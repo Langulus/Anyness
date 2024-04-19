@@ -513,46 +513,54 @@ namespace Langulus::Anyness
       ShiftPairs<THIS>();
    }
    
-   /// Shift elements left, where possible                                    
+   /// Shift elements left where possible                                     
+   /// Repeat this couple of times until no more moves are possible           
+   //TODO maybe in order to not repeat this, just check all cells that point to the bucket?
    template<CT::Map THIS>
    void BlockMap::ShiftPairs() {
-      auto oldInfo = mInfo;
-      const auto newInfoEnd = GetInfoEnd();
-      while (oldInfo != newInfoEnd) {
-         if (*oldInfo > 1) {
-            const Offset oldIndex = oldInfo - GetInfo();
+      int moves_performed;
+      do {
+         moves_performed = 0;
+         auto oldInfo = mInfo;
+         const auto newInfoEnd = GetInfoEnd();
+         while (oldInfo != newInfoEnd) {
+            if (*oldInfo > 1) {
+               // Entry can be moved by *oldInfo - 1 cells to the left  
+               const Offset oldIndex = oldInfo - GetInfo();
 
-            // Might loop around                                        
-            Offset to = (mKeys.mReserved + oldIndex) - *oldInfo + 1;
-            if (to >= mKeys.mReserved)
-               to -= mKeys.mReserved;
-
-            InfoType attempt = 1;
-            while (mInfo[to] and attempt < *oldInfo) {
-               // Might loop around                                     
-               ++to;
+               // Will loop around if it goes beyond mKeys.mReserved    
+               Offset to = mKeys.mReserved + oldIndex - *oldInfo + 1;
                if (to >= mKeys.mReserved)
                   to -= mKeys.mReserved;
-               ++attempt;
+
+               InfoType attempt = 1;
+               while (mInfo[to] and attempt < *oldInfo) {
+                  // Might loop around                                  
+                  ++to;
+                  if (to >= mKeys.mReserved)
+                     to -= mKeys.mReserved;
+                  ++attempt;
+               }
+
+               if (not mInfo[to] and attempt < *oldInfo) {
+                  // Empty spot found, so move pair there               
+                  auto key = GetKeyHandle<THIS>(oldIndex);
+                  GetKeyHandle<THIS>(to).CreateSemantic(Abandon(key));
+                  key.Destroy();
+
+                  auto val = GetValHandle<THIS>(oldIndex);
+                  GetValHandle<THIS>(to).CreateSemantic(Abandon(val));
+                  val.Destroy();
+
+                  mInfo[to] = attempt;
+                  *oldInfo = 0;
+                  ++moves_performed;
+               }
             }
 
-            if (not mInfo[to] and attempt < *oldInfo) {
-               // Empty spot found, so move pair there                  
-               auto key = GetKeyHandle<THIS>(oldIndex);
-               GetKeyHandle<THIS>(to).CreateSemantic(Abandon(key));
-               key.Destroy();
-
-               auto val = GetValHandle<THIS>(oldIndex);
-               GetValHandle<THIS>(to).CreateSemantic(Abandon(val));
-               val.Destroy();
-
-               mInfo[to] = attempt;
-               *oldInfo = 0;
-            }
+            ++oldInfo;
          }
-
-         ++oldInfo;
-      }
+      } while (moves_performed);
    }
    
    /// Inner insertion function                                               

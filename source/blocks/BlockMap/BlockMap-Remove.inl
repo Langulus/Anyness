@@ -152,7 +152,7 @@ namespace Langulus::Anyness
       while (psl != pslEnd) {
          if (*psl and val == value) {
             if (GetUses() > 1) {
-               // Map is used from multiple locations, and we mush      
+               // Map is used from multiple locations, and we must      
                // branch out before changing it                         
                TODO();
             }
