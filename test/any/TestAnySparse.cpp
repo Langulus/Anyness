@@ -601,7 +601,7 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
          #endif
 
          for (auto i : darray3) {
-            if constexpr (CT::Referencable<E>)
+            if constexpr (CT::Referencable<Deptr<E>>)
                i->Reference(-1);
             delete i;
          }
@@ -663,7 +663,7 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
          #endif
 
          for (auto i : darray3) {
-            if constexpr (CT::Referencable<E>)
+            if constexpr (CT::Referencable<Deptr<E>>)
                i->Reference(-1);
             delete i;
          }
@@ -708,7 +708,7 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
             CheckState_Default<E>(pack);
          }
 
-         if constexpr (CT::Referencable<E>)
+         if constexpr (CT::Referencable<Deptr<E>>)
             i666->Reference(-1);
          delete i666;
       }
@@ -752,7 +752,7 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
             CheckState_Default<E>(pack);
          }
 
-         if constexpr (CT::Referencable<E>)
+         if constexpr (CT::Referencable<Deptr<E>>)
             i666->Reference(-1);
          delete i666;
       }
@@ -1806,7 +1806,7 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
          #endif
 
          for (auto i : darray3) {
-            if constexpr (CT::Referencable<E>)
+            if constexpr (CT::Referencable<Deptr<E>>)
                i->Reference(-1);
             delete i;
          }
@@ -1879,7 +1879,7 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
          #endif
 
          for (auto i : darray3) {
-            if constexpr (CT::Referencable<E>)
+            if constexpr (CT::Referencable<Deptr<E>>)
                i->Reference(-1);
             delete i;
          }
@@ -1924,7 +1924,7 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
             };
          #endif
 
-         if constexpr (CT::Referencable<E>)
+         if constexpr (CT::Referencable<Deptr<E>>)
             i666->Reference(-1);
          delete i666;
       }
@@ -2012,7 +2012,7 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
             };
          #endif
 
-         if constexpr (CT::Referencable<E>)
+         if constexpr (CT::Referencable<Deptr<E>>)
             i666->Reference(-1);
          delete i666;
       }
@@ -2057,7 +2057,7 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
             };
          #endif
 
-         if constexpr (CT::Referencable<E>)
+         if constexpr (CT::Referencable<Deptr<E>>)
             i666->Reference(-1);
          delete i666;
       }
@@ -2102,7 +2102,7 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
             };
          #endif
 
-         if constexpr (CT::Referencable<E>)
+         if constexpr (CT::Referencable<Deptr<E>>)
             i666->Reference(-1);
          delete i666;
       }
@@ -2147,7 +2147,7 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
             };
          #endif
 
-         if constexpr (CT::Referencable<E>)
+         if constexpr (CT::Referencable<Deptr<E>>)
             i666->Reference(-1);
          delete i666;
       }
@@ -2190,7 +2190,7 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
             };
          #endif
 
-         if constexpr (CT::Referencable<E>)
+         if constexpr (CT::Referencable<Deptr<E>>)
             temp->Reference(-1);
          delete temp;
       }
@@ -2877,18 +2877,18 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
       }
    }
 
-   if constexpr (CT::Referencable<E>)
+   if constexpr (CT::Referencable<Deptr<E>>)
       element->Reference(-1);
    delete element;
 
    for (auto item : darray1) {
-      if constexpr (CT::Referencable<E>)
+      if constexpr (CT::Referencable<Deptr<E>>)
          item->Reference(-1);
       delete item;
    }
 
    for (auto item : darray2) {
-      if constexpr (CT::Referencable<E>)
+      if constexpr (CT::Referencable<Deptr<E>>)
          item->Reference(-1);
       delete item;
    }

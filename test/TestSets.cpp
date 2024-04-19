@@ -800,18 +800,18 @@ TEMPLATE_TEST_CASE(
    }
 
    if constexpr (CT::Sparse<K>) {
-      if constexpr (CT::Referencable<K>)
+      if constexpr (CT::Referencable<Deptr<K>>)
          element->Reference(-1);
       delete element;
 
       for (auto i : darray1) {
-         if constexpr (CT::Referencable<K>)
+         if constexpr (CT::Referencable<Deptr<K>>)
             i->Reference(-1);
          delete i;
       }
 
       for (auto i : darray2) {
-         if constexpr (CT::Referencable<K>)
+         if constexpr (CT::Referencable<Deptr<K>>)
             i->Reference(-1);
          delete i;
       }

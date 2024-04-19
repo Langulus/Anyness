@@ -94,13 +94,13 @@ void DestroyPair(auto& pair) {
 
       if constexpr (CT::Sparse<K>) {
          if constexpr (CT::Referencable<Deptr<K>>)
-            pair.mKey->Reference(-1);
+            REQUIRE(pair.mKey->Reference(-1) == 0);
          delete pair.mKey;
       }
 
       if constexpr (CT::Sparse<V>) {
          if constexpr (CT::Referencable<Deptr<V>>)
-            pair.mValue->Reference(-1);
+            REQUIRE(pair.mValue->Reference(-1) == 0);
          delete pair.mValue;
       }
    }
@@ -109,14 +109,14 @@ void DestroyPair(auto& pair) {
       using V = decltype(pair.second);
 
       if constexpr (CT::Sparse<K>) {
-         if constexpr (CT::Referencable<K>)
-            pair.first->Reference(-1);
+         if constexpr (CT::Referencable<Deptr<K>>)
+            REQUIRE(pair.first->Reference(-1) == 0);
          delete pair.first;
       }
 
       if constexpr (CT::Sparse<V>) {
-         if constexpr (CT::Referencable<V>)
-            pair.second->Reference(-1);
+         if constexpr (CT::Referencable<Deptr<V>>)
+            REQUIRE(pair.second->Reference(-1) == 0);
          delete pair.second;
       }
    }
