@@ -101,13 +101,10 @@ namespace Langulus::Anyness
 
    TEMPLATE()
    HAND()::~Handle() {
-      if constexpr (not EMBED) {
-         if constexpr (CT::Dense<T> and CT::Referencable<T>) {
-            // Will call value destructor at end of scope, just suppress
-            // the reference warning                                    
-            mValue.Reference(-1);
-         }
-         else Destroy<false, true>();
+      if constexpr (not EMBED and CT::Dense<T> and CT::Referencable<T>) {
+         // Will call value destructor at end of scope, just suppress   
+         // the reference warning                                       
+         mValue.Reference(-1);
       }
    }
 
@@ -510,10 +507,38 @@ namespace Langulus::Anyness
    ///   @param rhs - right hand side                                         
    TEMPLATE() template<bool RHS_EMBED> LANGULUS(INLINED)
    void HAND()::Swap(Handle<T, RHS_EMBED>& rhs) {
-      HandleLocal<T> tmp {Abandon(*this)};
-      Destroy<false, true>();
-      CreateSemantic(Abandon(rhs));
-      rhs.CreateSemantic(Abandon(tmp));
+      if constexpr (CT::Sparse<T>) {
+         std::swap(Get(), rhs.Get());
+         std::swap(GetEntry(), rhs.GetEntry());
+
+         if constexpr (not Embedded and RHS_EMBED) {
+            if (rhs.GetEntry()) {
+               const_cast<Allocation*>(rhs.GetEntry())->Keep();
+               if constexpr (CT::Referencable<Deptr<T>>)
+                  rhs.Get()->Reference(1);
+            }
+         }
+
+         /*if (GetEntry() != rhs.GetEntry()) {
+            if (GetEntry()) {
+               const_cast<Allocation*>(GetEntry())->Keep();
+               if constexpr (CT::Referencable<Deptr<T>>)
+                  Get()->Reference(1);
+            }
+
+            if (rhs.GetEntry()) {
+               const_cast<Allocation*>(rhs.GetEntry())->Keep();
+               if constexpr (CT::Referencable<Deptr<T>>)
+                  rhs.Get()->Reference(1);
+            }
+         }*/
+      }
+      else {
+         HandleLocal<T> tmp {Abandon(*this)};
+         Destroy<false, true>();
+         CreateSemantic(Abandon(rhs));
+         rhs.CreateSemantic(Abandon(tmp));
+      }
    }
 
    /// Compare the contents of the handle with content                        

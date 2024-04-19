@@ -13,8 +13,8 @@
    #error Catch has been included prior to this header
 #endif
 
-#include "Main.hpp"
 #include <catch2/catch.hpp>
+#include "Main.hpp"
 
 /// See https://github.com/catchorg/Catch2/blob/devel/docs/tostring.md        
 CATCH_TRANSLATE_EXCEPTION(::Langulus::Exception const& ex) {

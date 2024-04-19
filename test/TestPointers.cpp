@@ -145,7 +145,7 @@ TEMPLATE_TEST_CASE("Shared pointer", "[Ref]",
       }
 
       #if not LANGULUS_FEATURE(NEWDELETE)
-         if constexpr (CT::Referencable<TT>)
+         if constexpr (CT::Referencable<Deptr<TT>>)
             raw->Reference(-1);
          delete raw;
       #endif

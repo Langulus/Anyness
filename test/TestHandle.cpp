@@ -45,7 +45,7 @@ HandleLocal<T> CreateHandle(FROM&& from) {
 
 ///                                                                           
 TEMPLATE_TEST_CASE("Handles from sequential containers", "[handle]",
-   RT*, int, int*, RT
+   RT, RT*, int, int*
 ) {
    static Allocator::State memoryState;
 
@@ -94,7 +94,6 @@ TEMPLATE_TEST_CASE("Handles from sequential containers", "[handle]",
 
       const T h0p = h0.Get();
       const Allocation* const h0e = h0.GetEntry();
-
 
       WHEN("An element is taken out of the container and assigned into another") {
          TAny<T> next = CreateManagedElements<T>(0);
@@ -212,6 +211,9 @@ TEMPLATE_TEST_CASE("Handles from sequential containers", "[handle]",
                REQUIRE(n.GetEntry() == n0e);
             }
          }
+
+         if constexpr (CT::Referencable<T>)
+            REQUIRE(n0p.Reference(-1) == 0);
       }
 
       WHEN("An element is taken out of the container and swapped with managed local") {
@@ -231,8 +233,8 @@ TEMPLATE_TEST_CASE("Handles from sequential containers", "[handle]",
             if constexpr (SPARSE) {
                REQUIRE(h0.Get() == n0p);
                REQUIRE(h0.GetEntry() == n0e);
-               REQUIRE(h0.Get()->Reference(0) == 1);
-               REQUIRE(h0.GetEntry()->GetUses() == 1);
+               REQUIRE(h0.Get()->Reference(0) == 2);
+               REQUIRE(h0.GetEntry()->GetUses() == 2);
                REQUIRE(h0.Get()->data == n0p->data);
                REQUIRE(h0.Get()->destroyed == false);
                REQUIRE(h0.Get()->moved_in == false);
@@ -267,7 +269,7 @@ TEMPLATE_TEST_CASE("Handles from sequential containers", "[handle]",
             if constexpr (SPARSE) {
                REQUIRE(h0.Get() == n0p);
                REQUIRE(h0.GetEntry() == n0e);
-               REQUIRE(h0.GetEntry()->GetUses() == 1);
+               REQUIRE(h0.GetEntry()->GetUses() == 2);
 
                REQUIRE(n.Get() == h0p);
                REQUIRE(n.GetEntry() == h0e);
@@ -281,6 +283,13 @@ TEMPLATE_TEST_CASE("Handles from sequential containers", "[handle]",
                REQUIRE(n.GetEntry() == n0e);
             }
          }
+
+         // After the swap, n now holds h0, and will result in a leak   
+         // This is by design - we have to manually free h0             
+         n.template Destroy<false, true>();
+
+         if constexpr (CT::Referencable<T>)
+            REQUIRE(n0p.Reference(-1) == 0);
       }
 
       WHEN("An element is taken out of the container and swapped with a unmanaged local") {
@@ -343,6 +352,19 @@ TEMPLATE_TEST_CASE("Handles from sequential containers", "[handle]",
                REQUIRE(n.GetEntry() == n0e);
             }
          }
+
+         if constexpr (SPARSE) {
+            if constexpr (REFERENCABLE)
+               REQUIRE(h0.Get()->Reference(-1) == 0);
+            delete h0.Get();
+         }
+
+         // After the swap, n now holds h0, and will result in a leak   
+         // This is by design - we have to manually free h0             
+         n.template Destroy<false, true>();
+
+         if constexpr (CT::Referencable<T>)
+            REQUIRE(n0p.Reference(-1) == 0);
       }
 
       WHEN("An element is taken out of the container and moved into a local handle") {
@@ -390,7 +412,14 @@ TEMPLATE_TEST_CASE("Handles from sequential containers", "[handle]",
                REQUIRE(local.GetEntry() == nullptr);
             }
          }
+
+         // After the move, local now holds h0, and will result in a    
+         // leak. This is by design - we have to manually free h0       
+         local.template Destroy<false, true>();
       }
+
+      if constexpr (CT::Referencable<T>)
+         REQUIRE(h0p.Reference(-1) == 0);
    }
 
    REQUIRE(memoryState.Assert());
