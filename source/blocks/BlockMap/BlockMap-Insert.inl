@@ -24,7 +24,7 @@ namespace Langulus::Anyness
 
       if constexpr (CT::Typed<THIS>) {
          using K = Conditional<CT::Typed<THIS>, typename THIS::Key, TypeOf<T>>;
-         return HandleLocal<K> {S::Nest(key)};
+         return HandleLocal<Decvq<K>> {S::Nest(key)};
       }
       else return Many::Wrap(S::Nest(key));
    }
@@ -39,7 +39,7 @@ namespace Langulus::Anyness
 
       if constexpr (CT::Typed<THIS>) {
          using V = Conditional<CT::Typed<THIS>, typename THIS::Value, TypeOf<T>>;
-         return HandleLocal<V> {S::Nest(val)};
+         return HandleLocal<Decvq<V>> {S::Nest(val)};
       }
       else return Many::Wrap(S::Nest(val));
    }
@@ -412,7 +412,7 @@ namespace Langulus::Anyness
                   InsertInner<THIS, false>(
                      newBucket,
                      Abandon(keyswap),
-                     Refer(old.GetValHandle<THIS>(oldIndex))
+                     Abandon(old.GetValHandle<THIS>(oldIndex))
                   );
                }
                else {
@@ -428,7 +428,7 @@ namespace Langulus::Anyness
                   InsertBlockInner<THIS, false>(
                      newBucket,
                      Abandon(keyswap),
-                     Refer(old.GetValHandle<THIS>(oldIndex))
+                     Abandon(old.GetValHandle<THIS>(oldIndex))
                   );
 
                   keyswap.Free();
@@ -489,7 +489,7 @@ namespace Langulus::Anyness
 
                   // Reinsert at the new bucket                         
                   InsertInner<THIS, false>(
-                     newBucket, Refer(oldKey), Abandon(valswap));
+                     newBucket, Abandon(oldKey), Abandon(valswap));
                }
                else {
                   auto oldValue = old.GetValHandle<THIS>(oldIndex);
@@ -503,7 +503,7 @@ namespace Langulus::Anyness
                   --mKeys.mCount;
 
                   InsertBlockInner<THIS, false>(
-                     newBucket, Refer(oldKey), Abandon(valswap));
+                     newBucket, Abandon(oldKey), Abandon(valswap));
 
                   valswap.Free();
                }

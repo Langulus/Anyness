@@ -125,12 +125,12 @@ namespace Langulus::Anyness
       NOD() T& Get() const noexcept;
       NOD() AllocType& GetEntry() const noexcept;
 
-      void Create(T,        AllocType = nullptr) noexcept requires (CT::Sparse<T> and CT::Mutable<T>);
-      void Create(T const&, AllocType = nullptr) noexcept requires (CT::Dense<T> and CT::Mutable<T>);
-      void Create(T&&,      AllocType = nullptr) noexcept requires (CT::Dense<T> and CT::Mutable<T>);
+      void Create(T,        AllocType = nullptr) noexcept requires CT::Sparse<T>;
+      void Create(T const&, AllocType = nullptr) noexcept requires CT::Dense<T>;
+      void Create(T&&,      AllocType = nullptr) noexcept requires CT::Dense<T>;
 
-      void CreateSemantic(auto&&) requires CT::Mutable<T>;
-      template<template<class> class S, class T1> requires (CT::Semantic<S<T1>> and CT::Mutable<T>)
+      void CreateSemantic(auto&&);
+      template<template<class> class S, class T1> requires CT::Semantic<S<T1>>
       void CreateSemanticUnknown(DMeta, S<T1>&&);
 
       template<template<class> class S, class T1> requires (CT::Semantic<S<T1>> and CT::Mutable<T>)
@@ -159,9 +159,9 @@ namespace Langulus::Anyness
       Handle& operator += (Offset) noexcept requires Embedded;
       Handle& operator -= (Offset) noexcept requires Embedded;
 
-      template<bool RESET = false, bool DEALLOCATE = true> requires CT::Mutable<T>
+      template<bool RESET = false, bool DEALLOCATE = true>
       void Destroy() const;
-      template<bool RESET = false, bool DEALLOCATE = true> requires CT::Mutable<T>
+      template<bool RESET = false, bool DEALLOCATE = true>
       void DestroyUnknown(DMeta) const;
    };
    
@@ -172,11 +172,20 @@ namespace Langulus::Anyness
    template<CT::Sparse T>
    Handle(T&, const Allocation*&) -> Handle<T, true>;
 
+   template<CT::Sparse T>
+   Handle(const T&, const Allocation*&) -> Handle<const T, true>;
+
    template<CT::Dense T>
    Handle(T&, const Allocation*) -> Handle<T, true>;
 
    template<CT::Dense T>
+   Handle(const T&, const Allocation*) -> Handle<const T, true>;
+
+   template<CT::Dense T>
    Handle(T&) -> Handle<T, true>;
+
+   template<CT::Dense T>
+   Handle(const T&) -> Handle<const T, true>;
 
 } // namespace Langulus::Anyness
 

@@ -27,6 +27,14 @@ namespace Langulus::Anyness
       static_assert(CT::NotHandle<T>, "Handles can't be nested");
    }
       
+   TEMPLATE() LANGULUS(INLINED)
+   constexpr HAND()::Handle(const T& v, const AllocType& e) IF_UNSAFE(noexcept)
+   requires (EMBED and CT::Sparse<T> and not CT::Mutable<T>)
+      : mValue {&v}
+      , mEntry {&e} {
+      static_assert(CT::NotHandle<T>, "Handles can't be nested");
+   }
+      
    /// Create an embedded handle                                              
    ///   @param v - a reference to the element                                
    ///   @param e - the entry (optional)                                      
@@ -38,11 +46,30 @@ namespace Langulus::Anyness
       static_assert(CT::NotHandle<T>, "Handles can't be nested");
    }
 
+   TEMPLATE() LANGULUS(INLINED)
+   constexpr HAND()::Handle(const T& v, AllocType e) IF_UNSAFE(noexcept)
+   requires (EMBED and CT::Dense<T> and not CT::Mutable<T>)
+      : mValue {&v}
+      , mEntry { e} {
+      static_assert(CT::NotHandle<T>, "Handles can't be nested");
+   }
+
    /// Create an embedded handle (automatically find allocation)              
    ///   @param v - a reference to the element                                
    TEMPLATE() LANGULUS(INLINED)
    constexpr HAND()::Handle(T& v) IF_UNSAFE(noexcept)
    requires (EMBED and CT::Dense<T> and CT::Mutable<T>)
+      : mValue {&v} {
+      static_assert(CT::NotHandle<T>, "Handles can't be nested");
+      if constexpr (CT::Allocatable<T>)
+         mEntry = Allocator::Find(MetaDataOf<T>(), &mValue);
+      else
+         mEntry = nullptr;
+   }
+
+   TEMPLATE() LANGULUS(INLINED)
+   constexpr HAND()::Handle(const T& v) IF_UNSAFE(noexcept)
+   requires (EMBED and CT::Dense<T> and not CT::Mutable<T>)
       : mValue {&v} {
       static_assert(CT::NotHandle<T>, "Handles can't be nested");
       if constexpr (CT::Allocatable<T>)
@@ -264,7 +291,7 @@ namespace Langulus::Anyness
    ///   @param pointer - the new pointer to assign                           
    ///   @param entry - the allocation that the pointer is part of            
    TEMPLATE() LANGULUS(INLINED)
-   void HAND()::Create(T pointer, AllocType entry) noexcept requires (CT::Sparse<T> and CT::Mutable<T>) {
+   void HAND()::Create(T pointer, AllocType entry) noexcept requires CT::Sparse<T> {
       Get() = pointer;
       GetEntry() = entry;
    }
@@ -275,7 +302,7 @@ namespace Langulus::Anyness
    ///   @param value - the new value to assign                               
    ///   @param entry - the allocation that the value is part of              
    TEMPLATE() LANGULUS(INLINED)
-   void HAND()::Create(T&& value, AllocType entry) noexcept requires (CT::Dense<T> and CT::Mutable<T>) {
+   void HAND()::Create(T&& value, AllocType entry) noexcept requires CT::Dense<T> {
       SemanticNew(&Get(), Move(value));
       GetEntry() = entry;
    }
@@ -286,7 +313,7 @@ namespace Langulus::Anyness
    ///   @param value - the new value to assign                               
    ///   @param entry - the allocation that the value is part of              
    TEMPLATE() LANGULUS(INLINED)
-   void HAND()::Create(const T& value, AllocType entry) noexcept requires (CT::Dense<T> and CT::Mutable<T>) {
+   void HAND()::Create(const T& value, AllocType entry) noexcept requires CT::Dense<T> {
       SemanticNew(&Get(), Refer(value));
       GetEntry() = entry;
    }
@@ -296,7 +323,7 @@ namespace Langulus::Anyness
    ///      and without destroying anything                                   
    ///   @param rhs - what are we assigning                                   
    TEMPLATE() LANGULUS(INLINED)
-   void HAND()::CreateSemantic(auto&& rhs) requires CT::Mutable<T> {
+   void HAND()::CreateSemantic(auto&& rhs) {
       using S = SemanticOf<decltype(rhs)>;
       using ST = TypeOf<S>;
 
@@ -380,11 +407,11 @@ namespace Langulus::Anyness
             auto pointer = entry->template As<DT>();
 
             if constexpr (CT::Handle<ST>) {
-               static_assert(CT::Exact<T, TypeOf<ST>>, "Type mismatch");
+               static_assert(CT::Similar<T, TypeOf<ST>>, "Type mismatch");
                SemanticNew(pointer, S::Nest(*rhs->Get()));
             }
             else {
-               static_assert(CT::Exact<T, ST>, "Type mismatch");
+               static_assert(CT::Similar<T, ST>, "Type mismatch");
                SemanticNew(pointer, S::Nest(**rhs));
             }
 
@@ -404,7 +431,7 @@ namespace Langulus::Anyness
    ///      and without destroying anything                                   
    ///   @param rhs - what are we assigning                                   
    TEMPLATE() template<template<class> class S, class ST>
-   requires (CT::Semantic<S<ST>> and CT::Mutable<T>) LANGULUS(INLINED)
+   requires CT::Semantic<S<ST>> LANGULUS(INLINED)
    void HAND()::CreateSemanticUnknown(DMeta type, S<ST>&& rhs) {
       using SS = S<ST>;
 
@@ -591,7 +618,7 @@ namespace Langulus::Anyness
    /// handle is destroyed                                                    
    ///   @tparam RESET - whether or not to reset pointers to null             
    ///   @tparam DEALLOCATE - are we allowed to deallocate the memory?        
-   TEMPLATE() template<bool RESET, bool DEALLOCATE> requires CT::Mutable<T>
+   TEMPLATE() template<bool RESET, bool DEALLOCATE>
    void HAND()::Destroy() const {
       using DT = Decay<T>;
 
@@ -662,7 +689,7 @@ namespace Langulus::Anyness
    ///   @tparam RESET - whether or not to reset pointers to null             
    ///   @tparam DEALLOCATE - are we allowed to deallocate the memory?        
    ///   @param meta - the true type behind the pointer in this handle        
-   TEMPLATE() template<bool RESET, bool DEALLOCATE> requires CT::Mutable<T>
+   TEMPLATE() template<bool RESET, bool DEALLOCATE>
    void HAND()::DestroyUnknown(DMeta meta) const {
       if constexpr (CT::Sparse<T>) {
          // Handle is sparse, we should handle each indirection layer   

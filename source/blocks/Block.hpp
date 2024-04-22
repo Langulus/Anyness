@@ -749,30 +749,30 @@ namespace Langulus::Anyness
       THIS ConcatBlock(S<T>&&) const;
 
       template<CT::Block>
-      void CreateDefault() const;
+      void CreateDefault();
 
       template<CT::Block, class...A>
-      void CreateDescribe(A&&...) const;
+      void CreateDescribe(A&&...);
 
       template<CT::Block, class...A>
-      void Create(A&&...) const;
+      void Create(A&&...);
 
       template<CT::Block = Many, bool REVERSE = false, template<class> class S, CT::Block T>
       requires CT::Semantic<S<T>>
-      void CreateSemantic(S<T>&&) const;
+      void CreateSemantic(S<T>&&);
 
       template<CT::Block = Many, template<class> class S, CT::Handle T>
       requires CT::Semantic<S<T>>
-      void CreateSemantic(S<T>&&) const;
+      void CreateSemantic(S<T>&&);
 
       template<template<class> class S, CT::Block T>
       requires CT::Semantic<S<T>>
-      void ShallowBatchPointerConstruction(S<T>&&) const;
+      void ShallowBatchPointerConstruction(S<T>&&);
 
    public:
       template<CT::Block = Many, template<class> class S, CT::Block T>
       requires CT::Semantic<S<T>>
-      void AssignSemantic(S<T>&&) const;
+      void AssignSemantic(S<T>&&);
 
       ///                                                                     
       ///   Removal                                                           
