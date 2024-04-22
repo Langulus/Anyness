@@ -689,7 +689,7 @@ namespace Langulus::Anyness
    ///   @attention assumes block elements are not initialized, despite having
    ///      mCount set                                                        
    template<CT::Block THIS>
-   void Block::CreateDefault() const {
+   void Block::CreateDefault() {
       LANGULUS_ASSUME(DevAssumes, mCount and mCount <= mReserved,
          "Count outside limits", '(', mCount, " > ", mReserved);
       LANGULUS_ASSUME(DevAssumes, GetUses() == 1,
@@ -754,7 +754,7 @@ namespace Langulus::Anyness
    ///      mCount set                                                        
    ///   @param desc - the descriptor to pass on to constructors              
    template<CT::Block THIS, class...A>
-   void Block::CreateDescribe(A&&...arguments) const {
+   void Block::CreateDescribe(A&&...arguments) {
       static_assert(sizeof...(A) > 0, "Bad number of arguments");
       LANGULUS_ASSUME(DevAssumes, mCount and mCount <= mReserved,
          "Count outside limits", '(', mCount, " > ", mReserved);
@@ -883,7 +883,7 @@ namespace Langulus::Anyness
    ///   @param arguments... - the arguments to forward to constructor        
    ///   @return the number of emplaced elements                              
    template<CT::Block THIS, class...A>
-   void Block::Create(A&&...arguments) const {
+   void Block::Create(A&&...arguments) {
       LANGULUS_ASSUME(DevAssumes, mCount and mCount <= mReserved,
          "Count outside limits", '(', mCount, " > ", mReserved);
       LANGULUS_ASSUME(DevAssumes, GetUses() == 1,
@@ -964,7 +964,7 @@ namespace Langulus::Anyness
    ///   @param source - the source of the elements to initialize with        
    template<CT::Block THIS, bool REVERSE, template<class> class S, CT::Block OTHER>
    requires CT::Semantic<S<OTHER>>
-   void Block::CreateSemantic(S<OTHER>&& source) const {
+   void Block::CreateSemantic(S<OTHER>&& source) {
       const auto count = source->mCount;
       LANGULUS_ASSUME(DevAssumes, count and count <= mReserved,
          "Count outside limits", '(', count, " > ", mReserved);
@@ -1224,7 +1224,7 @@ namespace Langulus::Anyness
    ///   @param source - the handle to initialize with                        
    template<CT::Block THIS, template<class> class S, CT::Handle OTHER>
    requires CT::Semantic<S<OTHER>>
-   void Block::CreateSemantic(S<OTHER>&& source) const {
+   void Block::CreateSemantic(S<OTHER>&& source) {
       static_assert(CT::Sparse<TypeOf<OTHER>>,
          "Handle isn't sparse");
       LANGULUS_ASSUME(DevAssumes, 1 <= mReserved,
@@ -1252,7 +1252,7 @@ namespace Langulus::Anyness
    ///   @attention doesn't modify any container state                        
    ///   @param source - the source of pointers                               
    template<template<class> class S, CT::Block T> requires CT::Semantic<S<T>>
-   void Block::ShallowBatchPointerConstruction(S<T>&& source) const {
+   void Block::ShallowBatchPointerConstruction(S<T>&& source) {
       using SS = S<T>;
       static_assert(SS::Shallow,
          "This function works only for shallow semantics");
@@ -1344,7 +1344,7 @@ namespace Langulus::Anyness
    ///   @param source - the elements to assign                               
    template<CT::Block THIS, template<class> class S, CT::Block OTHER>
    requires CT::Semantic<S<OTHER>>
-   void Block::AssignSemantic(S<OTHER>&& source) const {
+   void Block::AssignSemantic(S<OTHER>&& source) {
       const auto count = source->mCount;
       LANGULUS_ASSUME(DevAssumes, count and count <= mReserved,
          "Count outside limits", '(', count, " > ", mReserved);

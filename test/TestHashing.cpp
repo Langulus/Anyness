@@ -40,16 +40,15 @@ SCENARIO("Hashing different kinds of containers", "[hash]") {
 /// Cross-container consistency tests                                         
 TEMPLATE_TEST_CASE(
    "Cross-container consistency tests for TOrderedMap/TUnorderedMap/OrderedMap/UnorderedMap", "[map]",
-   (HashTest<Text, Traits::Count*>),
 
    (HashTest<Text, int>),
    (HashTest<Text, Trait>),
-   (HashTest<Text, Many>),
    (HashTest<Text, Traits::Count>),
+   (HashTest<Text, Many>),
 
    (HashTest<Text, int*>),
    (HashTest<Text, Trait*>),
-
+   (HashTest<Text, Traits::Count*>),
    (HashTest<Text, Many*>)
 ) {
    Allocator::State memoryState;

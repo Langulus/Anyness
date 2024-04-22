@@ -208,7 +208,7 @@ namespace Langulus::Anyness
             }
          }
          else if constexpr (CT::Handle<DT1>) {
-            TMany<TypeOf<DT1>> result;
+            TMany<Decvq<TypeOf<DT1>>> result;
             result.Insert(IndexBack, Forward<T1>(t1));
             return result;
          }
