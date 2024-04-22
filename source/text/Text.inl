@@ -8,7 +8,7 @@
 ///                                                                           
 #pragma once
 #include "Text.hpp"
-#include "../many/TAny.inl"
+#include "../many/TMany.inl"
 #include <charconv>
 #include <limits>
 #include <cstring>
@@ -267,11 +267,11 @@ namespace Langulus::Anyness
    #if LANGULUS_FEATURE(UNICODE)
       /// Widen the text container to the utf16                               
       ///   @return the widened text container                                
-      TAny<char16_t> Text::Widen16() const {
+      TMany<char16_t> Text::Widen16() const {
          if (IsEmpty())
             return {};
 
-         TAny<char16_t> to;
+         TMany<char16_t> to;
          to.AllocateFresh(to.RequestSize(mCount));
          Count newCount = 0;
          try {
@@ -287,11 +287,11 @@ namespace Langulus::Anyness
 
       /// Widen the text container to the utf32                               
       ///   @return the widened text container                                
-      TAny<char32_t> Text::Widen32() const {
+      TMany<char32_t> Text::Widen32() const {
          if (IsEmpty())
             return {};
 
-         TAny<char32_t> to;
+         TMany<char32_t> to;
          to.AllocateFresh(to.RequestSize(mCount));
          Count newCount = 0;
          try {
@@ -562,7 +562,7 @@ namespace Langulus::Anyness
       using B = Deref<decltype(rhs)>;
       if constexpr (CT::Typed<B>) {
          if constexpr (CT::Similar<Letter, TypeOf<B>>) {
-            // Comparing with another Text or TAny<Letter> - we can     
+            // Comparing with another Text or TMany<Letter> - we can    
             // compare directly                                         
             return Base::operator == (static_cast<const Base&>(rhs));
          }

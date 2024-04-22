@@ -232,7 +232,7 @@ namespace Langulus::Anyness
                // We're cloning pointers, which will inevitably end up  
                // pointing elsewhere, which means that all elements must
                // be rehashed and reinserted                            
-               using BT = TAny<Deptr<TypeOf<B>>>;
+               using BT = TMany<Deptr<TypeOf<B>>>;
                BT coalesced;
                coalesced.Reserve(asFrom->GetCount());
 
@@ -298,13 +298,13 @@ namespace Langulus::Anyness
                // We're cloning pointers, which will inevitably end up  
                // pointing elsewhere, which means that all elements must
                // be rehashed and reinserted                            
-               auto coalesced = Any::FromMeta(asFrom->mKeys.mType->mDeptr);
+               auto coalesced = Many::FromMeta(asFrom->mKeys.mType->mDeptr);
                coalesced.Reserve(asFrom->GetCount());
 
                // Coalesce all densified elements, to avoid multiple    
                // allocations                                           
                for (auto& item : *asFrom) {
-                  coalesced.template InsertBlock<Any, void, false>(
+                  coalesced.template InsertBlock<Many, void, false>(
                      IndexBack, SS::Nest(*item));
                }
 

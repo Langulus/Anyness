@@ -161,9 +161,9 @@ namespace Langulus::Anyness
    template<CT::Map THIS> LANGULUS(INLINED)
    auto& BlockMap::GetKeys() const noexcept {
       if constexpr (CT::Typed<THIS>)
-         return reinterpret_cast<const TAny<typename THIS::Key>&>(mKeys);
+         return reinterpret_cast<const TMany<typename THIS::Key>&>(mKeys);
       else
-         return reinterpret_cast<const Any&>(mKeys);
+         return reinterpret_cast<const Many&>(mKeys);
    }
 
    /// Get the templated key container                                        
@@ -171,9 +171,9 @@ namespace Langulus::Anyness
    template<CT::Map THIS> LANGULUS(INLINED)
    auto& BlockMap::GetKeys() noexcept {
       if constexpr (CT::Typed<THIS>)
-         return reinterpret_cast<TAny<typename THIS::Key>&>(mKeys);
+         return reinterpret_cast<TMany<typename THIS::Key>&>(mKeys);
       else
-         return reinterpret_cast<Any&>(mKeys);
+         return reinterpret_cast<Many&>(mKeys);
    }
 
    /// Get the templated values container                                     
@@ -181,9 +181,9 @@ namespace Langulus::Anyness
    template<CT::Map THIS> LANGULUS(INLINED)
    auto& BlockMap::GetVals() const noexcept {
       if constexpr (CT::Typed<THIS>)
-         return reinterpret_cast<const TAny<typename THIS::Value>&>(mValues);
+         return reinterpret_cast<const TMany<typename THIS::Value>&>(mValues);
       else
-         return reinterpret_cast<const Any&>(mValues);
+         return reinterpret_cast<const Many&>(mValues);
    }
 
    /// Get the templated values container                                     
@@ -191,9 +191,9 @@ namespace Langulus::Anyness
    template<CT::Map THIS> LANGULUS(INLINED)
    auto& BlockMap::GetVals() noexcept {
       if constexpr (CT::Typed<THIS>)
-         return reinterpret_cast<TAny<typename THIS::Value>&>(mValues);
+         return reinterpret_cast<TMany<typename THIS::Value>&>(mValues);
       else
-         return reinterpret_cast<Any&>(mValues);
+         return reinterpret_cast<Many&>(mValues);
    }
 
    /// Get the number of inserted pairs                                       

@@ -19,9 +19,13 @@ namespace Langulus::Anyness
    
    /// Get handle representation of the contained pointer                     
    TEMPLATE() LANGULUS(INLINED)
-   auto TME()::GetHandle() const {
-      const auto mthis = const_cast<TME()*>(this);
-      return Handle {mthis->mValue, mthis->mEntry};
+   Handle<T* const> TME()::GetHandle() const {
+      return {mValue, mEntry};
+   }
+
+   TEMPLATE() LANGULUS(INLINED)
+   Handle<T*> TME()::GetHandle() {
+      return {mValue, mEntry};
    }
 
    /// Default costructor                                                     

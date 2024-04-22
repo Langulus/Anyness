@@ -6,10 +6,12 @@
 /// Distributed under GNU General Public License v3+                          
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
-#include "TestAnyCommon.hpp"
+#include "TestManyCommon.hpp"
 
 
-TEMPLATE_TEST_CASE("Converting to text", "[any]", Traits::Name, TAny<DMeta>, Any) {
+TEMPLATE_TEST_CASE("Converting to text", "[many]",
+   Traits::Name, TMany<DMeta>, Many
+) {
    static Allocator::State memoryState;
 
    using T = TestType;
@@ -22,7 +24,7 @@ TEMPLATE_TEST_CASE("Converting to text", "[any]", Traits::Name, TAny<DMeta>, Any
       };
 
       WHEN("Converted to texts using a templated destination") {
-         TAny<Text> converted;
+         TMany<Text> converted;
          pack.Convert(converted);
 
          REQUIRE(converted.GetCount() == 3);

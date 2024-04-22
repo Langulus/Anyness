@@ -485,7 +485,7 @@ TEMPLATE_TEST_CASE("Text container interoperability", "[text]",
 }
 
 TEMPLATE_TEST_CASE("Containing literals", "[text]",
-   Any, Trait
+   Many, Trait
 ) {
    static Allocator::State memoryState;
 

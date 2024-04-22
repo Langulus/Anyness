@@ -8,7 +8,7 @@
 ///                                                                           
 #pragma once
 #include "THive.hpp"
-#include "TAny.inl"
+#include "TMany.inl"
 
 #define TEMPLATE()   template<CT::Data T>
 #define TME()        THive<T>

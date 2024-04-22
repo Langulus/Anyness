@@ -320,7 +320,7 @@ namespace Langulus::Anyness
                // copy the memory for this block - we can't move it!    
                AllocateFresh<THIS>(request);
                CreateSemantic<THIS>(Refer(previousBlock));
-               previousBlock.Free<Any>();
+               previousBlock.Free<Many>();
             }
          }
          else {

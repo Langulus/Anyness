@@ -83,9 +83,9 @@ namespace Langulus
       template<CT::Data, bool EMBED = true>
       struct Handle;
 
-      class Any;
+      class Many;
       template<CT::Data>
-      class TAny;
+      class TMany;
 
       struct BlockMap;
 
@@ -125,7 +125,7 @@ namespace Langulus
       class Ref;
 
       class Construct;
-      using Messy = Any;
+      using Messy = Many;
       class Neat;
 
    } // namespace Langulus::Anyness

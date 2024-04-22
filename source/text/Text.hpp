@@ -7,7 +7,7 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #pragma once
-#include "../many/TAny.hpp"
+#include "../many/TMany.hpp"
 #include "../many/Bytes.hpp"
 #include <Logger/Logger.hpp> // Logger has some core fmt::formatters defined  
 
@@ -217,8 +217,8 @@ namespace Langulus::Anyness
    /// be formal. If you want to serialize your data in a readable format,    
    /// convert to Flow::Code, or other isomorphic representations.            
    ///                                                                        
-   struct Text : TAny<Letter> {
-      using Base = TAny<Letter>;
+   struct Text : TMany<Letter> {
+      using Base = TMany<Letter>;
       static constexpr bool CTTI_TextTrait = true;
 
       LANGULUS(DEEP) false;
@@ -373,8 +373,8 @@ namespace Langulus::Anyness
       NOD() Text Uppercase() const;
 
       #if LANGULUS_FEATURE(UNICODE)
-         NOD() TAny<char16_t> Widen16() const;
-         NOD() TAny<char32_t> Widen32() const;
+         NOD() TMany<char16_t> Widen16() const;
+         NOD() TMany<char32_t> Widen32() const;
       #endif
 
       NOD() static Text Hex(const auto&);

@@ -43,7 +43,7 @@ namespace Langulus::Anyness
       using Value = T;
       using Base = Set<ORDERED>;
       using Self = TSet<T, ORDERED>;
-      using BlockType = TAny<T>;
+      using BlockType = TMany<T>;
 
       LANGULUS(POD) false;
       LANGULUS(TYPED) T;

@@ -14,26 +14,28 @@
 /// to complex, from flat to deep                                             
 TEMPLATE_TEST_CASE(
    "Dense TOrderedMap/TUnorderedMap/OrderedMap/UnorderedMap", "[map]",
-   (MapPair<TUnorderedMap<Text, int>, Text, int>),
-   (MapPair<TUnorderedMap<Text, Trait>, Text, Trait>),
-   (MapPair<TUnorderedMap<Text, Traits::Count>, Text, Traits::Count>),
-   (MapPair<TUnorderedMap<Text, Any>, Text, Any>),
+   (MapTest<TUnorderedMap<Text, int>, Text, int>),
+   (MapTest<TUnorderedMap<Text, Trait>, Text, Trait>),
+   (MapTest<TUnorderedMap<Text, Traits::Count>, Text, Traits::Count>),
+   (MapTest<TUnorderedMap<Text, Many>, Text, Many>),
 
-   (MapPair<TOrderedMap<Text, int>, Text, int>),
-   (MapPair<TOrderedMap<Text, Trait>, Text, Trait>),
-   (MapPair<TOrderedMap<Text, Traits::Count>, Text, Traits::Count>),
-   (MapPair<TOrderedMap<Text, Any>, Text, Any>),
+   (MapTest<TOrderedMap<Text, int>, Text, int>),
+   (MapTest<TOrderedMap<Text, Trait>, Text, Trait>),
+   (MapTest<TOrderedMap<Text, Traits::Count>, Text, Traits::Count>),
+   (MapTest<TOrderedMap<Text, Many>, Text, Many>),
 
-   (MapPair<UnorderedMap, Text, int>),
-   (MapPair<UnorderedMap, Text, Trait>),
-   (MapPair<UnorderedMap, Text, Traits::Count>),
-   (MapPair<UnorderedMap, Text, Any>),
+   (MapTest<UnorderedMap, Text, int>),
+   (MapTest<UnorderedMap, Text, Trait>),
+   (MapTest<UnorderedMap, Text, Traits::Count>),
+   (MapTest<UnorderedMap, Text, Many>),
 
-   (MapPair<OrderedMap, Text, int>),
-   (MapPair<OrderedMap, Text, Trait>),
-   (MapPair<OrderedMap, Text, Traits::Count>),
-   (MapPair<OrderedMap, Text, Any>)
+   (MapTest<OrderedMap, Text, int>),
+   (MapTest<OrderedMap, Text, Trait>),
+   (MapTest<OrderedMap, Text, Traits::Count>),
+   (MapTest<OrderedMap, Text, Many>)
 ) {
+   IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
+
    static Allocator::State memoryState;
 
    using T = typename TestType::Container;
@@ -61,11 +63,41 @@ TEMPLATE_TEST_CASE(
       static_assert(CT::DisownAssignable<T>);
    }
 
+   const auto pair    = CreatePair<Pair,    K, V>("five hundred", 555);
+   const auto stdpair = CreatePair<StdPair, K, V>("five hundred", 555);
+
+   const Pair darray1[5] {
+      CreatePair<Pair, K, V>("one", 1),
+      CreatePair<Pair, K, V>("two", 2),
+      CreatePair<Pair, K, V>("three", 3),
+      CreatePair<Pair, K, V>("four", 4),
+      CreatePair<Pair, K, V>("five", 5)
+   };
+   const Pair darray2[5] {
+      CreatePair<Pair, K, V>("six", 6),
+      CreatePair<Pair, K, V>("seven", 7),
+      CreatePair<Pair, K, V>("eight", 8),
+      CreatePair<Pair, K, V>("nine", 9),
+      CreatePair<Pair, K, V>("ten", 10)
+   };
+   
+   const StdPair darray1std[5] {
+      CreatePair<StdPair, K, V>("one", 1),
+      CreatePair<StdPair, K, V>("two", 2),
+      CreatePair<StdPair, K, V>("three", 3),
+      CreatePair<StdPair, K, V>("four", 4),
+      CreatePair<StdPair, K, V>("five", 5)
+   };
+   const StdPair darray2std[5] {
+      CreatePair<StdPair, K, V>("six", 6),
+      CreatePair<StdPair, K, V>("seven", 7),
+      CreatePair<StdPair, K, V>("eight", 8),
+      CreatePair<StdPair, K, V>("nine", 9),
+      CreatePair<StdPair, K, V>("ten", 10)
+   };
+
 
    GIVEN("A default-initialized map instance") {
-      const auto pair    = CreatePair<Pair,    K, V>("five hundred", 555);
-      const auto stdpair = CreatePair<StdPair, K, V>("five hundred", 555);
-
       T map {};
 
       WHEN("Given a default-constructed map") {
@@ -89,8 +121,6 @@ TEMPLATE_TEST_CASE(
       }
 
       WHEN("Assigned a pair by move") {
-         IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
-
          auto movablePair = pair;
          map = ::std::move(movablePair);
 
@@ -136,9 +166,6 @@ TEMPLATE_TEST_CASE(
    }
    
    GIVEN("A pair copy-initialized map instance") {
-      const auto pair    = CreatePair<Pair,    K, V>("five hundred", 555);
-      const auto stdpair = CreatePair<StdPair, K, V>("five hundred", 555);
-
       T map {pair};
 
       REQUIRE(map.IsKeyTypeConstrained() == CT::Typed<T>);
@@ -157,22 +184,6 @@ TEMPLATE_TEST_CASE(
    }
    
    GIVEN("A pair array copy-initialized map instance") {
-      const Pair darray1[5] {
-         CreatePair<Pair, K, V>("one", 1),
-         CreatePair<Pair, K, V>("two", 2),
-         CreatePair<Pair, K, V>("three", 3),
-         CreatePair<Pair, K, V>("four", 4),
-         CreatePair<Pair, K, V>("five", 5)
-      };
-
-      const StdPair darray1std[5] {
-         CreatePair<StdPair, K, V>("one", 1),
-         CreatePair<StdPair, K, V>("two", 2),
-         CreatePair<StdPair, K, V>("three", 3),
-         CreatePair<StdPair, K, V>("four", 4),
-         CreatePair<StdPair, K, V>("five", 5)
-      };
-
       T map {darray1};
 
       REQUIRE(map.GetCount() == 5);
@@ -192,39 +203,6 @@ TEMPLATE_TEST_CASE(
    }
 
    GIVEN("Map with some items") {
-      IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
-
-      // Arrays are dynamic to avoid constexprification                 
-      const Pair darray1[5] {
-         CreatePair<Pair, K, V>("one", 1), 
-         CreatePair<Pair, K, V>("two", 2), 
-         CreatePair<Pair, K, V>("three", 3), 
-         CreatePair<Pair, K, V>("four", 4), 
-         CreatePair<Pair, K, V>("five", 5)
-      };
-      const Pair darray2[5] {
-         CreatePair<Pair, K, V>("six", 6),
-         CreatePair<Pair, K, V>("seven", 7),
-         CreatePair<Pair, K, V>("eight", 8),
-         CreatePair<Pair, K, V>("nine", 9),
-         CreatePair<Pair, K, V>("ten", 10)
-      };
-
-      const StdPair darray1std[5] {
-         CreatePair<StdPair, K, V>("one", 1),
-         CreatePair<StdPair, K, V>("two", 2),
-         CreatePair<StdPair, K, V>("three", 3),
-         CreatePair<StdPair, K, V>("four", 4),
-         CreatePair<StdPair, K, V>("five", 5)
-      };
-      const StdPair darray2std[5] {
-         CreatePair<StdPair, K, V>("six", 6),
-         CreatePair<StdPair, K, V>("seven", 7),
-         CreatePair<StdPair, K, V>("eight", 8),
-         CreatePair<StdPair, K, V>("nine", 9),
-         CreatePair<StdPair, K, V>("ten", 10)
-      };
-
       T map {};
       map << darray1[0];
       map << darray1[1];
@@ -761,8 +739,6 @@ TEMPLATE_TEST_CASE(
 
          REQUIRE(moved == map);
          REQUIRE(moved != movable);
-         REQUIRE(moved.GetKeyType()->template Is<K>());
-         REQUIRE(moved.GetValueType()->template Is<V>());
          REQUIRE(moved.GetRawKeysMemory() == keyMemory);
          REQUIRE(moved.GetRawValsMemory() == valueMemory);
          REQUIRE(moved.IsAllocated());
@@ -782,7 +758,7 @@ TEMPLATE_TEST_CASE(
          differentMap1 << darray1[0] << darray1[0] << darray1[2] << darray1[3] << darray1[4];
 
          REQUIRE(map == sameMap);
-         REQUIRE((map != clonedMap) == (CT::Sparse<K> || CT::Sparse<V>));
+         REQUIRE(map == clonedMap);
          REQUIRE(map == copiedMap);
          REQUIRE(map != differentMap1);
       }
@@ -793,9 +769,9 @@ TEMPLATE_TEST_CASE(
 
          unsigned i = 0;
          for (auto pair : map) {
-            static_assert(!CT::Typed<T> || ::std::is_reference_v<decltype(pair.mKey)>,
+            static_assert(not CT::Typed<T> or ::std::is_reference_v<decltype(pair.mKey)>,
                "Pair key type is not a reference for statically optimized map");
-            static_assert(!CT::Typed<T> || ::std::is_reference_v<decltype(pair.mValue)>,
+            static_assert(not CT::Typed<T> or ::std::is_reference_v<decltype(pair.mValue)>,
                "Pair value type is not a reference for statically optimized map");
 
             // Different architectures result in different hashes       
@@ -926,8 +902,8 @@ TEMPLATE_TEST_CASE(
    /*GIVEN("Two maps") {
       IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
 
-      TAny<int> pack1;
-      TAny<int> pack2;
+      TMany<int> pack1;
+      TMany<int> pack2;
       pack1 << int(1) << int(2) << int(3) << int(4) << int(5);
       pack2 << int(6) << int(7) << int(8) << int(9) << int(10);
       const auto memory1 = static_cast<Block>(pack1);

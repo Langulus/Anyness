@@ -7,7 +7,7 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #pragma once
-#include "Any.hpp"
+#include "Many.hpp"
 
 
 namespace Langulus::CT
@@ -15,10 +15,10 @@ namespace Langulus::CT
    namespace Inner
    {
 
-      /// Test whether a TAny is constructible with the given arguments       
-      ///   @tparam T - the contained type in TAny<T>                         
+      /// Test whether a TMany is constructible with the given arguments      
+      ///   @tparam T - the contained type in TMany<T>                         
       ///   @tparam ...A - the arguments to test                              
-      ///   @return true if TAny<T> is constructible using {A...}             
+      ///   @return true if TMany<T> is constructible using {A...}             
       template<class T, class...A>
       consteval bool DeepMakable() noexcept {
          if constexpr (UnfoldMakableFrom<T, A...>) {
@@ -51,10 +51,10 @@ namespace Langulus::CT
          else return false;
       };
       
-      /// Test whether a TAny is assignable with the given argument           
-      ///   @tparam T - the contained type in TAny<T>                         
+      /// Test whether a TMany is assignable with the given argument          
+      ///   @tparam T - the contained type in TMany<T>                         
       ///   @tparam A - the argument to test                                  
-      ///   @return true if TAny<T> is assignable using = A                   
+      ///   @return true if TMany<T> is assignable using = A                  
       template<class T, class A>
       consteval bool DeepAssignable() noexcept {
          if constexpr (UnfoldMakableFrom<T, A>) {
@@ -101,21 +101,21 @@ namespace Langulus::Anyness
 {
    
    ///                                                                        
-   ///   TAny                                                                 
+   ///   TMany                                                                
    ///                                                                        
-   ///   Unlike Any, this one is statically optimized to perform faster, due  
+   ///   Unlike Many, this one is statically optimized to perform faster, due 
    /// to not being type-erased. In that sense, this container is equivalent  
    /// to std::vector.                                                        
-   ///   Don't forget that all Any containers are binary-compatible with each 
-   /// other, so after you've asserted, that an Any is of a specific type,    
+   ///   Don't forget that all Many containers are binary-compatible with each
+   /// other, so after you've asserted, that a Many is of a specific type,    
    /// (by checking result of doing something like pack.IsExact<my type>())   
-   /// you can then directly reinterpret_cast that Any to an equivalent       
-   /// TAny<of the type you checked for>, essentially converting your         
+   /// you can then directly reinterpret_cast that Many to an equivalent      
+   /// TMany<of the type you checked for>, essentially converting your        
    /// type-erased container to a statically-optimized equivalent. Anyness    
    /// provides a strong guarantee that this operation is completely safe.    
    ///                                                                        
    template<CT::Data T>
-   class TAny : public Any {
+   class TMany : public Many {
       static_assert(CT::Complete<T>,
          "Contained type must be complete");
       static_assert(CT::Insertable<T>,
@@ -128,34 +128,34 @@ namespace Langulus::Anyness
       LANGULUS(DEEP) true;
       LANGULUS(POD) false;
       LANGULUS(TYPED) T;
-      LANGULUS_BASES(Any);
+      LANGULUS_BASES(Many);
 
       ///                                                                     
       ///   Construction                                                      
       ///                                                                     
-      constexpr TAny();
-      TAny(const TAny&);
-      TAny(TAny&&) noexcept;
+      constexpr TMany();
+      TMany(const TMany&);
+      TMany(TMany&&) noexcept;
 
       template<class T1, class...TN>
       requires CT::DeepMakable<T, T1, TN...>
-      TAny(T1&&, TN&&...);
+      TMany(T1&&, TN&&...);
 
-      ~TAny();
+      ~TMany();
 
-      NOD() static TAny From(auto&&, Count = 1);
+      NOD() static TMany From(auto&&, Count = 1);
 
       template<CT::Data...LIST_T>
-      NOD() static TAny Wrap(LIST_T&&...);
+      NOD() static TMany Wrap(LIST_T&&...);
 
       ///                                                                     
       ///   Assignment                                                        
       ///                                                                     
-      TAny& operator = (const TAny&);
-      TAny& operator = (TAny&&);
+      TMany& operator = (const TMany&);
+      TMany& operator = (TMany&&);
 
       template<class T1> requires CT::DeepAssignable<T, T1>
-      TAny& operator = (T1&&);
+      TMany& operator = (T1&&);
 
       ///                                                                     
       ///   Capsulation                                                       
@@ -185,33 +185,33 @@ namespace Langulus::Anyness
       NOD() constexpr bool IsInsertable() const noexcept;
 
    protected: IF_LANGULUS_TESTING(public:)
-      template<class THIS = TAny<T>>
+      template<class THIS = TMany<T>>
       NOD() constexpr auto GetRaw() noexcept;
-      template<class THIS = TAny<T>>
+      template<class THIS = TMany<T>>
       NOD() constexpr auto GetRaw() const noexcept;
-      template<class THIS = TAny<T>>
+      template<class THIS = TMany<T>>
       NOD() constexpr auto GetRawEnd() const noexcept;
 
-      template<class = TAny<T>> NOD() IF_UNSAFE(constexpr)
+      template<class = TMany<T>> NOD() IF_UNSAFE(constexpr)
       auto GetRawSparse()       IF_UNSAFE(noexcept);
-      template<class = TAny<T>> NOD() IF_UNSAFE(constexpr)
+      template<class = TMany<T>> NOD() IF_UNSAFE(constexpr)
       auto GetRawSparse() const IF_UNSAFE(noexcept);
 
-      template<CT::Data T1, class = TAny<T>>
+      template<CT::Data T1, class = TMany<T>>
       NOD() T1*       GetRawAs() noexcept;
-      template<CT::Data T1, class = TAny<T>>
+      template<CT::Data T1, class = TMany<T>>
       NOD() T1 const* GetRawAs() const noexcept;
-      template<CT::Data T1, class = TAny<T>>
+      template<CT::Data T1, class = TMany<T>>
       NOD() T1 const* GetRawEndAs() const noexcept;
 
-      template<CT::Data T1, class = TAny<T>>
+      template<CT::Data T1, class = TMany<T>>
       NOD() T1**             GetRawSparseAs()       IF_UNSAFE(noexcept);
-      template<CT::Data T1, class = TAny<T>>
+      template<CT::Data T1, class = TMany<T>>
       NOD() T1 const* const* GetRawSparseAs() const IF_UNSAFE(noexcept);
 
-      template<class = TAny<T>>
+      template<class = TMany<T>>
       NOD() const Allocation* const* GetEntries() const IF_UNSAFE(noexcept);
-      template<class = TAny<T>>
+      template<class = TMany<T>>
       NOD() const Allocation**       GetEntries()       IF_UNSAFE(noexcept);
 
    public:
@@ -229,8 +229,8 @@ namespace Langulus::Anyness
       NOD() const T& operator [] (CT::Index auto) const;
       NOD()       T& operator [] (CT::Index auto);
 
-      NOD() TAny Crop(Offset, Count) const;
-      NOD() TAny Crop(Offset, Count);
+      NOD() TMany Crop(Offset, Count) const;
+      NOD() TMany Crop(Offset, Count);
 
       template<CT::Data>
       NOD() decltype(auto) As(CT::Index auto);
@@ -248,14 +248,15 @@ namespace Langulus::Anyness
       }
 
    protected: IF_LANGULUS_TESTING(public:)
-      NOD() Handle<T> GetHandle(Offset) const IF_UNSAFE(noexcept);
+      NOD() Handle<T> GetHandle(Offset) IF_UNSAFE(noexcept);
+      NOD() Handle<const T> GetHandle(Offset) const IF_UNSAFE(noexcept);
 
    public:
       ///                                                                     
       ///   Iteration                                                         
       ///                                                                     
-      using Iterator      = Block::Iterator<TAny>;
-      using ConstIterator = Block::Iterator<const TAny>;
+      using Iterator      = Block::Iterator<TMany>;
+      using ConstIterator = Block::Iterator<const TMany>;
 
       NOD() Iterator begin() noexcept;
       NOD() Iterator last() noexcept;
@@ -305,7 +306,7 @@ namespace Langulus::Anyness
       template<CT::Block B>
       NOD() B ReinterpretAs(const B&) const;
       template<CT::Data T1>
-      NOD() TAny<T1> ReinterpretAs() const;
+      NOD() TMany<T1> ReinterpretAs() const;
 
       NOD() Block GetMember(const RTTI::Member&, CT::Index auto);
       NOD() Block GetMember(const RTTI::Member&, CT::Index auto) const;
@@ -313,10 +314,9 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Comparison                                                        
       ///                                                                     
-      template<CT::NotSemantic T1>
-      requires (CT::UntypedBlock<T1>
-            or (CT::TypedBlock<T1> and CT::Comparable<T, TypeOf<T1>>)
-            or CT::Comparable<T, T1>)
+      template<CT::NotSemantic T1> requires (not CT::Block<T1> and CT::Comparable<T, T1> and CT::NotOwned<T1>)
+      bool operator == (const T1&) const;
+      template<CT::NotSemantic T1> requires (CT::UntypedBlock<T1> or (CT::TypedBlock<T1> and CT::Comparable<T, TypeOf<T1>>))
       bool operator == (const T1&) const;
 
       template<bool RESOLVE = true>
@@ -366,7 +366,7 @@ namespace Langulus::Anyness
       requires CT::UnfoldMakableFrom<T, T1, TN...>
       Count Insert(CT::Index auto, T1&&, TN&&...);
 
-      template<class FORCE = Any, bool MOVE_ASIDE = true, class T1>
+      template<class FORCE = Many, bool MOVE_ASIDE = true, class T1>
       requires CT::Block<Desem<T1>>
       Count InsertBlock(CT::Index auto, T1&&);
 
@@ -374,7 +374,7 @@ namespace Langulus::Anyness
       requires CT::UnfoldMakableFrom<T, T1, TN...>
       Count Merge(CT::Index auto, T1&&, TN&&...);
 
-      template<class FORCE = Any, bool MOVE_ASIDE = true, class T1>
+      template<class FORCE = Many, bool MOVE_ASIDE = true, class T1>
       requires CT::Block<Desem<T1>>
       Count MergeBlock(CT::Index auto, T1&&);
    
@@ -389,7 +389,7 @@ namespace Langulus::Anyness
       Count New(Count = 1) requires CT::Defaultable<T>;
 
       template<CT::Deep T1, bool TRANSFER_OR = true>
-      requires CT::CanBeDeepened<T1, TAny>
+      requires CT::CanBeDeepened<T1, TMany>
       T1& Deepen();
 
       void Null(Count);
@@ -397,19 +397,19 @@ namespace Langulus::Anyness
       template<class A> requires CT::AssignableFrom<T, A>
       void Fill(A&&);
 
-      NOD() TAny<T> Extend(Count);
+      NOD() TMany<T> Extend(Count);
 
       template<class T1> requires CT::UnfoldMakableFrom<T, T1>
-      TAny& operator << (T1&&);
+      TMany& operator << (T1&&);
 
       template<class T1> requires CT::UnfoldMakableFrom<T, T1>
-      TAny& operator >> (T1&&);
+      TMany& operator >> (T1&&);
 
       template<class T1> requires CT::UnfoldMakableFrom<T, T1>
-      TAny& operator <<= (T1&&);
+      TMany& operator <<= (T1&&);
 
       template<class T1> requires CT::UnfoldMakableFrom<T, T1>
-      TAny& operator >>= (T1&&);
+      TMany& operator >>= (T1&&);
 
       ///                                                                     
       ///   Removal                                                           
@@ -429,28 +429,28 @@ namespace Langulus::Anyness
       ///   Concatenation                                                     
       ///                                                                     
       template<class T1> requires CT::DeepMakable<T, T1>
-      NOD() TAny operator + (T1&&) const;
+      NOD() TMany operator + (T1&&) const;
 
       template<class T1> requires CT::DeepMakable<T, T1>
-      TAny& operator += (T1&&);
+      TMany& operator += (T1&&);
 
    private:
       /// Services graveyard - disallowed interface for typed containers      
-      using Any::FromMeta;
-      using Any::FromBlock;
-      using Any::FromState;
-      using Any::From;
-      using Any::Wrap;
-      using Any::SetType;
-      using Any::MakeTypeConstrained;
-      using Any::GetResolved;
-      using Any::GetDense;
-      using Any::GetBlockDeep;
+      using Many::FromMeta;
+      using Many::FromBlock;
+      using Many::FromState;
+      using Many::From;
+      using Many::Wrap;
+      using Many::SetType;
+      using Many::MakeTypeConstrained;
+      using Many::GetResolved;
+      using Many::GetDense;
+      using Many::GetBlockDeep;
    };
 
 
    /// Deduction guides                                                       
    template<CT::Data T>
-   TAny(T&&) -> TAny<T>;
+   TMany(T&&) -> TMany<T>;
 
 } // namespace Langulus::Anyness

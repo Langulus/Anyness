@@ -22,46 +22,46 @@ TEMPLATE_TEST_CASE(
    (TypePair<TUnorderedSet<int*>, int*>),
    (TypePair<TUnorderedSet<Trait*>, Trait*>),
    (TypePair<TUnorderedSet<Traits::Count*>, Traits::Count*>),
-   (TypePair<TUnorderedSet<Any*>, Any*>),
+   (TypePair<TUnorderedSet<Many*>, Many*>),
    (TypePair<TUnorderedSet<RT*>, RT*>),
 
    (TypePair<TOrderedSet<int*>, int*>),
    (TypePair<TOrderedSet<Trait*>, Trait*>),
    (TypePair<TOrderedSet<Traits::Count*>, Traits::Count*>),
-   (TypePair<TOrderedSet<Any*>, Any*>),
+   (TypePair<TOrderedSet<Many*>, Many*>),
    (TypePair<TOrderedSet<RT*>, RT*>),
 
    (TypePair<UnorderedSet, int*>),
    (TypePair<UnorderedSet, Trait*>),
    (TypePair<UnorderedSet, Traits::Count*>),
-   (TypePair<UnorderedSet, Any*>),
+   (TypePair<UnorderedSet, Many*>),
    (TypePair<UnorderedSet, RT*>),
 
    (TypePair<OrderedSet, int*>),
    (TypePair<OrderedSet, Trait*>),
    (TypePair<OrderedSet, Traits::Count*>),
-   (TypePair<OrderedSet, Any*>),
+   (TypePair<OrderedSet, Many*>),
    (TypePair<OrderedSet, RT*>),
 
    (TypePair<TUnorderedSet<int>, int>),
    (TypePair<TUnorderedSet<Trait>, Trait>),
    (TypePair<TUnorderedSet<Traits::Count>, Traits::Count>),
-   (TypePair<TUnorderedSet<Any>, Any>),
+   (TypePair<TUnorderedSet<Many>, Many>),
 
    (TypePair<TOrderedSet<int>, int>),
    (TypePair<TOrderedSet<Trait>, Trait>),
    (TypePair<TOrderedSet<Traits::Count>, Traits::Count>),
-   (TypePair<TOrderedSet<Any>, Any>),
+   (TypePair<TOrderedSet<Many>, Many>),
 
    (TypePair<UnorderedSet, int>),
    (TypePair<UnorderedSet, Trait>),
    (TypePair<UnorderedSet, Traits::Count>),
-   (TypePair<UnorderedSet, Any>),
+   (TypePair<UnorderedSet, Many>),
 
    (TypePair<OrderedSet, int>),
    (TypePair<OrderedSet, Trait>),
    (TypePair<OrderedSet, Traits::Count>),
-   (TypePair<OrderedSet, Any>)
+   (TypePair<OrderedSet, Many>)
 ) {
    static Allocator::State memoryState;
 

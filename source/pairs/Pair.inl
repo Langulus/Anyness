@@ -17,8 +17,8 @@ namespace Langulus::Anyness
    ///   @param other - the pair to construct with                            
    template<class P> requires CT::Pair<Desem<P>> LANGULUS(INLINED)
    Pair::Pair(P&& other)
-      : mKey   {SemanticOf<decltype(other)> {DesemCast(other).mKey}}
-      , mValue {SemanticOf<decltype(other)> {DesemCast(other).mValue}} {}
+      : mKey   {SemanticOf<decltype(other)>::Nest(DesemCast(other).mKey)}
+      , mValue {SemanticOf<decltype(other)>::Nest(DesemCast(other).mValue)} {}
 
    /// Construct pair manually                                                
    ///   @param key - the key                                                 
@@ -26,15 +26,16 @@ namespace Langulus::Anyness
    template<class K, class V>
    requires CT::UnfoldInsertable<K, V> LANGULUS(INLINED)
    Pair::Pair(K&& key, V&& val)
-      : mKey   {Forward<decltype(key)>(key)}
-      , mValue {Forward<decltype(val)>(val)} {}
+      : mKey   {Forward<K>(key)}
+      , mValue {Forward<V>(val)} {}
 
    /// Assign any kind of pair                                                
    ///   @param rhs - the pair to assign                                      
    template<class P> requires CT::Pair<Desem<P>> LANGULUS(INLINED)
    Pair& Pair::operator = (P&& rhs) {
-      mKey   = SemanticOf<decltype(rhs)> {DesemCast(rhs).mKey};
-      mValue = SemanticOf<decltype(rhs)> {DesemCast(rhs).mValue};
+      using S = SemanticOf<decltype(rhs)>;
+      mKey   = S::Nest(DesemCast(rhs).mKey);
+      mValue = S::Nest(DesemCast(rhs).mValue);
       return *this;
    }
 
@@ -46,18 +47,47 @@ namespace Langulus::Anyness
       return HashOf(mKey, mValue);
    }
 
-   /// Get the type of the contained key                                      
-   ///   @return the key type                                                 
+   /// Get the contained key                                                  
+   ///   @return a reference to the contained key                             
    LANGULUS(INLINED)
-   DMeta Pair::GetKeyType() const noexcept {
-      return mKey.GetType();
+   Many const& Pair::GetKey() const noexcept {
+      return mKey;
    }
 
-   /// Get the type of the contained value                                    
-   ///   @return the value type                                               
    LANGULUS(INLINED)
-   DMeta Pair::GetValueType() const noexcept {
-      return mValue.GetType();
+   Many& Pair::GetKey() noexcept {
+      return mKey;
+   }
+
+   /// Get the contained value                                                
+   ///   @return a reference to the contained key                             
+   LANGULUS(INLINED)
+   Many const& Pair::GetValue() const noexcept {
+      return mValue;
+   }
+
+   LANGULUS(INLINED)
+   Many& Pair::GetValue() noexcept {
+      return mValue;
+   }
+
+   LANGULUS(INLINED)
+   bool Pair::operator == (CT::Pair auto const& rhs) const {
+      return mKey == rhs.mKey and mValue == rhs.mValue;
+   }
+
+   /// Clear anything contained, but don't release memory                     
+   LANGULUS(INLINED)
+   void Pair::Clear() {
+      mKey.Clear();
+      mValue.Clear();
+   }
+
+   /// Clear and release memory                                               
+   LANGULUS(INLINED)
+   void Pair::Reset() {
+      mKey.Reset();
+      mValue.Reset();
    }
 
 } // namespace Langulus::Anyness

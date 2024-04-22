@@ -21,13 +21,13 @@ namespace Langulus::Anyness
    ///   @param other - the trait to refer to                                 
    TEMPLATE() LANGULUS(INLINED)
    TME()::TTrait(const TTrait& other)
-      : Trait {Refer(static_cast<const Any&>(other))} {}
+      : Trait {Refer(static_cast<const Many&>(other))} {}
 
    /// Move-constructor                                                       
    ///   @param other - the trait to move                                     
    TEMPLATE() LANGULUS(INLINED)
    TME()::TTrait(TTrait&& other)
-      : Trait {Move(Forward<Any>(other))} {}
+      : Trait {Move(Forward<Many>(other))} {}
 
    /// Never absorb different traits, if known at compile-time                
    ///   @param other - the trait to semantically construct with              
@@ -41,7 +41,7 @@ namespace Langulus::Anyness
    ///   @param rhs - the trait to refer-assign                               
    TEMPLATE() LANGULUS(INLINED)
    TRAIT& TME()::operator = (const TTrait& rhs) {
-      Trait::operator = (Refer(static_cast<const Any&>(rhs)));
+      Trait::operator = (Refer(static_cast<const Many&>(rhs)));
       return static_cast<TRAIT&>(*this);
    }
 
@@ -49,7 +49,7 @@ namespace Langulus::Anyness
    ///   @param rhs - the trait to move-assign                                
    TEMPLATE() LANGULUS(INLINED)
    TRAIT& TME()::operator = (TTrait&& rhs) {
-      Trait::operator = (Move(Forward<Any>(rhs)));
+      Trait::operator = (Move(Forward<Many>(rhs)));
       return static_cast<TRAIT&>(*this);
    }
    
@@ -68,12 +68,12 @@ namespace Langulus::Anyness
             Block::Reset();
             *this << SemanticOf<decltype(rhs)>::Nest(rhs);
          }
-         else Any::operator = (S::Nest(rhs).template Forward<Any>());
+         else Many::operator = (S::Nest(rhs).template Forward<Many>());
       }
       else if constexpr (CT::TraitBased<T> or CT::Deep<T>)
-         Any::operator = (S::Nest(rhs).template Forward<Any>());
+         Many::operator = (S::Nest(rhs).template Forward<Many>());
       else
-         Any::operator = (S::Nest(rhs));
+         Many::operator = (S::Nest(rhs));
       return static_cast<TRAIT&>(*this);
    }
 
@@ -139,8 +139,8 @@ namespace Langulus::Anyness
    ///      otherwise function resolution doesn't work properly on MSVC       
    ///   @param other - the thing to compare with                             
    ///   @return true if things are the same                                  
-   TEMPLATE() LANGULUS(INLINED)
-   bool TME()::operator == (const CT::NotSemantic auto& rhs) const {
+   TEMPLATE() template<CT::NotSemantic T> requires CT::NotOwned<T> LANGULUS(INLINED)
+   bool TME()::operator == (const T& rhs) const {
       return Trait::operator == <TRAIT> (rhs);
    }
 

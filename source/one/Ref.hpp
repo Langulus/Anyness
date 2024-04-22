@@ -17,7 +17,7 @@ namespace Langulus::Anyness
    ///   A shared pointer                                                     
    ///                                                                        
    ///   Provides ownership for a single pointer. Also, for single-element    
-   /// containment, it is a lot more efficient than TAny. So, essentially     
+   /// containment, it is a lot more efficient than TMany. So, essentially    
    /// it's equivalent to std::shared_ptr                                     
    ///                                                                        
    template<class T>
@@ -68,7 +68,8 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Capsulation                                                       
       ///                                                                     
-      NOD() auto GetHandle() const;
+      NOD() Handle<T* const> GetHandle() const;
+      NOD() Handle<T*> GetHandle();
       NOD() constexpr bool HasAuthority() const noexcept;
       NOD() constexpr Count GetUses() const noexcept;
       
@@ -76,7 +77,7 @@ namespace Langulus::Anyness
       using Base::operator ->;
       using Base::operator *;
 
-      /// Makes Own CT::Resolvable                                            
+      /// Makes Ref CT::Resolvable                                            
       NOD() Block GetBlock() const;
 
       ///                                                                     

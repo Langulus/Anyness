@@ -71,25 +71,98 @@ namespace Langulus::Anyness
       return HashOf(mKey, mValue);
    }
 
-   /// Get the type of the contained key                                      
-   ///   @return the key type                                                 
-   TEMPLATE() LANGULUS(INLINED)
-   DMeta PAIR()::GetKeyType() const noexcept {
-      return MetaDataOf<K>();
-   }
-
-   /// Get the type of the contained value                                    
-   ///   @return the value type                                               
-   TEMPLATE() LANGULUS(INLINED)
-   DMeta PAIR()::GetValueType() const noexcept {
-      return MetaDataOf<V>();
-   }
-
    /// Implicit cast to constant pair                                         
    TEMPLATE() LANGULUS(INLINED)
    PAIR()::operator TPair<const Deref<K>&, const Deref<V>&>() const noexcept
    requires CT::Reference<K, V> {
       return {mKey, mValue};
+   }
+
+   /// Get contained key                                                      
+   TEMPLATE() LANGULUS(INLINED)
+   Block PAIR()::GetKey() noexcept {
+      if constexpr (CT::Reference<K> or CT::Dense<K>) {
+         return Block {
+            DataState::Member,
+            MetaDataOf<Deref<K>>(), 1,
+            &mKey
+         };
+      }
+      else return mKey.GetBlock();
+   }
+   
+   TEMPLATE() LANGULUS(INLINED)
+   Block PAIR()::GetKey() const noexcept {
+      auto block = const_cast<PAIR()*>(this)->GetKey();
+      block.MakeConst();
+      return block;
+   }
+
+   /// Get contained value                                                    
+   TEMPLATE() LANGULUS(INLINED)
+   Block PAIR()::GetValue() noexcept {
+      if constexpr (CT::Reference<V> or CT::Dense<K>) {
+         return Block {
+            DataState::Member,
+            MetaDataOf<Deref<V>>(), 1,
+            &mValue
+         };
+      }
+      else return mValue.GetBlock();
+   }
+
+   TEMPLATE() LANGULUS(INLINED)
+   Block PAIR()::GetValue() const noexcept {
+      auto block = const_cast<PAIR()*>(this)->GetValue();
+      block.MakeConst();
+      return block;
+   }
+
+   TEMPLATE() LANGULUS(INLINED)
+   Handle<K> PAIR()::GetKeyHandle() {
+      if constexpr (CT::Sparse<K> and not CT::Reference<K>)
+         return mKey.GetHandle();
+      else
+         return {mKey};
+   }
+
+   TEMPLATE() LANGULUS(INLINED)
+   Handle<V> PAIR()::GetValueHandle() {
+      if constexpr (CT::Sparse<V> and not CT::Reference<V>)
+         return mValue.GetHandle();
+      else
+         return {mValue};
+   }
+   
+   TEMPLATE() LANGULUS(INLINED)
+   Handle<const K> PAIR()::GetKeyHandle() const {
+      if constexpr (CT::Sparse<K> and not CT::Reference<K>)
+         return mKey.GetHandle();
+      else
+         return {mKey};
+   }
+
+   TEMPLATE() LANGULUS(INLINED)
+   Handle<const V> PAIR()::GetValueHandle() const {
+      if constexpr (CT::Sparse<V> and not CT::Reference<V>)
+         return mValue.GetHandle();
+      else
+         return {mValue};
+   }
+
+   /// Clear anything contained, but don't release memory                     
+   TEMPLATE() LANGULUS(INLINED)
+   void PAIR()::Clear() {
+      if constexpr (CT::Sparse<K> and not CT::Reference<K>)
+         mKey.Reset();
+      if constexpr (CT::Sparse<V> and not CT::Reference<V>)
+         mValue.Reset();
+   }
+
+   /// Clear and release memory                                               
+   TEMPLATE() LANGULUS(INLINED)
+   void PAIR()::Reset() {
+      Clear();
    }
 
 } // namespace Langulus::Anyness

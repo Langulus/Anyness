@@ -7,7 +7,7 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #pragma once
-#include "../many/Any.hpp"
+#include "../many/Many.hpp"
 
 
 namespace Langulus
@@ -41,14 +41,19 @@ namespace Langulus
    namespace Anyness
    {
 
-      ///                                                                     
-      ///   Type-erased pair                                                  
-      ///                                                                     
+      ///                                                                        
+      ///   A helper structure for pairing keys and values of any type           
+      ///                                                                        
+      ///   This is the type-erased pair, and it can contain dense or sparse     
+      /// values.                                                                
+      ///   @attention Pair is not binary-compatible with its statically typed   
+      ///      counterpart TPair                                                 
+      ///                                                                        
       struct Pair : A::Pair {
          LANGULUS_ABSTRACT() false;
 
-         Any mKey;
-         Any mValue;
+         Many mKey;
+         Many mValue;
 
          ///                                                                  
          ///   Construction & Assignment                                      
@@ -71,14 +76,23 @@ namespace Langulus
          ///                                                                  
          ///   Capsulation                                                    
          ///                                                                  
-         NOD() Hash  GetHash() const;
-         NOD() DMeta GetKeyType() const noexcept;
-         NOD() DMeta GetValueType() const noexcept;
+         NOD() Hash GetHash() const;
+
+         Many const& GetKey() const noexcept;
+         Many&       GetKey() noexcept;
+         Many const& GetValue() const noexcept;
+         Many&       GetValue() noexcept;
 
          ///                                                                  
          ///   Comparison                                                     
          ///                                                                  
          bool operator == (CT::Pair auto const&) const;
+
+         ///                                                                  
+         ///   Removal                                                        
+         ///                                                                  
+         void Clear();
+         void Reset();
       };
 
    } // namespace Langulus::Anyness

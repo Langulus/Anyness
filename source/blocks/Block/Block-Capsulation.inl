@@ -588,7 +588,7 @@ namespace Langulus::Anyness
 
    /// Make memory block type-constrained                                     
    /// Doesn't allow insertion of data types that differ from the contained   
-   /// one. Disallows any type mutations. Used extensively by TAny and other  
+   /// one. Disallows any type mutations. Used extensively by TMany and other 
    /// statically typed Block equivalents.                                    
    ///   @param enable - whether to enable or disable the typed state         
    LANGULUS(INLINED)

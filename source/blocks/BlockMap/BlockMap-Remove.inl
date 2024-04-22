@@ -76,10 +76,19 @@ namespace Langulus::Anyness
             return removed;
          }
       }
-      else if (IsKeySimilar<THIS, K>()
-      or (CT::Typed<THIS> and CT::Comparable<typename THIS::Key, K>)) {
-         // Remove a single key                                         
-         return RemoveKeyInner<THIS>(key);
+      else {
+         if (IsKeySimilar<THIS, K>()
+         or (CT::Typed<THIS> and CT::Comparable<typename THIS::Key, K>)) {
+            // Remove a single key                                      
+            return RemoveKeyInner<THIS>(key);
+         }
+         else if constexpr (CT::Owned<K>) {
+            if (IsKeySimilar<THIS, TypeOf<K>>()
+            or (CT::Typed<THIS> and CT::Comparable<typename THIS::Key, TypeOf<K>>)) {
+               // Remove a single key                                      
+               return RemoveKeyInner<THIS>(key.Get());
+            }
+         }
       }
       return 0;
    }
@@ -129,6 +138,10 @@ namespace Langulus::Anyness
                removed += RemoveValInner<THIS>(value);
             return removed;
          }
+      }
+      else if constexpr (CT::Owned<V> or CT::Handle<V>) {
+         // Remove a single value                                       
+         return RemoveValInner<THIS>(value.Get());
       }
       else if (IsValueSimilar<THIS, V>()
       or (CT::Typed<THIS> and CT::Comparable<typename THIS::Value, V>)) {

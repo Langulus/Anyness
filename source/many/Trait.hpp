@@ -7,7 +7,8 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #pragma once
-#include "Any.hpp"
+#include "Many.hpp"
+#include "../one/Own.hpp"
 
 
 namespace Langulus
@@ -19,10 +20,10 @@ namespace Langulus
       /// An abstract Trait structure                                         
       /// It defines the size for CT::Trait and CT::TraitBased concepts       
       ///                                                                     
-      struct Trait : Anyness::Any {
+      struct Trait : Anyness::Many {
          LANGULUS(ABSTRACT) true;
          LANGULUS(DEEP) false;
-         LANGULUS_BASES(Any);
+         LANGULUS_BASES(Many);
 
       protected:
          mutable TMeta mTraitType {};
@@ -118,8 +119,8 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Compare                                                           
       ///                                                                     
-      template<CT::TraitBased = Trait>
-      NOD() bool operator == (const CT::NotSemantic auto&) const;
+      template<CT::TraitBased = Trait, CT::NotSemantic T> requires CT::NotOwned<T>
+      NOD() bool operator == (const T&) const;
 
       ///                                                                     
       ///   Concatenation                                                     

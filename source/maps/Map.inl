@@ -44,8 +44,8 @@ namespace Langulus::Anyness
    ///   @param t1 - first pair (can be semantic)                             
    ///   @param tn... - the rest of the pairs (optional, can be semantic)     
    TEMPLATE() template<class T1, class...TN>
-   requires CT::UnfoldInsertable<T1, TN...>
-   LANGULUS(INLINED) TABLE()::Map(T1&& t1, TN&&...tn) {
+   requires CT::UnfoldInsertable<T1, TN...> LANGULUS(INLINED)
+   TABLE()::Map(T1&& t1, TN&&...tn) {
       if constexpr (sizeof...(TN) == 0) {
          using S = SemanticOf<decltype(t1)>;
          using T = TypeOf<S>;

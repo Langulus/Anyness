@@ -14,18 +14,17 @@ namespace Langulus::Anyness
 {
    
    ///                                                                        
-   ///   Any                                                                  
+   ///   Many                                                                 
    ///                                                                        
-   ///   More of an equivalent to std::vector, instead of std::any, since     
-   /// it can contain any number of similarly-typed type-erased elements.     
-   /// It gracefully wraps sparse and dense arrays, keeping track of static   
-   /// and constant data blocks.                                              
-   ///   For a faster statically-optimized equivalent of this, use TAny       
+   ///   Equivalent to an std::vector - it can contain any number of          
+   /// similarly-typed type-erased elements. It gracefully wraps sparse and   
+   /// dense arrays, keeping track of static and constant data blocks.        
+   ///   For a faster statically-optimized equivalent of this, use TMany      
    ///   You can always ReinterpretAs a statically optimized equivalent for   
-   /// the cost of one runtime type check, because all Any variants are       
+   /// the cost of one runtime type check, because all Many variants are      
    /// binary-compatible.                                                     
    ///                                                                        
-   class Any : public Block {
+   class Many : public Block {
       LANGULUS(POD) false;
       LANGULUS_BASES(Block);
 
@@ -48,38 +47,38 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Construction                                                      
       ///                                                                     
-      constexpr Any() noexcept = default;
-      Any(const Any&);
-      Any(Any&&) noexcept;
+      constexpr Many() noexcept = default;
+      Many(const Many&);
+      Many(Many&&) noexcept;
 
       template<class T1, class...TN>
       requires CT::UnfoldInsertable<T1, TN...>
-      Any(T1&&, TN&&...);
+      Many(T1&&, TN&&...);
 
-      ~Any();
+      ~Many();
 
-      NOD() static Any FromMeta(DMeta, DataState = {}) noexcept;
-      NOD() static Any FromBlock(const CT::Block auto&, DataState = {}) noexcept;
-      NOD() static Any FromState(const CT::Block auto&, DataState = {}) noexcept;
+      NOD() static Many FromMeta(DMeta, DataState = {}) noexcept;
+      NOD() static Many FromBlock(const CT::Block auto&, DataState = {}) noexcept;
+      NOD() static Many FromState(const CT::Block auto&, DataState = {}) noexcept;
       template<CT::Data T>
-      NOD() static Any From(DataState = {}) noexcept;
+      NOD() static Many From(DataState = {}) noexcept;
 
       ///                                                                     
       ///   Assignment                                                        
       ///                                                                     
-      Any& operator = (const Any&);
-      Any& operator = (Any&&) noexcept;
-      Any& operator = (CT::UnfoldInsertable auto&&);
+      Many& operator = (const Many&);
+      Many& operator = (Many&&) noexcept;
+      Many& operator = (CT::UnfoldInsertable auto&&);
 
    public:
-      NOD() Any Crop(Offset, Count) const;
-      NOD() Any Crop(Offset, Count);
+      NOD() Many Crop(Offset, Count) const;
+      NOD() Many Crop(Offset, Count);
 
       ///                                                                     
       ///   Iteration                                                         
       ///                                                                     
-      using Iterator = Block::Iterator<Any>;
-      using ConstIterator = Block::Iterator<const Any>;
+      using Iterator = Block::Iterator<Many>;
+      using ConstIterator = Block::Iterator<const Many>;
 
       template<bool REVERSE = false>
       Count ForEachElement(auto&&) const;
@@ -119,17 +118,17 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Insertion                                                         
       ///                                                                     
-      Any& operator <<  (CT::UnfoldInsertable auto&&);
-      Any& operator >>  (CT::UnfoldInsertable auto&&);
+      Many& operator <<  (CT::UnfoldInsertable auto&&);
+      Many& operator >>  (CT::UnfoldInsertable auto&&);
 
-      Any& operator <<= (CT::UnfoldInsertable auto&&);
-      Any& operator >>= (CT::UnfoldInsertable auto&&);
+      Many& operator <<= (CT::UnfoldInsertable auto&&);
+      Many& operator >>= (CT::UnfoldInsertable auto&&);
 
       ///                                                                     
       ///   Concatenation                                                     
       ///                                                                     
-      NOD() Any  operator +  (CT::UnfoldInsertable auto&&) const;
-            Any& operator += (CT::UnfoldInsertable auto&&);
+      NOD() Many  operator +  (CT::UnfoldInsertable auto&&) const;
+            Many& operator += (CT::UnfoldInsertable auto&&);
    };
 
 } // namespace Langulus::Anyness

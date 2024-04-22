@@ -11,7 +11,7 @@ Additionally, all containers utilize RTTI, managed memory, encryption (WIP), and
 
 Simple initialization:
 ```c++
-Any data = 42;                  // creates a flat container similar to TAny<int> {42}
+Any data = 42;                  // creates a flat container similar to TMany<int> {42}
 if (data == 42)   { /*true*/  }
 if (data == 5.0f) { /*false*/ }
 ```
@@ -21,23 +21,23 @@ Complex initialization:
 Thing object;
 Any data {42, 24, true, 5.0f, &object};
 // ^ creates a deep container similar to: 
-// TAny<Any> {
-//    TAny<int> {42}, 
-//    TAny<int> {24}, 
-//    TAny<bool> {true}, 
-//    TAny<float> {5.0f}, 
-//    TAny<Thing*> {&object}
+// TMany<Any> {
+//    TMany<int> {42}, 
+//    TMany<int> {24}, 
+//    TMany<bool> {true}, 
+//    TMany<float> {5.0f}, 
+//    TMany<Thing*> {&object}
 // }
 
-// To avoid TAny<int> suboptimal duplication, simply group the integers
+// To avoid TMany<int> suboptimal duplication, simply group the integers
 // When all elements of a list are exactly the same type, they're optimally packed
 Any data { Any {42, 24}, true, 5.0f, &object};
 // ^ creates a deep container similar to: 
-// TAny<Any> {
-//    TAny<int> {42, 24},
-//    TAny<bool> {true}, 
-//    TAny<float> {5.0f}, 
-//    TAny<Thing*> {&object}
+// TMany<Any> {
+//    TMany<int> {42, 24},
+//    TMany<bool> {true}, 
+//    TMany<float> {5.0f}, 
+//    TMany<Thing*> {&object}
 // }
 ```
 
@@ -77,7 +77,7 @@ You can safely reinterpret a container to a statically optimized equivalent:
 ```c++
 Any integers {1, 2, 3};
 if (integers.Is<int>()) {
-   auto& optimized = reinterpret_cast<TAny<int>&>(integers);
+   auto& optimized = reinterpret_cast<TMany<int>&>(integers);
    // do stuff with the optimized container, for better performance
 }
 ```
@@ -93,7 +93,7 @@ for (auto it : integers) {  // it is a type-erased iterator, that turns to Anyne
 
 Index in various ways, each with advantages and disadvantages:
 ```c++
-TAny<int> integers {1, 2, 3};
+TMany<int> integers {1, 2, 3};
 if (integers[0u] == 1) { /*unsigned index is fastest, but most unsafe*/ }
 if (integers[-1] == 3) { /*signed indices allow for counting backwards*/ }
 if (integers[IndexMiddle] == 2) { /*special indices are most safe and convenient, but slowest*/ }
@@ -113,7 +113,7 @@ if (integers[IndexMax] == 3) { /*some of them are context-dependent, IndexMax re
 ## Development status
 For the most part, the library is complete, with the exception of a couple of optional features, and containers:
 1. Ordered maps and sets remain to be finished (50%)
-2. Containers such as linked lists are not even conceived yet (you can use sparse Any/TAny containers as an alternative at this point)
+2. Containers such as linked lists are not even conceived yet (you can use sparse Any/TMany containers as an alternative at this point)
 3. Thread safety patterns not decided yet, will probably use standard stuff
 4. The encryption feature is not implemented yet, library is not decided yet, may do it myself (optional feature)
 5. The compression feature is not implemented yet, it will use [zlib](https://github.com/madler/zlib), naturally (optional feature)
@@ -164,7 +164,7 @@ You can check examples and feature details by following the links (WIP)
 
 ### Block
  - **Block** - an intermediate container without ownership, that serves as base to all others
-   - Binary compatible with: `Any`, `TAny`, `Bytes`, `Text`, `Path`
+   - Binary compatible with: `Any`, `TMany`, `Bytes`, `Text`, `Path`
    - Status: ~90% complete, ~75% tested
    - Features:
      + Const-preserving - if you insert a constant pointer, that pointer remains constant throughout the container's lifetime
@@ -191,27 +191,27 @@ You can check examples and feature details by following the links (WIP)
      + Diff (WIP) - generate a difference container between two inputs
      + Small value optimization (WIP) - avoid heap allocation for small data
  - **Any** - analogous to `std::any`, but can contain an array of elements, similar to a type-erased `std::vector`
-   - Binary compatible with: `Block`, `TAny`, `Bytes`, `Text`, `Path`
+   - Binary compatible with: `Block`, `TMany`, `Bytes`, `Text`, `Path`
    - Status: ~90% complete, ~75% tested
    - Features:
      + Ownership
      + All the aforementioned features of a Block
- - **TAny** - templated equivalent to `Any`, analogous to `std::vector<T>`
+ - **TMany** - templated equivalent to `Any`, analogous to `std::vector<T>`
    - Binary compatible with: `Block`, `Any`, `Bytes`, `Text`, `Path`
    - Status: ~90% complete, ~75% tested
    - Features:
      + All `Any` features, but statically optimized for T
  - **Bytes** - raw byte container, with various raw byte manipulation services
-   - Binary compatible with: `Block`, `Any`, `TAny<Byte>`
+   - Binary compatible with: `Block`, `Any`, `TMany<Byte>`
    - Status: ~90% complete, ~75% tested
    - Features:
-     + All `TAny<Byte>` features, but statically optimized
+     + All `TMany<Byte>` features, but statically optimized
      + Specialized interface for raw byte sequence manipulation
  - **Text** - count-terminated text container, analogous to `std::string`, with various string manipulation services
-   - Binary compatible with: `Block`, `Any`, `TAny<Letter>`, `TAny<Byte>`, `Bytes`, `Path`
+   - Binary compatible with: `Block`, `Any`, `TMany<Letter>`, `TMany<Byte>`, `Bytes`, `Path`
    - Status: ~90% complete, ~75% tested
  - **Path** - a specialized `Text` container, with various file-system path manipulation services
-   - Binary compatible with: `Block`, `Any`, `TAny<Letter>`, `TAny<Byte>`, `Bytes`, `Text`
+   - Binary compatible with: `Block`, `Any`, `TMany<Letter>`, `TMany<Byte>`, `Bytes`, `Text`
    - Status: ~30% complete, not tested
 
 ***

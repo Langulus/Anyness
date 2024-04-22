@@ -20,9 +20,9 @@ namespace Langulus::Anyness
    /// Compare to any other kind of deep container, or single custom element  
    ///   @param rhs - element to compare against                              
    ///   @return true if containers match                                     
-   template<CT::Block THIS>
-   bool Block::operator == (const CT::NotSemantic auto& rhs) const {
-      if constexpr (CT::Deep<decltype(rhs)>)
+   template<CT::Block THIS, CT::NotSemantic T> requires CT::NotOwned<T>
+   LANGULUS(INLINED) bool Block::operator == (const T& rhs) const {
+      if constexpr (CT::Deep<T>)
          return Compare<true, THIS>(rhs) or CompareSingleValue<THIS>(rhs);
       else
          return CompareSingleValue<THIS>(rhs);
@@ -346,7 +346,7 @@ namespace Langulus::Anyness
          }
          else {
             // Hash each element, and then combine hashes in a final one
-            TAny<Hash> h;
+            TMany<Hash> h;
             h.Reserve(mCount);
             for (auto& element : reinterpret_cast<const THIS&>(*this))
                h << HashOf(element);
@@ -386,7 +386,7 @@ namespace Langulus::Anyness
          else if (mType->mHasher) {
             // Use the reflected hasher for each element, and then      
             // combine hashes for a final one                           
-            TAny<Hash> h;
+            TMany<Hash> h;
             h.Reserve(mCount);
             ForEachElement<false, THIS>([&](const Block& element) {
                h << mType->mHasher(element.mRaw);
@@ -513,17 +513,17 @@ namespace Langulus::Anyness
          }
 
          // If reached, types are comparable                            
-         auto lhs = REVERSE ? GetRawEnd<TAny<TL>>() - cookie - item.GetCount()
-                            : GetRaw<TAny<TL>>() + cookie;
+         auto lhs = REVERSE ? GetRawEnd<TMany<TL>>() - cookie - item.GetCount()
+                            : GetRaw<TMany<TL>>() + cookie;
          auto rhs = item.template GetRawAs<TR>();
-         const auto lhsEnd = REVERSE ? GetRaw<TAny<TL>>() - 1
-                                     : GetRawEnd<TAny<TL>>() - item.GetCount() + 1;
-         const auto rhsEnd = item.template GetRawEnd<TAny<TR>>();
-         UNUSED() const auto bytesize = item.Block::template GetBytesize<TAny<TL>>();
+         const auto lhsEnd = REVERSE ? GetRaw<TMany<TL>>() - 1
+                                     : GetRawEnd<TMany<TL>>() - item.GetCount() + 1;
+         const auto rhsEnd = item.template GetRawEnd<TMany<TR>>();
+         UNUSED() const auto bytesize = item.Block::template GetBytesize<TMany<TL>>();
          while (lhs != lhsEnd) {
             if (*lhs == *rhs) {
-               cookie = REVERSE ? GetRawEnd<TAny<TL>>() - lhs - 1
-                                : lhs - GetRaw<TAny<TL>>();
+               cookie = REVERSE ? GetRawEnd<TMany<TL>>() - lhs - 1
+                                : lhs - GetRaw<TMany<TL>>();
                ++lhs;
                ++rhs;
 
@@ -544,9 +544,9 @@ namespace Langulus::Anyness
                      return cookie;
                }
 
-               lhs = REVERSE ? GetRawEnd<TAny<TL>>() - cookie - 1
-                             : GetRaw<TAny<TL>>() + cookie;
-               rhs = item.template GetRaw<TAny<TR>>();
+               lhs = REVERSE ? GetRawEnd<TMany<TL>>() - cookie - 1
+                             : GetRaw<TMany<TL>>() + cookie;
+               rhs = item.template GetRaw<TMany<TR>>();
             }
 
             if constexpr (REVERSE)
@@ -754,7 +754,7 @@ namespace Langulus::Anyness
             });
             localOutput.MakeNow();
             const auto inserted = output.SmartPush(IndexBack, Abandon(localOutput));
-            localOutput.Free<Any>();
+            localOutput.Free<Many>();
             return inserted;
          }
 
@@ -773,11 +773,11 @@ namespace Langulus::Anyness
       GatherInner<REVERSE>(localOutput);
       localOutput.MakeNow();
       const auto inserted = output.InsertBlock(IndexBack, Abandon(localOutput));
-      localOutput.Free<Any>();
+      localOutput.Free<Many>();
       return inserted;
    }
    
-   /// Compare loosely with another TAny, ignoring case                       
+   /// Compare loosely with another TMany, ignoring case                      
    /// This function applies only if T is character                           
    ///   @param other - container to compare with                             
    ///   @return true if both containers match loosely                        

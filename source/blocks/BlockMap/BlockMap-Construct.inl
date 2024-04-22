@@ -263,7 +263,7 @@ namespace Langulus::Anyness
                // We're cloning pointers, which will inevitably end up  
                // pointing elsewhere, which means that all pairs must   
                // be rehashed and reinserted                            
-               using CK = TAny<Deptr<K>>;
+               using CK = TMany<Deptr<K>>;
                CK coalescedKeys;
                coalescedKeys.Reserve(asFrom->GetCount());
 
@@ -324,13 +324,13 @@ namespace Langulus::Anyness
                // We're cloning pointers, which will inevitably end up  
                // pointing elsewhere, which means that all elements must
                // be rehashed and reinserted                            
-               auto coalescedKeys = Any::FromMeta(asFrom->mKeys.mType->mDeptr);
+               auto coalescedKeys = Many::FromMeta(asFrom->mKeys.mType->mDeptr);
                coalescedKeys.Reserve(asFrom->GetCount());
 
                // Coalesce all densified elements, to avoid multiple    
                // allocations                                           
                for (auto item : *asFrom) {
-                  coalescedKeys.template InsertBlockInner<Any, void, false>(
+                  coalescedKeys.template InsertBlockInner<Many, void, false>(
                      IndexBack, SS::Nest(*item.mKey));
                }
 
@@ -387,7 +387,7 @@ namespace Langulus::Anyness
          }
          else {
             // Values are sparse, too - treat them the same             
-            using CV = TAny<Deptr<V>>;
+            using CV = TMany<Deptr<V>>;
             CV coalescedValues;
             coalescedValues.Reserve(asFrom->GetCount());
             for (auto item : *asFrom) {
@@ -444,10 +444,10 @@ namespace Langulus::Anyness
          }
          else {
             // Values are sparse, too - treat them the same             
-            auto coalescedValues = Any::FromMeta(asFrom->mValues.mType->mDeptr);
+            auto coalescedValues = Many::FromMeta(asFrom->mValues.mType->mDeptr);
             coalescedValues.Reserve(asFrom->GetCount());
             for (auto item : *asFrom) {
-               coalescedValues.template InsertBlockInner<Any, void, false>(
+               coalescedValues.template InsertBlockInner<Many, void, false>(
                   IndexBack, SS::Nest(*item.mValue));
             }
 
@@ -512,7 +512,7 @@ namespace Langulus::Anyness
          }
          else {
             // Values are sparse, too - treat them the same             
-            using CV = TAny<Deptr<V>>;
+            using CV = TMany<Deptr<V>>;
             CV coalescedValues;
             coalescedValues.Reserve(asFrom->GetCount());
             for (auto& item : *asFrom) {
@@ -566,10 +566,10 @@ namespace Langulus::Anyness
          }
          else {
             // Values are sparse, too - treat them the same             
-            auto coalescedValues = Any::FromMeta(asFrom->mValues.mType->mDeptr);
+            auto coalescedValues = Many::FromMeta(asFrom->mValues.mType->mDeptr);
             coalescedValues.Reserve(asFrom->GetCount());
             for (auto item : *asFrom) {
-               coalescedValues.template InsertBlockInner<Any, void, false>(
+               coalescedValues.template InsertBlockInner<Many, void, false>(
                   IndexBack, SS::Nest(*item.mValue));
             }
 
