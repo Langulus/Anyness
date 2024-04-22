@@ -18,8 +18,8 @@ namespace Langulus
       /// An abstract handle                                                  
       struct Handle {
          LANGULUS(ABSTRACT) true;
-         LANGULUS(UNINSERTABLE) true;
          LANGULUS(UNALLOCATABLE) true;
+         LANGULUS(REFLECTABLE) false;
       };
 
    } // namespace Langulus::A
@@ -43,7 +43,7 @@ namespace Langulus::Anyness
    ///                                                                        
    ///   An element & allocation pair                                         
    ///                                                                        
-   /// Used as intermediate type when managed memory is enabled, to keep      
+   ///   Used as intermediate type when managed memory is enabled, to keep    
    /// track of pointers inserted to containers. This does not have ownership 
    /// and can be used as iterator only when EMBEDed.                         
    ///                                                                        
@@ -51,15 +51,15 @@ namespace Langulus::Anyness
    struct Handle : A::Handle {
       LANGULUS(TYPED) T;
       LANGULUS(ABSTRACT) false;
-      LANGULUS(UNINSERTABLE) true;
-      LANGULUS(UNALLOCATABLE) true;
       LANGULUS_BASES(A::Handle);
 
    public:
       static constexpr bool Embedded = EMBED;
+      using AllocType = const Allocation*;
       using ValueType = Conditional<Embedded, T*, T>;
       using EntryType = Conditional<Embedded and CT::Sparse<T>,
-         const Allocation**, const Allocation*>;
+            Conditional<CT::Mutable<T>, AllocType*, AllocType const*
+         >, AllocType>;
 
       friend struct Block;
       /// @cond show_protected                                                
@@ -75,46 +75,70 @@ namespace Langulus::Anyness
       constexpr Handle(const Handle&) noexcept = default;
       constexpr Handle(Handle&&) noexcept = default;
 
-      constexpr Handle(T&, const Allocation*&) IF_UNSAFE(noexcept)
-      requires (EMBED and CT::Sparse<T>);
+      // Mutable constructors                                           
+      constexpr Handle(T&, AllocType&) IF_UNSAFE(noexcept)
+      requires (EMBED and CT::Sparse<T> and CT::Mutable<T>);
 
-      constexpr Handle(T&, const Allocation*) IF_UNSAFE(noexcept)
-      requires (EMBED and CT::Dense<T>);
+      constexpr Handle(T&, AllocType) IF_UNSAFE(noexcept)
+      requires (EMBED and CT::Dense<T> and CT::Mutable<T>);
+      constexpr Handle(T&) IF_UNSAFE(noexcept)
+      requires (EMBED and CT::Dense<T> and CT::Mutable<T>);
 
+      // Constant constructors                                          
+      constexpr Handle(const T&, const AllocType&) IF_UNSAFE(noexcept)
+      requires (EMBED and CT::Sparse<T> and not CT::Mutable<T>);
+
+      constexpr Handle(const T&, AllocType) IF_UNSAFE(noexcept)
+      requires (EMBED and CT::Dense<T> and not CT::Mutable<T>);
+      constexpr Handle(const T&) IF_UNSAFE(noexcept)
+      requires (EMBED and CT::Dense<T> and not CT::Mutable<T>);
+
+      // Construct from handle                                          
       template<template<class> class S, CT::Handle H>
       requires CT::SemanticMakable<S, T>
       constexpr Handle(S<H>&&);
 
+      // Construct from Ref                                             
+      template<template<class> class S>
+      requires (CT::Sparse<T> and CT::Semantic<S<Ref<Deptr<T>>>>)
+      constexpr Handle(S<Ref<Deptr<T>>>&&);
+
+      // Construct from Own                                             
+      template<template<class> class S>
+      requires (CT::Dense<T> and CT::Semantic<S<Own<T>>>)
+      constexpr Handle(S<Own<T>>&&);
+
+      // Construct locally, if not embedded                             
       template<class T1> requires (not EMBED and CT::MakableFrom<T, T1>)
-      constexpr Handle(T1&&, const Allocation* = nullptr);
+      constexpr Handle(T1&&, AllocType = nullptr);
 
       ~Handle();
 
       constexpr Handle& operator = (const Handle&) noexcept = default;
       constexpr Handle& operator = (Handle&&) noexcept = default;
 
-      template<class T1> requires CT::Comparable<T, T1>
+      template<CT::NotHandle T1> requires CT::Comparable<T, T1>
       constexpr bool operator == (const T1&) const noexcept;
       template<class T1, bool EMBED1> requires CT::Comparable<T, T1>
       constexpr bool operator == (const Handle<T1, EMBED1>&) const noexcept;
 
       NOD() T& Get() const noexcept;
-      NOD() const Allocation*& GetEntry() const noexcept;
+      NOD() AllocType& GetEntry() const noexcept;
 
-      void Create(T,        const Allocation* = nullptr) noexcept requires CT::Sparse<T>;
-      void Create(T const&, const Allocation* = nullptr) noexcept requires CT::Dense<T>;
-      void Create(T&&,      const Allocation* = nullptr) noexcept requires CT::Dense<T>;
+      void Create(T,        AllocType = nullptr) noexcept requires (CT::Sparse<T> and CT::Mutable<T>);
+      void Create(T const&, AllocType = nullptr) noexcept requires (CT::Dense<T> and CT::Mutable<T>);
+      void Create(T&&,      AllocType = nullptr) noexcept requires (CT::Dense<T> and CT::Mutable<T>);
 
-      void CreateSemantic(auto&&);
-      template<template<class> class S, class T1> requires CT::Semantic<S<T1>>
+      void CreateSemantic(auto&&) requires CT::Mutable<T>;
+      template<template<class> class S, class T1> requires (CT::Semantic<S<T1>> and CT::Mutable<T>)
       void CreateSemanticUnknown(DMeta, S<T1>&&);
 
-      template<template<class> class S, class T1> requires CT::Semantic<S<T1>>
+      template<template<class> class S, class T1> requires (CT::Semantic<S<T1>> and CT::Mutable<T>)
       void AssignSemantic(S<T1>&&);
-      template<template<class> class S, class T1> requires CT::Semantic<S<T1>>
+      template<template<class> class S, class T1> requires (CT::Semantic<S<T1>> and CT::Mutable<T>)
       void AssignSemanticUnknown(DMeta, S<T1>&&);
 
-      template<bool RHS_EMBED>
+      template<bool RHS_EMBED> requires CT::Mutable<T>
       void Swap(Handle<T, RHS_EMBED>&);
 
       template<class T1> requires CT::Comparable<T, T1>
@@ -135,9 +159,9 @@ namespace Langulus::Anyness
       Handle& operator += (Offset) noexcept requires Embedded;
       Handle& operator -= (Offset) noexcept requires Embedded;
 
-      template<bool RESET = false, bool DEALLOCATE = true>
+      template<bool RESET = false, bool DEALLOCATE = true> requires CT::Mutable<T>
       void Destroy() const;
-      template<bool RESET = false, bool DEALLOCATE = true>
+      template<bool RESET = false, bool DEALLOCATE = true> requires CT::Mutable<T>
       void DestroyUnknown(DMeta) const;
    };
    
@@ -150,6 +174,9 @@ namespace Langulus::Anyness
 
    template<CT::Dense T>
    Handle(T&, const Allocation*) -> Handle<T, true>;
+
+   template<CT::Dense T>
+   Handle(T&) -> Handle<T, true>;
 
 } // namespace Langulus::Anyness
 

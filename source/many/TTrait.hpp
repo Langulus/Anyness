@@ -58,7 +58,8 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Compare                                                           
       ///                                                                     
-      NOD() bool operator == (const CT::NotSemantic auto&) const;
+      template<CT::NotSemantic T> requires CT::NotOwned<T>
+      NOD() bool operator == (const T&) const;
 
       ///                                                                     
       ///   Concatenation                                                     

@@ -6,20 +6,20 @@
 /// Distributed under GNU General Public License v3+                          
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
-#include <Anyness/Any.hpp>
+#include <Anyness/Many.hpp>
 #include "Common.hpp"
 
 
 /// Create a dense or sparse container by providing simple arguments          
 template<class T, class...FROM>
-TAny<T> CreateManagedElements(FROM&&...from) {
+TMany<T> CreateManagedElements(FROM&&...from) {
    static_assert(CT::MakableFrom<Decay<T>, Decay<FROM>...>);
-   TAny<Decay<T>> base {DecayCast(from)...};
+   TMany<Decay<T>> base {DecayCast(from)...};
    if constexpr (CT::Similar<T, Decay<T>>)
       return base;
    else {
       if constexpr (CT::Sparse<T> and CT::Dense<Deptr<T>>) {
-         TAny<T> sparse;
+         TMany<T> sparse;
          for (auto& item : base)
             sparse << &item;
          return sparse;
@@ -61,7 +61,7 @@ TEMPLATE_TEST_CASE("Handles from sequential containers", "[handle]",
 
 
    GIVEN("A statically typed sequential container") {
-      TAny<T> data = CreateManagedElements<T>(665, 666, 667);
+      TMany<T> data = CreateManagedElements<T>(665, 666, 667);
 
       REQUIRE(data.GetCount() == 3);
       REQUIRE(DenseCast(data[0]) == 665);
@@ -96,7 +96,7 @@ TEMPLATE_TEST_CASE("Handles from sequential containers", "[handle]",
       const Allocation* const h0e = h0.GetEntry();
 
       WHEN("An element is taken out of the container and assigned into another") {
-         TAny<T> next = CreateManagedElements<T>(0);
+         TMany<T> next = CreateManagedElements<T>(0);
          Handle<T> n = next.GetHandle(0);
          const Allocation* const n0e = n.GetEntry();
          REQUIRE(n0e->GetUses() == 1);
@@ -149,7 +149,7 @@ TEMPLATE_TEST_CASE("Handles from sequential containers", "[handle]",
       }
       
       WHEN("An element is taken out of the container and swapped with another") {
-         TAny<T> next = CreateManagedElements<T>(0);
+         TMany<T> next = CreateManagedElements<T>(0);
          Handle<T> n = next.GetHandle(0);
          T const n0p = n.Get();
          const Allocation* const n0e = n.GetEntry();
@@ -217,7 +217,7 @@ TEMPLATE_TEST_CASE("Handles from sequential containers", "[handle]",
       }
 
       WHEN("An element is taken out of the container and swapped with managed local") {
-         TAny<T> next = CreateManagedElements<T>(0);
+         TMany<T> next = CreateManagedElements<T>(0);
          HandleLocal<T> n = next[0];
          T const n0p = n.Get();
          const Allocation* const n0e = n.GetEntry();

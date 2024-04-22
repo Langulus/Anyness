@@ -87,8 +87,8 @@ namespace Langulus::Anyness
 
                // We're converting to sparse container                  
                Block coalesced {mType->mOrigin};
-               coalesced.AllocateFresh<Any>(
-                  coalesced.RequestSize<Any>(mCount));
+               coalesced.AllocateFresh<Many>(
+                  coalesced.RequestSize<Many>(mCount));
                coalesced.mCount = mCount;
                auto temp = coalesced.GetElementInner();
                auto to = out.template GetHandle<TO, OUT>(0);
@@ -122,8 +122,8 @@ namespace Langulus::Anyness
 
                // We're converting to sparse container                  
                Block coalesced {mType->mOrigin};
-               coalesced.AllocateFresh<Any>(
-                  coalesced.RequestSize<Any>(mCount));
+               coalesced.AllocateFresh<Many>(
+                  coalesced.RequestSize<Many>(mCount));
                coalesced.mCount = mCount;
                auto temp = coalesced.GetElementInner();
                auto to = out.template GetHandle<Byte*, OUT>(0);
@@ -271,7 +271,7 @@ namespace Langulus::Anyness
          
          // No rules defined, or didn't apply to data, so time to rely  
          // on the reflected converters instead                         
-         TAny<OUT> converted;
+         TMany<OUT> converted;
          if (not Convert<THIS>(converted)) {
             if constexpr (OUT::SerializationRules::CriticalFailure) {
                // Couldn't convert elements, and that is marked as      
@@ -793,7 +793,7 @@ namespace Langulus::Anyness
             to.template AllocateMore<OUT>(deserializedCount);
 
          for (Count i = 0; i < deserializedCount; ++i) {
-            Any element;
+            Many element;
             if constexpr (CT::TypeErased<T>) {
                // Default-initialize an instance to write on top of     
                // Make sure that the type is the most concrete one, in  
@@ -801,7 +801,7 @@ namespace Langulus::Anyness
                auto resolvedType = to.GetType();
                if (to.IsResolvable())
                   read = DeserializeMeta<THIS>(resolvedType, read, header, loader);
-               element = Any::FromMeta(resolvedType);
+               element = Many::FromMeta(resolvedType);
                element.New(1);
             }
             else {

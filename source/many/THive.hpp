@@ -7,7 +7,7 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #pragma once
-#include "TAny.hpp"
+#include "TMany.hpp"
 
 
 namespace Langulus
@@ -60,13 +60,13 @@ namespace Langulus::Anyness
 
    protected: IF_LANGULUS_TESTING(public:)
       class Cell;
-      using Frame = TAny<Cell>;
+      using Frame = TMany<Cell>;
 
       // Elements are allocated here in frames                          
       // If resizing one frame of cells requires memory to move, then   
       // another frame will be added to the sequence, guaranteeing      
       // that memory underneath any cells never moves                   
-      TAny<Frame> mFrames;
+      TMany<Frame> mFrames;
       // The start of the reusable chain, in the first frame that has   
       // a free cell                                                    
       Cell* mReusable {};

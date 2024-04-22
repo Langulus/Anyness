@@ -7,7 +7,7 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #pragma once
-#include "many/TAny.hpp"
+#include "many/TMany.hpp"
 
 
 namespace Langulus::Anyness
@@ -23,7 +23,7 @@ namespace Langulus::Anyness
    ///                                                                        
    ///   Allows you to select regions and do operations on to them,           
    /// while keeping track of selections and synchronizing changes between    
-   /// them. The rationale is, that when modifying a TAny, for example,       
+   /// them. The rationale is, that when modifying a TMany, for example,      
    /// picking and changing a selection will result in a copy the contents.   
    /// That is sometimes not desirable. This interface ensures, that you can  
    /// modify selections safely without branching out - changes will be       

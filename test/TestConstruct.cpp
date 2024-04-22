@@ -14,7 +14,7 @@ SCENARIO("Constructs", "[construct]") {
    static Allocator::State memoryState;
 
 	GIVEN("A complex descriptor") {
-		Any descriptor;
+      Many descriptor;
 
 		WHEN("Normalized") {
 			Construct c;

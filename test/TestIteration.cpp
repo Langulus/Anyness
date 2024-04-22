@@ -11,12 +11,12 @@
 
 
 SCENARIO("Iterating containers", "[iteration]") {
-   GIVEN("Templated Any with some POD items") {
-      IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
+   IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
 
-      TAny<int> dense;
+   GIVEN("Templated Any with some POD items") {
+      TMany<int> dense;
       dense << int(1) << int(2) << int(3) << int(4) << int(5);
-      TAny<int*> sparse;
+      TMany<int*> sparse;
       sparse << new int(6) << new int(7) << new int(8) << new int(9) << new int(10);
 
       WHEN("Dense-iterating a dense pack (shallow)") {
@@ -376,12 +376,10 @@ SCENARIO("Iterating containers", "[iteration]") {
    }*/
 
    GIVEN("Any") {
-      IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
-
       constexpr float df = 5.55f;
       constexpr float sf = 6.55f;
-      Any dense_any = df;
-      Any sparse_any = new float(sf);
+      Many dense_any = df;
+      Many sparse_any = new float(sf);
 
       WHEN("Dense-iterating a dense any (shallow)") {
          Count it {};
@@ -489,12 +487,10 @@ SCENARIO("Iterating containers", "[iteration]") {
    }
 
    GIVEN("A universal Any with some deep items") {
-      IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
-
-      Any pack;
-      Any subpack1;
-      Any subpack2;
-      Any subpack3;
+      Many pack;
+      Many subpack1;
+      Many subpack2;
+      Many subpack3;
       subpack1 << int(1) << int(2) << int(3) << int(4) << int(5);
       subpack2 << int(6) << int(7) << int(8) << int(9) << int(10);
       subpack3 << subpack1 << subpack2;
@@ -505,13 +501,13 @@ SCENARIO("Iterating containers", "[iteration]") {
       REQUIRE(subpack3.GetUses() == 2);
 
       WHEN("Flat-iterated with the intent to remove specific subpacks") {
-         pack.ForEach([&](Any& subcontent) {
+         pack.ForEach([&](Many& subcontent) {
             if (subcontent.Is<int>())
                return Loop::Discard;
             return Loop::Continue;
          });
 
-         Any resultingPack;
+         Many resultingPack;
          resultingPack << subpack3;
          REQUIRE(pack == resultingPack);
          REQUIRE(subpack1.GetUses() == 2);

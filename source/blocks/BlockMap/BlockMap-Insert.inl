@@ -26,7 +26,7 @@ namespace Langulus::Anyness
          using K = Conditional<CT::Typed<THIS>, typename THIS::Key, TypeOf<T>>;
          return HandleLocal<K> {S::Nest(key)};
       }
-      else return Any::Wrap(S::Nest(key));
+      else return Many::Wrap(S::Nest(key));
    }
 
    /// Wrap the argument semantically into a handle with value's type         
@@ -41,7 +41,7 @@ namespace Langulus::Anyness
          using V = Conditional<CT::Typed<THIS>, typename THIS::Value, TypeOf<T>>;
          return HandleLocal<V> {S::Nest(val)};
       }
-      else return Any::Wrap(S::Nest(val));
+      else return Many::Wrap(S::Nest(val));
    }
 
    /// Insert a pair, or an array of pairs                                    
@@ -81,11 +81,17 @@ namespace Langulus::Anyness
          else {
             // Insert the array                                         
             const auto& firstPair = DesemCast(item)[0];
-            Mutate<THIS>(firstPair.GetKeyType(), firstPair.GetValueType());
+            Mutate<THIS>(
+               firstPair.GetKey().GetType(),
+               firstPair.GetValue().GetType()
+            );
             Reserve<THIS>(GetCount() + ExtentOf<T>);
             const auto mask = GetReserved() - 1;
             for (auto& pair : DesemCast(item)) {
-               Mutate<THIS>(pair.GetKeyType(), pair.GetValueType());
+               Mutate<THIS>(
+                  pair.GetKey().GetType(),
+                  pair.GetValue().GetType()
+               );
                inserted += InsertPairInner<THIS, true>(mask, S::Nest(pair));
             }
          }
@@ -137,8 +143,8 @@ namespace Langulus::Anyness
          // Some of the arguments might still be used directly to       
          // make pairs, forward these to standard insertion here        
          Mutate<THIS>(
-            DesemCast(item).GetKeyType(),
-            DesemCast(item).GetValueType()
+            DesemCast(item).GetKey().GetType(),
+            DesemCast(item).GetValue().GetType()
          );
          Reserve<THIS>(GetCount() + 1);
          const auto mask = GetReserved() - 1;
@@ -329,12 +335,12 @@ namespace Langulus::Anyness
                }
                else {
                   Block keyswap {mKeys.GetState(), GetKeyType<THIS>(), 1};
-                  keyswap.AllocateFresh<Any>(keyswap.RequestSize<Any>(1));
+                  keyswap.AllocateFresh<Many>(keyswap.RequestSize<Many>(1));
                   keyswap.CreateSemantic(Abandon(oldKey));
 
                   auto oldValue = GetValHandle<THIS>(oldIndex);
                   Block valswap {mValues.GetState(), GetValueType<THIS>(), 1};
-                  valswap.AllocateFresh<Any>(valswap.RequestSize<Any>(1));
+                  valswap.AllocateFresh<Many>(valswap.RequestSize<Many>(1));
                   valswap.CreateSemantic(Abandon(oldValue));
 
                   // Destroy the pair and info at old index             
@@ -411,7 +417,7 @@ namespace Langulus::Anyness
                }
                else {
                   Block keyswap {mKeys.GetState(), GetKeyType<THIS>(), 1};
-                  keyswap.AllocateFresh<Any>(keyswap.RequestSize<Any>(1));
+                  keyswap.AllocateFresh<Many>(keyswap.RequestSize<Many>(1));
                   keyswap.CreateSemantic(Abandon(oldKey));
 
                   // Destroy the pair and info at old index             
@@ -488,7 +494,7 @@ namespace Langulus::Anyness
                else {
                   auto oldValue = old.GetValHandle<THIS>(oldIndex);
                   Block valswap {mValues.GetState(), GetValueType<THIS>(), 1};
-                  valswap.AllocateFresh<Any>(valswap.RequestSize<Any>(1));
+                  valswap.AllocateFresh<Many>(valswap.RequestSize<Many>(1));
                   valswap.CreateSemantic(Abandon(oldValue));
 
                   // Destroy the pair and info at old index             
@@ -729,8 +735,8 @@ namespace Langulus::Anyness
          // Insert a statically typed pair                              
          InsertInner<THIS, CHECK_FOR_MATCH>(
             GetBucket(hashmask, pair->mKey),
-            S<T>::Nest(pair->mKey),
-            S<T>::Nest(pair->mValue)
+            S<T>::Nest(pair->GetKeyHandle()),
+            S<T>::Nest(pair->GetValueHandle())
          );
       }
       else {

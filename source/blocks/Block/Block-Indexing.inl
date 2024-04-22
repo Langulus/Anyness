@@ -95,7 +95,7 @@ namespace Langulus::Anyness
       // First quick type stage for fast access                         
       LANGULUS_ASSUME(DevAssumes, mType, "Block is not typed");
       if (mType->Is<T>()) {
-         const auto idx = SimplifyIndex<TAny<T>>(index);
+         const auto idx = SimplifyIndex<TMany<T>>(index);
          LANGULUS_ASSERT(idx < mCount, Access, "Index out of range");
          return Get<T>(idx);
       }
@@ -105,13 +105,13 @@ namespace Langulus::Anyness
          if (not IsDeep())
             LANGULUS_THROW(Access, "Type mismatch");
 
-         const auto idx = SimplifyIndex<TAny<Any>>(index);
+         const auto idx = SimplifyIndex<TMany<Many>>(index);
          LANGULUS_ASSERT(idx < mCount, Access, "Index out of range");
          Block& result = Get<Block>(idx);
 
          if constexpr (CT::Typed<T>) {
             // Additional check, if T is a typed block                  
-            if (not result.template IsSimilar<Any, TypeOf<T>>())
+            if (not result.template IsSimilar<Many, TypeOf<T>>())
                LANGULUS_THROW(Access, "Deep type mismatch");
          }
 
@@ -122,7 +122,7 @@ namespace Langulus::Anyness
       }
 
       // Fallback stage for compatible bases and mappings               
-      const auto idx = SimplifyIndex<Any>(index);
+      const auto idx = SimplifyIndex<Many>(index);
       LANGULUS_ASSERT(idx < mCount, Access, "Index out of range");
       RTTI::Base base;
       if (not mType->template GetBase<T>(0, base)) {
@@ -600,21 +600,38 @@ namespace Langulus::Anyness
    
    /// Return a handle to an element                                          
    ///   @tparam T - the contained type, or alternatively a Byte* for sparse  
-   ///               unknowns; Byte for dense unknowns                        
+   ///      unknowns; Byte for dense unknowns                                 
    ///   @param index - the element index                                     
    ///   @return the handle                                                   
    template<CT::Data T, CT::Block THIS> LANGULUS(INLINED)
-   Handle<T> Block::GetHandle(const Offset index) const IF_UNSAFE(noexcept) {
-      const auto mthis = const_cast<Block*>(this);
-      if constexpr (CT::Sparse<T>) {
-         return {
-            mthis->template GetRawAs<T, THIS>()[index],
-            mthis->template GetEntries<THIS>()[index]
+   auto Block::GetHandle(const Offset index) IF_UNSAFE(noexcept) {
+      using TT = Conditional<CT::Handle<T>, TypeOf<T>, T>;
+
+      if constexpr (CT::Sparse<TT>) {
+         return Handle<TT> {
+            GetRawAs<TT, THIS>()[index],
+            GetEntries<THIS>()[index]
          };
       }
-      else return {
-         mthis->template GetRawAs<T, THIS>()[index], 
-         mthis->mEntry
+      else return Handle<TT> {
+         GetRawAs<TT, THIS>()[index], 
+         mEntry
+      };
+   }
+
+   template<CT::Data T, CT::Block THIS> LANGULUS(INLINED)
+   auto Block::GetHandle(const Offset index) const IF_UNSAFE(noexcept) {
+      using TT = Conditional<CT::Handle<T>, TypeOf<T>, T>;
+
+      if constexpr (CT::Sparse<TT>) {
+         return Handle<const TT> {
+            GetRawAs<TT, THIS>()[index],
+            GetEntries<THIS>()[index]
+         };
+      }
+      else return Handle<const TT> {
+         GetRawAs<TT, THIS>()[index], 
+         mEntry
       };
    }
 

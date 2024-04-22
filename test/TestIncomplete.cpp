@@ -21,14 +21,14 @@ struct Resolvable {
 
 class Unit;
 
-using UnitMap = TUnorderedMap<DMeta, TAny<Unit*>>;
-using TraitMap = TUnorderedMap<TMeta, TAny<Trait>>;
+using UnitMap = TUnorderedMap<DMeta, TMany<Unit*>>;
+using TraitMap = TUnorderedMap<TMeta, TMany<Trait>>;
 
 struct Thing final : Resolvable {
    static_assert(CT::Complete<Resolvable>);
    static_assert(CT::Complete<Own<Thing*>>);
    static_assert(CT::Complete<Ref<Thing>>);
-   static_assert(CT::Complete<TAny<Thing*>>);
+   static_assert(CT::Complete<TMany<Thing*>>);
    static_assert(CT::Complete<UnitMap>);
    static_assert(CT::Complete<TraitMap>);
 
@@ -41,7 +41,7 @@ struct Thing final : Resolvable {
 
    Own<Thing*> mOwned;
    Ref<Thing> mOwner;
-   TAny<Thing*> mChildren;
+   TMany<Thing*> mChildren;
    UnitMap mUnits;
    TraitMap mTraits;
 };

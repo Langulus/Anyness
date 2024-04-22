@@ -235,16 +235,16 @@ namespace Langulus::Anyness
    ///   @param i - the key index                                             
    ///   @return the handle                                                   
    template<CT::Map THIS> LANGULUS(INLINED)
-   auto BlockMap::GetKeyHandle(const Offset i) const IF_UNSAFE(noexcept) {
+   auto BlockMap::GetKeyHandle(const Offset i) IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, i < GetReserved(),
-         "Index out of limits when accessing ", NameOf<THIS>(), " key",
-         ", index ", i, " is beyond the reserved ", GetReserved(), " elements");
+         "Index out of limits when accessing ", NameOf<THIS>(), " key, ",
+         "index ", i, " is beyond the reserved ", GetReserved(), " elements");
 
       if constexpr (CT::Typed<THIS>) {
          IF_SAFE(using K = typename THIS::Key);
          LANGULUS_ASSUME(DevAssumes, (IsKeySimilar<THIS, K>()),
-            "Wrong type when accessing ", NameOf<THIS>(), " key",
-            ", using type `", NameOf<K>(), "` instead of `", GetKeyType(), '`');
+            "Wrong type when accessing ", NameOf<THIS>(), " key, ",
+            "using type `", NameOf<K>(), "` instead of `", GetKeyType(), '`');
          return GetKeys<THIS>().GetHandle(i);
       }
       else return GetKeys<THIS>().GetElementInner(i);
@@ -256,28 +256,28 @@ namespace Langulus::Anyness
    ///   @param i - the value index                                           
    ///   @return the handle                                                   
    template<CT::Map THIS> LANGULUS(INLINED)
-   auto BlockMap::GetValHandle(const Offset i) const IF_UNSAFE(noexcept) {
+   auto BlockMap::GetValHandle(const Offset i) IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, i < GetReserved(),
-         "Index out of limits when accessing ", NameOf<THIS>(), " value",
-         ", index ", i, " is beyond the reserved ", GetReserved(), " elements");
+         "Index out of limits when accessing ", NameOf<THIS>(), " value, ",
+         "index ", i, " is beyond the reserved ", GetReserved(), " elements");
 
       if constexpr (CT::Typed<THIS>) {
          using V = typename THIS::Value;
          LANGULUS_ASSUME(DevAssumes, (IsValueSimilar<THIS, V>()),
-            "Wrong type when accessing ", NameOf<THIS>(), " value",
-            ", using type `", NameOf<V>(), "` instead of `", GetValueType(), '`');
+            "Wrong type when accessing ", NameOf<THIS>(), " value, ",
+            "using type `", NameOf<V>(), "` instead of `", GetValueType(), '`');
 
          // We can't rely on Block::GetHandle, because it uses mReserved
-         const auto mthis = const_cast<Block*>(&mValues);
+         const auto mthis = &mValues;
          if constexpr (CT::Sparse<V>) {
             return Handle {
-               mthis->template GetRawAs<V, TAny<V>>()[i],
+               mthis->template GetRawAs<V, TMany<V>>()[i],
                const_cast<const Allocation**>(
                   reinterpret_cast<Allocation**>(mthis->mRawSparse + mKeys.mReserved))[i]
             };
          }
          else return Handle {
-            mthis->template GetRawAs<V, TAny<V>>()[i],
+            mthis->template GetRawAs<V, TMany<V>>()[i],
             mthis->mEntry
          };
       }

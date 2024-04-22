@@ -20,7 +20,7 @@ SCENARIO("Hashing different kinds of containers", "[hash]") {
       std::string same1str = "Same1";
       Text same1txt = "Same1";
       Path same1pat = "Same1";
-      Any same1any {'S', 'a', 'm', 'e', '1'};
+      Many same1any {'S', 'a', 'm', 'e', '1'};
       std::vector<char> same1vec = {'S', 'a', 'm', 'e', '1'};
       //std::span<char, 5> sape1spa = "Same1";
       std::array<char, 5> sape1arr = {'S', 'a', 'm', 'e', '1'};
@@ -40,17 +40,17 @@ SCENARIO("Hashing different kinds of containers", "[hash]") {
 /// Cross-container consistency tests                                         
 TEMPLATE_TEST_CASE(
    "Cross-container consistency tests for TOrderedMap/TUnorderedMap/OrderedMap/UnorderedMap", "[map]",
-   (MapPair2<Text, Traits::Count*>),
+   (HashTest<Text, Traits::Count*>),
 
-   (MapPair2<Text, int>),
-   (MapPair2<Text, Trait>),
-   (MapPair2<Text, Any>),
-   (MapPair2<Text, Traits::Count>),
+   (HashTest<Text, int>),
+   (HashTest<Text, Trait>),
+   (HashTest<Text, Many>),
+   (HashTest<Text, Traits::Count>),
 
-   (MapPair2<Text, int*>),
-   (MapPair2<Text, Trait*>),
+   (HashTest<Text, int*>),
+   (HashTest<Text, Trait*>),
 
-   (MapPair2<Text, Any*>)
+   (HashTest<Text, Many*>)
 ) {
    Allocator::State memoryState;
 
@@ -88,8 +88,8 @@ TEMPLATE_TEST_CASE(
 /// Cross-container consistency tests                                         
 TEMPLATE_TEST_CASE(
    "Cross-container consistency tests for TOrderedSet/TUnorderedSet/OrderedSet/UnorderedSet", "[set]",
-   int,  Trait,  Traits::Count,  Any,
-   int*, Trait*, Traits::Count*, Any*
+   int,  Trait,  Traits::Count,  Many,
+   int*, Trait*, Traits::Count*, Many*
 ) {
    const auto element = CreateElement<TestType>(555);
    const auto elementHash = HashOf(element);

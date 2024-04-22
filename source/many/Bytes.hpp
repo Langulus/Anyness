@@ -7,7 +7,7 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #pragma once
-#include "TAny.hpp"
+#include "TMany.hpp"
 
 
 namespace Langulus::CT
@@ -65,8 +65,8 @@ namespace Langulus::Anyness
    /// represent any POD type as a sequence of bytes. Also used as a binary   
    /// serializer.                                                            
    ///                                                                        
-   struct Bytes : TAny<Byte> {
-      using Base = TAny<Byte>;
+   struct Bytes : TMany<Byte> {
+      using Base = TMany<Byte>;
 
       LANGULUS(DEEP) false;
       LANGULUS_BASES(Base);

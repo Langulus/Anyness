@@ -209,7 +209,7 @@ namespace Langulus::Anyness
    }
 
    template<CT::Data T, CT::Block THIS> LANGULUS(INLINED)
-   TAny<T> Block::ReinterpretAs() const {
+   TMany<T> Block::ReinterpretAs() const {
       static_assert(CT::Dense<T>, "T must be dense");
       return ReinterpretAs<THIS>(Block::From<T>());
    }
@@ -279,8 +279,10 @@ namespace Langulus::Anyness
    ///   @return true if block was deepened to incorporate the new type       
    template<CT::Block THIS, CT::Data T, class FORCE> LANGULUS(INLINED)
    bool Block::Mutate() {
+      using TT = Conditional<CT::Handle<T>, TypeOf<T>, T>;
+
       if constexpr (CT::Typed<THIS>) {
-         if constexpr (CT::Similar<TypeOf<THIS>, T>) {
+         if constexpr (CT::Similar<TypeOf<THIS>, TT>) {
             // No need to mutate - types are compatible                 
             return false;
          }
@@ -291,7 +293,7 @@ namespace Langulus::Anyness
          }
          else LANGULUS_OOPS(Mutate, "Can't mutate to incompatible type");
       }
-      else return Mutate<THIS, FORCE>(MetaDataOf<T>());
+      else return Mutate<THIS, FORCE>(MetaDataOf<TT>());
    }
    
    /// Mutate to another compatible type, deepening the container if allowed  

@@ -197,29 +197,29 @@ namespace Langulus::Anyness
          using DT1 = Deref<Decvq<Desem<T1>>>;
          if constexpr (sizeof...(TN) > 0) {
             if constexpr (CT::Similar<DT1, DT1, Deref<Desem<TN>>...>) {
-               TAny<DT1> result;
+               TMany<DT1> result;
                result.Insert(IndexBack, Forward<T1>(t1), Forward<TN>(tn)...);
                return result;
             }
             else {
-               TAny<Any> result;
+               TMany<Many> result;
                result.Insert(IndexBack, Forward<T1>(t1), Forward<TN>(tn)...);
                return result;
             }
          }
          else if constexpr (CT::Handle<DT1>) {
-            TAny<TypeOf<DT1>> result;
+            TMany<TypeOf<DT1>> result;
             result.Insert(IndexBack, Forward<T1>(t1));
             return result;
          }
          else {
-            TAny<DT1> result;
+            TMany<DT1> result;
             result.Insert(IndexBack, Forward<T1>(t1));
             return result;
          }
       }
       else {
-         TAny<AS> result;
+         TMany<AS> result;
          result.Insert(IndexBack, Forward<T1>(t1), Forward<TN>(tn)...);
          return result;
       }

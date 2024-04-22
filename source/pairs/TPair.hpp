@@ -8,6 +8,8 @@
 ///                                                                           
 #pragma once
 #include "Pair.hpp"
+#include "../one/Own.hpp"
+#include "../one/Ref.hpp"
 
 
 namespace Langulus::CT
@@ -43,6 +45,13 @@ namespace Langulus::Anyness
    ///                                                                        
    ///   A helper structure for pairing keys and values of any type           
    ///                                                                        
+   ///   This is the statically typed pair, and it can be used with           
+   /// references, as well as dense or sparse values. When key or value types 
+   /// are references, the TPair acts as a simple intermediate type, often    
+   /// used to access elements inside maps.                                   
+   ///   @attention TPair is not binary-compatible with its type-erased       
+   ///      counterpart Pair                                                  
+   ///                                                                        
    template<class K, class V>
    struct TPair : A::Pair {
       using Key = K;
@@ -51,8 +60,8 @@ namespace Langulus::Anyness
       LANGULUS_ABSTRACT() false;
       LANGULUS(TYPED) TPair<K, V>;
 
-      Key   mKey;
-      Value mValue;
+      Conditional<CT::Reference<K> or CT::Dense<K>, K, Ref<Deptr<K>>> mKey;
+      Conditional<CT::Reference<V> or CT::Dense<V>, V, Ref<Deptr<V>>> mValue;
 
       ///                                                                     
       ///   Construction & Assignment                                         
@@ -79,9 +88,17 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Capsulation                                                       
       ///                                                                     
-      NOD() Hash  GetHash() const requires CT::Hashable<K, V>;
-      NOD() DMeta GetKeyType() const noexcept;
-      NOD() DMeta GetValueType() const noexcept;
+      NOD() Hash GetHash() const requires CT::Hashable<K, V>;
+
+      Block GetKey() const noexcept;
+      Block GetKey() noexcept;
+      Block GetValue() const noexcept;
+      Block GetValue() noexcept;
+
+      Handle<K> GetKeyHandle();
+      Handle<V> GetValueHandle();
+      Handle<const K> GetKeyHandle() const;
+      Handle<const V> GetValueHandle() const;
 
       ///                                                                     
       ///   Comparison                                                        
@@ -91,6 +108,12 @@ namespace Langulus::Anyness
 
       operator TPair<const Deref<K>&, const Deref<V>&>() const noexcept
       requires CT::Reference<K, V>;
+
+      ///                                                                     
+      ///   Removal                                                           
+      ///                                                                     
+      void Clear();
+      void Reset();
    };
 
    /// Deduction guides                                                       

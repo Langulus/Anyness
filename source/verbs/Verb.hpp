@@ -7,7 +7,7 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #pragma once
-#include "../many/Any.hpp"
+#include "../many/Many.hpp"
 #include "../Index.hpp"
 #include "../Charge.hpp"
 #include "VerbState.hpp"
@@ -19,12 +19,12 @@ namespace Langulus::A
    ///                                                                        
    /// Abstract verb, dictating canonical verb size, used in various concepts 
    ///                                                                        
-   struct Verb : Anyness::Any, Anyness::Charge {
+   struct Verb : Anyness::Many, Anyness::Charge {
       LANGULUS(NAME) "AVerb";
       LANGULUS(POD) false;
       LANGULUS(NULLIFIABLE) false;
       LANGULUS(DEEP) false;
-      LANGULUS_BASES(Anyness::Any, Anyness::Charge);
+      LANGULUS_BASES(Anyness::Many, Anyness::Charge);
       LANGULUS_CONVERTS_TO(Anyness::Text);
 
    protected:
@@ -35,9 +35,9 @@ namespace Langulus::A
       // Verb short-circuiting                                          
       Anyness::VerbState mState {};
       // Verb context                                                   
-      Anyness::Any mSource;
+      Anyness::Many mSource;
       // The container where output goes after execution                
-      Anyness::Any mOutput;
+      Anyness::Many mOutput;
 
       LANGULUS_MEMBERS(
          &Verb::mVerb,
@@ -76,17 +76,17 @@ namespace Langulus::A
       NOD() Langulus::Real GetTime() const noexcept;
       NOD() Langulus::Real GetPriority() const noexcept;
 
-      NOD() Anyness::Any&       GetSource() noexcept;
-      NOD() Anyness::Any const& GetSource() const noexcept;
+      NOD() Anyness::Many&       GetSource() noexcept;
+      NOD() Anyness::Many const& GetSource() const noexcept;
 
-      NOD() Anyness::Any&       GetArgument() noexcept;
-      NOD() Anyness::Any const& GetArgument() const noexcept;
+      NOD() Anyness::Many&       GetArgument() noexcept;
+      NOD() Anyness::Many const& GetArgument() const noexcept;
 
-      NOD() Anyness::Any&       GetOutput() noexcept;
-      NOD() Anyness::Any const& GetOutput() const noexcept;
+      NOD() Anyness::Many&       GetOutput() noexcept;
+      NOD() Anyness::Many const& GetOutput() const noexcept;
 
-      NOD() Anyness::Any*       operator -> () noexcept;
-      NOD() Anyness::Any const* operator -> () const noexcept;
+      NOD() Anyness::Many*       operator -> () noexcept;
+      NOD() Anyness::Many const* operator -> () const noexcept;
       
       NOD() Count GetSuccesses() const noexcept;
       NOD() Anyness::VerbState GetVerbState() const noexcept;

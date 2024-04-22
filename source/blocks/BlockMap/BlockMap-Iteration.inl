@@ -510,7 +510,7 @@ namespace Langulus::Anyness
          const_cast<KA&>(mKey).mRaw   += offset * mKey.GetStride();
          const_cast<VA&>(mValue).mRaw += offset * mValue.GetStride();
          // Notice we don't affect count for properly accessing entries 
-         // Any attempt at transferring these blocks will UB            
+         // Many attempt at transferring these blocks will UB           
          // Iterators are not intended for use as mediators of any      
          // transfer of ownership. We just stick to them,               
          // as a form of indexing, and nothing more. Otherwise,         

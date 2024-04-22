@@ -116,7 +116,9 @@ namespace Langulus::Anyness
       NOD() constexpr auto& operator * ()       IF_UNSAFE(noexcept)
          requires (CT::Sparse<T> and not CT::Void<Decay<T>>);
 
-      /// Makes TOwned CT::Resolvable                                         
+      NOD() auto GetHandle() const;
+
+      /// Makes Own CT::Resolvable                                            
       NOD() constexpr Block GetBlock() const;
 
       ///                                                                     

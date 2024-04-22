@@ -7,7 +7,7 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #pragma once
-#include "../many/TAny.hpp"
+#include "../many/TMany.hpp"
 
 
 namespace Langulus
@@ -257,9 +257,9 @@ namespace Langulus::Anyness
       void SetType();
 
    protected:
-      template<CT::Set, CT::Data, class FORCE = Any>
+      template<CT::Set, CT::Data, class FORCE = Many>
       bool Mutate();
-      template<CT::Set, class FORCE = Any>
+      template<CT::Set, class FORCE = Many>
       bool Mutate(DMeta);
 
       template<CT::Set = UnorderedSet>

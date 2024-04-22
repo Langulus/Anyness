@@ -26,7 +26,7 @@ namespace Langulus::Anyness
          using V = Conditional<CT::Typed<THIS>, TypeOf<THIS>, TypeOf<T>>;
          return HandleLocal<V> {S::Nest(val)};
       }
-      else return Any::Wrap(S::Nest(val));
+      else return Many::Wrap(S::Nest(val));
    }
 
    /// Insert an element, or an array of elements                             
@@ -371,7 +371,7 @@ namespace Langulus::Anyness
                }
                else {
                   Block keyswap {DataState {}, GetType(), 1};
-                  keyswap.AllocateFresh<Any>(keyswap.RequestSize<Any>(1));
+                  keyswap.AllocateFresh<Many>(keyswap.RequestSize<Many>(1));
                   keyswap.CreateSemantic(Abandon(oldKey));
 
                   // Destroy the pair and info at old index             

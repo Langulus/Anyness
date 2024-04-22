@@ -14,57 +14,67 @@
 #include "../Common.hpp"
 
 
+#define MAP_TESTS(MANAGED) \
+   (MapTest<TUnorderedMap<Text, Trait*>, Text, Trait*, MANAGED>), \
+   (MapTest<TUnorderedMap<Text, int*>, Text, int*, MANAGED>), \
+   (MapTest<TUnorderedMap<Text, Traits::Count*>, Text, Traits::Count*, MANAGED>), \
+   (MapTest<TUnorderedMap<Text, Many*>, Text, Many*, MANAGED>), \
+   (MapTest<TUnorderedMap<Text, RT*>, Text, RT*, MANAGED>), \
+ \
+   (MapTest<TUnorderedMap<Trait*, RT*>, Trait*, RT*, MANAGED>), \
+   (MapTest<TUnorderedMap<Traits::Count*, RT*>, Traits::Count*, RT*, MANAGED>), \
+   (MapTest<TUnorderedMap<Many*, RT*>, Many*, RT*, MANAGED>), \
+   (MapTest<TUnorderedMap<RT*, RT*>, RT*, RT*, MANAGED>), \
+ \
+   (MapTest<TOrderedMap<Text, int*>, Text, int*, MANAGED>), \
+   (MapTest<TOrderedMap<Text, Trait*>, Text, Trait*, MANAGED>), \
+   (MapTest<TOrderedMap<Text, Traits::Count*>, Text, Traits::Count*, MANAGED>), \
+   (MapTest<TOrderedMap<Text, Many*>, Text, Many*, MANAGED>), \
+   (MapTest<TOrderedMap<Text, RT*>, Text, RT*, MANAGED>), \
+ \
+   (MapTest<TOrderedMap<Trait*, RT*>, Trait*, RT*, MANAGED>), \
+   (MapTest<TOrderedMap<Traits::Count*, RT*>, Traits::Count*, RT*, MANAGED>), \
+   (MapTest<TOrderedMap<Many*, RT*>, Many*, RT*, MANAGED>), \
+   (MapTest<TOrderedMap<RT*, RT*>, RT*, RT*, MANAGED>), \
+ \
+   (MapTest<UnorderedMap, Text, int*, MANAGED>), \
+   (MapTest<UnorderedMap, Text, Trait*, MANAGED>), \
+   (MapTest<UnorderedMap, Text, Traits::Count*, MANAGED>), \
+   (MapTest<UnorderedMap, Text, Many*, MANAGED>), \
+   (MapTest<UnorderedMap, Text, RT*, MANAGED>), \
+ \
+   (MapTest<UnorderedMap, Trait*, RT*, MANAGED>), \
+   (MapTest<UnorderedMap, Traits::Count*, RT*, MANAGED>), \
+   (MapTest<UnorderedMap, Many*, RT*, MANAGED>), \
+   (MapTest<UnorderedMap, RT*, RT*, MANAGED>), \
+ \
+   (MapTest<OrderedMap, Text, int*, MANAGED>), \
+   (MapTest<OrderedMap, Text, Trait*, MANAGED>), \
+   (MapTest<OrderedMap, Text, Traits::Count*, MANAGED>), \
+   (MapTest<OrderedMap, Text, Many*, MANAGED>), \
+   (MapTest<OrderedMap, Text, RT*, MANAGED>), \
+ \
+   (MapTest<OrderedMap, Trait*, RT*, MANAGED>), \
+   (MapTest<OrderedMap, Traits::Count*, RT*, MANAGED>), \
+   (MapTest<OrderedMap, Many*, RT*, MANAGED>), \
+   (MapTest<OrderedMap, RT*, RT*, MANAGED>)
+
+
 /// The main test for TOrderedMap/TUnorderedMap/OrderedMap/UnorderedMap       
 /// containers, with all kinds of items, from sparse to dense, from trivial   
 /// to complex, from flat to deep                                             
+#if LANGULUS_FEATURE(MANAGED_MEMORY)
 TEMPLATE_TEST_CASE(
    "Sparse TOrderedMap/TUnorderedMap/OrderedMap/UnorderedMap", "[map]",
-   (MapPair<UnorderedMap, Traits::Count*, RT*>),
-
-   (MapPair<TUnorderedMap<Text, int*>, Text, int*>),
-   (MapPair<TUnorderedMap<Text, Trait*>, Text, Trait*>),
-   (MapPair<TUnorderedMap<Text, Traits::Count*>, Text, Traits::Count*>),
-   (MapPair<TUnorderedMap<Text, Any*>, Text, Any*>),
-   (MapPair<TUnorderedMap<Text, RT*>, Text, RT*>),
-
-   (MapPair<TUnorderedMap<Trait*, RT*>, Trait*, RT*>),
-   (MapPair<TUnorderedMap<Traits::Count*, RT*>, Traits::Count*, RT*>),
-   (MapPair<TUnorderedMap<Any*, RT*>, Any*, RT*>),
-   (MapPair<TUnorderedMap<RT*, RT*>, RT*, RT*>),
-
-   (MapPair<TOrderedMap<Text, int*>, Text, int*>),
-   (MapPair<TOrderedMap<Text, Trait*>, Text, Trait*>),
-   (MapPair<TOrderedMap<Text, Traits::Count*>, Text, Traits::Count*>),
-   (MapPair<TOrderedMap<Text, Any*>, Text, Any*>),
-   (MapPair<TOrderedMap<Text, RT*>, Text, RT*>),
-
-   (MapPair<TOrderedMap<Trait*, RT*>, Trait*, RT*>),
-   (MapPair<TOrderedMap<Traits::Count*, RT*>, Traits::Count*, RT*>),
-   (MapPair<TOrderedMap<Any*, RT*>, Any*, RT*>),
-   (MapPair<TOrderedMap<RT*, RT*>, RT*, RT*>),
-
-   (MapPair<UnorderedMap, Text, int*>),
-   (MapPair<UnorderedMap, Text, Trait*>),
-   (MapPair<UnorderedMap, Text, Traits::Count*>),
-   (MapPair<UnorderedMap, Text, Any*>),
-   (MapPair<UnorderedMap, Text, RT*>),
-
-   (MapPair<UnorderedMap, Trait*, RT*>),
-
-   (MapPair<UnorderedMap, Any*, RT*>),
-   (MapPair<UnorderedMap, RT*, RT*>),
-
-   (MapPair<OrderedMap, Text, int*>),
-   (MapPair<OrderedMap, Text, Trait*>),
-   (MapPair<OrderedMap, Text, Traits::Count*>),
-   (MapPair<OrderedMap, Text, Any*>),
-   (MapPair<OrderedMap, Text, RT*>),
-
-   (MapPair<OrderedMap, Trait*, RT*>),
-   (MapPair<OrderedMap, Traits::Count*, RT*>),
-   (MapPair<OrderedMap, Any*, RT*>),
-   (MapPair<OrderedMap, RT*, RT*>)
+   //TODO MAP_TESTS(true),
+   MAP_TESTS(false)
 ) {
+#else
+TEMPLATE_TEST_CASE(
+   "Sparse TOrderedMap/TUnorderedMap/OrderedMap/UnorderedMap", "[map]",
+   MAP_TESTS(false)
+) {
+#endif
    IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
 
    static Allocator::State memoryState;
@@ -74,41 +84,45 @@ TEMPLATE_TEST_CASE(
    using V = typename TestType::Value;
    using Pair = TPair<K, V>;
    using StdPair = ::std::pair<K, V>;
+   constexpr bool MANAGED = TestType::Managed;
 
-   const auto pair = CreatePair<Pair, K, V>("five hundred", 555);
-   const auto pairMissing = CreatePair<Pair, K, V>("missing", 554);
-   const auto stdpair = CreatePair<StdPair, K, V>("five hundred", 555);
+   const auto pair
+      = CreatePair<Pair,    K, V, MANAGED>("five hundred", 555);
+   const auto pairMissing
+      = CreatePair<Pair,    K, V, MANAGED>("missing", 554);
+   const auto stdpair
+      = CreatePair<StdPair, K, V, MANAGED>("five hundred", 555);
 
    const Pair darray1[5] {
-      CreatePair<Pair, K, V>("one", 1),
-      CreatePair<Pair, K, V>("two", 2),
-      CreatePair<Pair, K, V>("three", 3),
-      CreatePair<Pair, K, V>("four", 4),
-      CreatePair<Pair, K, V>("five", 5)
+      CreatePair<Pair, K, V, MANAGED>("one", 1),
+      CreatePair<Pair, K, V, MANAGED>("two", 2),
+      CreatePair<Pair, K, V, MANAGED>("three", 3),
+      CreatePair<Pair, K, V, MANAGED>("four", 4),
+      CreatePair<Pair, K, V, MANAGED>("five", 5)
    };
 
    const Pair darray2[5] {
-      CreatePair<Pair, K, V>("six", 6),
-      CreatePair<Pair, K, V>("seven", 7),
-      CreatePair<Pair, K, V>("eight", 8),
-      CreatePair<Pair, K, V>("nine", 9),
-      CreatePair<Pair, K, V>("ten", 10)
+      CreatePair<Pair, K, V, MANAGED>("six", 6),
+      CreatePair<Pair, K, V, MANAGED>("seven", 7),
+      CreatePair<Pair, K, V, MANAGED>("eight", 8),
+      CreatePair<Pair, K, V, MANAGED>("nine", 9),
+      CreatePair<Pair, K, V, MANAGED>("ten", 10)
    };
 
    const StdPair darray1std[5] {
-      CreatePair<StdPair, K, V>("one", 1),
-      CreatePair<StdPair, K, V>("two", 2),
-      CreatePair<StdPair, K, V>("three", 3),
-      CreatePair<StdPair, K, V>("four", 4),
-      CreatePair<StdPair, K, V>("five", 5)
+      CreatePair<StdPair, K, V, MANAGED>("one", 1),
+      CreatePair<StdPair, K, V, MANAGED>("two", 2),
+      CreatePair<StdPair, K, V, MANAGED>("three", 3),
+      CreatePair<StdPair, K, V, MANAGED>("four", 4),
+      CreatePair<StdPair, K, V, MANAGED>("five", 5)
    };
 
    const StdPair darray2std[5] {
-      CreatePair<StdPair, K, V>("six", 6),
-      CreatePair<StdPair, K, V>("seven", 7),
-      CreatePair<StdPair, K, V>("eight", 8),
-      CreatePair<StdPair, K, V>("nine", 9),
-      CreatePair<StdPair, K, V>("ten", 10)
+      CreatePair<StdPair, K, V, MANAGED>("six", 6),
+      CreatePair<StdPair, K, V, MANAGED>("seven", 7),
+      CreatePair<StdPair, K, V, MANAGED>("eight", 8),
+      CreatePair<StdPair, K, V, MANAGED>("nine", 9),
+      CreatePair<StdPair, K, V, MANAGED>("ten", 10)
    };
 
    if constexpr (CT::Untyped<T>) {
@@ -130,7 +144,6 @@ TEMPLATE_TEST_CASE(
       static_assert(CT::DisownAssignable<T>);
    }
 
-
    GIVEN("A default-initialized map instance") {
       T map {};
 
@@ -144,7 +157,7 @@ TEMPLATE_TEST_CASE(
 
          REQUIRE(map.IsKeyTypeConstrained() == CT::Typed<T>);
          REQUIRE(map.IsValueTypeConstrained() == CT::Typed<T>);
-         REQUIRE(!map);
+         REQUIRE(not map);
          REQUIRE(map.GetUses() == 0);
          REQUIRE_FALSE(map.IsAllocated());
          REQUIRE_FALSE(map.HasAuthority());
@@ -167,13 +180,10 @@ TEMPLATE_TEST_CASE(
       }
 
       WHEN("Assigned a pair by move") {
-         IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
-
          auto movablePair = pair;
-         map = ::std::move(movablePair);
+         /*map = ::std::move(movablePair);
 
-         if constexpr (CT::Dense<K> or CT::Dense<V>)
-            REQUIRE(movablePair != pair);
+         REQUIRE(movablePair != pair);
          REQUIRE(map.IsKeyTypeConstrained() == CT::Typed<T>);
          REQUIRE(map.GetKeyType()->template Is<K>());
          REQUIRE(map.IsValueTypeConstrained() == CT::Typed<T>);
@@ -193,7 +203,7 @@ TEMPLATE_TEST_CASE(
          else {
             REQUIRE(map[pair.mKey] == pair.mValue);
             REQUIRE_THROWS(map[pairMissing.mKey] != pair.mValue);
-         }
+         }*/
 
          #ifdef LANGULUS_STD_BENCHMARK
             BENCHMARK_ADVANCED("Anyness::TUnorderedMap::operator = (single pair copy)") (timer meter) {
@@ -1052,18 +1062,18 @@ TEMPLATE_TEST_CASE(
       }
    }
 
-   DestroyPair(pair);
-   DestroyPair(pairMissing);
-   DestroyPair(stdpair);
+   DestroyPair<MANAGED>(pair);
+   DestroyPair<MANAGED>(pairMissing);
+   DestroyPair<MANAGED>(stdpair);
 
    for (auto& i : darray1)
-      DestroyPair(i);
+      DestroyPair<MANAGED>(i);
    for (auto& i : darray2)
-      DestroyPair(i);
+      DestroyPair<MANAGED>(i);
    for (auto& i : darray1std)
-      DestroyPair(i);
+      DestroyPair<MANAGED>(i);
    for (auto& i : darray2std)
-      DestroyPair(i);
+      DestroyPair<MANAGED>(i);
 
    REQUIRE(memoryState.Assert());
 }

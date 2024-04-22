@@ -33,12 +33,12 @@ namespace Langulus::A
    template<template<class> class S>
    requires CT::Semantic<S<Verb>> LANGULUS(INLINED)
    Verb::Verb(S<Verb>&& other) {
-      Any::operator = (other.template Forward<Any>());
+      Many::operator = (other.template Forward<Many>());
       Charge::operator = (*other);
       mVerb = other->mVerb;
       mState = other->mState;
-      mSource = S<Any> {other->mSource};
-      mOutput = S<Any> {other->mOutput};
+      mSource = S<Many> {other->mSource};
+      mOutput = S<Many> {other->mOutput};
    }
 
    /// Refer assignment                                                       
@@ -63,12 +63,12 @@ namespace Langulus::A
    template<template<class> class S>
    requires CT::Semantic<S<Verb>> LANGULUS(INLINED)
    Verb& Verb::operator = (S<Verb>&& rhs) {
-      Any::operator = (rhs.template Forward<Any>());
+      Many::operator = (rhs.template Forward<Many>());
       Charge::operator = (*rhs);
       mVerb = rhs->mVerb;
       mState = rhs->mState;
-      mSource = S<Any> {rhs->mSource};
-      mOutput = S<Any> {rhs->mOutput};
+      mSource = S<Many> {rhs->mSource};
+      mOutput = S<Many> {rhs->mOutput};
       return *this;
    }
    
@@ -76,7 +76,7 @@ namespace Langulus::A
    LANGULUS(INLINED)
    void Verb::Reset() {
       mVerb = {};
-      Any::Reset();
+      Many::Reset();
       Charge::Reset();
       mSource.Reset();
       mOutput.Reset();
@@ -146,7 +146,7 @@ namespace Langulus::A
    LANGULUS(INLINED)
    bool Verb::IsMissing() const noexcept {
       return mSource.IsMissing()
-          or Any::IsMissing()
+          or Many::IsMissing()
           or mOutput.IsMissing();
    }
 
@@ -155,7 +155,7 @@ namespace Langulus::A
    LANGULUS(INLINED)
    bool Verb::IsMissingDeep() const noexcept {
       return mSource.IsMissingDeep()
-          or Any::IsMissingDeep()
+          or Many::IsMissingDeep()
           or mOutput.IsMissingDeep();
    }
 
@@ -255,56 +255,56 @@ namespace Langulus::A
    /// Get verb source                                                        
    ///   @return the verb source                                              
    LANGULUS(INLINED)
-   Anyness::Any& Verb::GetSource() noexcept {
+   Anyness::Many& Verb::GetSource() noexcept {
       return mSource;
    }
 
    /// Get verb source (constant)                                             
    ///   @return the verb source                                              
    LANGULUS(INLINED)
-   const Anyness::Any& Verb::GetSource() const noexcept {
+   const Anyness::Many& Verb::GetSource() const noexcept {
       return mSource;
    }
 
    /// Get verb argument                                                      
    ///   @return the verb argument                                            
    LANGULUS(INLINED)
-   Anyness::Any& Verb::GetArgument() noexcept {
-      return static_cast<Any&>(*this);
+   Anyness::Many& Verb::GetArgument() noexcept {
+      return static_cast<Many&>(*this);
    }
 
    /// Get verb argument (constant)                                           
    ///   @return the verb argument                                            
    LANGULUS(INLINED)
-   const Anyness::Any& Verb::GetArgument() const noexcept {
-      return static_cast<const Any&>(*this);
+   const Anyness::Many& Verb::GetArgument() const noexcept {
+      return static_cast<const Many&>(*this);
    }
 
    /// Get verb output                                                        
    ///   @return the verb output                                              
    LANGULUS(INLINED)
-   Anyness::Any& Verb::GetOutput() noexcept {
+   Anyness::Many& Verb::GetOutput() noexcept {
       return mOutput;
    }
 
    /// Get verb output (constant)                                             
    ///   @return the verb output                                              
    LANGULUS(INLINED)
-   const Anyness::Any& Verb::GetOutput() const noexcept {
+   const Anyness::Many& Verb::GetOutput() const noexcept {
       return mOutput;
    }
 
    /// Convenience operator for accessing the output container inside verb    
    ///   @return the verb output                                              
    LANGULUS(INLINED)
-   const Anyness::Any* Verb::operator -> () const noexcept {
+   const Anyness::Many* Verb::operator -> () const noexcept {
       return &mOutput;
    }
 
    /// Convenience operator for accessing the output container inside verb    
    ///   @return the verb output                                              
    LANGULUS(INLINED)
-   Anyness::Any* Verb::operator -> () noexcept {
+   Anyness::Many* Verb::operator -> () noexcept {
       return &mOutput;
    }
    
@@ -407,7 +407,7 @@ namespace Langulus::A
    bool Verb::operator == (const Verb& rhs) const {
       return mVerb == rhs.mVerb
          and mSource == rhs.mSource
-         and Any::operator == (rhs.GetArgument())
+         and Many::operator == (rhs.GetArgument())
          and mOutput == rhs.mOutput
          and mState == rhs.mState;
    }

@@ -440,7 +440,7 @@ namespace Langulus::Anyness
    ///   2. If A is empty, the reflected default constructor is used          
    ///   3. If A is not empty, not exactly same as the contained type, or     
    ///      is more than a single argument, then all arguments will be        
-   ///      wrapped in an Any, and then forwarded to the descriptor-          
+   ///      wrapped in a Many, and then forwarded to the descriptor-          
    ///      constructor, if such is reflected                                 
    ///   If none of these constructors are available, or block is not typed,  
    ///   this function throws Except::Allocate                                
@@ -496,7 +496,7 @@ namespace Langulus::Anyness
       // Allocate a new T and move this inside it                       
       Block wrapper;
       wrapper.template SetType<T, false, THIS>();
-      wrapper.template AllocateMore<TAny<T>, true>(1);
+      wrapper.template AllocateMore<TMany<T>, true>(1);
       wrapper.template Get<Block>() = *this;
       *this = wrapper;
       
@@ -941,12 +941,12 @@ namespace Langulus::Anyness
                // appropriate reflected semantic constructor, if any    
                using FT = TypeOf<F>;
                if (IsSimilar<THIS, FT>())
-                  Create<TAny<FT>>(Forward<A>(arguments)...);
+                  Create<TMany<FT>>(Forward<A>(arguments)...);
                else
                   CreateDescribe<THIS>(Forward<A>(arguments)...);
             }
             else if (IsSimilar<THIS, F>())
-               Create<TAny<F>>(Forward<A>(arguments)...);
+               Create<TMany<F>>(Forward<A>(arguments)...);
             else
                CreateDescribe<THIS>(Forward<A>(arguments)...);
          }
@@ -1002,13 +1002,13 @@ namespace Langulus::Anyness
                // version is still a pointer, we can coalesce all       
                // clones into a single allocation (optimization)        
                Block clonedCoalescedSrc {mType->mDeptr};
-               clonedCoalescedSrc.AllocateFresh<Any>(
-                  clonedCoalescedSrc.RequestSize<Any>(count));
+               clonedCoalescedSrc.AllocateFresh<Many>(
+                  clonedCoalescedSrc.RequestSize<Many>(count));
                clonedCoalescedSrc.mCount = count;
 
                // Clone each inner element                              
                auto handle = GetHandle<T, THIS>(0);
-               auto dst = clonedCoalescedSrc.template GetRawAs<DT, Any>();
+               auto dst = clonedCoalescedSrc.template GetRawAs<DT, Many>();
                auto src = source->GetRaw();
                const auto srcEnd = src + count;
                while (src != srcEnd) {
@@ -1142,8 +1142,8 @@ namespace Langulus::Anyness
                // another level of indirection), we can coalesce all    
                // clones into a single allocation                       
                Block clonedCoalescedSrc {mType->mDeptr};
-               clonedCoalescedSrc.AllocateFresh<Any>(
-                  clonedCoalescedSrc.RequestSize<Any>(count));
+               clonedCoalescedSrc.AllocateFresh<Many>(
+                  clonedCoalescedSrc.RequestSize<Many>(count));
                clonedCoalescedSrc.mCount = count;
 
                // Clone each inner element by nesting this call         
@@ -1384,13 +1384,13 @@ namespace Langulus::Anyness
                // version is still a pointer, we can coalesce all       
                // clones into a single allocation (optimization)        
                Block clonedCoalescedSrc {mType->mDeptr};
-               clonedCoalescedSrc.AllocateFresh<Any>(
-                  clonedCoalescedSrc.RequestSize<Any>(count));
+               clonedCoalescedSrc.AllocateFresh<Many>(
+                  clonedCoalescedSrc.RequestSize<Many>(count));
                clonedCoalescedSrc.mCount = count;
 
                // Clone each inner element                              
                auto handle = GetHandle<T, THIS>(0);
-               auto dst = clonedCoalescedSrc.template GetRawAs<DT, Any>();
+               auto dst = clonedCoalescedSrc.template GetRawAs<DT, Many>();
                auto src = source->GetRaw();
                const auto srcEnd = src + count;
                while (src != srcEnd) {

@@ -14,7 +14,15 @@
 
 
 namespace Langulus::Anyness
-{
+{   
+
+   /// Get handle representation of the contained data                        
+   TEMPLATE() LANGULUS(INLINED)
+   auto TME()::GetHandle() const {
+      const auto mthis = const_cast<TME()*>(this);
+      // Notice entry is missing, which means it will be sought         
+      return Handle {mthis->mValue};
+   }
 
    /// Default constructor                                                    
    ///   @param value - owned value to reference                              

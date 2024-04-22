@@ -85,7 +85,7 @@ namespace Langulus::Anyness
       if (IsEmpty())
          return {};
 
-      TAny<Hash> hashes;
+      TMany<Hash> hashes;
       hashes.Reserve(GetCount());
       for (auto pair : reinterpret_cast<const THIS&>(*this))
          hashes << pair.GetHash();
@@ -111,8 +111,13 @@ namespace Langulus::Anyness
       // Check argument compatiblity                                    
       using V = Deref<decltype(value)>;
       if constexpr (not CT::Typed<THIS>) {
-         if (not IsValueSimilar<THIS, V>())
-            return false;
+         if (not IsValueSimilar<THIS, V>()) {
+            if constexpr (CT::Owned<V>) {
+               if (not IsValueSimilar<THIS, TypeOf<V>>())
+                  return false;
+            }
+            else return false;
+         }
       }
       else {
          static_assert(CT::Comparable<typename THIS::Value, V>,
@@ -244,8 +249,14 @@ namespace Langulus::Anyness
          else return InvalidOffset;
       }
       else {
-         if (not IsKeySimilar<THIS, K>())
-            return InvalidOffset;
+         if (not IsKeySimilar<THIS, K>()) {
+            // K might be wrapped inside Own                            
+            if constexpr (CT::Owned<K>) {
+               if (not IsKeySimilar<THIS, TypeOf<K>>())
+                  return InvalidOffset;
+            }
+            else return InvalidOffset;
+         }
 
          // Get the starting index based on the key hash                
          const auto start = GetBucket(GetReserved() - 1, match);

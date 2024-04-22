@@ -67,7 +67,7 @@ namespace Langulus::Anyness
 
       // Intentionally undefined, because it requires Langulus::Flow    
       // and relies on Verbs::Create                                    
-      NOD() bool StaticCreation(Any&) const;
+      NOD() bool StaticCreation(Many&) const;
 
    public:
       NOD() bool operator == (const Construct&) const;

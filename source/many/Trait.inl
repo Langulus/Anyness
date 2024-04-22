@@ -38,15 +38,15 @@ namespace Langulus::Anyness
          using T = TypeOf<S>;
 
          if constexpr (CT::TraitBased<T>) {
-            Any::BlockTransfer<Any>(S::Nest(t1).template Forward<Any>());
+            Many::BlockTransfer<Many>(S::Nest(t1).template Forward<Many>());
             mTraitType = DesemCast(t1).GetTrait();
          }
          else if constexpr (CT::Deep<T>)
-            Any::BlockTransfer<Any>(S::Nest(t1));
+            Many::BlockTransfer<Many>(S::Nest(t1));
          else
-            Any::Insert<Any>(IndexBack, Forward<T1>(t1));
+            Many::Insert<Many>(IndexBack, Forward<T1>(t1));
       }
-      else Any::Insert<Any>(IndexBack, Forward<T1>(t1), Forward<TN>(tn)...);
+      else Many::Insert<Many>(IndexBack, Forward<T1>(t1), Forward<TN>(tn)...);
    }
 
    /// Create a trait from a trait and data types                             
@@ -183,19 +183,17 @@ namespace Langulus::Anyness
    ///      otherwise function resolution doesn't work properly on MSVC       
    ///   @param other - the thing to compare with                             
    ///   @return true if things are the same                                  
-   template<CT::TraitBased THIS> LANGULUS(INLINED)
-   bool Trait::operator == (const CT::NotSemantic auto& rhs) const {
-      using T = Deref<decltype(rhs)>;
-
+   template<CT::TraitBased THIS, CT::NotSemantic T> requires CT::NotOwned<T>
+   LANGULUS(INLINED) bool Trait::operator == (const T& rhs) const {
       if constexpr (CT::Trait<THIS, T>) {
          return CT::Exact<typename THIS::TraitType, typename T::TraitType>
-            and Any::operator == (static_cast<const Any&>(rhs));
+            and Many::operator == (static_cast<const Many&>(rhs));
       }
       else if constexpr (CT::TraitBased<T>) {
          return IsTrait<THIS>(rhs.GetTrait())
-            and Any::operator == (static_cast<const Any&>(rhs));
+            and Many::operator == (static_cast<const Many&>(rhs));
       }
-      else return Any::operator == (rhs);
+      else return Many::operator == (rhs);
    }
 
    /// Refer-assignment                                                       
@@ -224,13 +222,13 @@ namespace Langulus::Anyness
       using T = TypeOf<S>;
 
       if constexpr (CT::TraitBased<T>) {
-         Any::operator = (S::Nest(rhs).template Forward<Any>());
+         Many::operator = (S::Nest(rhs).template Forward<Many>());
          mTraitType = DesemCast(rhs).GetTrait();
       }
       else if constexpr (CT::Deep<T>)
-         Any::operator = (S::Nest(rhs).template Forward<Any>());
+         Many::operator = (S::Nest(rhs).template Forward<Many>());
       else
-         Any::operator = (S::Nest(rhs));
+         Many::operator = (S::Nest(rhs));
       return *this;
    }
 
@@ -244,7 +242,7 @@ namespace Langulus::Anyness
       using T = TypeOf<S>;
 
       if constexpr (CT::TraitBased<T>) {
-         auto result = Any::operator + (S::Nest(rhs).template Forward<Any>());
+         auto result = Many::operator + (S::Nest(rhs).template Forward<Many>());
 
          if constexpr (CT::Trait<THIS>)
             return THIS {Abandon(result)};
@@ -256,7 +254,7 @@ namespace Langulus::Anyness
          }
       }
       else {
-         auto result = Any::operator + (S::Nest(rhs).Forward());
+         auto result = Many::operator + (S::Nest(rhs).Forward());
 
          if constexpr (CT::Trait<THIS>)
             return THIS {Abandon(result)};
@@ -275,14 +273,14 @@ namespace Langulus::Anyness
       using T = TypeOf<S>;
 
       if constexpr (CT::TraitBased<T>) {
-         Any::operator += (S::Nest(rhs).template Forward<Any>());
+         Many::operator += (S::Nest(rhs).template Forward<Many>());
 
          if constexpr (not CT::Trait<THIS>) {
             if (not mTraitType)
                mTraitType = DesemCast(rhs).GetTrait();
          }
       }
-      else Any::operator += (S::Nest(rhs).Forward());
+      else Many::operator += (S::Nest(rhs).Forward());
       return *this;
    }
    

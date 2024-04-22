@@ -7,7 +7,7 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #pragma once
-#include "TAny.hpp"
+#include "TMany.hpp"
 #include "Trait.hpp"
 #include "../maps/TMap.hpp"
 #include "../Charge.inl"
@@ -23,7 +23,7 @@ namespace Langulus::Anyness
       struct DeConstruct {
          Hash mHash;
          Charge mCharge;
-         Any mData;
+         Many mData;
 
          template<template<class> class S>
          DeConstruct(Hash, const Charge&, S<Neat>&&);
@@ -60,17 +60,17 @@ namespace Langulus::Anyness
       // Traits are ordered first by their trait type, then by their    
       // order of appearance. Duplicate trait types are allowed         
       // Trait contents are also normalized all the way through         
-      TUnorderedMap<TMeta, TAny<Any>> mTraits;
+      TUnorderedMap<TMeta, TMany<Many>> mTraits;
 
       // Subconstructs are sorted first by the construct type, and then 
       // by their order of appearance. Their contents are also          
       // nest-normalized all the way through                            
-      TUnorderedMap<DMeta, TAny<Inner::DeConstruct>> mConstructs;
+      TUnorderedMap<DMeta, TMany<Inner::DeConstruct>> mConstructs;
 
       // Any other block type that doesn't fit in the above is sorted   
       // first by the block type, then by the order of appearance       
       // These sub-blocks won't contain Neat elements                   
-      TUnorderedMap<DMeta, TAny<Messy>> mAnythingElse;
+      TUnorderedMap<DMeta, TMany<Messy>> mAnythingElse;
 
    public:
       LANGULUS(DEEP) true;
@@ -119,32 +119,32 @@ namespace Langulus::Anyness
       NOD() explicit operator bool() const noexcept;
 
       template<CT::Trait>
-      TAny<Any>* GetTraits();
+      TMany<Many>* GetTraits();
 
       template<CT::Trait>
-      const TAny<Any>* GetTraits() const;
-            TAny<Any>* GetTraits(TMeta);
-      const TAny<Any>* GetTraits(TMeta) const;
+      const TMany<Many>* GetTraits() const;
+            TMany<Many>* GetTraits(TMeta);
+      const TMany<Many>* GetTraits(TMeta) const;
 
       template<CT::Data>
-      TAny<Messy>* GetData();
+      TMany<Messy>* GetData();
 
       template<CT::Data>
-      const TAny<Messy>* GetData() const;
-            TAny<Messy>* GetData(DMeta);
-      const TAny<Messy>* GetData(DMeta) const;
+      const TMany<Messy>* GetData() const;
+            TMany<Messy>* GetData(DMeta);
+      const TMany<Messy>* GetData(DMeta) const;
       
       template<CT::Data>
-      TAny<Inner::DeConstruct>* GetConstructs();
+      TMany<Inner::DeConstruct>* GetConstructs();
 
       template<CT::Data>
       DMeta FindType() const;
       DMeta FindType(DMeta) const;
 
       template<CT::Data>
-      const TAny<Inner::DeConstruct>* GetConstructs() const;
-            TAny<Inner::DeConstruct>* GetConstructs(DMeta);
-      const TAny<Inner::DeConstruct>* GetConstructs(DMeta) const;
+      const TMany<Inner::DeConstruct>* GetConstructs() const;
+            TMany<Inner::DeConstruct>* GetConstructs(DMeta);
+      const TMany<Inner::DeConstruct>* GetConstructs(DMeta) const;
 
       template<CT::Trait>
       void SetDefaultTrait(CT::Data auto&&);
@@ -163,8 +163,8 @@ namespace Langulus::Anyness
       Count ExtractDataAs(CT::Data auto&) const;
 
       template<CT::Trait>
-      NOD() const Any* Get(Offset = 0) const;
-      NOD() const Any* Get(TMeta, Offset = 0) const;
+      NOD() const Many* Get(Offset = 0) const;
+      NOD() const Many* Get(TMeta, Offset = 0) const;
 
    protected:
       template<CT::Trait>
@@ -224,9 +224,9 @@ namespace Langulus::Anyness
       void AddVerb(CT::Semantic auto&&);
 
       template<Offset... IDX>
-      bool ExtractTraitInner(const TAny<Any>&, ::std::integer_sequence<Offset, IDX...>, CT::Data auto&...) const;
+      bool ExtractTraitInner(const TMany<Many>&, ::std::integer_sequence<Offset, IDX...>, CT::Data auto&...) const;
       template<Offset>
-      bool ExtractTraitInnerInner(const TAny<Any>&, CT::Data auto&) const;
+      bool ExtractTraitInnerInner(const TMany<Many>&, CT::Data auto&) const;
 
    public:
       ///                                                                     

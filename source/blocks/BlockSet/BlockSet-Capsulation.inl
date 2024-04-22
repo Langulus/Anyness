@@ -91,9 +91,9 @@ namespace Langulus::Anyness
    template<CT::Set THIS> LANGULUS(INLINED)
    auto& BlockSet::GetValues() const noexcept {
       if constexpr (CT::Typed<THIS>)
-         return reinterpret_cast<const TAny<TypeOf<THIS>>&>(mKeys);
+         return reinterpret_cast<const TMany<TypeOf<THIS>>&>(mKeys);
       else
-         return reinterpret_cast<const Any&>(mKeys);
+         return reinterpret_cast<const Many&>(mKeys);
    }
 
    /// Get the templated values container                                     
@@ -101,9 +101,9 @@ namespace Langulus::Anyness
    template<CT::Set THIS> LANGULUS(INLINED)
    auto& BlockSet::GetValues() noexcept {
       if constexpr (CT::Typed<THIS>)
-         return reinterpret_cast<TAny<TypeOf<THIS>>&>(mKeys);
+         return reinterpret_cast<TMany<TypeOf<THIS>>&>(mKeys);
       else
-         return reinterpret_cast<Any&>(mKeys);
+         return reinterpret_cast<Many&>(mKeys);
    }
 
    /// Get the number of inserted pairs                                       

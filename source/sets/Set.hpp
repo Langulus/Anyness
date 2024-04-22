@@ -18,7 +18,7 @@ namespace Langulus::Anyness
    ///                                                                        
    template<bool ORDERED = false>
    struct Set : BlockSet {
-      using BlockType = Any;
+      using BlockType = Many;
 
       LANGULUS(POD) false;
       LANGULUS_BASES(BlockSet);

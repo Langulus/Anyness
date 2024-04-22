@@ -66,7 +66,7 @@ namespace Langulus::Anyness
    ///   @return the hash                                                     
    template<CT::Set THIS> LANGULUS(INLINED)
    Hash BlockSet::GetHash() const {
-      TAny<Hash> hashes;
+      TMany<Hash> hashes;
       for (auto& element : reinterpret_cast<const THIS&>(*this))
          hashes << element.GetHash();
       return hashes.GetHash();

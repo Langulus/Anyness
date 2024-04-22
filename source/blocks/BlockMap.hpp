@@ -7,7 +7,7 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #pragma once
-#include "../many/TAny.hpp"
+#include "../many/TMany.hpp"
 #include "../pairs/TPair.hpp"
 
 
@@ -285,7 +285,11 @@ namespace Langulus::Anyness
       NOD() decltype(auto) GetValRef(Offset)       IF_UNSAFE(noexcept);
 
       template<CT::Map>
+      NOD() auto GetKeyHandle(Offset) IF_UNSAFE(noexcept);
+      template<CT::Map>
       NOD() auto GetKeyHandle(Offset) const IF_UNSAFE(noexcept);
+      template<CT::Map>
+      NOD() auto GetValHandle(Offset) IF_UNSAFE(noexcept);
       template<CT::Map>
       NOD() auto GetValHandle(Offset) const IF_UNSAFE(noexcept);
 
