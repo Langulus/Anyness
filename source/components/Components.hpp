@@ -17,8 +17,8 @@
 
 ///                                                                           
 /// Components are simple structures that when combined, define the size of   
-/// containers and their interface. Any change in these structures will need  
-/// to be paired with a major version change.                                 
+/// containers and their behavior. Any change in these structures' layout     
+/// will need to be paired with a major version change.                       
 ///                                                                           
 namespace Langulus::Anyness::Component
 {
@@ -47,37 +47,51 @@ namespace Langulus::Anyness::Component
    };
 
    ///                                                                        
-   /// The range component allows for contiguous memory to be represented     
+   /// The range component allows us to represent contiguous memory           
+   /// If N is CountMax, then the memory is resizable at runtime.             
    ///                                                                        
+   template<Count N>
    struct Range {
+      static_assert(N > 0, "N must be greater than zero");
+      static constexpr Count CellCount = N;
+   };
+
+   template<>
+   struct Range<CountMax> {
       // Pointer to the first uninitialized element                     
       Byte* mNext;
       union {
          // Pointer to the end                                          
          Byte* mEnd;
-         // Also, this is where usually sources of pointers are         
+         // Also, this is where usually sources of pointers start       
          Allocation** mSparseSources;
       }
    };
 
    ///                                                                        
-   /// The meta component contains RTTI type information                      
+   /// The meta component contains RTTI type information. If T is void, the   
+   /// container is considered type-erased - its type may change at runtime.  
    ///                                                                        
+   template<class T>
    struct Meta {
+      using CellType = T;
+   };
+
+   template<>
+   struct Meta<void> {
       // The contained type                                             
-      mutable DMeta mType {};
+      DMeta mType;
    };
 
    ///                                                                        
    /// The ownership component makes sure that contained data and sources     
-   /// are properly referenced, when transferred between containers.          
+   /// are properly referenced when transferred between containers.           
    ///                                                                        
-   struct Ownership {
-
-   };
+   struct Ownership {};
 
    ///                                                                        
-   /// The hashed component makes sure that hashing is precomputed.           
+   /// The hashed component makes sure that hashing is cached, so that it     
+   /// isn't recomputed every time.                                           
    ///                                                                        
    struct Hashed {
       // The cached hash                                                
@@ -86,17 +100,17 @@ namespace Langulus::Anyness::Component
 
    ///                                                                        
    /// The Small Value Optimization component allows for part of the layout   
-   /// to be used to allocate small data on the stack, instead on the heap.   
+   /// to be reused to allocate small data on the stack, instead of on the    
+   /// heap.                                                                  
    ///                                                                        
-   struct SVO {
-
-   };
+   struct SVO {};
 
    ///                                                                        
    /// The table component allows for cells to be reused                      
    ///                                                                        
    struct Table {
-
+      // Pointer to the start of the table array                        
+      Byte* mTable;
    };
 
    ///                                                                        
@@ -139,22 +153,6 @@ namespace Langulus::Anyness::Component
    /// constant, to prevent any change at runtime.                            
    ///                                                                        
    struct Constant {
-   
-   };
-   
-   ///                                                                        
-   /// The LockType component allows type to be locked, in order to represent 
-   /// templated containers safely.                                           
-   ///                                                                        
-   struct LockType {
-   
-   };
-
-   ///                                                                        
-   /// The LockDensity component allows density to be locked, in order to     
-   /// constrain type either to be always sparse, or always dense.            
-   ///                                                                        
-   struct LockDensity {
    
    };
 

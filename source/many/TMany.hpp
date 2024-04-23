@@ -115,7 +115,7 @@ namespace Langulus::Anyness
    /// provides a strong guarantee that this operation is completely safe.    
    ///                                                                        
    template<CT::Data T>
-   class TMany : public Many {
+   class TMany : public Block<T> {
       static_assert(CT::Complete<T>,
          "Contained type must be complete");
       static_assert(CT::Insertable<T>,
@@ -160,7 +160,6 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Capsulation                                                       
       ///                                                                     
-      NOD() DMeta GetType() const noexcept;
       NOD() constexpr Token GetToken() const noexcept;
       constexpr void ResetState() noexcept;
 
@@ -255,14 +254,6 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Iteration                                                         
       ///                                                                     
-      using Iterator      = Block::Iterator<TMany>;
-      using ConstIterator = Block::Iterator<const TMany>;
-
-      NOD() Iterator begin() noexcept;
-      NOD() Iterator last() noexcept;
-      NOD() ConstIterator begin() const noexcept;
-      NOD() ConstIterator last() const noexcept;
-
       template<bool REVERSE = false>
       Count ForEachElement(auto&&);
       template<bool REVERSE = false>

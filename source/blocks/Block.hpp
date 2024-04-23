@@ -173,11 +173,14 @@ namespace Langulus::Anyness
    /// only provides the functionality to do so. You can use Block as a       
    /// lightweight intermediate structure for iteration, etc.                 
    ///                                                                        
+   template<class TYPE>
    struct Block : A::Block {
+      LANGULUS(TYPED) TYPE;
       LANGULUS(ABSTRACT) false;
 
       static constexpr bool Ownership = false;
       static constexpr bool Sequential = true;
+      static constexpr bool TypeErased = CT::TypeErased<TYPE>;
 
       friend class Many;
       template<CT::Data>
@@ -244,15 +247,12 @@ namespace Langulus::Anyness
 
       NOD() constexpr explicit operator bool() const noexcept;
 
-      template<CT::BlockBased = Many>
       NOD() bool Owns(const void*) const noexcept;
       NOD() constexpr bool HasAuthority() const noexcept;
       NOD() constexpr Count GetUses() const noexcept;
-      template<CT::BlockBased = Many>
       NOD() constexpr DMeta GetType() const noexcept;
       NOD() constexpr Count GetCount() const noexcept;
       NOD() constexpr Count GetReserved() const noexcept;
-      template<CT::BlockBased = Many>
       NOD() constexpr Size GetReservedSize() const noexcept;
       template<CT::Block = Many>
       NOD() Count GetCountDeep() const noexcept;
@@ -489,17 +489,15 @@ namespace Langulus::Anyness
       ///   Iteration                                                         
       ///                                                                     
       template<class>
-      struct Iterator;
+      struct TIterator;
+      using Iterator = TIterator<TYPE>;
+      using ConstIterator = TIterator<const TYPE>;
 
-      template<CT::Block BLOCK = Many>
-      NOD() constexpr Iterator<BLOCK> begin() noexcept;
-      template<CT::Block BLOCK = Many>
-      NOD() constexpr Iterator<const BLOCK> begin() const noexcept;
+      NOD() constexpr Iterator begin() noexcept;
+      NOD() constexpr ConstIterator begin() const noexcept;
 
-      template<CT::Block BLOCK = Many>
-      NOD() constexpr Iterator<BLOCK> last() noexcept;
-      template<CT::Block BLOCK = Many>
-      NOD() constexpr Iterator<const BLOCK> last() const noexcept;
+      NOD() constexpr Iterator last() noexcept;
+      NOD() constexpr ConstIterator last() const noexcept;
 
       constexpr A::IteratorEnd end() const noexcept { return {}; }
 
@@ -619,12 +617,10 @@ namespace Langulus::Anyness
       template<CT::Block = Many>
       NOD() Hash GetHash() const;
 
-      template<bool REVERSE = false, CT::Block = Many>
-      NOD() Index Find(const CT::NotSemantic auto&, Offset = 0) const noexcept;
-      template<CT::Block THIS = Many>
-      NOD() Iterator<THIS> FindIt(const CT::NotSemantic auto&);
-      template<CT::Block THIS = Many>
-      NOD() Iterator<const THIS> FindIt(const CT::NotSemantic auto&) const;
+      template<bool REVERSE = false>
+      NOD() Index         Find  (const CT::NotSemantic auto&, Offset = 0) const noexcept;
+      NOD() Iterator      FindIt(const CT::NotSemantic auto&);
+      NOD() ConstIterator FindIt(const CT::NotSemantic auto&) const;
 
       template<bool REVERSE = false, CT::Block = Many>
       NOD() Index FindBlock(const CT::Block auto&, CT::Index auto) const noexcept;
@@ -784,7 +780,7 @@ namespace Langulus::Anyness
       template<CT::Block = Many>
       Count RemoveIndexDeep(CT::Index auto);
       template<CT::Block THIS = Many>
-      Iterator<THIS> RemoveIt(const Iterator<THIS>&, Count = 1);
+      Iterator RemoveIt(const Iterator&, Count = 1);
 
       template<CT::Block = Many>
       void Trim(Count);
@@ -859,6 +855,7 @@ namespace Langulus::Anyness
       template<CT::Block>
       NOD() Offset DeserializeMeta(CT::Meta auto&, Offset, const Header&, Loader) const;
    };
+
 
    namespace Inner
    {
@@ -955,8 +952,8 @@ namespace Langulus::Anyness
    ///                                                                        
    ///   Contiguous block iterator                                            
    ///                                                                        
-   template<class BLOCK>
-   struct Block::Iterator : A::Iterator {
+   template<class TYPE> template<class AS>
+   struct Block<TYPE>::Iterator<AS> : A::Iterator {
       static_assert(CT::Block<BLOCK>, "BLOCK must be Block type");
       static constexpr bool Mutable = CT::Mutable<BLOCK>;
 
@@ -965,10 +962,10 @@ namespace Langulus::Anyness
          , void>;
 
       LANGULUS(ABSTRACT) false;
-      LANGULUS(TYPED) Type;
+      LANGULUS(TYPED)    Type;
 
    protected:
-      friend struct Block;
+      friend struct Block<TYPE>;
       using TypeInner = Conditional<CT::Typed<BLOCK>, Type*, Block>;
 
       // Current iterator position pointer                              

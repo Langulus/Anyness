@@ -18,31 +18,31 @@ namespace Langulus::Anyness
    /// Overwrite the current data state                                       
    ///   @attention you can not add/remove constraints like that              
    ///   @param state - the state to overwrite with                           
-   LANGULUS(INLINED)
-   constexpr void Block::SetState(DataState state) noexcept {
+   template<class TYPE> LANGULUS(INLINED)
+   constexpr void Block<TYPE>::SetState(DataState state) noexcept {
       mState = state - DataState::Constrained;
    }
 
    /// Add a state                                                            
    ///   @attention you can not add constraints like that                     
    ///   @param state - the state to add to the current                       
-   LANGULUS(INLINED)
-   constexpr void Block::AddState(DataState state) noexcept {
+   template<class TYPE> LANGULUS(INLINED)
+   constexpr void Block<TYPE>::AddState(DataState state) noexcept {
       mState += state - DataState::Constrained;
    }
 
    /// Remove a state                                                         
    ///   @attention you can not remove constraints like that                  
    ///   @param state - the state to remove from the current                  
-   LANGULUS(INLINED)
-   constexpr void Block::RemoveState(DataState state) noexcept {
+   template<class TYPE> LANGULUS(INLINED)
+   constexpr void Block<TYPE>::RemoveState(DataState state) noexcept {
       mState -= state - DataState::Constrained;
    }
 
    /// Explicit bool cast operator, for use in if statements                  
    ///   @return true if block contains at least one valid element            
-   LANGULUS(INLINED)
-   constexpr Block::operator bool() const noexcept {
+   template<class TYPE> LANGULUS(INLINED)
+   constexpr Block<TYPE>::operator bool() const noexcept {
       return not IsEmpty();
    }
 
@@ -50,45 +50,46 @@ namespace Langulus::Anyness
    ///   @attention doesn't check deep or sparse data regions                 
    ///   @param ptr - the pointer to check                                    
    ///   @return true if inside the immediate reserved memory block range     
-   template<CT::BlockBased THIS> LANGULUS(INLINED)
-   bool Block::Owns(const void* ptr) const noexcept {
-      return ptr >= mRaw and ptr < mRaw + GetReservedSize<THIS>();
+   template<class TYPE> LANGULUS(INLINED)
+   bool Block<TYPE>::Owns(const void* ptr) const noexcept {
+      return ptr >= mRaw and ptr < mRaw + GetReservedSize();
    }
 
    /// Check if we have jurisdiction over the contained memory                
    ///   @return true if memory is under our authority                        
-   constexpr bool Block::HasAuthority() const noexcept {
+   template<class TYPE> LANGULUS(INLINED)
+   constexpr bool Block<TYPE>::HasAuthority() const noexcept {
       return mEntry != nullptr;
    }
 
    /// Get the number of references for the allocated memory block            
    ///   @return the references for the memory block, or 0 if memory is       
    ///           outside authority (or unallocated)                           
-   LANGULUS(INLINED)
-   constexpr Count Block::GetUses() const noexcept {
+   template<class TYPE> LANGULUS(INLINED)
+   constexpr Count Block<TYPE>::GetUses() const noexcept {
       return mEntry ? mEntry->GetUses() : 0;
    }
    
    /// Get the contained type                                                 
    ///   @return the meta data                                                
-   template<CT::BlockBased THIS> LANGULUS(INLINED)
-   constexpr DMeta Block::GetType() const noexcept {
-      if constexpr (CT::Typed<THIS>)
-         return (mType = MetaDataOf<TypeOf<THIS>>());
-      else
+   template<class TYPE> LANGULUS(INLINED)
+   constexpr DMeta Block<TYPE>::GetType() const noexcept {
+      if constexpr (TypeErased)
          return mType;
+      else
+         return (mType = MetaDataOf<TypeOf<THIS>>());
    }
 
    /// Get the number of initialized elements                                 
    ///   @return the number of initialized elements                           
-   LANGULUS(INLINED)
+   template<class TYPE> LANGULUS(INLINED)
    constexpr Count Block::GetCount() const noexcept {
       return mCount;
    }
 
    /// Get the number of reserved (maybe uninitialized) elements              
    ///   @return the number of reserved (maybe uninitialized) elements        
-   LANGULUS(INLINED)
+   template<class TYPE> LANGULUS(INLINED)
    constexpr Count Block::GetReserved() const noexcept {
       return mReserved;
    }
@@ -97,12 +98,12 @@ namespace Langulus::Anyness
    ///   @attention this doesn't include bytes reserved for entries in sparse 
    ///              containers, when managed memory is enabled                
    ///   @return the number of reserved bytes                                 
-   template<CT::BlockBased THIS> LANGULUS(INLINED)
-   constexpr Size Block::GetReservedSize() const noexcept {
-      if constexpr (CT::Typed<THIS>)
-         return mReserved * sizeof(TypeOf<THIS>);
-      else
+   template<class TYPE> LANGULUS(INLINED)
+   constexpr Size Block<TYPE>::GetReservedSize() const noexcept {
+      if constexpr (TypeErased)
          return mType ? mReserved * mType->mSize : 0;
+      else
+         return mReserved * sizeof(TYPE);
    }
    
    /// Get the number of sub-blocks (this one included)                       
@@ -380,7 +381,7 @@ namespace Langulus::Anyness
    ///   @return the token                                                    
    template<CT::BlockBased THIS> LANGULUS(INLINED)
    constexpr Token Block::GetToken() const noexcept {
-      return GetType<THIS>().GetToken();
+      return GetType().GetToken();
    }
    
    /// Get the size of a single element (in bytes)                            

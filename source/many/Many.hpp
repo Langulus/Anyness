@@ -24,7 +24,7 @@ namespace Langulus::Anyness
    /// the cost of one runtime type check, because all Many variants are      
    /// binary-compatible.                                                     
    ///                                                                        
-   class Many : public Block {
+   class Many : public Block<> {
       LANGULUS(POD) false;
       LANGULUS_BASES(Block);
 

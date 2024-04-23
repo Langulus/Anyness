@@ -78,7 +78,7 @@ namespace Langulus::Anyness
       using Base::operator *;
 
       /// Makes Ref CT::Resolvable                                            
-      NOD() Block GetBlock() const;
+      NOD() Block<T*> GetBlock() const;
 
       ///                                                                     
       ///   Services                                                          

@@ -43,7 +43,7 @@ namespace Langulus
 
          // The block that contains the keys and info bytes             
          // Also keeps track of count and reserve                       
-         Anyness::Block mKeys;
+         Anyness::Block<> mKeys;
 
          // The block that contains the values                          
          // Count and reserve in this block are redundant and shouldn't 
@@ -55,7 +55,7 @@ namespace Langulus
          // will definitely break binary compatibility, and would       
          // involve a lot of boilerplate code that duplicates Block     
          // functionality. I've decided to make the sacrifice...        
-         Anyness::Block mValues;
+         Anyness::Block<> mValues;
 
       public:
          constexpr BlockMap() noexcept = default;
@@ -264,7 +264,7 @@ namespace Langulus::Anyness
       noexcept(not LANGULUS_SAFE() and CT::BuiltinInteger<INDEX>);
 
       NOD() static Offset GetBucket(Offset, const CT::NotSemantic auto&) noexcept;
-      NOD() static Offset GetBucketUnknown(Offset, const Block&) noexcept;
+      NOD() static Offset GetBucketUnknown(Offset, const Block<>&) noexcept;
 
       template<CT::Map>
       NOD() decltype(auto) GetRawKey(Offset) const IF_UNSAFE(noexcept);
@@ -428,7 +428,7 @@ namespace Langulus::Anyness
       template<CT::Map>
       NOD() Offset FindInner(const CT::NotSemantic auto&) const;
       template<CT::Map>
-      NOD() Offset FindBlockInner(const Block&) const;
+      NOD() Offset FindBlockInner(const Block<>&) const;
 
    public:
       ///                                                                     
@@ -553,8 +553,8 @@ namespace Langulus::Anyness
                                          const typename MAP::Value>;
       using Pair  = Conditional<Mutable, typename MAP::PairRef,
                                          typename MAP::PairConstRef>;
-      using KA = Conditional<CT::TypeErased<Key>,   Block, Key*>;
-      using VA = Conditional<CT::TypeErased<Value>, Block, Value*>;
+      using KA = Conditional<CT::TypeErased<Key>,   Block<>, Key*>;
+      using VA = Conditional<CT::TypeErased<Value>, Block<>, Value*>;
 
       LANGULUS(ABSTRACT) false;
       LANGULUS(TYPED)    Pair;

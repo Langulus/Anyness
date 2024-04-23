@@ -29,7 +29,7 @@ namespace Langulus::Anyness
       using Key = void;
       using Value = void;
       using Self = Map<ORDERED>;
-      using Pair = TPair<Block, Block>;
+      using Pair = Anyness::Pair;
       using PairRef = Pair;
       using PairConstRef = Pair;
 
@@ -56,21 +56,21 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Indexing                                                          
       ///                                                                     
-      NOD() Block GetKey  (CT::Index auto);
-      NOD() Block GetKey  (CT::Index auto) const;
-      NOD() Block GetValue(CT::Index auto);
-      NOD() Block GetValue(CT::Index auto) const;
-      NOD() Pair  GetPair (CT::Index auto);
-      NOD() Pair  GetPair (CT::Index auto) const;
+      NOD() Block<> GetKey  (CT::Index auto);
+      NOD() Block<> GetKey  (CT::Index auto) const;
+      NOD() Block<> GetValue(CT::Index auto);
+      NOD() Block<> GetValue(CT::Index auto) const;
+      NOD() Pair    GetPair (CT::Index auto);
+      NOD() Pair    GetPair (CT::Index auto) const;
 
       ///                                                                     
       ///   Iteration                                                         
       ///                                                                     
-      using Iterator = BlockMap::Iterator<Map>;
+      using Iterator      = BlockMap::Iterator<Map>;
       using ConstIterator = BlockMap::Iterator<const Map>;
 
-      NOD() Iterator begin() noexcept;
-      NOD() Iterator last() noexcept;
+      NOD() Iterator      begin() noexcept;
+      NOD() Iterator      last() noexcept;
       NOD() ConstIterator begin() const noexcept;
       NOD() ConstIterator last() const noexcept;
 

@@ -61,7 +61,7 @@ namespace Langulus::Anyness
             Conditional<CT::Mutable<T>, AllocType*, AllocType const*
          >, AllocType>;
 
-      friend struct Block;
+      friend struct Block<T>;
       /// @cond show_protected                                                
       // The value                                                      
       ValueType mValue;
