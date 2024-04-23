@@ -616,11 +616,11 @@ namespace Langulus::Anyness
    ///   @param right - the type to the right                                 
    ///   @param common - [out] the common base                                
    ///   @return true if a common base has been found                         
-   inline bool Block::CompareTypes(const Block& right, RTTI::Base& common) const {
-      LANGULUS_ASSUME(DevAssumes, IsTyped<Block>(),
-         "LHS block is not typed", " comparing with RHS: ", right.GetType<Block>());
-      LANGULUS_ASSUME(DevAssumes, right.IsTyped<Block>(),
-         "RHS block is not typed", " comparing with LHS: ", GetType<Block>());
+   inline bool Block::CompareTypes(const CT::Block auto& right, RTTI::Base& common) const {
+      LANGULUS_ASSUME(DevAssumes, IsTyped(),
+         "LHS block is not typed", " comparing with RHS: ", right.GetType());
+      LANGULUS_ASSUME(DevAssumes, right.IsTyped(),
+         "RHS block is not typed", " comparing with LHS: ", GetType());
 
       if (not mType->Is(right.mType)) {
          // Types differ, dig deeper to find out why                    

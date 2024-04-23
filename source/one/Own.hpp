@@ -119,7 +119,7 @@ namespace Langulus::Anyness
       NOD() auto GetHandle() const;
 
       /// Makes Own CT::Resolvable                                            
-      NOD() constexpr Block GetBlock() const;
+      NOD() constexpr Block<T> GetBlock() const;
 
       ///                                                                     
       ///   Services                                                          

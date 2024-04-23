@@ -204,15 +204,6 @@ namespace Langulus::Anyness
       return result;
    }
 
-   /// Get the static type of the container                                   
-   /// Also initializes the type of this container                            
-   ///   @attention this should not be called at static initialization time   
-   ///   @return the meta definition of the type                              
-   TEMPLATE() LANGULUS(INLINED)
-   DMeta TMany<T>::GetType() const noexcept {
-      return Block::GetType<TMany>();
-   }
-
    /// Get the name of the contained type                                     
    ///   @return the name of the contained type                               
    TEMPLATE() LANGULUS(INLINED)
@@ -1128,30 +1119,6 @@ namespace Langulus::Anyness
    TEMPLATE() LANGULUS(INLINED)
    Hash TMany<T>::GetHash() const requires CT::Hashable<T> {
       return Block::GetHash<TMany>();
-   }
-
-   /// Get iterator to first element                                          
-   ///   @return an iterator to the first element, or end if empty            
-   TEMPLATE() LANGULUS(INLINED)
-   typename TMany<T>::Iterator TMany<T>::begin() noexcept {
-      return Block::begin<TMany>();
-   }
-
-   TEMPLATE() LANGULUS(INLINED)
-   typename TMany<T>::ConstIterator TMany<T>::begin() const noexcept {
-      return Block::begin<TMany>();
-   }
-
-   /// Get iterator to the last element                                       
-   ///   @return an iterator to the last element, or end if empty             
-   TEMPLATE() LANGULUS(INLINED)
-   typename TMany<T>::Iterator TMany<T>::last() noexcept {
-      return Block::last<TMany>();
-   }
-
-   TEMPLATE() LANGULUS(INLINED)
-   typename TMany<T>::ConstIterator TMany<T>::last() const noexcept {
-      return Block::last<TMany>();
    }
 
    /// Concatenate anything, semantically or not                              
