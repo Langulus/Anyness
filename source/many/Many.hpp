@@ -77,9 +77,6 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Iteration                                                         
       ///                                                                     
-      using Iterator = Block::Iterator<Many>;
-      using ConstIterator = Block::Iterator<const Many>;
-
       template<bool REVERSE = false>
       Count ForEachElement(auto&&) const;
       template<bool REVERSE = false>

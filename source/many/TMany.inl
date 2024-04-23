@@ -617,72 +617,6 @@ namespace Langulus::Anyness
       return Block::Last<TMany>();
    }
    
-   /// Templated Many containers are always typed                             
-   ///   @return true                                                         
-   TEMPLATE() LANGULUS(INLINED)
-   constexpr bool TMany<T>::IsTyped() const noexcept {
-      return true;
-   }
-   
-   /// Templated Many containers are never untyped                            
-   ///   @return false                                                        
-   TEMPLATE() LANGULUS(INLINED)
-   constexpr bool TMany<T>::IsUntyped() const noexcept {
-      return false;
-   }
-   
-   /// Templated Many containers are always type-constrained                  
-   TEMPLATE() LANGULUS(INLINED)
-   constexpr bool TMany<T>::IsTypeConstrained() const noexcept {
-      return true;
-   }
-      
-   /// Check if contained type is deep                                        
-   /// This is a statically optimized alternative to Block::IsDeep            
-   ///   @return true if this container contains deep items                   
-   TEMPLATE() LANGULUS(INLINED)
-   constexpr bool TMany<T>::IsDeep() const noexcept {
-      return Block::IsDeep<TMany>();
-   }
-
-   /// Check if the contained type is a pointer                               
-   /// This is a statically optimized alternative to Block::IsSparse          
-   ///   @return true if container contains pointers                          
-   TEMPLATE() LANGULUS(INLINED)
-   constexpr bool TMany<T>::IsSparse() const noexcept {
-      return Block::IsSparse<TMany>();
-   }
-
-   /// Check if the contained type is not a pointer                           
-   /// This is a statically optimized alternative to Block::IsDense           
-   ///   @return true if container contains sequential data                   
-   TEMPLATE() LANGULUS(INLINED)
-   constexpr bool TMany<T>::IsDense() const noexcept {
-      return Block::IsDense<TMany>();
-   }
-
-   /// Check if block contains POD items - if so, it's safe to directly copy  
-   /// raw memory from container. Note, that this doesn't only consider the   
-   /// standard c++ type traits, like trivially_constructible. You also need  
-   /// to explicitly reflect your type with LANGULUS(POD) true;               
-   /// This gives a lot more control over your code                           
-   /// This is a statically optimized alternative to Block::IsPOD             
-   ///   @return true if contained data is plain old data                     
-   TEMPLATE() LANGULUS(INLINED)
-   constexpr bool TMany<T>::IsPOD() const noexcept {
-      return Block::IsPOD<TMany>();
-   }
-
-   /// Check if block contains resolvable items, that is, items that have a   
-   /// GetBlock() function, that can be used to represent themselves as their 
-   /// most concretely typed block                                            
-   /// This is a statically optimized alternative to Block::IsResolvable      
-   ///   @return true if contained data can be resolved on element basis      
-   TEMPLATE() LANGULUS(INLINED)
-   constexpr bool TMany<T>::IsResolvable() const noexcept {
-      return Block::IsResolvable<TMany>();
-   }
-
    /// Get the size of a single contained element, in bytes                   
    /// This is a statically optimized alternative to Block::GetStride         
    ///   @return the number of bytes a single element contains                
@@ -696,20 +630,6 @@ namespace Langulus::Anyness
    TEMPLATE() LANGULUS(INLINED)
    constexpr Size TMany<T>::GetBytesize() const noexcept {
       return Block::GetBytesize<TMany>();
-   }
-
-   /// Get the number of sub-blocks (this one included)                       
-   ///   @return the number of contained blocks, including this one           
-   TEMPLATE() LANGULUS(INLINED)
-   constexpr Count TMany<T>::GetCountDeep() const noexcept {
-      return Block::GetCountDeep<TMany>();
-   }
-
-   /// Get the sum of initialized non-deep elements in all sub-blocks         
-   ///   @return the number of contained non-deep elements                    
-   TEMPLATE() LANGULUS(INLINED)
-   constexpr Count TMany<T>::GetCountElementsDeep() const noexcept {
-      return Block::GetCountElementsDeep<TMany>();
    }
 
    /// Deep (slower) check if there's anything missing inside nested blocks   

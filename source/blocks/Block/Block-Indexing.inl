@@ -19,41 +19,38 @@ namespace Langulus::Anyness
    ///   @attention assumes block is allocated                                
    ///   @param byteOffset - number of bytes to add                           
    ///   @return pointer to the selected raw data offset                      
-   LANGULUS(INLINED) IF_UNSAFE(constexpr)
-   Byte* Block::At(const Offset byteOffset) IF_UNSAFE(noexcept) {
-      LANGULUS_ASSUME(DevAssumes, mRaw,
-         "Invalid memory");
+   template<class TYPE> LANGULUS(INLINED) IF_UNSAFE(constexpr)
+   Byte* Block<TYPE>::At(const Offset byteOffset) IF_UNSAFE(noexcept) {
+      LANGULUS_ASSUME(DevAssumes, mRaw, "Invalid memory");
       return mRaw + byteOffset;
    }
 
-   LANGULUS(INLINED) IF_UNSAFE(constexpr)
-   const Byte* Block::At(Offset byte_offset) const IF_UNSAFE(noexcept) {
+   template<class TYPE> LANGULUS(INLINED) IF_UNSAFE(constexpr)
+   const Byte* Block<TYPE>::At(Offset byte_offset) const IF_UNSAFE(noexcept) {
       return const_cast<Block*>(this)->At(byte_offset);
    }
 
    /// Access element at a specific index                                     
    ///   @param idx - the index                                               
-   ///   @return the element (or block, if THIS is type-erased)               
-   template<CT::Block THIS> LANGULUS(INLINED)
-   decltype(auto) Block::operator[] (CT::Index auto idx) {
-      const auto index = SimplifyIndex<THIS>(idx);
+   ///   @return the element (or block, if this is type-erased)               
+   template<class TYPE> LANGULUS(INLINED)
+   decltype(auto) Block<TYPE>::operator[] (CT::Index auto idx) {
+      const auto index = SimplifyIndex(idx);
       LANGULUS_ASSERT(index < mCount, Access, "Index out of range");
-
-      if constexpr (CT::Typed<THIS>)
-         return GetRaw<THIS>()[index];
-      else
+      if constexpr (TypeErased)
          return GetElement(index);
+      else
+         return GetRaw()[index];
    }
 
-   template<CT::Block THIS> LANGULUS(INLINED)
-   decltype(auto) Block::operator[] (CT::Index auto idx) const {
-      const auto index = SimplifyIndex<THIS>(idx);
+   template<class TYPE> LANGULUS(INLINED)
+   decltype(auto) Block<TYPE>::operator[] (CT::Index auto idx) const {
+      const auto index = SimplifyIndex(idx);
       LANGULUS_ASSERT(index < mCount, Access, "Index out of range");
-
-      if constexpr (CT::Typed<THIS>)
-         return GetRaw<THIS>()[index];
-      else
+      if constexpr (TypeErased)
          return GetElement(index);
+      else
+         return GetRaw()[index];
    }
    
    /// Get an element pointer or reference with a given index                 
@@ -64,12 +61,12 @@ namespace Langulus::Anyness
    ///   @param idx - simple index for accessing                              
    ///   @param baseOffset - byte offset from the element to apply            
    ///   @return either pointer or reference to the element (depends on T)    
-   template<CT::Data T> LANGULUS(INLINED) IF_UNSAFE(constexpr)
-   decltype(auto) Block::Get(Offset idx, Offset baseOffset) IF_UNSAFE(noexcept) {
+   template<class TYPE> template<CT::Data T> LANGULUS(INLINED) IF_UNSAFE(constexpr)
+   decltype(auto) Block<TYPE>::Get(Offset idx, Offset baseOffset) IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, mType, "Block is not typed");
       Byte* pointer;
       if (mType->mIsSparse)
-         pointer = GetRawSparseAs<Byte, Block>()[idx] + baseOffset;
+         pointer = GetRawSparseAs<Byte>()[idx] + baseOffset;
       else
          pointer = At(mType->mSize * idx) + baseOffset;
 
@@ -79,40 +76,40 @@ namespace Langulus::Anyness
          return reinterpret_cast<Deref<T>>(pointer);
    }
 
-   template<CT::Data T> LANGULUS(INLINED) IF_UNSAFE(constexpr)
-   decltype(auto) Block::Get(Offset idx, Offset baseOffset) const IF_UNSAFE(noexcept) {
+   template<class TYPE> template<CT::Data T> LANGULUS(INLINED) IF_UNSAFE(constexpr)
+   decltype(auto) Block<TYPE>::Get(Offset idx, Offset baseOffset) const IF_UNSAFE(noexcept) {
       return const_cast<Block*>(this)->Get<T>(idx, baseOffset);
    }
    
    /// Get an element at an index, trying to interpret it as T                
    /// No conversion or copying shall occur in this routine, only pointer     
-   /// arithmetic based on CTTI or RTTI                                       
+   /// arithmetic based on RTTI                                               
    ///   @tparam T - the type to interpret to                                 
    ///   @param index - the index                                             
    ///   @return either pointer or reference to the element (depends on T)    
-   template<CT::Data T>
-   decltype(auto) Block::As(CT::Index auto index) {
+   template<class TYPE> template<CT::Data T>
+   decltype(auto) Block<TYPE>::As(CT::Index auto index) {
       // First quick type stage for fast access                         
       LANGULUS_ASSUME(DevAssumes, mType, "Block is not typed");
-      if (mType->Is<T>()) {
-         const auto idx = SimplifyIndex<TMany<T>>(index);
+      if (mType->IsSimilar<T>()) {
+         auto typed = reinterpret_cast<Block<T>*>(this);
+         const auto idx = typed->SimplifyIndex(index);
          LANGULUS_ASSERT(idx < mCount, Access, "Index out of range");
-         return Get<T>(idx);
+         return (*typed)[idx];
       }
       
       // Optimize if we're interpreting as a container                  
       if constexpr (CT::Deep<T>) {
-         if (not IsDeep())
-            LANGULUS_THROW(Access, "Type mismatch");
-
-         const auto idx = SimplifyIndex<TMany<Many>>(index);
+         LANGULUS_ASSERT(IsDeep(), Access, "Type mismatch");
+         auto typed = reinterpret_cast<Block<Block<>>*>(this);
+         const auto idx = typed->SimplifyIndex(index);
          LANGULUS_ASSERT(idx < mCount, Access, "Index out of range");
-         Block& result = Get<Block>(idx);
+         auto& result = (*typed)[idx];
 
          if constexpr (CT::Typed<T>) {
             // Additional check, if T is a typed block                  
-            if (not result.template IsSimilar<Many, TypeOf<T>>())
-               LANGULUS_THROW(Access, "Deep type mismatch");
+            LANGULUS_ASSERT(result.template IsSimilar<TypeOf<T>>(),
+               Access, "Deep type mismatch");
          }
 
          if constexpr (CT::Sparse<T>)
@@ -122,8 +119,9 @@ namespace Langulus::Anyness
       }
 
       // Fallback stage for compatible bases and mappings               
-      const auto idx = SimplifyIndex<Many>(index);
+      const auto idx = SimplifyIndex(index);
       LANGULUS_ASSERT(idx < mCount, Access, "Index out of range");
+
       RTTI::Base base;
       if (not mType->template GetBase<T>(0, base)) {
          // There's still a chance if this container is resolvable      
@@ -152,8 +150,8 @@ namespace Langulus::Anyness
                .template Get<T>(idx % base.mCount);
    }
 
-   template<CT::Data T> LANGULUS(INLINED)
-   decltype(auto) Block::As(CT::Index auto index) const {
+   template<class TYPE> template<CT::Data T> LANGULUS(INLINED)
+   decltype(auto) Block<TYPE>::As(CT::Index auto index) const {
       return const_cast<Block&>(*this).As<T>(index);
    }
    
@@ -161,20 +159,20 @@ namespace Langulus::Anyness
    ///   @param start - starting element index                                
    ///   @param count - number of elements to remain after 'start'            
    ///   @return the block representing the region                            
-   template<CT::Block THIS> LANGULUS(INLINED) IF_UNSAFE(constexpr)
-   THIS Block::Crop(Offset start, Count count) IF_UNSAFE(noexcept) {
+   template<class TYPE> template<CT::Block THIS>
+   LANGULUS(INLINED) IF_UNSAFE(constexpr)
+   THIS Block<TYPE>::Crop(Offset start, Count count) IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, start + count <= mCount, "Out of limits");
 
-      auto& me = reinterpret_cast<THIS&>(*this);
       if (count == 0) {
-         THIS result {Disown(me)};
+         THIS result {Disown(*this)};
          result.ResetMemory();
          return Abandon(result);
       }
 
-      THIS result {Disown(me)};
+      THIS result {Disown(*this)};
       result.mCount = result.mReserved = count;
-      result.mRaw += start * GetStride<THIS>();
+      result.mRaw += start * GetStride();
       return Abandon(result);
    }
 
@@ -182,9 +180,9 @@ namespace Langulus::Anyness
    ///   @param start - starting element index                                
    ///   @param count - number of elements                                    
    ///   @return the block representing the region                            
-   template<CT::Block THIS> LANGULUS(INLINED) IF_UNSAFE(constexpr)
-   THIS Block::Crop(Offset start, Count count)
-   const IF_UNSAFE(noexcept) {
+   template<class TYPE> template<CT::Block THIS>
+   LANGULUS(INLINED) IF_UNSAFE(constexpr)
+   THIS Block<TYPE>::Crop(Offset start, Count count) const IF_UNSAFE(noexcept) {
       auto result = const_cast<Block*>(this)->Crop<THIS>(start, count);
       result.MakeConst();
       return result;
@@ -195,14 +193,14 @@ namespace Langulus::Anyness
    ///   @tparam COUNT - number of indirections to remove                     
    ///   @param index - index of the element inside the block                 
    ///   @return the dense mutable memory block for the element               
-   template<Count COUNT, CT::BlockBased THIS> LANGULUS(INLINED)
-   Block Block::GetElementDense(Offset index) {
-      return GetElement(index).template GetDense<COUNT, THIS>();
+   template<class TYPE> template<Count COUNT> LANGULUS(INLINED)
+   Block<> Block<TYPE>::GetElementDense(Offset index) {
+      return GetElement(index).template GetDense<COUNT>();
    }
 
-   template<Count COUNT, CT::BlockBased THIS> LANGULUS(INLINED)
-   Block Block::GetElementDense(Offset index) const {
-      auto result = GetElement(index).template GetDense<COUNT, THIS>();
+   template<class TYPE> template<Count COUNT> LANGULUS(INLINED)
+   Block<> Block<TYPE>::GetElementDense(Offset index) const {
+      auto result = GetElement(index).template GetDense<COUNT>();
       result.MakeConst();
       return result;
    }
@@ -211,14 +209,14 @@ namespace Langulus::Anyness
    ///   @attention the element might be empty if resolved a sparse nullptr   
    ///   @param index - index of the element inside the block                 
    ///   @return the dense resolved memory block for the element              
-   template<CT::BlockBased THIS> LANGULUS(INLINED)
-   Block Block::GetElementResolved(Offset index) {
-      return GetElement(index).template GetResolved<THIS>();
+   template<class TYPE> LANGULUS(INLINED)
+   Block<> Block<TYPE>::GetElementResolved(Offset index) {
+      return GetElement(index).template GetResolved();
    }
 
-   template<CT::BlockBased THIS> LANGULUS(INLINED)
-   Block Block::GetElementResolved(Offset index) const {
-      auto result = GetElement(index).template GetResolved<THIS>();
+   template<class TYPE> LANGULUS(INLINED)
+   Block<> Block<TYPE>::GetElementResolved(Offset index) const {
+      auto result = GetElement(index).template GetResolved();
       result.MakeConst();
       return result;
    }
@@ -227,19 +225,17 @@ namespace Langulus::Anyness
    /// The resulting container will be a static view                          
    ///   @param index - the element's index                                   
    ///   @return the element's block                                          
-   LANGULUS(INLINED)
-   Block Block::GetElement(Offset index) IF_UNSAFE(noexcept) {
-      LANGULUS_ASSUME(DevAssumes, index < mReserved,
-         "Index out of range");
-
+   template<class TYPE> LANGULUS(INLINED)
+   Block<> Block<TYPE>::GetElement(Offset index) IF_UNSAFE(noexcept) {
+      LANGULUS_ASSUME(DevAssumes, index < mReserved, "Index out of range");
       Block result = GetElementInner(index);
       result.mState += DataState::Static;
       result.mState -= DataState::Or;
       return result;
    }
 
-   LANGULUS(INLINED)
-   Block Block::GetElement(Offset index) const IF_UNSAFE(noexcept) {
+   template<class TYPE> LANGULUS(INLINED)
+   Block<> Block<TYPE>::GetElement(Offset index) const IF_UNSAFE(noexcept) {
       auto result = const_cast<Block*>(this)->GetElement(index);
       result.MakeConst();
       return result;
@@ -249,19 +245,17 @@ namespace Langulus::Anyness
    ///   @attention will not make the resulting block static or const         
    ///   @param index - the element's index                                   
    ///   @return the element's block                                          
-   LANGULUS(INLINED)
-   Block Block::GetElementInner(Offset index) IF_UNSAFE(noexcept) {
-      LANGULUS_ASSUME(DevAssumes, mRaw,
-         "Invalid memory");
-
+   template<class TYPE> LANGULUS(INLINED)
+   Block<> Block<TYPE>::GetElementInner(Offset index) IF_UNSAFE(noexcept) {
+      LANGULUS_ASSUME(DevAssumes, mRaw, "Invalid memory");
       Block result {*this};
       result.mCount = 1;
       result.mRaw += index * mType->mSize;
       return result;
    }
 
-   LANGULUS(INLINED)
-   Block Block::GetElementInner(Offset index) const IF_UNSAFE(noexcept) {
+   template<class TYPE> LANGULUS(INLINED)
+   Block<> Block<TYPE>::GetElementInner(Offset index) const IF_UNSAFE(noexcept) {
       return const_cast<Block*>(this)->GetElementInner(index);
    }
 
@@ -273,67 +267,67 @@ namespace Langulus::Anyness
    ///                               N being the size of that subblock        
    ///      ... and so on ...                                                 
    ///   @return a pointer to the block or nullptr if index is invalid        
-   template<CT::Block THIS>
-   Block* Block::GetBlockDeep(Count index) noexcept {
+   template<class TYPE>
+   Block<>* Block<TYPE>::GetBlockDeep(Count index) noexcept {
       // Zero index always returns this                                 
       if (index == 0)
          return this;
-      if (not IsDeep<THIS>())
+      if (not IsDeep())
          return nullptr;
 
       --index;
 
       // [1; mCount] always refer to subblocks in this block            
       if (index < mCount)
-         return GetRawAs<Block, THIS>() + index;
+         return GetRawAs<Block>() + index;
 
       index -= mCount;
 
       // [mCount + 1; mCount + N] refer to subblocks in local blocks    
-      auto data = GetRawAs<Block, THIS>();
+      auto data = GetRawAs<Block>();
       const auto dataEnd = data + mCount;
       while (data != dataEnd) {
-         const auto subpack = data->template GetBlockDeep<Block>(index + 1); //TODO can be optimized further with typed THIS
+         const auto subpack = data->template GetBlockDeep(index + 1);
          if (subpack)
             return subpack;
 
-         index -= data->template GetCountDeep<Block>() - 1; //TODO excess loops here, should be retrieved from GetElementDeep above as an optimization
+         index -= data->template GetCountDeep() - 1; //TODO excess loops here, should be retrieved from GetElementDeep above as an optimization
          ++data;
       }
 
       return nullptr;
    }
 
-   template<CT::Block THIS> LANGULUS(INLINED)
-   const Block* Block::GetBlockDeep(Count index) const noexcept {
-      return const_cast<Block*>(this)->GetBlockDeep<THIS>(index);
+   template<class TYPE> LANGULUS(INLINED)
+   const Block<>* Block<TYPE>::GetBlockDeep(Count index) const noexcept {
+      return const_cast<Block*>(this)->GetBlockDeep(index);
    }
 
    /// Get a deep element block                                               
    ///   @param index - the index to get                                      
    ///   @return the element block                                            
-   template<CT::Block THIS>
-   Block Block::GetElementDeep(Count index) noexcept {
-      if (not IsDeep<THIS>())
+   template<class TYPE>
+   Block<> Block<TYPE>::GetElementDeep(Count index) noexcept {
+      if (not IsDeep())
          return index < mCount ? GetElement(index) : Block {};
 
-      auto data = GetRawAs<Block, THIS>();
+      auto data = GetRawAs<Block>();
       const auto dataEnd = data + mCount;
       while (data != dataEnd) {
-         const auto subpack = data->template GetElementDeep<Block>(index); //TODO can be optimized further with typed THIS
+         const auto subpack = data->template GetElementDeep(index);
          if (subpack)
             return subpack;
 
-         index -= data->template GetCountElementsDeep<Block>(); //TODO excess loops here, should be retrieved from GetElementDeep above as an optimization
+         index -= data->template GetCountElementsDeep(); //TODO excess loops here, should be retrieved from GetElementDeep above as an optimization
          ++data;
       }
 
       return {};
    }
 
-   template<CT::Block THIS> LANGULUS(INLINED)
-   Block Block::GetElementDeep(Count index) const noexcept {
-      auto result = const_cast<Block*>(this)->GetElementDeep<THIS>(index);
+   template<class TYPE> LANGULUS(INLINED)
+   Block<> Block<TYPE>::GetElementDeep(Count index) const noexcept {
+      auto result = const_cast<Block*>(this)->GetElementDeep(index);
       result.MakeConst();
       return result;
    }
@@ -341,22 +335,20 @@ namespace Langulus::Anyness
    /// Get the resolved first mutable element of this block                   
    ///   @attention assumes this block is valid and has at least one element  
    ///   @return the mutable resolved first element                           
-   template<CT::BlockBased THIS> LANGULUS(INLINED)
-   Block Block::GetResolved() {
-      LANGULUS_ASSUME(DevAssumes, IsTyped<THIS>(),
-         "Block is not typed");
-      LANGULUS_ASSUME(DevAssumes, mCount > 0,
-         "Block is empty");
+   template<class TYPE> LANGULUS(INLINED)
+   Block<> Block<TYPE>::GetResolved() {
+      LANGULUS_ASSUME(DevAssumes, IsTyped(),  "Block is not typed");
+      LANGULUS_ASSUME(DevAssumes, mCount > 0, "Block is empty");
 
       if (mType->mResolver)
-         return mType->mResolver(GetDense<CountMax, THIS>().mRaw);
+         return mType->mResolver(GetDense<CountMax>().mRaw);
       else
-         return GetDense<CountMax, THIS>();
+         return GetDense<CountMax>();
    }
 
-   template<CT::BlockBased THIS> LANGULUS(INLINED)
-   Block Block::GetResolved() const {
-      auto result = const_cast<Block*>(this)->template GetResolved<THIS>();
+   template<class TYPE> LANGULUS(INLINED)
+   Block<> Block<TYPE>::GetResolved() const {
+      auto result = const_cast<Block*>(this)->GetResolved();
       result.MakeConst();
       return result;
    }
@@ -366,27 +358,24 @@ namespace Langulus::Anyness
    ///   @attention assumes this block is valid and has exactly one element   
    ///   @tparam COUNT - how many levels of indirection to remove?            
    ///   @return the mutable denser first element                             
-   template<Count COUNT, CT::BlockBased THIS> LANGULUS(INLINED)
-   Block Block::GetDense() {
+   template<class TYPE> template<Count COUNT> LANGULUS(INLINED)
+   Block<> Block<TYPE>::GetDense() {
       static_assert(COUNT > 0, "COUNT must be greater than 0");
-
-      LANGULUS_ASSUME(DevAssumes, IsTyped<THIS>(),
-         "Block is not typed");
-      LANGULUS_ASSUME(DevAssumes, mCount > 0,
-         "Block is empty");
+      LANGULUS_ASSUME(DevAssumes, IsTyped(),  "Block is not typed");
+      LANGULUS_ASSUME(DevAssumes, mCount > 0, "Block is empty");
 
       Block copy {*this};
       copy.mCount = 1;
 
-      if constexpr (CT::Typed<THIS> and CT::Dense<TypeOf<THIS>>)
+      if constexpr (not TypeErased and CT::Dense<TYPE>)
          return copy;
-      else if constexpr (CT::Typed<THIS> and COUNT == 1) {
+      else if constexpr (not TypeErased and COUNT == 1) {
          // Statically dereference once                                 
-         static_assert(CT::Complete<Deptr<TypeOf<THIS>>>,
+         static_assert(CT::Complete<Deptr<TYPE>>,
             "Trying to interface incomplete data as dense");
 
          if (mEntry)
-            copy.mEntry = *GetEntries<THIS>();
+            copy.mEntry = *GetEntries();
 
          copy.mRaw = *mRawSparse;
          copy.mType = copy.mType->mDeptr;
@@ -395,7 +384,7 @@ namespace Langulus::Anyness
          // Dereference as much as needed at runtime                    
          Count counter = COUNT;
          if (mEntry)
-            copy.mEntry = *GetEntries<THIS>();
+            copy.mEntry = *GetEntries();
 
          while (counter and copy.mType->mIsSparse) {
             LANGULUS_ASSERT(copy.mType->mDeptr, Access,
@@ -412,87 +401,89 @@ namespace Langulus::Anyness
       return copy;
    }
 
-   template<Count COUNT, CT::BlockBased THIS> LANGULUS(INLINED)
-   Block Block::GetDense() const {
-      auto result = const_cast<Block*>(this)->template GetDense<COUNT, THIS>();
+   template<class TYPE> template<Count COUNT> LANGULUS(INLINED)
+   Block<> Block<TYPE>::GetDense() const {
+      auto result = const_cast<Block*>(this)->template GetDense<COUNT>();
       result.MakeConst();
       return result;
    }
 
    /// Dereference first contained pointer once                               
-   template<CT::BlockBased THIS> LANGULUS(INLINED)
-   Block Block::operator * () {
-      return GetDense<1, THIS>();
+   template<class TYPE> LANGULUS(INLINED)
+   Block<> Block<TYPE>::operator * () {
+      return GetDense<1>();
    }
 
-   template<CT::BlockBased THIS> LANGULUS(INLINED)
-   Block Block::operator * () const {
-      return GetDense<1, THIS>();
+   template<class TYPE> LANGULUS(INLINED)
+   Block<> Block<TYPE>::operator * () const {
+      return GetDense<1>();
    }
    
    /// Swap two elements inside this container                                
    ///   @param from_ - first index                                           
    ///   @param to_ - second index                                            
-   template<CT::Block THIS> LANGULUS(INLINED)
-   void Block::SwapIndices(CT::Index auto from_, CT::Index auto to_) {
-      const auto from = SimplifyIndex<THIS>(from_);
-      const auto to = SimplifyIndex<THIS>(to_);
+   template<class TYPE> LANGULUS(INLINED)
+   void Block<TYPE>::SwapIndices(CT::Index auto from_, CT::Index auto to_) {
+      const auto from = SimplifyIndex(from_);
+      const auto to   = SimplifyIndex(to_);
       if (from >= mCount or to >= mCount or from == to)
          return;
 
-      if constexpr (CT::Typed<THIS>) {
-         auto data = GetRaw<THIS>();
-         TypeOf<THIS> temp {::std::move(data[to])};
-         data[to] = ::std::move(data[from]);
-         SemanticAssign(data[from], Abandon(temp));
-      }
-      else {
+      if constexpr (TypeErased) {
          auto fblock = GetElementInner(from);
          auto tblock = GetElementInner(to);
-         fblock.template Swap<THIS>(Abandon(tblock));
+         fblock.Swap(Abandon(tblock));
+      }
+      else {
+         auto data = GetRaw();
+         TYPE temp = ::std::move(data[to]);
+         data[to]  = ::std::move(data[from]);
+         SemanticAssign(data[from], Abandon(temp));
       }
    }
    
    /// Swap contents of this block, with the contents of another, using       
    /// a temporary block                                                      
    ///   @param rhs - the block to swap with                                  
-   template<CT::Block THIS, class T> requires CT::Block<Desem<T>>
-   void Block::Swap(T&& rhs) {
+   template<class TYPE> template<class T> requires CT::Block<Desem<T>>
+   void Block<TYPE>::Swap(T&& rhs) {
       using S = SemanticOf<decltype(rhs)>;
       LANGULUS_ASSUME(DevAssumes, mCount and DesemCast(rhs).mCount == mCount,
          "Invalid count");
-      // Type-erased pointers (void*) are acceptable                    
-      LANGULUS_ASSUME(DevAssumes, (DesemCast(rhs).GetType()->IsSimilar(GetType<THIS>())
-         or (DesemCast(rhs).GetType()->template IsSimilar<void*>() and IsSparse<THIS>())),
-         "Type mismatch on swap", ": ", DesemCast(rhs).GetType(), " != ", GetType<THIS>());
 
-      using B = Conditional<CT::Typed<THIS>, THIS, TypeOf<S>>;
-      Block temporary {mState, mType};
-      temporary.AllocateFresh<B>(temporary.RequestSize<B>(mCount));
+      // Type-erased pointers (void*) are always acceptable             
+      //TODO add this check to IsSimilar(Block auto) directly?
+      LANGULUS_ASSUME(DevAssumes, (
+          DesemCast(rhs).IsSimilar(*this)
+      or (DesemCast(rhs).IsSimilar<void*>() and IsSparse())
+      ), "Type mismatch on swap", ": ", DesemCast(rhs).GetType(), " != ", GetType());
+
+      using B = Conditional<TypeErased, TypeOf<S>, Block<TYPE>>;
+      B temporary {mState, mType};
+      temporary.AllocateFresh(temporary.RequestSize(mCount));
       temporary.mCount = mCount;
 
       // Move this to temporary                                         
-      temporary.CreateSemantic<B>(Move(*this));
+      temporary.CreateSemantic(Move(*this));
       // Assign all elements from rhs to this                           
-      AssignSemantic<B>(S::Nest(rhs));
+      reinterpret_cast<B*>(this)->AssignSemantic(S::Nest(rhs));
       // Assign all elements from temporary to rhs                      
-      DesemCast(rhs).template AssignSemantic<B>(Abandon(temporary));
+      reinterpret_cast<B*>(&DesemCast(rhs))->AssignSemantic(Abandon(temporary));
       // Cleanup temporary                                              
-      temporary.Destroy<B>();
-
+      temporary.Destroy();
       Allocator::Deallocate(const_cast<Allocation*>(temporary.mEntry));
    }
 
    /// Get the index of the biggest/smallest element                          
    ///   @tparam INDEX - either IndexBiggest or IndexSmallest                 
    ///   @return the index of the biggest element T inside this block         
-   template<Index INDEX, CT::Block THIS> LANGULUS(INLINED)
-   Index Block::GetIndex() const IF_UNSAFE(noexcept) {
-      if constexpr (CT::Typed<THIS> and CT::Sortable<TypeOf<THIS>, TypeOf<THIS>>) {
+   template<class TYPE> template<Index INDEX> LANGULUS(INLINED)
+   Index Block<TYPE>::GetIndex() const IF_UNSAFE(noexcept) {
+      if constexpr (not TypeErased and CT::Sortable<TYPE, TYPE>) {
          if (IsEmpty())
             return IndexNone;
 
-         auto data = GetRaw<THIS>();
+         auto data = GetRaw();
          const auto dataEnd = data + mCount;
          auto selection = data++;
          while (data != dataEnd) {
@@ -509,7 +500,7 @@ namespace Langulus::Anyness
             ++data;
          }
 
-         return selection - GetRaw<THIS>();
+         return selection - GetRaw();
       }
       else return IndexNone;
    }
@@ -517,20 +508,20 @@ namespace Langulus::Anyness
    /// Get the index of element that repeats the most times                   
    ///   @param count - [out] count the number of repeats for the mode        
    ///   @return the index of the first found mode                            
-   template<CT::Block THIS>
-   Index Block::GetIndexMode(Count& count) const IF_UNSAFE(noexcept) {
-      if constexpr (CT::Typed<THIS> and CT::Comparable<TypeOf<THIS>, TypeOf<THIS>>) {
+   template<class TYPE>
+   Index Block<TYPE>::GetIndexMode(Count& count) const IF_UNSAFE(noexcept) {
+      if constexpr (not TypeErased and CT::Comparable<TYPE, TYPE>) {
          if (IsEmpty()) {
             count = 0;
             return IndexNone;
          }
 
-         auto data = GetRaw<THIS>();
+         auto data = GetRaw();
          const auto dataEnd = data + mCount;
          decltype(data) best = nullptr;
-         Count best_count {};
+         Count best_count = 0;
          while (data != dataEnd) {
-            Count counter {};
+            Count counter = 0;
             auto tail = data;
             while (tail != dataEnd) {
                if (*data == *tail)
@@ -558,14 +549,14 @@ namespace Langulus::Anyness
 
    /// Sort the contents of this container using a static type                
    ///   @attention assumes T is the type of the container                    
-   ///   @tparam T - the type to use for comparison                           
+   ///   @attention this is the most naive of sorting algorithms              
    ///   @tparam ASCEND - whether to sort in ascending order (123)            
-   template<CT::Data T, bool ASCEND>
-   void Block::Sort() noexcept {
-      auto lhs = GetRawAs<T>();
+   template<class TYPE> template<bool ASCEND>
+   void Block<TYPE>::Sort() noexcept {
+      auto lhs = GetRaw();
       const auto lhsEnd = lhs + mCount;
       while (lhs != lhsEnd) {
-         auto rhs = GetRawAs<T>();
+         auto rhs = GetRaw();
          while (rhs != lhs) {
             if constexpr (ASCEND) {
                if (*lhs < *rhs)
@@ -603,34 +594,32 @@ namespace Langulus::Anyness
    ///      unknowns; Byte for dense unknowns                                 
    ///   @param index - the element index                                     
    ///   @return the handle                                                   
-   template<CT::Data T, CT::Block THIS> LANGULUS(INLINED)
-   auto Block::GetHandle(const Offset index) IF_UNSAFE(noexcept) {
+   template<class TYPE> template<CT::Data T> LANGULUS(INLINED)
+   auto Block<TYPE>::GetHandle(const Offset index) IF_UNSAFE(noexcept) {
       using TT = Conditional<CT::Handle<T>, TypeOf<T>, T>;
-
       if constexpr (CT::Sparse<TT>) {
          return Handle<TT> {
-            GetRawAs<TT, THIS>()[index],
-            GetEntries<THIS>()[index]
+            GetRawAs<TT>()[index],
+            GetEntries()[index]
          };
       }
       else return Handle<TT> {
-         GetRawAs<TT, THIS>()[index], 
+         GetRawAs<TT>()[index], 
          mEntry
       };
    }
 
-   template<CT::Data T, CT::Block THIS> LANGULUS(INLINED)
-   auto Block::GetHandle(const Offset index) const IF_UNSAFE(noexcept) {
+   template<class TYPE> template<CT::Data T> LANGULUS(INLINED)
+   auto Block<TYPE>::GetHandle(const Offset index) const IF_UNSAFE(noexcept) {
       using TT = Conditional<CT::Handle<T>, TypeOf<T>, T>;
-
       if constexpr (CT::Sparse<TT>) {
          return Handle<const TT> {
-            GetRawAs<TT, THIS>()[index],
-            GetEntries<THIS>()[index]
+            GetRawAs<TT>()[index],
+            GetEntries()[index]
          };
       }
       else return Handle<const TT> {
-         GetRawAs<TT, THIS>()[index], 
+         GetRawAs<TT>()[index], 
          mEntry
       };
    }
@@ -641,8 +630,9 @@ namespace Langulus::Anyness
    ///   @param start - starting element index                                
    ///   @param count - number of elements                                    
    ///   @return the block representing the region                            
-   LANGULUS(INLINED)
-   Block Block::CropInner(const Offset start, const Count count) const IF_UNSAFE(noexcept) {
+   template<class TYPE> LANGULUS(INLINED)
+   Block<TYPE> Block<TYPE>::CropInner(const Offset start, const Count count)
+   const IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, mRaw,
          "Block is not allocated");
       LANGULUS_ASSUME(DevAssumes, IsTyped(),
@@ -657,16 +647,16 @@ namespace Langulus::Anyness
    /// Constrain an index to the limits of the current block                  
    ///   @param idx - the index to constrain                                  
    ///   @return the constrained index or a special one of constrain fails    
-   template<CT::Block THIS> LANGULUS(INLINED)
-   Index Block::Constrain(const Index idx) const IF_UNSAFE(noexcept) {
+   template<class TYPE> LANGULUS(INLINED)
+   Index Block<TYPE>::Constrain(const Index idx) const IF_UNSAFE(noexcept) {
       const auto result = idx.Constrained(mCount);
       if (result == IndexBiggest)
-         return GetIndex<IndexBiggest, THIS>();
+         return GetIndex<IndexBiggest>();
       else if (result == IndexSmallest)
-         return GetIndex<IndexSmallest, THIS>();
+         return GetIndex<IndexSmallest>();
       else if (result == IndexMode) {
          UNUSED() Count unused;
-         return GetIndexMode<THIS>(unused);
+         return GetIndexMode(unused);
       }
 
       return result;
@@ -679,15 +669,15 @@ namespace Langulus::Anyness
    ///   @tparam SAFE - whether to throw if index is beyond initialized count 
    ///   @param index - the index to simplify                                 
    ///   @return the simplified index, as a simple offset                     
-   template<CT::Block THIS, bool SAFE, CT::Index INDEX> LANGULUS(INLINED)
-   Offset Block::SimplifyIndex(const INDEX index) const
+   template<class TYPE> template<bool SAFE, CT::Index INDEX> LANGULUS(INLINED)
+   Offset Block<TYPE>::SimplifyIndex(const INDEX index) const
    noexcept(not LANGULUS_SAFE() and CT::BuiltinInteger<INDEX>) {
       if constexpr (CT::Same<INDEX, Index>) {
          // This is the most safe path, throws on errors                
          if constexpr (SAFE)
-            return Constrain<THIS>(index).GetOffset();
+            return Constrain(index).GetOffset();
          else
-            return Constrain<THIS>(index).GetOffsetUnsafe();
+            return Constrain(index).GetOffsetUnsafe();
       }
       else {
          // Unsafe, works only on assumptions                           
@@ -711,26 +701,14 @@ namespace Langulus::Anyness
    
    /// Access last element                                                    
    ///   @return a mutable reference to the last element                      
-   template<CT::Block THIS> LANGULUS(INLINED)
-   decltype(auto) Block::Last() {
-      if (IsEmpty())
-         LANGULUS_OOPS(Access, "Unable to access last element of empty block");
-
-      if constexpr (CT::Typed<THIS>)
-         return GetRaw<THIS>()[mCount - 1];
-      else
-         return GetElement(mCount - 1);
+   template<class TYPE> LANGULUS(INLINED)
+   decltype(auto) Block<TYPE>::Last() {
+      return (*this)[mCount - 1];
    }
 
-   template<CT::Block THIS> LANGULUS(INLINED)
-   decltype(auto) Block::Last() const {
-      if (IsEmpty())
-         LANGULUS_OOPS(Access, "Unable to access last element of empty block");
-
-      if constexpr (CT::Typed<THIS>)
-         return GetRaw<THIS>()[mCount - 1];
-      else
-         return GetElement(mCount - 1);
+   template<class TYPE> LANGULUS(INLINED)
+   decltype(auto) Block<TYPE>::Last() const {
+      return (*this)[mCount - 1];
    }
 
 } // namespace Langulus::Anyness

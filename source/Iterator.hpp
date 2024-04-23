@@ -12,7 +12,6 @@
 
 namespace Langulus
 {
-
    namespace A
    {
 
@@ -24,9 +23,10 @@ namespace Langulus
       /// safety features, mainly used silently in ranged-for loops           
       ///                                                                     
       struct Iterator {
-         LANGULUS(UNINSERTABLE) true;
+         LANGULUS(UNINSERTABLE)  true;
          LANGULUS(UNALLOCATABLE) true;
-         LANGULUS(ABSTRACT) true;
+         LANGULUS(ABSTRACT)      true;
+         LANGULUS(REFLECTABLE)   false;
       };
 
       ///                                                                     
@@ -47,5 +47,13 @@ namespace Langulus
       concept Iterator = (DerivedFrom<T, A::Iterator> and ...);
 
    } // namespace Langulus::CT
+
+   namespace Anyness
+   {
+
+      template<class>
+      struct TIterator;
+
+   } // namespace Langulus::Anyness
 
 } // namespace Langulus
