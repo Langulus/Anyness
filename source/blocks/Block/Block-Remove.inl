@@ -17,35 +17,35 @@ namespace Langulus::Anyness
    ///   @tparam REVERSE - whether to search from the back                    
    ///   @param item - the item type to search for and remove                 
    ///   @return 1 if the element was found and removed, 0 otherwise          
-   template<bool REVERSE, CT::Block THIS> LANGULUS(INLINED)
-   Count Block::Remove(const CT::NotSemantic auto& item) {
-      const auto found = Find<REVERSE, THIS>(item);
-      return found ? RemoveIndex<THIS>(found.GetOffsetUnsafe(), 1) : 0;
+   template<class TYPE> template<bool REVERSE> LANGULUS(INLINED)
+   Count Block<TYPE>::Remove(const CT::NotSemantic auto& item) {
+      const auto found = Find<REVERSE>(item);
+      return found ? RemoveIndex(found.GetOffsetUnsafe(), 1) : 0;
    }
    
    /// Remove sequential indices                                              
    ///   @param index - index to start removing from                          
    ///   @param count - number of contiguous items to remove                  
    ///   @return the number of removed elements                               
-   template<CT::Block THIS>
-   Count Block::RemoveIndex(CT::Index auto index, const Count count) {
+   template<class TYPE>
+   Count Block<TYPE>::RemoveIndex(CT::Index auto index, const Count count) {
       using INDEX = Deref<decltype(index)>;
 
       if constexpr (CT::Similar<INDEX, Index>) {
          // By special indices                                          
          if (index == IndexAll) {
             const auto oldCount = mCount;
-            Free<THIS>();
+            Free();
             ResetMemory();
             ResetState();
             return oldCount;
          }
 
-         auto idx = Constrain<THIS>(index);
+         auto idx = Constrain(index);
          if (idx.IsSpecial())
             return 0;
 
-         return RemoveIndex<THIS>(idx.GetOffsetUnsafe(), count);
+         return RemoveIndex(idx.GetOffsetUnsafe(), count);
       }
       else {
          // By simple index                                             
@@ -54,51 +54,7 @@ namespace Langulus::Anyness
          const auto removed = ender - idx;
          LANGULUS_ASSUME(DevAssumes, ender <= mCount, "Out of range");
 
-         if constexpr (CT::Typed<THIS>) {
-            using T = TypeOf<THIS>;
-
-            if (IsStatic() and ender == mCount) {
-               // If data is static and elements are on the back, we    
-               // can get around constantness and staticness, by        
-               // truncating the count without any reprecussions        
-               // We can't destroy static element anyways               
-               mCount = idx;
-               return count;
-            }
-
-            if (GetUses() > 1) {
-               // Block is used from multiple locations, and we mush    
-               // branch out before changing it                         
-               TODO();
-            }
-
-            LANGULUS_ASSERT(IsMutable(), Access,
-               "Attempting to remove from constant container");
-            LANGULUS_ASSERT(not IsStatic(), Access,
-               "Attempting to remove from static container");
-
-            if constexpr (CT::Sparse<T> or CT::POD<T>) {
-               MoveMemory(
-                  GetRawAs<T>() + idx,
-                  GetRawAs<T>() + ender,
-                  mCount - ender
-               );
-            }
-            else {
-               // Call the destructors on the correct region            
-               CropInner(idx, count).Destroy<THIS>();
-
-               if (ender < mCount) {
-                  // Fill gap	if any by invoking move constructions     
-                  // Moving to the left, so no overlap possible         
-                  const auto tail = mCount - ender;
-                  CropInner(idx, tail)
-                     .CreateSemantic<THIS>(
-                        Abandon(CropInner(ender, tail)));
-               }
-            }
-         }
-         else {
+         if constexpr (TypeErased) {
             if (IsConstant() or IsStatic()) {
                if (mType->mIsPOD and idx + count >= mCount) {
                   // If data is POD and elements are on the back, we can
@@ -124,15 +80,52 @@ namespace Langulus::Anyness
             }
 
             // First call the destructors on the correct region         
-            CropInner(idx, removed).Destroy<THIS>();
+            CropInner(idx, removed).Destroy();
 
             if (ender < mCount) {
                // Fill gap by invoking abandon-constructors             
                // We're moving to the left, so no reverse is required   
                const auto tail = mCount - ender;
-               CropInner(idx, tail)
-                  .CreateSemantic<THIS>(
+               CropInner(idx, tail).CreateSemantic(
+                  Abandon(CropInner(ender, tail)));
+            }
+         }
+         else {
+            if (IsStatic() and ender == mCount) {
+               // If data is static and elements are on the back, we    
+               // can get around constantness and staticness, by        
+               // truncating the count without any reprecussions        
+               // We can't destroy static element anyways               
+               mCount = idx;
+               return count;
+            }
+
+            if (GetUses() > 1) {
+               // Block is used from multiple locations, and we mush    
+               // branch out before changing it                         
+               TODO();
+            }
+
+            LANGULUS_ASSERT(IsMutable(), Access,
+               "Attempting to remove from constant container");
+            LANGULUS_ASSERT(not IsStatic(), Access,
+               "Attempting to remove from static container");
+
+            if constexpr (CT::Sparse<TYPE> or CT::POD<TYPE>) {
+               // Batch move                                            
+               MoveMemory(GetRaw() + idx, GetRaw() + ender, mCount - ender);
+            }
+            else {
+               // Call the destructors on the correct region            
+               CropInner(idx, count).Destroy();
+
+               if (ender < mCount) {
+                  // Fill gap	if any by invoking move constructions     
+                  // Moving to the left, so no overlap possible         
+                  const auto tail = mCount - ender;
+                  CropInner(idx, tail).CreateSemantic(
                      Abandon(CropInner(ender, tail)));
+               }
             }
          }
 
@@ -145,21 +138,21 @@ namespace Langulus::Anyness
    /// Remove a deep index corresponding to a whole sub-block                 
    ///   @param index - index to remove                                       
    ///   @return 1 if block at that index was removed, 0 otherwise            
-   template<CT::Block THIS>
-   Count Block::RemoveIndexDeep(CT::Index auto index) {
+   template<class TYPE>
+   Count Block<TYPE>::RemoveIndexDeep(CT::Index auto index) {
       if constexpr (not CT::Same<decltype(index), Index>) {
-         if (not IsDeep<THIS>())
+         if (not IsDeep())
             return 0;
 
          --index;
 
          for (Count i = 0; i != mCount; i += 1) {
             if (index == 0)
-               return RemoveIndex<THIS>(i);
+               return RemoveIndex(i);
 
-            auto ith = As<Block*>(i);
-            const auto count = ith->GetCountDeep<Block>();
-            if (index <= count and ith->RemoveIndexDeep<Block>(index)) //TODO could be further optimized using TypeOf<THIS> instead of Block when possible
+            auto ith = As<Block<>*>(i);
+            const auto count = ith->GetCountDeep();
+            if (index <= count and ith->RemoveIndexDeep(index)) //TODO could be further optimized using TypeOf<THIS> instead of Block when possible
                return 1;
 
             index -= count;
@@ -175,26 +168,28 @@ namespace Langulus::Anyness
    ///   @param count - the number of elements to remove                      
    ///   @return an iterator pointing to the element at index - 1, or at end  
    ///      if block became empty                                             
-   template<CT::Block THIS>
-   Block::Iterator<THIS> Block::RemoveIt(const Iterator<THIS>& index, const Count count) {
-      if (index.mValue >= GetRawEnd<THIS>())
+   template<class TYPE>
+   TIterator<Block<TYPE>> Block<TYPE>::RemoveIt(
+      const Iterator& index, const Count count
+   ) {
+      if (index.mValue >= GetRaw())
          return end();
 
-      const auto rawstart = GetRaw<THIS>();
-      RemoveIndex<THIS>(index.mValue - rawstart, count);
+      const auto rawstart = GetRaw();
+      RemoveIndex(index.mValue - rawstart, count);
 
       if (IsEmpty())
          return end();
       else if (index.mValue == rawstart)
-         return {rawstart, GetRawEndAs<Byte, THIS>()};
+         return {rawstart, GetRawEnd()};
       else
-         return {index.mValue - 1, GetRawEndAs<Byte, THIS>()};
+         return {index.mValue - 1, GetRawEnd()};
    }
 
    /// Remove elements at the back                                            
    ///   @param count - the new count                                         
-   template<CT::Block THIS>
-   void Block::Trim(const Count count) {
+   template<class TYPE>
+   void Block<TYPE>::Trim(const Count count) {
       if (count >= mCount)
          return;
 
@@ -222,39 +217,39 @@ namespace Langulus::Anyness
       }
 
       // Call destructors and change count                              
-      CropInner(count, mCount - count).Destroy<THIS>();
+      CropInner(count, mCount - count).Destroy();
       mCount = count;
    }
 
    /// Flattens unnecessarily deep containers and combines their states       
    /// when possible                                                          
    /// Discards ORness if container has only one element                      
-   template<CT::Block THIS>
-   void Block::Optimize() {
+   template<class TYPE>
+   void Block<TYPE>::Optimize() {
       if (IsOr() and GetCount() == 1)
          MakeAnd();
 
-      while (GetCount() == 1 and IsDeep<THIS>()) {
-         auto& subPack = As<Block>();
-         if (not CanFitState<THIS>(subPack)) {
-            subPack.Optimize<Block>();
+      while (GetCount() == 1 and IsDeep()) {
+         auto& subPack = As<Block<>>();
+         if (not CanFitState(subPack)) {
+            subPack.Optimize();
             if (subPack.IsEmpty())
-               Reset<THIS>();
+               Reset();
             return;
          }
 
-         Block temporary {subPack};
+         Block<> temporary {subPack};
          subPack.ResetMemory();
-         Free<THIS>();
+         Free();
          *this = temporary;
       }
 
-      if (GetCount() > 1 and IsDeep<THIS>()) {
+      if (GetCount() > 1 and IsDeep()) {
          for (Count i = 0; i < mCount; ++i) {
-            auto& subBlock = As<Block>(i);
-            subBlock.Optimize<Block>();
+            auto& subBlock = As<Block<>>(i);
+            subBlock.Optimize();
             if (subBlock.IsEmpty()) {
-               RemoveIndex<THIS>(i);
+               RemoveIndex(i);
                --i;
             }
          }
@@ -262,12 +257,12 @@ namespace Langulus::Anyness
    }
 
    /// Destroy all elements, but don't deallocate memory if possible          
-   template<CT::Block THIS> LANGULUS(INLINED)
-   void Block::Clear() {
+   template<class TYPE> LANGULUS(INLINED)
+   void Block<TYPE>::Clear() {
       if (not mEntry) {
          // Data is either static or unallocated                        
          // Don't call destructors, just clear it up                    
-         mRaw = nullptr;
+         mRaw   = nullptr;
          mCount = mReserved = 0;
          return;
       }
@@ -282,27 +277,27 @@ namespace Langulus::Anyness
          // If reached, then data is referenced from multiple places    
          // Don't call destructors, just clear it up and dereference    
          const_cast<Allocation*>(mEntry)->Free();
-         mRaw = nullptr;
+         mRaw   = nullptr;
          mEntry = nullptr;
          mCount = mReserved = 0;
       }
    }
 
    /// Destroy all elements, deallocate block and reset state                 
-   template<CT::Block THIS> LANGULUS(INLINED)
-   void Block::Reset() {
-      Free<THIS>();
+   template<class TYPE> LANGULUS(INLINED)
+   void Block<TYPE>::Reset() {
+      Free();
       ResetMemory();
       ResetState();
    }
    
    /// Reset the block's state                                                
    /// Type constraints shall remain, if any                                  
-   template<CT::Block THIS> LANGULUS(INLINED)
-   constexpr void Block::ResetState() noexcept {
+   template<class TYPE> LANGULUS(INLINED)
+   constexpr void Block<TYPE>::ResetState() noexcept {
       mState &= DataState::Typed;
-      if constexpr (not CT::Typed<THIS>)
-         ResetType<THIS>();
+      if constexpr (TypeErased)
+         ResetType();
    }
 
    /// Call destructors of all initialized items                              
@@ -311,8 +306,8 @@ namespace Langulus::Anyness
    ///   @attention assumes block is not static                               
    ///   @tparam FORCE - used only when GetUses() == 1                        
    ///   @param mask - internally used for destroying tables (tag dispatch)   
-   template<CT::Block THIS, bool FORCE, class MASK>
-   void Block::Destroy(MASK mask) const {
+   template<class TYPE> template<bool FORCE, class MASK>
+   void Block<TYPE>::Destroy(MASK mask) const {
       LANGULUS_ASSUME(DevAssumes, not FORCE or GetUses() == 1,
          "Attempting to destroy elements used from multiple locations");
       LANGULUS_ASSUME(DevAssumes, not IsEmpty(),

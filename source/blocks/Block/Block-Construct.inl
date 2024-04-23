@@ -125,9 +125,9 @@ namespace Langulus::Anyness
    ///   @param what - data to interface                                      
    ///   @param count - number of items, in case 'what' is sparse             
    ///   @return the provided data, wrapped inside a Block                    
-   template<bool CONSTRAIN_TYPE> LANGULUS(INLINED)
-   Block Block::From(auto&& what, Count count) {
-      using S = SemanticOf<decltype(what)>;
+   template<class TYPE> template<bool CONSTRAIN_TYPE> LANGULUS(INLINED)
+   Block<TYPE> Block<TYPE>::From(auto&& what, Count count) requires TypeErased {
+      using S  = SemanticOf<decltype(what)>;
       using ST = TypeOf<S>;
 
       if constexpr (CT::Array<ST>) {
@@ -178,8 +178,8 @@ namespace Langulus::Anyness
    ///   @tparam T - the type of the container                                
    ///   @tparam CONSTRAIN - makes container type-constrained                 
    ///   @return the block                                                    
-   template<CT::Data T, bool CONSTRAIN> LANGULUS(INLINED)
-   Block Block::From() {
+   template<class TYPE> template<CT::Data T, bool CONSTRAIN> LANGULUS(INLINED)
+   Block<TYPE> Block<TYPE>::From() requires TypeErased {
       if constexpr (CONSTRAIN)
          return {DataState::Typed, MetaDataOf<T>()};
       else
@@ -191,8 +191,8 @@ namespace Langulus::Anyness
    ///   @param t1 - first element                                            
    ///   @param tn... - the rest of the elements (optional)                   
    ///   @returns the new container containing the data                       
-   template<class AS, CT::Data T1, CT::Data...TN>
-   LANGULUS(INLINED) auto Block::Wrap(T1&& t1, TN&&...tn) {
+   template<class TYPE> template<class AS, CT::Data T1, CT::Data...TN>
+   LANGULUS(INLINED) auto Block<TYPE>::Wrap(T1&& t1, TN&&...tn) requires TypeErased {
       if constexpr (CT::TypeErased<AS>) {
          using DT1 = Deref<Decvq<Desem<T1>>>;
          if constexpr (sizeof...(TN) > 0) {
@@ -229,22 +229,20 @@ namespace Langulus::Anyness
    /// smallest number of instructions possible                               
    ///   @attention will not set mType if TO is type-constrained              
    ///   @attention will not set mRaw, mReserved, mEntry, if 'from' is empty  
-   ///   @tparam TO - the type of block we're transferring to                 
    ///   @param from - the block and semantic to transfer from                
-   template<CT::Block TO, template<class> class S, CT::Block FROM>
+   template<class TYPE> template<template<class> class S, CT::Block FROM>
    requires CT::Semantic<S<FROM>> LANGULUS(INLINED)
-   void Block::BlockTransfer(S<FROM>&& from) {
+   void Block<TYPE>::BlockTransfer(S<FROM>&& from) {
       using SS = S<FROM>;
 
-      if constexpr (not CT::Typed<TO>) {
-         // TO is not statically typed, so we can safely                
-         // overwrite type and state                                    
-         mType = from->mType;
+      if constexpr (TypeErased) {
+         // We can safely overwrite type and state                      
+         mType  = from->mType;
          mState = from->mState;
       }
       else {
-         // TO is typed, so we never touch mType, and we make sure that 
-         // we don't affect Typed state                                 
+         // Block is typed, so we never touch mType, and we make sure   
+         // that we don't affect Typed state                            
          mState = from->mState + DataState::Typed;
       }
 
@@ -292,8 +290,7 @@ namespace Langulus::Anyness
                      return;
 
                   // Pick a preferably typed block to optimize          
-                  using B = Conditional<CT::Typed<FROM>, FROM, TO>;
-
+                  using B = Conditional<CT::Typed<FROM>, FROM, Block<TYPE>>;
                   if constexpr (CT::Untyped<B>) {
                      // A runtime check is required before allocating            
                      LANGULUS_ASSERT(mType->mReferConstructor, Construct,
@@ -305,8 +302,9 @@ namespace Langulus::Anyness
                         "Contained type is not refer-constructible");
                   }
 
-                  AllocateFresh<B>(RequestSize<B>(from->mCount));
-                  CreateSemantic<B>(Refer(from));
+                  auto& thisb = reinterpret_cast<B&>(*this);
+                  thisb.AllocateFresh(thisb.RequestSize(from->mCount));
+                  thisb.CreateSemantic(Refer(from));
                   // This validates elements, do it last in case        
                   // something throws along the way                     
                   mCount = from->mCount;
@@ -336,8 +334,7 @@ namespace Langulus::Anyness
             return;
          
          // Pick a preferably typed block to optimize the construction  
-         using B = Conditional<CT::Typed<FROM>, FROM, TO>;
-
+         using B = Conditional<CT::Typed<FROM>, FROM, Block<TYPE>>;
          if constexpr (CT::Untyped<B>) {
             // A runtime check is required before allocating            
             LANGULUS_ASSERT(mType->mCloneConstructor, Construct,
@@ -349,8 +346,9 @@ namespace Langulus::Anyness
                "Contained type is not clone-constructible");
          }
 
-         AllocateFresh<B>(RequestSize<B>(from->mCount));
-         CreateSemantic<B>(from.Forward());
+         auto& thisb = reinterpret_cast<B&>(*this);
+         thisb.AllocateFresh(thisb.RequestSize(from->mCount));
+         thisb.CreateSemantic(from.Forward());
 
          // This validates elements, do it last in case something throw 
          mCount = from->mCount;

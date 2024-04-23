@@ -18,15 +18,15 @@ namespace Langulus::Anyness
    ///   @tparam REVERSE - whether to iterate in reverse                      
    ///   @param call - function to execute for each element block             
    ///   @return the number of executions                                     
-   template<bool REVERSE, CT::Block THIS>
-   Count Block::ForEachElement(auto&& call) const {
+   template<class TYPE> template<bool REVERSE, bool MUTABLE>
+   Count Block<TYPE>::ForEachElement(auto&& call) const {
       using F = Deref<decltype(call)>;
       using A = ArgumentOf<F>;
       using R = ReturnOf<F>;
 
       static_assert(CT::Block<A>,
          "Function argument must be a CT::Block binary-compatible type");
-      static_assert(CT::Slab<A> or CT::Constant<A> or CT::Mutable<THIS>,
+      static_assert(CT::Slab<A> or CT::Constant<A> or MUTABLE,
          "Non constant iterator for constant memory block");
 
       Count index = REVERSE ? mCount - 1 : 0;
@@ -55,10 +55,9 @@ namespace Langulus::Anyness
                next();
                break;
             case Loop::Discard:
-               if constexpr (CT::Mutable<THIS>) {
+               if constexpr (MUTABLE) {
                   // Discard is allowed only if THIS is mutable         
-                  const_cast<Block*>(this)
-                     ->template RemoveIndex<THIS>(index);
+                  const_cast<Block*>(this)->RemoveIndex(index);
                   if constexpr (REVERSE)
                      next();
                }
@@ -86,14 +85,15 @@ namespace Langulus::Anyness
    ///   @tparam REVERSE - whether to iterate in reverse                      
    ///   @param calls - all potential functions to iterate with               
    ///   @return the number of executions                                     
-   template<bool REVERSE, CT::Block THIS, class...F> LANGULUS(INLINED)
-   Count Block::ForEach(F&&...calls) const {
+   template<class TYPE>
+   template<bool REVERSE, bool MUTABLE, class...F> LANGULUS(INLINED)
+   Count Block<TYPE>::ForEach(F&&...calls) const {
       if (IsEmpty())
          return 0;
 
       Count result = 0;
       (void) (... or (Loop::NextLoop !=
-         ForEachInner<THIS, REVERSE>(Forward<F>(calls), result)
+         ForEachInner<MUTABLE, REVERSE>(Forward<F>(calls), result)
       ));
       return result;
    }
@@ -109,31 +109,33 @@ namespace Langulus::Anyness
    ///                  too; otherwise will execute only for non-blocks       
    ///   @param calls - all potential functions to iterate with               
    ///   @return the number of executions                                     
-   template<bool REVERSE, bool SKIP, CT::Block THIS, class...F>
-   LANGULUS(INLINED) Count Block::ForEachDeep(F&&...calls) const {
+   template<class TYPE>
+   template<bool REVERSE, bool SKIP, bool MUTABLE, class...F> LANGULUS(INLINED)
+   Count Block<TYPE>::ForEachDeep(F&&...calls) const {
       Count result = 0;
       (void)(... or (Loop::Break ==
-         ForEachDeepInner<THIS, REVERSE, SKIP>(Forward<F>(calls), result)
+         ForEachDeepInner<MUTABLE, REVERSE, SKIP>(Forward<F>(calls), result)
       ));
       return result;
    }
 
    /// Same as ForEachElement, but in reverse                                 
-   template<CT::Block THIS, class...F> LANGULUS(INLINED)
-   Count Block::ForEachElementRev(F&&...f) const {
-      return ForEachElement<true, THIS>(Forward<F>(f)...);
+   template<class TYPE> template<bool MUTABLE, class...F> LANGULUS(INLINED)
+   Count Block<TYPE>::ForEachElementRev(F&&...f) const {
+      return ForEachElement<true, MUTABLE>(Forward<F>(f)...);
    }
 
    /// Same as ForEach, but in reverse                                        
-   template<CT::Block THIS, class...F> LANGULUS(INLINED)
-   Count Block::ForEachRev(F&&...f) const {
-      return ForEach<true, THIS>(Forward<F>(f)...);
+   template<class TYPE> template<bool MUTABLE, class...F> LANGULUS(INLINED)
+   Count Block<TYPE>::ForEachRev(F&&...f) const {
+      return ForEach<true, MUTABLE>(Forward<F>(f)...);
    }
 
    /// Same as ForEachDeep, but in reverse                                    
-   template<bool SKIP, CT::Block THIS, class...F> LANGULUS(INLINED)
-   Count Block::ForEachDeepRev(F&&...f) const {
-      return ForEachDeep<true, SKIP, THIS>(Forward<F>(f)...);
+   template<class TYPE>
+   template<bool SKIP, bool MUTABLE, class...F> LANGULUS(INLINED)
+   Count Block<TYPE>::ForEachDeepRev(F&&...f) const {
+      return ForEachDeep<true, SKIP, MUTABLE>(Forward<F>(f)...);
    }
 
    /// Iterate and execute call for each flat element, counting each          
@@ -143,24 +145,22 @@ namespace Langulus::Anyness
    ///   @tparam REVERSE - whether to iterate in reverse                      
    ///   @param f - the function to execute for each element of type A        
    ///   @return the last 'f' result                                          
-   template<CT::Block THIS, bool REVERSE> LANGULUS(INLINED)
-   LoopControl Block::ForEachInner(auto&& f, Count& index) const
+   template<class T> template<bool MUTABLE, bool REVERSE> LANGULUS(INLINED)
+   LoopControl Block<T>::ForEachInner(auto&& f, Count& index) const
    noexcept(NoexceptIterator<decltype(f)>) {
       using F = Deref<decltype(f)>;
       using A = ArgumentOf<F>;
       using R = ReturnOf<F>;
       UNUSED() static constexpr auto NOE = NoexceptIterator<decltype(f)>;
 
-      if constexpr (CT::Typed<THIS>) {
-         using T = TypeOf<THIS>;
-
+      if constexpr (not TypeErased) {
          if constexpr (    CT::Deep<Decay<A>, Decay<T>>
                    or (not CT::Deep<Decay<A>> and CT::DerivedFrom<T, A>)
                    or (CT::Same<A, T>)
          ) {
-            using IT = Conditional<CT::Mutable<THIS>, T&, const T&>;
+            using IT = Conditional<MUTABLE, T&, const T&>;
 
-            return IterateInner<THIS, REVERSE>(mCount,
+            return IterateInner<MUTABLE, REVERSE>(mCount,
                [&index, &f](IT element) noexcept(NOE) -> R {
                   ++index;
 
@@ -180,18 +180,18 @@ namespace Langulus::Anyness
          }
          else return Loop::NextLoop;
       }
-      else if (   (CT::Deep<Decay<A>> and IsDeep<THIS>())
+      else if (   (CT::Deep<Decay<A>> and IsDeep())
            or (not CT::Deep<Decay<A>> and CastsTo<A>())
       ) {
          if (mType->mIsSparse) {
             // Iterate sparse container                                 
-            using DA = Conditional<CT::Mutable<THIS>, void*&, const void* const&>;
+            using DA = Conditional<MUTABLE, void*&, const void* const&>;
 
-            return IterateInner<THIS, REVERSE>(mCount,
+            return IterateInner<MUTABLE, REVERSE>(mCount,
                [&index, &f](DA element) noexcept(NOE) -> R {
                   ++index;
                   if constexpr (CT::Dense<A>) {
-                     if constexpr (CT::Mutable<THIS>)
+                     if constexpr (MUTABLE)
                         return f(*static_cast<Deref<A>*>(element));
                      else
                         return f(*static_cast<const Deref<A>*>(element));
@@ -202,9 +202,9 @@ namespace Langulus::Anyness
          }
          else {
             // Iterate dense container                                  
-            using DA = Conditional<CT::Mutable<THIS>, Decay<A>&, const Decay<A>&>;
+            using DA = Conditional<MUTABLE, Decay<A>&, const Decay<A>&>;
 
-            return IterateInner<THIS, REVERSE>(mCount,
+            return IterateInner<MUTABLE, REVERSE>(mCount,
                [&index, &f](DA element) noexcept(NOE) -> R {
                   ++index;
                   if constexpr (CT::Dense<A>)
@@ -223,16 +223,16 @@ namespace Langulus::Anyness
    ///   @tparam SKIP - whether to execute call for intermediate blocks       
    ///   @param call - the function to execute for each element of type A     
    ///   @return the number of executions that occured                        
-   template<CT::Block THIS, bool REVERSE, bool SKIP>
-   LoopControl Block::ForEachDeepInner(auto&& call, Count& counter) const {
+   template<class TYPE> template<bool MUTABLE, bool REVERSE, bool SKIP>
+   LoopControl Block<TYPE>::ForEachDeepInner(auto&& call, Count& counter) const {
       using F = Deref<decltype(call)>;
       using A = ArgumentOf<F>;
       using R = ReturnOf<F>;
-      using SubBlock = Conditional<CT::Mutable<THIS>, Block&, const Block&>;
+      using SubBlock = Conditional<MUTABLE, Block&, const Block&>;
       static_assert(CT::Dense<A>, "Iterator must be dense value/reference");
 
       if constexpr (CT::Deep<A>) {
-         if (not SKIP or (not IsDeep<THIS>() and not Is<THIS, Neat>())) {
+         if (not SKIP or (not IsDeep() and not Is<Neat>())) {
             // Always execute for intermediate/non-deep *this           
             ++counter;
 
@@ -250,11 +250,11 @@ namespace Langulus::Anyness
                case Loop::Continue:
                   break;
                case Loop::Discard:
-                  if constexpr (CT::Mutable<THIS>) {
+                  if constexpr (MUTABLE) {
                      // Discard is allowed only if THIS is mutable      
                      // You can't fully discard the topmost block,      
                      // only reset it                                   
-                     const_cast<Block*>(this)->template Reset<THIS>();
+                     const_cast<Block*>(this)->Reset();
                      return Loop::Discard;
                   }
                   else {
@@ -267,25 +267,25 @@ namespace Langulus::Anyness
          }
       }
 
-      if (IsDeep<THIS>()) {
+      if (IsDeep()) {
          // Iterate subblocks                                           
          Count intermediateCounterSink = 0;
 
-         return ForEachInner<THIS, REVERSE>(
+         return ForEachInner<MUTABLE, REVERSE>(
             [&counter, &call](SubBlock group) {
                return DenseCast(group).template
-                  ForEachDeepInner<SubBlock, REVERSE, SKIP>(
+                  ForEachDeepInner<MUTABLE, REVERSE, SKIP>(
                      ::std::move(call), counter
                   );
             },
             intermediateCounterSink
          );
       }
-      else if (Is<THIS, Neat>()) {
+      else if (Is<Neat>()) {
          // Iterate normalized subblocks                                
-         using SubNeat = Conditional<CT::Mutable<THIS>, Neat&, const Neat&>;
+         using SubNeat = Conditional<MUTABLE, Neat&, const Neat&>;
 
-         return ForEachInner<THIS, REVERSE>(
+         return ForEachInner<MUTABLE, REVERSE>(
             [&call](SubNeat neat) {
                return neat.ForEachDeep(::std::move(call));
             },
@@ -294,7 +294,7 @@ namespace Langulus::Anyness
       }
       else if constexpr (not CT::Deep<A>) {
          // Equivalent to non-deep iteration                            
-         return ForEachInner<THIS, REVERSE>(::std::move(call), counter);
+         return ForEachInner<MUTABLE, REVERSE>(::std::move(call), counter);
       }
 
       return Loop::Continue;
@@ -307,8 +307,8 @@ namespace Langulus::Anyness
    ///   @attention assumes sparseness matches                                
    ///   @tparam REVERSE - direction we're iterating in                       
    ///   @param call - the constexpr noexcept function to call on each item   
-   template<CT::Block THIS, bool REVERSE> LANGULUS(INLINED)
-   LoopControl Block::IterateInner(const Count count, auto&& f) const
+   template<class TYPE> template<bool MUTABLE, bool REVERSE> LANGULUS(INLINED)
+   LoopControl Block<TYPE>::IterateInner(const Count count, auto&& f) const
    noexcept(NoexceptIterator<decltype(f)>) {
       using F = Deref<decltype(f)>;
       using A = ArgumentOf<F>;
@@ -316,14 +316,14 @@ namespace Langulus::Anyness
 
       static_assert(CT::Complete<Decay<A>> or CT::Sparse<A>,
          "Can't iterate with incomplete type, use pointer instead");
-      static_assert(CT::Slab<A> or CT::Constant<Deptr<A>> or CT::Mutable<THIS>,
+      static_assert(CT::Slab<A> or CT::Constant<Deptr<A>> or MUTABLE,
          "Non-constant iterator for constant memory is not allowed");
 
-      LANGULUS_ASSUME(DevAssumes, IsTyped<THIS>(),
+      LANGULUS_ASSUME(DevAssumes, IsTyped(),
          "Block is not typed");
       LANGULUS_ASSUME(DevAssumes, not IsEmpty(),
          "Block is empty", " (of type `", mType, "`)");
-      LANGULUS_ASSUME(DevAssumes, IsSparse<THIS>() == CT::Sparse<A>,
+      LANGULUS_ASSUME(DevAssumes, IsSparse() == CT::Sparse<A>,
          "Sparseness mismatch", " (`", mType, 
          "` compared against `", MetaDataOf<A>(), "`)"
       );
@@ -338,12 +338,13 @@ namespace Langulus::Anyness
       // These are used as detectors for block change while iterating   
       // Should be optimized-out when !MUTABLE                          
       using DA = Deref<A>;
-      const auto raw = const_cast<Block*>(this)->GetRawAs<DA, THIS>();
+      const auto raw = const_cast<Block*>(this)->GetRawAs<DA>();
 
       // Prepare for the loop                                           
       auto data = raw;
       if constexpr (REVERSE)
          data += count - 1;
+
       const auto next = [&data] {
          if constexpr (REVERSE)  --data;
          else                    ++data;
@@ -368,10 +369,9 @@ namespace Langulus::Anyness
                next();
                break;
             case LoopControl::Discard:
-               if constexpr (CT::Mutable<THIS>) {
+               if constexpr (MUTABLE) {
                   // Discard is allowed only if THIS is mutable         
-                  const_cast<Block*>(this)
-                     ->template RemoveIndex<THIS>(raw - data);
+                  const_cast<Block*>(this)->RemoveIndex(raw - data);
                   if constexpr (REVERSE)
                      next();
                   else
@@ -395,44 +395,45 @@ namespace Langulus::Anyness
    
    /// Get iterator to first element                                          
    ///   @return an iterator to the first element, or end if empty            
-   template<CT::Block THIS> LANGULUS(INLINED)
-   constexpr Block::Iterator<THIS> Block::begin() noexcept {
+   template<class TYPE> LANGULUS(INLINED)
+   constexpr TIterator<Block<TYPE>> Block<TYPE>::begin() noexcept {
       if (IsEmpty())
          return end();
 
-      if constexpr (CT::Typed<THIS>)
-         return {GetRaw<THIS>(), GetRawEndAs<Byte, THIS>()};
+      if constexpr (TypeErased)
+         return {GetElement(), GetRawEndAs<Byte>()};
       else
-         return {GetElement(), GetRawEndAs<Byte, THIS>()};
+         return {GetRaw(), GetRawEndAs<Byte>()};
    }
 
-   template<CT::Block THIS> LANGULUS(INLINED)
-   constexpr Block::Iterator<const THIS> Block::begin() const noexcept {
-      return const_cast<Block*>(this)->begin<THIS>();
+   template<class TYPE> LANGULUS(INLINED)
+   constexpr TIterator<const Block<TYPE>> Block<TYPE>::begin() const noexcept {
+      return const_cast<Block*>(this)->begin();
    }
 
    /// Get iterator to the last element                                       
    ///   @return an iterator to the last element, or end if empty             
-   template<CT::Block THIS> LANGULUS(INLINED)
-   constexpr Block::Iterator<THIS> Block::last() noexcept {
+   template<class TYPE> LANGULUS(INLINED)
+   constexpr TIterator<Block<TYPE>> Block<TYPE>::last() noexcept {
       if (IsEmpty())
          return end();
 
-      if constexpr (CT::Typed<THIS>) {
-         const auto ptr = GetRaw<THIS>();
+      if constexpr (TypeErased)
+         return {GetElement(), GetRawEndAs<Byte>()};
+      else {
+         const auto ptr = GetRaw();
          return {ptr + (mCount - 1), reinterpret_cast<const Byte*>(ptr + mCount)};
       }
-      else return {GetElement(), GetRawEndAs<Byte, THIS>()};
    }
 
-   template<CT::Block THIS> LANGULUS(INLINED)
-   constexpr Block::Iterator<const THIS> Block::last() const noexcept {
-      return const_cast<Block*>(this)->last<THIS>();
+   template<class TYPE> LANGULUS(INLINED)
+   constexpr TIterator<const Block<TYPE>> Block<TYPE>::last() const noexcept {
+      return const_cast<Block*>(this)->last();
    }
    
    /// Prefix increment - get next element by incrementing data pointer       
-   LANGULUS(INLINED)
-   Block& Block::operator ++ () IF_UNSAFE(noexcept) {
+   template<class TYPE> LANGULUS(INLINED)
+   Block<TYPE>& Block<TYPE>::operator ++ () IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, mRaw,
          "Block is not allocated");
       LANGULUS_ASSUME(DevAssumes, IsTyped(),
@@ -445,8 +446,8 @@ namespace Langulus::Anyness
    }
 
    /// Prefix decrement - get previous element by decrementing data pointer   
-   LANGULUS(INLINED)
-   Block& Block::operator -- () IF_UNSAFE(noexcept) {
+   template<class TYPE> LANGULUS(INLINED)
+   Block<TYPE>& Block<TYPE>::operator -- () IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, mRaw,
          "Block is not allocated");
       LANGULUS_ASSUME(DevAssumes, IsTyped(),
@@ -459,24 +460,24 @@ namespace Langulus::Anyness
    }
 
    /// Suffic increment - get next element by incrementing data pointer       
-   LANGULUS(INLINED)
-   Block Block::operator ++ (int) const IF_UNSAFE(noexcept) {
-      Block copy {*this};
+   template<class TYPE> LANGULUS(INLINED)
+   Block<TYPE> Block<TYPE>::operator ++ (int) const IF_UNSAFE(noexcept) {
+      auto copy {*this};
       return ++copy;
    }
 
    /// Suffic decrement - get previous element by decrementing data pointer   
-   LANGULUS(INLINED)
-   Block Block::operator -- (int) const IF_UNSAFE(noexcept) {
-      Block copy {*this};
+   template<class TYPE> LANGULUS(INLINED)
+   Block<TYPE> Block<TYPE>::operator -- (int) const IF_UNSAFE(noexcept) {
+      auto copy {*this};
       return --copy;
    }
    
    /// Offset the handle                                                      
    ///   @param offset - the offset to apply                                  
    ///   @return the offsetted handle                                         
-   LANGULUS(INLINED)
-   Block Block::operator + (Offset offset) const IF_UNSAFE(noexcept) {
+   template<class TYPE> LANGULUS(INLINED)
+   Block<TYPE> Block<TYPE>::operator + (Offset offset) const IF_UNSAFE(noexcept) {
       auto copy {*this};
       return copy += offset;
    }
@@ -484,16 +485,16 @@ namespace Langulus::Anyness
    /// Offset the handle                                                      
    ///   @param offset - the offset to apply                                  
    ///   @return the offsetted handle                                         
-   LANGULUS(INLINED)
-   Block Block::operator - (Offset offset) const IF_UNSAFE(noexcept) {
+   template<class TYPE> LANGULUS(INLINED)
+   Block<TYPE> Block<TYPE>::operator - (Offset offset) const IF_UNSAFE(noexcept) {
       auto copy {*this};
       return copy -= offset;
    }
    
    /// Prefix increment operator                                              
    ///   @return the next handle                                              
-   LANGULUS(INLINED)
-   Block& Block::operator += (Offset offset) IF_UNSAFE(noexcept) {
+   template<class TYPE> LANGULUS(INLINED)
+   Block<TYPE>& Block<TYPE>::operator += (Offset offset) IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, mRaw,
          "Block is not allocated");
       LANGULUS_ASSUME(DevAssumes, IsTyped(),
@@ -507,8 +508,8 @@ namespace Langulus::Anyness
 
    /// Prefix decrement operator                                              
    ///   @return the next handle                                              
-   LANGULUS(INLINED)
-   Block& Block::operator -= (Offset offset) IF_UNSAFE(noexcept) {
+   template<class TYPE> LANGULUS(INLINED)
+   Block<TYPE>& Block<TYPE>::operator -= (Offset offset) IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, mRaw,
          "Block is not allocated");
       LANGULUS_ASSUME(DevAssumes, IsTyped(),
@@ -520,25 +521,29 @@ namespace Langulus::Anyness
       return *this;
    }
 
+
+
+
+
    /// Construct an iterator                                                  
    ///   @param start - the current iterator position                         
    ///   @param end - the ending marker                                       
-   template<class T> LANGULUS(INLINED)
-   constexpr Block::Iterator<T>::Iterator(TypeInner start, Byte const* end) noexcept
+   template<CT::Block T> LANGULUS(INLINED)
+   constexpr TIterator<T>::TIterator(TypeInner start, Byte const* end) noexcept
       : mValue {start}
-      , mEnd {end} {}
+      , mEnd   {end} {}
 
    /// Construct an end iterator                                              
-   template<class T> LANGULUS(INLINED)
-   constexpr Block::Iterator<T>::Iterator(const A::IteratorEnd&) noexcept
+   template<CT::Block T> LANGULUS(INLINED)
+   constexpr TIterator<T>::TIterator(const A::IteratorEnd&) noexcept
       : mValue {nullptr}
-      , mEnd {nullptr} {}
+      , mEnd   {nullptr} {}
 
    /// Compare two iterators                                                  
    ///   @param rhs - the other iterator                                      
    ///   @return true if iterators point to the same element                  
-   template<class T> LANGULUS(INLINED)
-   constexpr bool Block::Iterator<T>::operator == (const Iterator& rhs) const noexcept {
+   template<CT::Block T> LANGULUS(INLINED)
+   constexpr bool TIterator<T>::operator == (const TIterator& rhs) const noexcept {
       if constexpr (CT::Typed<T>)
          return mValue == reinterpret_cast<const Type*>(rhs.mValue);
       else
@@ -548,8 +553,8 @@ namespace Langulus::Anyness
    /// Compare iterator with an end marker                                    
    ///   @param rhs - the end iterator                                        
    ///   @return true element is at or beyond the end marker                  
-   template<class T> LANGULUS(INLINED)
-   constexpr bool Block::Iterator<T>::operator == (const A::IteratorEnd&) const noexcept {
+   template<CT::Block T> LANGULUS(INLINED)
+   constexpr bool TIterator<T>::operator == (const A::IteratorEnd&) const noexcept {
       if constexpr (CT::Typed<T>)
          return mValue >= reinterpret_cast<const Type*>(mEnd);
       else
@@ -558,8 +563,8 @@ namespace Langulus::Anyness
    
    /// Iterator access operator                                               
    ///   @return a reference to the element at the current iterator position  
-   template<class T> LANGULUS(INLINED)
-   constexpr decltype(auto) Block::Iterator<T>::operator * () const noexcept {
+   template<CT::Block T> LANGULUS(INLINED)
+   constexpr decltype(auto) TIterator<T>::operator * () const noexcept {
       if constexpr (CT::Typed<T>)
          return *mValue;
       else
@@ -568,8 +573,8 @@ namespace Langulus::Anyness
 
    /// Iterator access operator                                               
    ///   @return a reference to the element at the current iterator position  
-   template<class T> LANGULUS(INLINED)
-   constexpr decltype(auto) Block::Iterator<T>::operator -> () const noexcept {
+   template<CT::Block T> LANGULUS(INLINED)
+   constexpr decltype(auto) TIterator<T>::operator -> () const noexcept {
       if constexpr (CT::Typed<T>)
          return *mValue;
       else
@@ -579,8 +584,8 @@ namespace Langulus::Anyness
    /// Prefix increment operator                                              
    ///   @attention assumes iterator points to a valid element                
    ///   @return the modified iterator                                        
-   template<class T> LANGULUS(INLINED)
-   constexpr Block::Iterator<T>& Block::Iterator<T>::operator ++ () noexcept {
+   template<CT::Block T> LANGULUS(INLINED)
+   constexpr TIterator<T>& TIterator<T>::operator ++ () noexcept {
       ++mValue;
       return *this;
    }
@@ -588,16 +593,16 @@ namespace Langulus::Anyness
    /// Suffix increment operator                                              
    ///   @attention assumes iterator points to a valid element                
    ///   @return the previous value of the iterator                           
-   template<class T> LANGULUS(INLINED)
-   constexpr Block::Iterator<T> Block::Iterator<T>::operator ++ (int) noexcept {
+   template<CT::Block T> LANGULUS(INLINED)
+   constexpr TIterator<T> TIterator<T>::operator ++ (int) noexcept {
       const auto backup = *this;
       operator ++ ();
       return backup;
    }
 
    /// Check if iterator is valid                                             
-   template<class T> LANGULUS(INLINED)
-   constexpr Block::Iterator<T>::operator bool() const noexcept {
+   template<CT::Block T> LANGULUS(INLINED)
+   constexpr TIterator<T>::operator bool() const noexcept {
       return *this != A::IteratorEnd {};
    }
 

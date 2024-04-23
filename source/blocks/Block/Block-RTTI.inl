@@ -17,61 +17,61 @@ namespace Langulus::Anyness
    ///   @attention ignores sparsity and cv-qualifiers                        
    ///   @tparam T1, TN... - the types to compare against                     
    ///   @return true if data type is similar to at least one of the types    
-   template<CT::Block THIS, CT::Data T1, CT::Data...TN> LANGULUS(INLINED)
-   constexpr bool Block::Is() const noexcept {
-      if constexpr (CT::Typed<THIS>)
-         return CT::SameAsOneOf<TypeOf<THIS>, T1, TN...>;
-      else
+   template<class TYPE> template<CT::Data T1, CT::Data...TN> LANGULUS(INLINED)
+   constexpr bool Block<TYPE>::Is() const noexcept {
+      if constexpr (TypeErased)
          return mType and mType->template Is<T1, TN...>();
+      else
+         return CT::SameAsOneOf<TYPE, T1, TN...>;
    }
 
    /// Check if type origin is the same as another                            
    ///   @attention ignores sparsity and cv-qualifiers                        
    ///   @param type - the type to check for                                  
    ///   @return true if this block contains similar data                     
-   template<CT::Block THIS> LANGULUS(INLINED)
-   bool Block::Is(DMeta type) const noexcept {
-      return GetType<THIS>() | type;
+   template<class TYPE> LANGULUS(INLINED)
+   bool Block<TYPE>::Is(DMeta type) const noexcept {
+      return GetType() | type;
    }
 
    /// Check if unqualified type is the same as one of the provided types     
    ///   @attention ignores only cv-qualifiers                                
    ///   @tparam T1, TN... - the types to compare against                     
    ///   @return true if data type is similar to at least one of the types    
-   template<CT::Block THIS, CT::Data T1, CT::Data...TN> LANGULUS(INLINED)
-   constexpr bool Block::IsSimilar() const noexcept {
-      if constexpr (CT::Typed<THIS>)
-         return CT::SimilarAsOneOf<TypeOf<THIS>, T1, TN...>;
-      else
+   template<class TYPE> template<CT::Data T1, CT::Data...TN> LANGULUS(INLINED)
+   constexpr bool Block<TYPE>::IsSimilar() const noexcept {
+      if constexpr (TypeErased)
          return mType and mType->template IsSimilar<T1, TN...>();
+      else
+         return CT::SimilarAsOneOf<TYPE, T1, TN...>;
    }
 
    /// Check if unqualified type is the same as another                       
    ///   @attention ignores only cv-qualifiers                                
    ///   @param type - the type to check for                                  
    ///   @return true if this block contains similar data                     
-   template<CT::Block THIS> LANGULUS(INLINED)
-   bool Block::IsSimilar(DMeta type) const noexcept {
-      return GetType<THIS>() & type;
+   template<class TYPE> LANGULUS(INLINED)
+   bool Block<TYPE>::IsSimilar(DMeta type) const noexcept {
+      return GetType() & type;
    }
 
    /// Check if this type is exactly one of the provided types                
    ///   @tparam T1, TN... - the types to compare against                     
    ///   @return true if data type matches at least one type                  
-   template<CT::Block THIS, CT::Data T1, CT::Data...TN> LANGULUS(INLINED)
-   constexpr bool Block::IsExact() const noexcept {
-      if constexpr (CT::Typed<THIS>)
-         return CT::ExactAsOneOf<TypeOf<THIS>, T1, TN...>;
-      else
+   template<class TYPE> template<CT::Data T1, CT::Data...TN> LANGULUS(INLINED)
+   constexpr bool Block<TYPE>::IsExact() const noexcept {
+      if constexpr (TypeErased)
          return mType and mType->template IsExact<T1, TN...>();
+      else
+         return CT::ExactAsOneOf<TYPE, T1, TN...>;
    }
 
    /// Check if this type is exactly another                                  
    ///   @param type - the type to match                                      
    ///   @return true if data type matches type exactly                       
-   template<CT::Block THIS> LANGULUS(INLINED)
-   bool Block::IsExact(DMeta type) const noexcept {
-      return GetType<THIS>() == type;
+   template<class TYPE> LANGULUS(INLINED)
+   bool Block<TYPE>::IsExact(DMeta type) const noexcept {
+      return GetType() == type;
    }
 
    /// Check if contained data can be interpreted as a given type             
@@ -80,17 +80,16 @@ namespace Langulus::Anyness
    ///      binary compatible with this container's type                      
    ///   @param type - the type check if current type interprets to           
    ///   @return true if able to interpret current type to 'type'             
-   template<bool BINARY_COMPATIBLE, CT::Block THIS> LANGULUS(INLINED)
-   bool Block::CastsToMeta(DMeta type) const {
-      if constexpr (CT::Typed<THIS>) {
-         //TODO can be further optimized
-         return GetType()->template
-            CastsTo<BINARY_COMPATIBLE or CT::Sparse<TypeOf<THIS>>>(type);
-      }
-      else {
+   template<class TYPE> template<bool BINARY_COMPATIBLE> LANGULUS(INLINED)
+   bool Block<TYPE>::CastsToMeta(DMeta type) const {
+      if constexpr (TypeErased) {
          return mType and (BINARY_COMPATIBLE or mType->mIsSparse
             ? mType->CastsTo<true>(type)
             : mType->CastsTo(type));
+      }
+      else {
+         return GetType()->template
+            CastsTo<BINARY_COMPATIBLE or CT::Sparse<TYPE>>(type);
       }
    }
 
@@ -102,13 +101,12 @@ namespace Langulus::Anyness
    ///   @param type - the type check if current type interprets to           
    ///   @param count - the number of elements to interpret as                
    ///   @return true if able to interpret current type to 'type'             
-   template<bool BINARY_COMPATIBLE, CT::Block THIS> LANGULUS(INLINED)
-   bool Block::CastsToMeta(DMeta type, Count count) const {
-      if constexpr (CT::Typed<THIS>)
-         //TODO can be further optimized
-         return not type or GetType<THIS>()->CastsTo(type, count);
-      else
+   template<class TYPE> template<bool BINARY_COMPATIBLE> LANGULUS(INLINED)
+   bool Block<TYPE>::CastsToMeta(DMeta type, Count count) const {
+      if constexpr (TypeErased)
          return not mType or not type or mType->CastsTo(type, count);
+      else
+         return not type or GetType()->CastsTo(type, count);
    }
 
    /// Check if this container's data can be represented as type T            
@@ -117,10 +115,10 @@ namespace Langulus::Anyness
    ///   @tparam BINARY_COMPATIBLE - do we require for the type to be         
    ///      binary compatible with this container's type                      
    ///   @return true if contained data is reinterpretable as T               
-   template<CT::Data T, bool BINARY_COMPATIBLE, CT::Block THIS> LANGULUS(INLINED)
-   bool Block::CastsTo() const {
+   template<class TYPE> template<CT::Data T, bool BINARY_COMPATIBLE>
+   LANGULUS(INLINED) bool Block<TYPE>::CastsTo() const {
       //TODO can be further optimized
-      return CastsToMeta<BINARY_COMPATIBLE, THIS>(MetaDataOf<T>());
+      return CastsToMeta<BINARY_COMPATIBLE>(MetaDataOf<T>());
    }
 
    /// Check if this container's data can be represented as a specific number 
@@ -130,10 +128,10 @@ namespace Langulus::Anyness
    ///      binary compatible with this container's type                      
    ///   @param count - the number of elements of T                           
    ///   @return true if contained data is reinterpretable as T               
-   template<CT::Data T, bool BINARY_COMPATIBLE, CT::Block THIS> LANGULUS(INLINED)
-   bool Block::CastsTo(const Count count) const {
+   template<class TYPE> template<CT::Data T, bool BINARY_COMPATIBLE>
+   LANGULUS(INLINED) bool Block<TYPE>::CastsTo(const Count count) const {
       //TODO can be further optimized
-      return CastsToMeta<BINARY_COMPATIBLE, THIS>(MetaDataOf<T>(), count);
+      return CastsToMeta<BINARY_COMPATIBLE>(MetaDataOf<T>(), count);
    }
    
    /// Reinterpret contents of this Block as the type and state of another    
@@ -142,41 +140,40 @@ namespace Langulus::Anyness
    /// No real conversion is performed, only pointer arithmetic               
    ///   @param pattern - the type of data to try interpreting as             
    ///   @return a block representing this block, interpreted as the pattern  
-   template<CT::Block THIS, CT::Block B> LANGULUS(INLINED)
-   B Block::ReinterpretAs(const B& pattern) const {
-      if (IsEmpty() or IsSparse<THIS>()
-      or IsUntyped<THIS>() or pattern.template IsUntyped<B>())
+   template<class TYPE> template<CT::Block B> LANGULUS(INLINED)
+   B Block<TYPE>::ReinterpretAs(const B& pattern) const {
+      if (IsEmpty() or IsSparse() or IsUntyped()
+      or pattern.template IsUntyped<B>())
          return B {};
 
-      if constexpr (CT::Typed<THIS, B>) {
-         using T1 = TypeOf<THIS>;
-         using T2 = TypeOf<B>;
-
+      if constexpr (not TypeErased and CT::Typed<B>) {
          // Both containers are statically typed                        
-         if constexpr (CT::BinaryCompatible<T1, T2>) {
+         using T = TypeOf<B>;
+
+         if constexpr (CT::BinaryCompatible<TYPE, T>) {
             // 1:1 view for binary compatible types                     
-            return B {Disown(Block{
+            return B {Disown(Block<> {
                pattern.GetState() + DataState::Static,
                pattern.GetType(), mCount,
                mRaw, mEntry
             })};
          }
-         else if constexpr (CT::POD<T1, T2>) {
-            if constexpr (sizeof(T1) >= sizeof(T2)
-                     and (sizeof(T1) %  sizeof(T2)) == 0) {
+         else if constexpr (CT::POD<TYPE, T>) {
+            if constexpr (sizeof(TYPE) >= sizeof(T)
+                     and (sizeof(TYPE) %  sizeof(T)) == 0) {
                // Larger view for binary compatible types               
-               return B {Disown(Block{
+               return B {Disown(Block<> {
                   pattern.GetState() + DataState::Static,
-                  pattern.GetType(), mCount * (sizeof(T1) / sizeof(T2)),
+                  pattern.GetType(), mCount * (sizeof(TYPE) / sizeof(T)),
                   mRaw, mEntry
                })};
             }
-            else if constexpr (sizeof(T1) <= sizeof(T2)
-                          and (sizeof(T2) %  sizeof(T1)) == 0) {
+            else if constexpr (sizeof(TYPE) <= sizeof(T)
+                          and (sizeof(T)    %  sizeof(TYPE)) == 0) {
                // Smaller view for binary compatible types              
-               return B {Disown(Block{
+               return B {Disown(Block<> {
                   pattern.GetState() + DataState::Static,
-                  pattern.GetType(), mCount / (sizeof(T2) / sizeof(T1)),
+                  pattern.GetType(), mCount / (sizeof(T) / sizeof(TYPE)),
                   mRaw, mEntry
                })};
             }
@@ -200,7 +197,7 @@ namespace Langulus::Anyness
             ? baseBytes : (baseBytes / pattern.mCount) * pattern.mCount;
 
          // Create a static view of the desired type                    
-         return B {Disown(Block{
+         return B {Disown(Block<> {
             pattern.mState + DataState::Static,
             pattern.mType, resultSize,
             mRaw, mEntry
@@ -208,10 +205,10 @@ namespace Langulus::Anyness
       }
    }
 
-   template<CT::Data T, CT::Block THIS> LANGULUS(INLINED)
-   TMany<T> Block::ReinterpretAs() const {
+   template<class TYPE> template<CT::Data T> LANGULUS(INLINED)
+   TMany<T> Block<TYPE>::ReinterpretAs() const {
       static_assert(CT::Dense<T>, "T must be dense");
-      return ReinterpretAs<THIS>(Block::From<T>());
+      return ReinterpretAs(Block::From<T>());
    }
 
    /// Get the memory block corresponding to a local member variable          
@@ -219,20 +216,20 @@ namespace Langulus::Anyness
    ///   @param member - the member to get                                    
    ///   @param idx - the element to get member from                          
    ///   @return a static memory block                                        
-   template<CT::Block THIS> LANGULUS(INLINED)
-   Block Block::GetMember(const RTTI::Member& member, CT::Index auto idx) {
+   template<class TYPE> LANGULUS(INLINED)
+   Block<> Block<TYPE>::GetMember(const RTTI::Member& member, CT::Index auto idx) {
       LANGULUS_ASSUME(DevAssumes, not IsEmpty(),
          "Getting member from an empty block");
-      const auto index = SimplifyIndex<THIS>(idx);
+      const auto index = SimplifyIndex(idx);
       return { 
          DataState::Member, member.GetType(), member.mCount,
          member.Get(mRaw + mType->mSize * index), mEntry
       };
    }
 
-   template<CT::Block THIS> LANGULUS(INLINED)
-   Block Block::GetMember(const RTTI::Member& member, CT::Index auto idx) const {
-      auto result = const_cast<Block*>(this)->GetMember<THIS>(member, idx);
+   template<class TYPE> LANGULUS(INLINED)
+   Block<> Block<TYPE>::GetMember(const RTTI::Member& member, CT::Index auto idx) const {
+      auto result = const_cast<Block*>(this)->GetMember(member, idx);
       result.MakeConst();
       return result;
    }
@@ -242,8 +239,8 @@ namespace Langulus::Anyness
    ///   @param meta - the type of the resulting base block                   
    ///   @param base - the base reflection to use                             
    ///   @return the static block for the base                                
-   LANGULUS(INLINED)
-   Block Block::GetBaseMemory(DMeta meta, const RTTI::Base& base) {
+   template<class TYPE> LANGULUS(INLINED)
+   Block<> Block<TYPE>::GetBaseMemory(DMeta meta, const RTTI::Base& base) {
       return {
          DataState::Member, meta,
          base.mCount * (base.mBinaryCompatible ? GetCount() : 1),
@@ -251,8 +248,8 @@ namespace Langulus::Anyness
       };
    }
 
-   LANGULUS(INLINED)
-   Block Block::GetBaseMemory(DMeta meta, const RTTI::Base& base) const {
+   template<class TYPE> LANGULUS(INLINED)
+   Block<> Block<TYPE>::GetBaseMemory(DMeta meta, const RTTI::Base& base) const {
       auto result = const_cast<Block*>(this)->GetBaseMemory(meta, base);
       result.MakeConst();
       return result;
@@ -262,13 +259,13 @@ namespace Langulus::Anyness
    ///   @attention assumes block is not empty                                
    ///   @param base - the base reflection to use                             
    ///   @return the static block for the base                                
-   LANGULUS(INLINED)
-   Block Block::GetBaseMemory(const RTTI::Base& base) {
+   template<class TYPE> LANGULUS(INLINED)
+   Block<> Block<TYPE>::GetBaseMemory(const RTTI::Base& base) {
       return GetBaseMemory(base.mType, base);
    }
 
-   LANGULUS(INLINED)
-   Block Block::GetBaseMemory(const RTTI::Base& base) const {
+   template<class TYPE> LANGULUS(INLINED)
+   Block<> Block<TYPE>::GetBaseMemory(const RTTI::Base& base) const {
       return GetBaseMemory(base.mType, base);
    }
    
@@ -277,23 +274,24 @@ namespace Langulus::Anyness
    ///   @tparam FORCE - insert even if types mismatch, by making this block  
    ///                   deep with provided type - use void to disable        
    ///   @return true if block was deepened to incorporate the new type       
-   template<CT::Block THIS, CT::Data T, class FORCE> LANGULUS(INLINED)
-   bool Block::Mutate() {
+   template<class TYPE> template<CT::Data T, class FORCE> LANGULUS(INLINED)
+   bool Block<TYPE>::Mutate() {
       using TT = Conditional<CT::Handle<T>, TypeOf<T>, T>;
 
-      if constexpr (CT::Typed<THIS>) {
-         if constexpr (CT::Similar<TypeOf<THIS>, TT>) {
-            // No need to mutate - types are compatible                 
-            return false;
-         }
-         else if constexpr (not CT::Void<FORCE> and IsDeep<THIS>()) {
-            // Container is already deep, just make it deeper           
-            Deepen<FORCE, true, THIS>();
-            return true;
-         }
-         else LANGULUS_OOPS(Mutate, "Can't mutate to incompatible type");
+      if constexpr (TypeErased) {
+         // Do a runtime mutation                                       
+         return Mutate<FORCE>(MetaDataOf<TT>());
       }
-      else return Mutate<THIS, FORCE>(MetaDataOf<TT>());
+      else if constexpr (CT::Similar<TYPE, TT>) {
+         // No need to mutate - types are compatible                    
+         return false;
+      }
+      else if constexpr (not CT::Void<FORCE> and IsDeep()) {
+         // Container is already deep, just make it deeper              
+         Deepen<FORCE, true>();
+         return true;
+      }
+      else LANGULUS_OOPS(Mutate, "Can't mutate to incompatible type");
    }
    
    /// Mutate to another compatible type, deepening the container if allowed  
@@ -301,35 +299,32 @@ namespace Langulus::Anyness
    ///                   deep with provided type - use void to disable        
    ///   @param meta - the type to mutate into                                
    ///   @return true if block was deepened to incorporate the new type       
-   template<CT::Block THIS, class FORCE>
-   bool Block::Mutate(DMeta meta) {
-      static_assert(not CT::Typed<THIS>,
-         "Can't set type of a statically typed container");
+   template<class TYPE> template<class FORCE>
+   bool Block<TYPE>::Mutate(DMeta meta) {
+      static_assert(TypeErased, "Can't change type of a typed container");
 
-      if (IsUntyped<THIS>() or (not mState.IsTyped() and mType->mIsAbstract
-                                and IsEmpty() and meta->CastsTo(mType))
+      if (IsUntyped() or (not mState.IsTyped() and mType->mIsAbstract
+                          and IsEmpty() and meta->CastsTo(mType))
       ) {
          // Undefined/abstract containers can mutate freely             
-         SetType<false, THIS>(meta);
+         SetType<false>(meta);
       }
       else if (mType->IsSimilar(meta)) {
          // No need to mutate - types are compatible                    
          return false;
       }
-      else if (not IsInsertable<THIS>(meta)) {
+      else if (not IsInsertable(meta)) {
          // Not insertable because of reasons                           
          if constexpr (not CT::Void<FORCE>) {
-            if (not IsTypeConstrained<THIS>()) {
-               // Container is not type-constrained, so we can safely   
-               // deepen it, to incorporate the new data, unless it is  
-               // already deep, that is                                 
-               if (not IsDeep<THIS>())
-                  Deepen<FORCE, true, THIS>();
-               return true;
-            }
+            LANGULUS_ASSERT(not IsTypeConstrained(), Mutate,
+               "Attempting to mutate type-locked container");
 
-            LANGULUS_OOPS(Mutate, "Attempting to mutate incompatible "
-               "type-constrained container");
+            // Container is not type-constrained, so we can safely      
+            // deepen it, to incorporate the new data, unless it is     
+            // already deep, that is                                    
+            if (not IsDeep())
+               Deepen<FORCE, true>();
+            return true;
          }
          else LANGULUS_OOPS(Mutate, "Can't mutate to incompatible type");
       }
@@ -341,11 +336,8 @@ namespace Langulus::Anyness
    /// Set the data ID - use this only if you really know what you're doing   
    ///   @tparam CONSTRAIN - whether or not to enable type-constraint         
    ///   @param type - the type meta to set                                   
-   template<bool CONSTRAIN, CT::Block THIS>
-   void Block::SetType(DMeta type) {
-      static_assert(not CT::Typed<THIS>,
-         "Can't change type of a statically typed container");
-
+   template<class TYPE> template<bool CONSTRAIN>
+   void Block<TYPE>::SetType(DMeta type) requires TypeErased {
       if (mType == type) {
          if constexpr (CONSTRAIN)
             MakeTypeConstrained();
@@ -358,14 +350,14 @@ namespace Langulus::Anyness
          return;
       }
 
-      LANGULUS_ASSERT(not IsTypeConstrained<THIS>(), Mutate,
-         "Incompatible type");
+      LANGULUS_ASSERT(not IsTypeConstrained(), Mutate,
+         "Attempting to mutate type-locked container");
 
       if (mType->CastsTo(type)) {
          // Type is compatible, but only sparse data can mutate freely  
          // Dense containers can't mutate because their destructors     
          // might be wrong later                                        
-         LANGULUS_ASSERT(IsSparse<THIS>(), Mutate, "Incompatible type");
+         LANGULUS_ASSERT(IsSparse(), Mutate, "Incompatible type");
          mType = type;
       }
       else {
@@ -382,21 +374,17 @@ namespace Langulus::Anyness
    /// Set the contained data type                                            
    ///   @tparam T - the contained type                                       
    ///   @tparam CONSTRAIN - whether or not to enable type-constraints        
-   template<CT::Data T, bool CONSTRAIN, CT::Block THIS> LANGULUS(INLINED)
-   void Block::SetType() {
-      static_assert(not CT::Typed<THIS>,
-         "Can't change type of a statically typed container");
-      SetType<CONSTRAIN, THIS>(MetaDataOf<T>());
+   template<class TYPE> template<CT::Data T, bool CONSTRAIN> LANGULUS(INLINED)
+   void Block<TYPE>::SetType() requires TypeErased {
+      SetType<CONSTRAIN>(MetaDataOf<T>());
    }
    
    /// Reset the type of the block, unless it's type-constrained              
    /// Typed THIS makes sure, that this is a no-op                            
-   template<CT::Block THIS> LANGULUS(INLINED)
-   constexpr void Block::ResetType() noexcept {
-      if constexpr (not CT::Typed<THIS>) {
-         if (not IsTypeConstrained<THIS>())
-            mType = nullptr;
-      }
+   template<class TYPE> LANGULUS(INLINED)
+   constexpr void Block<TYPE>::ResetType() noexcept requires TypeErased {
+      if (not IsTypeConstrained())
+         mType = nullptr;
    }
 
 } // namespace Langulus::Anyness

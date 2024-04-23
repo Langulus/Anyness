@@ -163,19 +163,8 @@ namespace Langulus::Anyness
       NOD() constexpr Token GetToken() const noexcept;
       constexpr void ResetState() noexcept;
 
-      NOD() constexpr bool IsTyped() const noexcept;
-      NOD() constexpr bool IsUntyped() const noexcept;
-      NOD() constexpr bool IsTypeConstrained() const noexcept;
-      NOD() constexpr bool IsDeep() const noexcept;
-      NOD() constexpr bool IsSparse() const noexcept;
-      NOD() constexpr bool IsDense() const noexcept;
-      NOD() constexpr bool IsPOD() const noexcept;
-      NOD() constexpr bool IsResolvable() const noexcept;
-
       NOD() constexpr Size GetStride() const noexcept;
       NOD() constexpr Size GetBytesize() const noexcept;
-      NOD() constexpr Count GetCountDeep() const noexcept;
-      NOD() constexpr Count GetCountElementsDeep() const noexcept;
 
       NOD() constexpr bool IsMissingDeep() const;
       NOD() constexpr bool IsConcatable(const CT::Block auto&) const noexcept;
@@ -254,6 +243,9 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Iteration                                                         
       ///                                                                     
+      using Iterator = typename Block<T>::Iterator;
+      using ConstIterator = typename Block<T>::ConstIterator;
+
       template<bool REVERSE = false>
       Count ForEachElement(auto&&);
       template<bool REVERSE = false>
@@ -299,8 +291,8 @@ namespace Langulus::Anyness
       template<CT::Data T1>
       NOD() TMany<T1> ReinterpretAs() const;
 
-      NOD() Block GetMember(const RTTI::Member&, CT::Index auto);
-      NOD() Block GetMember(const RTTI::Member&, CT::Index auto) const;
+      NOD() Block<> GetMember(const RTTI::Member&, CT::Index auto);
+      NOD() Block<> GetMember(const RTTI::Member&, CT::Index auto) const;
 
       ///                                                                     
       ///   Comparison                                                        
@@ -427,16 +419,10 @@ namespace Langulus::Anyness
 
    private:
       /// Services graveyard - disallowed interface for typed containers      
-      using Many::FromMeta;
-      using Many::FromBlock;
-      using Many::FromState;
-      using Many::From;
-      using Many::Wrap;
-      using Many::SetType;
-      using Many::MakeTypeConstrained;
-      using Many::GetResolved;
-      using Many::GetDense;
-      using Many::GetBlockDeep;
+      using Block<T>::MakeTypeConstrained;
+      using Block<T>::GetResolved;
+      using Block<T>::GetDense;
+      using Block<T>::GetBlockDeep;
    };
 
 
