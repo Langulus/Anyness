@@ -150,9 +150,9 @@ namespace Langulus::Anyness
             if (index == 0)
                return RemoveIndex(i);
 
-            auto ith = As<Block<>*>(i);
-            const auto count = ith->GetCountDeep();
-            if (index <= count and ith->RemoveIndexDeep(index)) //TODO could be further optimized using TypeOf<THIS> instead of Block when possible
+            auto& ith = GetDeep(i);
+            const auto count = ith.GetCountDeep();
+            if (index <= count and ith.RemoveIndexDeep(index))
                return 1;
 
             index -= count;
@@ -230,7 +230,7 @@ namespace Langulus::Anyness
          MakeAnd();
 
       while (GetCount() == 1 and IsDeep()) {
-         auto& subPack = As<Block<>>();
+         auto& subPack = GetDeep();
          if (not CanFitState(subPack)) {
             subPack.Optimize();
             if (subPack.IsEmpty())
@@ -238,7 +238,7 @@ namespace Langulus::Anyness
             return;
          }
 
-         Block<> temporary {subPack};
+         auto temporary = subPack;
          subPack.ResetMemory();
          Free();
          *this = temporary;
@@ -246,7 +246,7 @@ namespace Langulus::Anyness
 
       if (GetCount() > 1 and IsDeep()) {
          for (Count i = 0; i < mCount; ++i) {
-            auto& subBlock = As<Block<>>(i);
+            auto& subBlock = GetDeep(i);
             subBlock.Optimize();
             if (subBlock.IsEmpty()) {
                RemoveIndex(i);
@@ -270,7 +270,7 @@ namespace Langulus::Anyness
       if (mEntry->GetUses() == 1) {
          // Entry is used only in this block, so it's safe to           
          // destroy all elements. We can reuse the entry                
-         Destroy<THIS>();
+         Destroy();
          mCount = 0;
       }
       else {
@@ -315,29 +315,29 @@ namespace Langulus::Anyness
       LANGULUS_ASSUME(DevAssumes, not IsStatic(),
          "Destroying elements in a static container is not allowed");
 
+      constexpr bool MASKED = not CT::Nullptr<MASK>;
       const auto mthis = const_cast<Block*>(this);
 
-      if constexpr (CT::Typed<THIS>) {
-         using T = TypeOf<THIS>;
-         using DT = Decay<T>;
+      if constexpr (not TypeErased) {
+         using DT = Decay<TYPE>;
 
-         if constexpr (CT::Sparse<T> and FORCE) {
+         if constexpr (CT::Sparse<TYPE> and FORCE) {
             // Destroy every sparse element                             
-            DestroySparse<THIS>(mask);
+            DestroySparse(mask);
          }
-         else if constexpr (CT::Dense<T> and CT::Destroyable<DT>
+         else if constexpr (CT::Dense<TYPE> and CT::Destroyable<DT>
          and (FORCE or CT::Referencable<DT>)) {
             // Destroy every dense element                              
-            const auto count = CT::Nullptr<MASK> ? mCount : mReserved;
-            auto data = mthis->GetRaw<THIS>();
+            const auto count = not MASKED ? mCount : mReserved;
+            auto data = mthis->GetRaw();
             const auto begMarker = data;
             const auto endMarker = data + count;
             UNUSED() Count remaining;
-            if constexpr (not CT::Nullptr<MASK>)
+            if constexpr (MASKED)
                remaining = GetCount();
 
             while (data != endMarker) {
-               if constexpr (not CT::Nullptr<MASK>) {
+               if constexpr (MASKED) {
                   if (not remaining)
                      break;
 
@@ -368,16 +368,16 @@ namespace Langulus::Anyness
       else {
          if (FORCE and mType->mIsSparse) {
             // Destroy every sparse element                             
-            DestroySparse<THIS>(mask);
+            DestroySparse(mask);
          }
          else if (not mType->mIsSparse and mType->mDestructor
          and (FORCE or mType->mReference)) {
             // Destroy every dense element                              
-            const auto count = CT::Nullptr<MASK> ? mCount : mReserved;
+            const auto count = not MASKED ? mCount : mReserved;
             auto data = mthis->mRaw;
             UNUSED() int index;
             UNUSED() Count remaining;
-            if constexpr (not CT::Nullptr<MASK>) {
+            if constexpr (MASKED) {
                index = 0;
                remaining = GetCount();
             }
@@ -385,7 +385,7 @@ namespace Langulus::Anyness
 
             if (mType->mReference) {
                while (data != endMarker) {
-                  if constexpr (not CT::Nullptr<MASK>) {
+                  if constexpr (MASKED) {
                      if (not remaining)
                         break;
 
@@ -409,13 +409,13 @@ namespace Langulus::Anyness
 
                   data += mType->mSize;
 
-                  if constexpr (not CT::Nullptr<MASK>)
+                  if constexpr (MASKED)
                      ++index;
                }
             }
             else if constexpr (FORCE) {
                while (data != endMarker) {
-                  if constexpr (not CT::Nullptr<MASK>) {
+                  if constexpr (MASKED) {
                      if (not remaining)
                         break;
 
@@ -431,7 +431,7 @@ namespace Langulus::Anyness
                   mType->mDestructor(data);
                   data += mType->mSize;
 
-                  if constexpr (not CT::Nullptr<MASK>)
+                  if constexpr (MASKED)
                      ++index;
                }
             }
@@ -449,28 +449,29 @@ namespace Langulus::Anyness
    ///   @param mask - internally used for destroying tables (tag dispatch)   
    template<class TYPE> template<class MASK>
    void Block<TYPE>::DestroySparse(MASK mask) const {
+      LANGULUS_ASSUME(DevAssumes, IsSparse(), "Container must be sparse");
+
       // Destroy all indirection layers, if their references reach      
       // 1, and destroy the dense element, if it has destructor         
       // This is done in the following way:                             
       //    1. First dereference all handles that point to the          
       //       same memory together as one                              
       //    2. Destroy those groups, that are fully dereferenced        
-      using T = Conditional<TypeErased, Byte*, TYPE>;
-      const auto count = CT::Nullptr<MASK> ? mCount : mReserved;
+      constexpr bool MASKED = not CT::Nullptr<MASK>;
+      const auto count = not MASKED ? mCount : mReserved;
       const auto mthis = const_cast<Block*>(this);
-      static_assert(CT::Sparse<T>);
 
-      auto handle = mthis->GetHandle<T>(0);
+      auto handle = mthis->GetHandle(0);
       const auto begMarker = handle.mValue;
       const auto endMarker = handle.mValue + count;
 
       UNUSED() Count remaining;
-      if constexpr (not CT::Nullptr<MASK>)
+      if constexpr (MASKED)
          remaining = GetCount();
 
       //                                                                
       while (handle.mValue != endMarker) {
-         if constexpr (not CT::Nullptr<MASK>) {
+         if constexpr (MASKED) {
             if (not remaining)
                break;
 
@@ -492,11 +493,11 @@ namespace Langulus::Anyness
          auto handle2 = handle + 1;
 
          UNUSED() Count remaining2;
-         if constexpr (not CT::Nullptr<MASK>)
+         if constexpr (MASKED)
             remaining2 = remaining;
 
          while (handle2.mValue != endMarker) {
-            if constexpr (not CT::Nullptr<MASK>) {
+            if constexpr (MASKED) {
                if (not remaining2)
                   break;
 
@@ -522,11 +523,11 @@ namespace Langulus::Anyness
             if (matches) {
                handle2 = handle + 1;
 
-               if constexpr (not CT::Nullptr<MASK>)
+               if constexpr (MASKED)
                   remaining2 = remaining;
 
                while (handle2.mValue != endMarker) {
-                  if constexpr (not CT::Nullptr<MASK>) {
+                  if constexpr (MASKED) {
                      if (not remaining2)
                         break;
 
@@ -555,11 +556,11 @@ namespace Langulus::Anyness
             if (matches) {
                handle2 = handle + 1;
 
-               if constexpr (not CT::Nullptr<MASK>)
+               if constexpr (MASKED)
                   remaining2 = remaining;
 
                while (handle2.mValue != endMarker) {
-                  if constexpr (not CT::Nullptr<MASK>) {
+                  if constexpr (MASKED) {
                      if (not remaining2)
                         break;
 
@@ -591,7 +592,7 @@ namespace Langulus::Anyness
    /// Reset the memory inside the block                                      
    template<class TYPE> LANGULUS(INLINED)
    constexpr void Block<TYPE>::ResetMemory() noexcept {
-      mRaw = nullptr;
+      mRaw   = nullptr;
       mEntry = nullptr;
       mCount = mReserved = 0;
    }

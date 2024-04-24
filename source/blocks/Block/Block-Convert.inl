@@ -22,46 +22,44 @@ namespace Langulus::Anyness
    /// all elements, and casting them one by one                              
    ///   @param out - what are we converting to?                              
    ///   @return the number of converted elements inserted in 'out'           
-   template<CT::Block THIS>
-   Count Block::Convert(CT::Block auto& out) const {
+   template<class TYPE>
+   Count Block<TYPE>::Convert(CT::Block auto& out) const {
       if (IsEmpty())
          return 0;
 
       using OUT = Deref<decltype(out)>;
+      using TO  = TypeOf<OUT>;
       const auto initial = out.mCount;
-      const auto& me = *reinterpret_cast<const THIS*>(this);
 
-      if constexpr (CT::Typed<THIS, OUT>) {
+      if constexpr (not TypeErased and not OUT::TypeErased) {
          // Both containers are statically typed, so leverage it to     
          // generate a well inlined routine for conversion              
-         using FROM = TypeOf<THIS>;
-         using TO = TypeOf<OUT>;
 
-         if constexpr (CT::Similar<FROM, TO>) {
+         if constexpr (CT::Similar<TYPE, TO>) {
             // Types are already the same, just copy elements           
-            out.template AllocateMore<OUT>(out.mCount + mCount);
-            out.template InsertBlockInner<OUT, void, false>(
-               IndexBack, Refer(me));
+            out.AllocateMore(out.mCount + mCount);
+            out.template InsertBlockInner<void, false>(
+               IndexBack, Refer(*this));
          }
-         else if constexpr (CT::Convertible<FROM, TO>) {
+         else if constexpr (CT::Convertible<TYPE, TO>) {
             // Types are statically convertible                         
-            out.template AllocateMore<OUT>(out.mCount + mCount);
+            out.AllocateMore(out.mCount + mCount);
             for (auto& from : me) {
-               out.template InsertInner<OUT, void, false>(
+               out.template InsertInner<void, false>(
                   IndexBack, static_cast<TO>(from));
             }
          }         
       }
-      else if (me.IsSimilar(out.GetType())) {
+      else if (IsSimilar(out)) {
          // Types are already the same, don't convert anything          
          if (out.IsEmpty())
-            out = me;
-         else if constexpr ((CT::Typed<THIS> and CT::ReferMakable<TypeOf<THIS>>)
-                        or  (CT::Typed<OUT>  and CT::ReferMakable<TypeOf<OUT>>))
-            out.InsertBlock(IndexBack, Refer(me));
-         else if constexpr ((CT::Typed<THIS> and CT::CopyMakable<TypeOf<THIS>>)
-                        or  (CT::Typed<OUT>  and CT::CopyMakable<TypeOf<OUT>>))
-            out.InsertBlock(IndexBack, Copy(me));
+            out = *this;
+         else if constexpr ((not TypeErased and CT::ReferMakable<TYPE>)
+                   or  (not OUT::TypeErased and CT::ReferMakable<TO>))
+            out.InsertBlock(IndexBack, Refer(*this));
+         else if constexpr ((not TypeErased and CT::CopyMakable<TYPE>)
+                   or  (not OUT::TypeErased and CT::CopyMakable<TO>))
+            out.InsertBlock(IndexBack, Copy(*this));
          else LANGULUS_OOPS(Convert, 
             "Unable to append uncopyable elements of type ",
             '`', GetType(), "` - use pointers instead?");
@@ -77,24 +75,21 @@ namespace Langulus::Anyness
          if (not converter)
             return 0;
 
-         out.template AllocateMore<OUT, false, true>(out.mCount + mCount);
+         out.template AllocateMore<false, true>(out.mCount + mCount);
 
-         if constexpr (CT::Typed<OUT>) {
-            using TO = TypeOf<OUT>;
-
+         if constexpr (not OUT::TypeErased) {
             if constexpr (CT::Sparse<TO>) {
                static_assert(CT::Dense<Deptr<TO>>);
 
                // We're converting to sparse container                  
-               Block coalesced {mType->mOrigin};
-               coalesced.AllocateFresh<Many>(
-                  coalesced.RequestSize<Many>(mCount));
+               Block<> coalesced {mType->mOrigin};
+               coalesced.AllocateFresh(coalesced.RequestSize(mCount));
                coalesced.mCount = mCount;
                auto temp = coalesced.GetElementInner();
-               auto to = out.template GetHandle<TO, OUT>(0);
+               auto to = out.GetHandle(0);
 
                for (Count i = 0; i < mCount; ++i) {
-                  auto from = GetElementDense<CountMax, THIS>(i);
+                  auto from = GetElementDense<CountMax>(i);
                   converter(from.mRaw, temp.mRaw);
                   to.Create(temp.mRaw, coalesced.mEntry);
                   ++to;
@@ -109,7 +104,7 @@ namespace Langulus::Anyness
                auto to = out.mRaw;
                for (Count i = 0; i < mCount; ++i) {
                   // Construct each element                             
-                  auto from = GetElementDense<CountMax, THIS>(i);
+                  auto from = GetElementDense<CountMax>(i);
                   converter(from.mRaw, to);
                   to += out.GetType()->mSize;
                }
@@ -121,15 +116,14 @@ namespace Langulus::Anyness
                   TODO();
 
                // We're converting to sparse container                  
-               Block coalesced {mType->mOrigin};
-               coalesced.AllocateFresh<Many>(
-                  coalesced.RequestSize<Many>(mCount));
+               Block<> coalesced {mType->mOrigin};
+               coalesced.AllocateFresh(coalesced.RequestSize(mCount));
                coalesced.mCount = mCount;
                auto temp = coalesced.GetElementInner();
-               auto to = out.template GetHandle<Byte*, OUT>(0);
+               auto to = out.GetHandle(0);
 
                for (Count i = 0; i < mCount; ++i) {
-                  auto from = GetElementDense<CountMax, THIS>(i);
+                  auto from = GetElementDense<CountMax>(i);
                   converter(from.mRaw, temp.mRaw);
                   to.Create(temp.mRaw, coalesced.mEntry);
                   ++to;
@@ -144,7 +138,7 @@ namespace Langulus::Anyness
                auto to = out.mRaw;
                for (Count i = 0; i < mCount; ++i) {
                   // Construct each element                             
-                  auto from = GetElementDense<CountMax, THIS>(i);
+                  auto from = GetElementDense<CountMax>(i);
                   converter(from.mRaw, to);
                   to += out.GetType()->mSize;
                }
@@ -159,13 +153,13 @@ namespace Langulus::Anyness
    /// serializer's rules                                                     
    ///   @param out - the resulting serialized data                           
    ///   @return the number of bytes/chars written to 'out'                   
-   template<CT::Block THIS>
-   Count Block::Serialize(CT::Serial auto& out) const {
+   template<class TYPE>
+   Count Block<TYPE>::Serialize(CT::Serial auto& out) const {
       using OUT = Deref<decltype(out)>;
       if constexpr (CT::Bytes<OUT>)
-         return SerializeToBinary<THIS, void>(out);
+         return SerializeToBinary<void>(out);
       else
-         return SerializeToText<THIS, void>(out);
+         return SerializeToText<void>(out);
    }
    
    /// Serialize block to any string serializer                               
@@ -173,8 +167,8 @@ namespace Langulus::Anyness
    ///      if both NEXT is type-erased, block header will be serialized      
    ///   @param to - [out] the serialized data goes here                      
    ///   @return the number of written characters                             
-   template<CT::Block THIS, class NEXT>
-   Count Block::SerializeToText(CT::Serial auto& to) const {
+   template<class TYPE> template<class NEXT>
+   Count Block<TYPE>::SerializeToText(CT::Serial auto& to) const {
       using OUT = Deref<decltype(to)>;
       const auto initial = to.GetCount();
 
@@ -186,19 +180,19 @@ namespace Langulus::Anyness
          return to.GetCount() - initial;
       }
 
-      if (IsDeep<THIS>()) {
+      if (IsDeep()) {
          // Nested serialization, wrap it in content scope              
          for (Offset i = 0; i < GetCount(); ++i) {
-            auto& subblock = As<Block>(i);
+            auto& subblock = As<Block<>>(i);
             OUT::SerializationRules::BeginScope(subblock, to);
-            subblock.SerializeToText<Block, void>(to);
+            subblock.SerializeToText<void>(to);
             OUT::SerializationRules::EndScope(subblock, to);
 
             if (i < GetCount() - 1)
                OUT::SerializationRules::Separate(*this, to);
          }
       }
-      else if (CastsTo<Trait, false, THIS>()) {
+      else if (CastsTo<Trait, false>()) {
          // Nest inside traits                                          
          for (Offset i = 0; i < GetCount(); ++i) {
             As<Trait>(i).Serialize(to);
@@ -207,21 +201,21 @@ namespace Langulus::Anyness
                OUT::SerializationRules::Separate(*this, to);
          }
       }
-      else if (CastsTo<BlockMap, false, THIS>()) {
+      else if (CastsTo<BlockMap, false>()) {
          // Nest inside maps                                            
          for (Offset i = 0; i < GetCount(); ++i) {
             //auto& map = As<BlockMap>(i);
             TODO();
          }
       }
-      else if (CastsTo<BlockSet, false, THIS>()) {
+      else if (CastsTo<BlockSet, false>()) {
          // Nest inside sets                                            
          for (Offset i = 0; i < GetCount(); ++i) {
             //auto& set = As<BlockSet>(i);
             TODO();
          }
       }
-      else if (CastsTo<Construct, false, THIS>()) {
+      else if (CastsTo<Construct, false>()) {
          // Nest inside sets                                            
          for (Offset i = 0; i < GetCount(); ++i) {
             As<Construct>(i).Serialize(to);
@@ -230,7 +224,7 @@ namespace Langulus::Anyness
                OUT::SerializationRules::Separate(*this, to);
          }
       }
-      else if (CastsTo<Neat, false, THIS>()) {
+      else if (CastsTo<Neat, false>()) {
          // Nest inside sets                                            
          for (Offset i = 0; i < GetCount(); ++i) {
             As<Neat>(i).Serialize(to);
@@ -243,7 +237,7 @@ namespace Langulus::Anyness
          // If reached, then contents are no longer nested              
          if constexpr (requires { typename OUT::SerializationRules::Rules; }) {
             // Abide by serializer's rules and wrap things accordingly  
-            const auto satisfied = SerializeByRules<THIS, NEXT>(
+            const auto satisfied = SerializeByRules<NEXT>(
                to, typename OUT::SerializationRules::Rules {});
             if (satisfied) {
                // Early exit, if conversion was satisfied by rule       
@@ -256,7 +250,7 @@ namespace Langulus::Anyness
             // Serialize as a named value                               
             for (Offset i = 0; i < GetCount(); ++i) {
                for (auto& named : mType->mNamedValues) {
-                  const Block constant {{}, named};
+                  const Block<> constant {{}, named};
                   if (GetElementDense(i) == constant) {
                      to += named->mToken;
                      break;
@@ -272,7 +266,7 @@ namespace Langulus::Anyness
          // No rules defined, or didn't apply to data, so time to rely  
          // on the reflected converters instead                         
          TMany<OUT> converted;
-         if (not Convert<THIS>(converted)) {
+         if (not Convert(converted)) {
             if constexpr (OUT::SerializationRules::CriticalFailure) {
                // Couldn't convert elements, and that is marked as      
                // a critical falure                                     
@@ -331,26 +325,26 @@ namespace Langulus::Anyness
    }
 
    /// Apply serialization rules                                              
-   template<CT::Block THIS, class T, class...RULES>
-   Count Block::SerializeByRules(CT::Serial auto& to, Types<RULES...>) const {
+   template<class TYPE> template<class T, class...RULES>
+   Count Block<TYPE>::SerializeByRules(CT::Serial auto& to, Types<RULES...>) const {
       Count result = 0;
-      (void)(... or (result = SerializeApplyRule<THIS, T, RULES>(to)));
+      (void)(... or (result = SerializeApplyRule<T, RULES>(to)));
       return result;
    }
 
    /// Apply a single serialization rule                                      
-   template<CT::Block THIS, class T, class RULE>
-   Count Block::SerializeApplyRule(CT::Serial auto& to) const {
+   template<class TYPE> template<class T, class RULE>
+   Count Block<TYPE>::SerializeApplyRule(CT::Serial auto& to) const {
       using OUT = Deref<decltype(to)>;
       const auto initial = to.GetCount();
       using Type = typename RULE::Type;
 
       if constexpr (RULE::sMatch == Serial::Exact) {
-         if (not IsSimilar<THIS, Type>())
+         if (not IsSimilar<Type>())
             return 0;
       }
       else if constexpr (RULE::sMatch == Serial::BasedOn) {
-         if (not CastsTo<Type, false, THIS>())
+         if (not CastsTo<Type, false>())
             return 0;
       }
       else LANGULUS_ERROR("Unimplemented matcher");
@@ -380,8 +374,8 @@ namespace Langulus::Anyness
    ///      if both NEXT and THIS are type-erased, type will be serialized    
    ///   @param to - [out] the serialized data goes here                      
    ///   @return the number of written bytes                                  
-   template<CT::Block THIS, class NEXT>
-   Count Block::SerializeToBinary(CT::Serial auto& to) const {
+   template<class TYPE> template<class NEXT>
+   Count Block<TYPE>::SerializeToBinary(CT::Serial auto& to) const {
       using OUT = Deref<decltype(to)>;
       const auto initial = to.GetCount();
 
@@ -396,8 +390,8 @@ namespace Langulus::Anyness
 
       if (IsDeep()) {
          // If data is deep, nest-serialize each sub-block              
-         ForEach([&to](const Block& block) {
-            block.SerializeToBinary<Block, void>(to);
+         ForEach([&to](const Block<>& block) {
+            block.SerializeToBinary<void>(to);
          });
 
          return to.GetCount() - initial;
@@ -417,7 +411,7 @@ namespace Langulus::Anyness
          // If data is POD, optimize by directly memcpying it           
          const auto denseStride = GetStride();
          const auto byteCount = denseStride * GetCount();
-         to.template AllocateMore<OUT>(to.GetCount() + byteCount);
+         to.AllocateMore(to.GetCount() + byteCount);
 
          if (IsSparse()) {
             // ... pointer by pointer if sparse                         
@@ -446,7 +440,7 @@ namespace Langulus::Anyness
                to += bytes;
             },
             [this,&to](const Trait& trait) {
-               if (IsSimilar<THIS, Trait>())
+               if (IsSimilar<Trait>())
                   to += Bytes {trait.GetTrait()};
                trait.SerializeToBinary<Block, void>(to);
             }
@@ -470,13 +464,13 @@ namespace Langulus::Anyness
                   continue;
 
                const auto baseBlock = element.GetBaseMemory(base);
-               baseBlock.SerializeToBinary<Block, RTTI::Base>(to);
+               baseBlock.SerializeToBinary<RTTI::Base>(to);
             }
 
             // Serialize all reflected members                          
             for (auto& member : element.GetType()->mMembers) {
                const auto memberBlock = element.GetMember(member, 0);
-               memberBlock.SerializeToBinary<Block, RTTI::Member>(to);
+               memberBlock.SerializeToBinary<RTTI::Member>(to);
             }
          }
 
@@ -490,8 +484,8 @@ namespace Langulus::Anyness
    }
 
    ///                                                                        
-   template<CT::Block THIS> LANGULUS(INLINED)
-   void Block::ReadInner(Offset start, Count count, Loader loader) const {
+   template<class TYPE> LANGULUS(INLINED)
+   void Block<TYPE>::ReadInner(Offset start, Count count, Loader loader) const {
       if (start >= mCount or mCount - start < count) {
          LANGULUS_ASSERT(loader, Access, "Reader lacks loader");
          loader(const_cast<Block&>(*this), count - (mCount - start));
@@ -504,15 +498,15 @@ namespace Langulus::Anyness
    ///   @param header - environment header                                   
    ///   @param loader - loader for streaming                                 
    ///   @return the number of read bytes from byte container                 
-   template<CT::Block THIS>
-   Offset Block::DeserializeAtom(
+   template<class TYPE>
+   Offset Block<TYPE>::DeserializeAtom(
       Offset& result, Offset read, const Header& header, Loader loader
    ) const {
       if (header.mAtomSize == 4) {
          // We're deserializing data, that was serialized on a 32-bit   
          // architecture                                                
          uint32_t count4 = 0;
-         ReadInner<THIS>(read, 4, loader);
+         ReadInner(read, 4, loader);
          ::std::memcpy(&count4, At(read), 4);
          read += 4;
          result = static_cast<Offset>(count4);
@@ -521,7 +515,7 @@ namespace Langulus::Anyness
          // We're deserializing data, that was serialized on a 64-bit   
          // architecture                                                
          uint64_t count8 = 0;
-         ReadInner<THIS>(read, 8, loader);
+         ReadInner(read, 8, loader);
          ::std::memcpy(&count8, At(read), 8);
          read += 8;
          LANGULUS_ASSERT(
@@ -546,15 +540,15 @@ namespace Langulus::Anyness
    ///   @param header - environment header                                   
    ///   @param loader - loader for streaming                                 
    ///   @return number of read bytes                                         
-   template<CT::Block THIS>
-   Offset Block::DeserializeMeta(
+   template<class TYPE>
+   Offset Block<TYPE>::DeserializeMeta(
       CT::Meta auto& result, Offset read, const Header& header, Loader loader
    ) const {
       Count count = 0;
-      read = DeserializeAtom<THIS>(count, read, header, loader);
+      read = DeserializeAtom(count, read, header, loader);
       if (count) {
-         ReadInner<THIS>(read, count, loader);
-         const Token token {GetRawAs<Letter, THIS>() + read, count};
+         ReadInner(read, count, loader);
+         const Token token {GetRawAs<Letter>() + read, count};
 
       #if LANGULUS_FEATURE(MANAGED_REFLECTION)
          using META = Deref<decltype(result)>;
@@ -595,19 +589,19 @@ namespace Langulus::Anyness
    ///   @param readOffset - offset to apply to serialized byte array         
    ///   @param loader - loader for streaming                                 
    ///   @return the number of read/peek bytes from byte container            
-   template<CT::Block THIS, class NEXT>
-   Offset Block::DeserializeBinary(
+   template<class TYPE> template<class NEXT>
+   Offset Block<TYPE>::DeserializeBinary(
       CT::Block auto& to, const Header& header, Offset readOffset, Loader loader
    ) const {
       using OUT = Deref<decltype(to)>;
-      using T = Conditional<CT::Typed<OUT>, TypeOf<OUT>, NEXT>;
+      using T = Conditional<OUT::TypeErased, NEXT, TypeOf<OUT>>;
 
-      static_assert(CT::Untyped<THIS> or CT::Bytes<THIS>,
+      static_assert(TypeErased or CT::Bytes<TYPE>,
          "THIS isn't a byte container");
-      static_assert(CT::Untyped<OUT> or CT::TypeErased<NEXT>
+      static_assert(OUT::TypeErased or CT::TypeErased<NEXT>
          or CT::Similar<TypeOf<OUT>, NEXT>, "Type mismatch");
 
-      LANGULUS_ASSUME(DevAssumes, (IsSimilar<THIS, Byte>()),
+      LANGULUS_ASSUME(DevAssumes, IsSimilar<Byte>(),
          "THIS isn't a byte container");
 
       Count deserializedCount = 0;
@@ -616,18 +610,18 @@ namespace Langulus::Anyness
          // We have unpredictable data, so the deserializer expects     
          // that next bytes contain instructions of what kind of data   
          // to deserialize                                              
-         read = DeserializeAtom<THIS>(deserializedCount, read, header, loader);
+         read = DeserializeAtom(deserializedCount, read, header, loader);
 
          // First read the serialized data state                        
          DataState state {};
-         ReadInner<THIS>(read, sizeof(DataState), loader);
+         ReadInner(read, sizeof(DataState), loader);
          memcpy(static_cast<void*>(&state), At(read), sizeof(DataState));
          read += sizeof(DataState);
          to.AddState(state);
 
          // Finally, read type                                          
          DMeta type;
-         read = DeserializeMeta<THIS>(type, read, header, loader);
+         read = DeserializeMeta(type, read, header, loader);
          if (not type)
             return read;
 
@@ -640,7 +634,7 @@ namespace Langulus::Anyness
          // We have predictable data                                    
          // In this case, 'to' should already be allocated and known    
          if constexpr (not CT::SameAsOneOf<T, RTTI::Base, RTTI::Member>) {
-            LANGULUS_ASSUME(DevAssumes, to.GetType()->template IsSimilar<T>(),
+            LANGULUS_ASSUME(DevAssumes, to.IsSimilar<T>(),
                "Bad binary deserializing block type: ",
                to.GetType(), " instead of ", MetaDataOf<T>()
             );
@@ -661,8 +655,8 @@ namespace Langulus::Anyness
          if constexpr (CT::TypeErased<T>)
             to.New(deserializedCount);
 
-         to.ForEach([&](Block& block) {
-            read = DeserializeBinary<Block, void>(block, header, read, loader);
+         to.ForEach([&](Block<>& block) {
+            read = DeserializeBinary<void>(block, header, read, loader);
          });
 
          return read;
@@ -675,16 +669,16 @@ namespace Langulus::Anyness
 
          to.ForEach(
             [&](DMeta& meta) noexcept {
-               read = DeserializeMeta<THIS>(meta, read, header, loader);
+               read = DeserializeMeta(meta, read, header, loader);
             },
             [&](VMeta& meta) noexcept {
-               read = DeserializeMeta<THIS>(meta, read, header, loader);
+               read = DeserializeMeta(meta, read, header, loader);
             },
             [&](CMeta& meta) noexcept {
-               read = DeserializeMeta<THIS>(meta, read, header, loader);
+               read = DeserializeMeta(meta, read, header, loader);
             },
             [&](TMeta& meta) noexcept {
-               read = DeserializeMeta<THIS>(meta, read, header, loader);
+               read = DeserializeMeta(meta, read, header, loader);
             }
          );
 
@@ -692,12 +686,11 @@ namespace Langulus::Anyness
       }
       else if (to.IsPOD()) {
          // If data is POD, optimize by directly memcpying it           
-         //TODO does POD guarantee that type isn't resolvable?
          if constexpr (CT::TypeErased<T>)
-            to.template AllocateMore<OUT, false, true>(deserializedCount);
+            to.template AllocateMore<false, true>(deserializedCount);
 
          const auto byteSize = to.GetBytesize();
-         ReadInner<THIS>(read, byteSize, loader);
+         ReadInner(read, byteSize, loader);
 
          if (to.IsSparse()) {
             // Allocate a separate block for the elements               
@@ -708,7 +701,7 @@ namespace Langulus::Anyness
             temporary->Keep(deserializedCount - 1);
 
             // Write a pointer to each element                          
-            auto p = to.template GetHandle<Byte*, OUT>(0);
+            auto p = to.template GetHandle<Byte*>(0);
             const auto pEnd = p + to.GetCount();
             const auto size = to.GetType()->mSize;
             while (p != pEnd) {
@@ -729,12 +722,12 @@ namespace Langulus::Anyness
          if (to.template CastsTo<Text>()) {
             // Deserialize a text based container                       
             if constexpr (CT::TypeErased<T>)
-               to.template AllocateMore<OUT>(deserializedCount);
+               to.AllocateMore(deserializedCount);
 
             for (Count i = 0; i < deserializedCount; ++i) {
                Count count = 0;
-               read = DeserializeAtom<THIS>(count, read, header, loader);
-               to.template InsertInner<OUT, void, false>(
+               read = DeserializeAtom(count, read, header, loader);
+               to.template InsertInner<void, false>(
                   IndexBack, Text::From(Disown(
                      reinterpret_cast<const Letter*>(mRaw + read)), count)
                );
@@ -746,12 +739,12 @@ namespace Langulus::Anyness
          else if (to.template CastsTo<Bytes>()) {
             // Deserialize a bytes based container                      
             if constexpr (CT::TypeErased<T>)
-               to.template AllocateMore<OUT>(deserializedCount);
+               to.AllocateMore(deserializedCount);
 
             for (Count i = 0; i < deserializedCount; ++i) {
                Count count = 0;
-               read = DeserializeAtom<THIS>(count, read, header, loader);
-               to.template InsertInner<OUT, void, false>(
+               read = DeserializeAtom(count, read, header, loader);
+               to.template InsertInner<void, false>(
                   IndexBack, Bytes::From(Disown(mRaw + read), count)
                );
                read += count;
@@ -764,22 +757,22 @@ namespace Langulus::Anyness
             if constexpr (CT::TypeErased<T>)
                to.New(deserializedCount);
 
-            if (to.template IsSimilar<OUT, Trait>()) {
+            if (to.template IsSimilar<Trait>()) {
                // Each trait can be different                           
                to.ForEach([&](Trait& trait) {
                   TMeta ttype;
-                  read = DeserializeMeta<THIS>(ttype, read, header, loader);
+                  read = DeserializeMeta(ttype, read, header, loader);
                   trait.SetTrait(ttype);
 
                   auto& block = static_cast<Block&>(trait);
-                  read = DeserializeBinary<Block, void>(block, header, read, loader);
+                  read = DeserializeBinary<void>(block, header, read, loader);
                });
             }
             else {
                // All traits are the same                               
                to.ForEach([&](Trait& trait) {
                   auto& block = static_cast<Block&>(trait);
-                  read = DeserializeBinary<Block, void>(block, header, read, loader);
+                  read = DeserializeBinary<void>(block, header, read, loader);
                });
             }
 
@@ -790,7 +783,7 @@ namespace Langulus::Anyness
          // therefore we can deserialize it by making a default         
          // instance, and filling in the reflected members and bases    
          if constexpr (CT::TypeErased<T>)
-            to.template AllocateMore<OUT>(deserializedCount);
+            to.AllocateMore(deserializedCount);
 
          for (Count i = 0; i < deserializedCount; ++i) {
             Many element;
@@ -800,7 +793,7 @@ namespace Langulus::Anyness
                // the case that instances are resolvable                
                auto resolvedType = to.GetType();
                if (to.IsResolvable())
-                  read = DeserializeMeta<THIS>(resolvedType, read, header, loader);
+                  read = DeserializeMeta(resolvedType, read, header, loader);
                element = Many::FromMeta(resolvedType);
                element.New(1);
             }
@@ -817,19 +810,19 @@ namespace Langulus::Anyness
                   continue;
 
                auto baseBlock = element.GetBaseMemory(base);
-               read = DeserializeBinary<THIS, RTTI::Base>(
+               read = DeserializeBinary<RTTI::Base>(
                   baseBlock, header, read, loader);
             }
 
             // Deserialize all reflected members                        
             for (auto& member : element.GetType()->mMembers) {
                auto memberBlock = element.GetMember(member, 0);
-               read = DeserializeBinary<THIS, RTTI::Member>(
+               read = DeserializeBinary<RTTI::Member>(
                   memberBlock, header, read, loader);
             }
 
             if constexpr (CT::TypeErased<T>) {
-               to.template InsertBlockInner<OUT, void, false>(
+               to.template InsertBlockInner<void, false>(
                   IndexBack, Abandon(static_cast<Block&>(element)));
             }
          }

@@ -130,6 +130,23 @@ namespace Langulus::Anyness
       LANGULUS(TYPED) T;
       LANGULUS_BASES(Many);
 
+   protected: IF_LANGULUS_TESTING(public:)
+      #if LANGULUS_DEBUG()
+         using Block<T>::mRawChar;
+      #endif
+
+      using Block<T>::mRaw;
+      using Block<T>::mRawSparse;
+      using Block<T>::mState;
+      using Block<T>::mCount;
+      using Block<T>::mReserved;
+      using Block<T>::mType;
+      using Block<T>::mEntry;
+
+   public:
+      using typename Block<T>::Iterator;
+      using typename Block<T>::ConstIterator;
+
       ///                                                                     
       ///   Construction                                                      
       ///                                                                     
@@ -158,141 +175,10 @@ namespace Langulus::Anyness
       TMany& operator = (T1&&);
 
       ///                                                                     
-      ///   Capsulation                                                       
-      ///                                                                     
-      NOD() constexpr Token GetToken() const noexcept;
-      constexpr void ResetState() noexcept;
-
-      NOD() constexpr Size GetStride() const noexcept;
-      NOD() constexpr Size GetBytesize() const noexcept;
-
-      NOD() constexpr bool IsMissingDeep() const;
-      NOD() constexpr bool IsConcatable(const CT::Block auto&) const noexcept;
-      NOD() constexpr bool IsInsertable(DMeta) const noexcept;
-      template<CT::Data>
-      NOD() constexpr bool IsInsertable() const noexcept;
-
-   protected: IF_LANGULUS_TESTING(public:)
-      template<class THIS = TMany<T>>
-      NOD() constexpr auto GetRaw() noexcept;
-      template<class THIS = TMany<T>>
-      NOD() constexpr auto GetRaw() const noexcept;
-      template<class THIS = TMany<T>>
-      NOD() constexpr auto GetRawEnd() const noexcept;
-
-      template<class = TMany<T>> NOD() IF_UNSAFE(constexpr)
-      auto GetRawSparse()       IF_UNSAFE(noexcept);
-      template<class = TMany<T>> NOD() IF_UNSAFE(constexpr)
-      auto GetRawSparse() const IF_UNSAFE(noexcept);
-
-      template<CT::Data T1, class = TMany<T>>
-      NOD() T1*       GetRawAs() noexcept;
-      template<CT::Data T1, class = TMany<T>>
-      NOD() T1 const* GetRawAs() const noexcept;
-      template<CT::Data T1, class = TMany<T>>
-      NOD() T1 const* GetRawEndAs() const noexcept;
-
-      template<CT::Data T1, class = TMany<T>>
-      NOD() T1**             GetRawSparseAs()       IF_UNSAFE(noexcept);
-      template<CT::Data T1, class = TMany<T>>
-      NOD() T1 const* const* GetRawSparseAs() const IF_UNSAFE(noexcept);
-
-      template<class = TMany<T>>
-      NOD() const Allocation* const* GetEntries() const IF_UNSAFE(noexcept);
-      template<class = TMany<T>>
-      NOD() const Allocation**       GetEntries()       IF_UNSAFE(noexcept);
-
-   public:
-      ///                                                                     
       ///   Indexing                                                          
       ///                                                                     
-      NOD() T const& Last() const;
-      NOD() T&       Last();
-
-      template<CT::Data = T>
-      NOD() decltype(auto) Get(Offset) const noexcept;
-      template<CT::Data = T>
-      NOD() decltype(auto) Get(Offset) noexcept;
-
-      NOD() const T& operator [] (CT::Index auto) const;
-      NOD()       T& operator [] (CT::Index auto);
-
-      NOD() TMany Crop(Offset, Count) const;
-      NOD() TMany Crop(Offset, Count);
-
-      template<CT::Data>
-      NOD() decltype(auto) As(CT::Index auto);
-      template<CT::Data>
-      NOD() decltype(auto) As(CT::Index auto) const;
-
-      template<CT::Data T1>
-      NOD() LANGULUS(INLINED) decltype(auto) As() {
-         return As<T1>(0);
-      }
-
-      template<CT::Data T1>
-      NOD() LANGULUS(INLINED) decltype(auto) As() const {
-         return As<T1>(0);
-      }
-
-   protected: IF_LANGULUS_TESTING(public:)
-      NOD() Handle<T> GetHandle(Offset) IF_UNSAFE(noexcept);
-      NOD() Handle<const T> GetHandle(Offset) const IF_UNSAFE(noexcept);
-
-   public:
-      ///                                                                     
-      ///   Iteration                                                         
-      ///                                                                     
-      using Iterator = typename Block<T>::Iterator;
-      using ConstIterator = typename Block<T>::ConstIterator;
-
-      template<bool REVERSE = false>
-      Count ForEachElement(auto&&);
-      template<bool REVERSE = false>
-      Count ForEachElement(auto&&) const;
-
-      template<bool REVERSE = false>
-      Count ForEach(auto&&...);
-      template<bool REVERSE = false>
-      Count ForEach(auto&&...) const;
-
-      template<bool REVERSE = false, bool SKIP = true>
-      Count ForEachDeep(auto&&...);
-      template<bool REVERSE = false, bool SKIP = true>
-      Count ForEachDeep(auto&&...) const;
-
-      ///                                                                     
-      ///   RTTI                                                              
-      ///                                                                     
-      template<CT::Data, CT::Data...>
-      NOD() constexpr bool Is() const noexcept;
-      NOD() bool Is(DMeta) const noexcept;
-
-      template<CT::Data, CT::Data...>
-      NOD() constexpr bool IsSimilar() const noexcept;
-      NOD() bool IsSimilar(DMeta) const noexcept;
-
-      template<CT::Data, CT::Data...>
-      NOD() constexpr bool IsExact() const noexcept;
-      NOD() bool IsExact(DMeta) const noexcept;
-
-      template<bool BINARY_COMPATIBLE = false>
-      NOD() bool CastsToMeta(DMeta) const;
-      template<bool BINARY_COMPATIBLE = false>
-      NOD() bool CastsToMeta(DMeta, Count) const;
-
-      template<CT::Data, bool BINARY_COMPATIBLE = false>
-      NOD() bool CastsTo() const;
-      template<CT::Data, bool BINARY_COMPATIBLE = false>
-      NOD() bool CastsTo(Count) const;
-
-      template<CT::Block B>
-      NOD() B ReinterpretAs(const B&) const;
-      template<CT::Data T1>
-      NOD() TMany<T1> ReinterpretAs() const;
-
-      NOD() Block<> GetMember(const RTTI::Member&, CT::Index auto);
-      NOD() Block<> GetMember(const RTTI::Member&, CT::Index auto) const;
+      NOD() IF_UNSAFE(constexpr) TMany Crop(Offset, Count)       IF_UNSAFE(noexcept);
+      NOD() IF_UNSAFE(constexpr) TMany Crop(Offset, Count) const IF_UNSAFE(noexcept);
 
       ///                                                                     
       ///   Comparison                                                        

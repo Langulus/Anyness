@@ -102,7 +102,7 @@ namespace Langulus::Anyness
    ///      the block will have some memory search overhead                   
    ///   @return the value, interfaced by a static memory block               
    TEMPLATE() LANGULUS(INLINED)
-   constexpr Block TME()::GetBlock() const {
+   constexpr Block<T> TME()::GetBlock() const {
       return {
          DataState::Member, GetType(), 1, &mValue
          // Notice entry is missing, which means it will be sought      

@@ -217,8 +217,8 @@ namespace Langulus::Anyness
    /// be formal. If you want to serialize your data in a readable format,    
    /// convert to Flow::Code, or other isomorphic representations.            
    ///                                                                        
-   struct Text : TMany<Letter> {
-      using Base = TMany<Letter>;
+   struct Text : Block<Letter> {
+      using Base = Block<Letter>;
       static constexpr bool CTTI_TextTrait = true;
 
       LANGULUS(DEEP) false;

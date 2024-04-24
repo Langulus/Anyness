@@ -384,20 +384,23 @@ namespace Langulus::Anyness
    struct BlockSet::Iterator : A::Iterator {
       static_assert(CT::Set<SET>, "SET must be a CT::Set type");
       static constexpr bool Mutable = CT::Mutable<SET>;
+      static constexpr bool TypeErased = not CT::Typed<SET>;
 
-      using T = Conditional<CT::Typed<SET>
-         , Conditional<Mutable, TypeOf<SET>, const TypeOf<SET>>
-         , void>;
+      using T = Conditional<TypeErased, void,
+         Conditional<Mutable, TypeOf<SET>, const TypeOf<SET>>>;
 
       LANGULUS(ABSTRACT) false;
       LANGULUS(TYPED)    T;
 
    protected:
       friend struct BlockSet;
-      using InnerT = Conditional<CT::Typed<SET>, T*, Block>;
+      using InnerT = Conditional<TypeErased, Block<>, T*>;
 
+      // Pointer to the currently selected info                         
       const InfoType* mInfo;
-      const InfoType* mSentinel; 
+      // Pointer to the end of the set                                  
+      const InfoType* mSentinel;
+      // Currently selected element                                     
       InnerT mKey;
 
       constexpr Iterator(const InfoType*, const InfoType*, const InnerT&) noexcept;

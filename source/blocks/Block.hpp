@@ -178,10 +178,10 @@ namespace Langulus::Anyness
    ///                                                                        
    template<class TYPE>
    struct Block : A::Block {
-      LANGULUS(TYPED) TYPE;
+      LANGULUS(TYPED)    TYPE;
       LANGULUS(ABSTRACT) false;
 
-      static constexpr bool Ownership = false;
+      static constexpr bool Ownership  = false;
       static constexpr bool Sequential = true;
       static constexpr bool TypeErased = CT::TypeErased<TYPE>;
 
@@ -236,7 +236,8 @@ namespace Langulus::Anyness
       using A::Block::operator =;
          
    protected:
-      template<template<class> class S, CT::Block FROM> requires CT::Semantic<S<FROM>>
+      template<template<class> class S, CT::Block FROM>
+      requires CT::Semantic<S<FROM>>
       void BlockTransfer(S<FROM>&&);
 
    public:
@@ -310,24 +311,12 @@ namespace Langulus::Anyness
       constexpr void ResetState() noexcept;
       
    protected: IF_LANGULUS_TESTING(public:)
-      NOD() constexpr TYPE*       GetRaw()          noexcept;
-      NOD() constexpr TYPE const* GetRaw()    const noexcept;
-      NOD() constexpr TYPE const* GetRawEnd() const noexcept;
-
-      NOD() void**             GetRawSparse()       IF_UNSAFE(noexcept) requires TypeErased;
-      NOD() void const* const* GetRawSparse() const IF_UNSAFE(noexcept) requires TypeErased;
-
-      /*template<CT::Data T, CT::BlockBased = Many>
-      NOD() T*       GetRawAs() noexcept;
-      template<CT::Data T, CT::BlockBased = Many>
-      NOD() T const* GetRawAs() const noexcept;
-      template<CT::Data T, CT::BlockBased = Many>
-      NOD() T const* GetRawEndAs() const noexcept;
-
-      template<CT::Data T>
-      NOD() T**             GetRawSparseAs()       IF_UNSAFE(noexcept) requires TypeErased;
-      template<CT::Data T>
-      NOD() T const* const* GetRawSparseAs() const IF_UNSAFE(noexcept) requires TypeErased;*/
+      template<class T = TYPE>
+      NOD() T*       GetRaw()          IF_UNSAFE(noexcept);
+      template<class T = TYPE>
+      NOD() T const* GetRaw()    const IF_UNSAFE(noexcept);
+      template<class T = TYPE>
+      NOD() T const* GetRawEnd() const IF_UNSAFE(noexcept);
 
       NOD() Allocation const* const* GetEntries() const IF_UNSAFE(noexcept);
       NOD() Allocation const**       GetEntries()       IF_UNSAFE(noexcept);
@@ -410,9 +399,6 @@ namespace Langulus::Anyness
       NOD() Index GetIndex() const IF_UNSAFE(noexcept);
       NOD() Index GetIndexMode(Count&) const IF_UNSAFE(noexcept);
 
-      template<bool ASCEND = false>
-      void Sort() noexcept;
-
    protected: 
       NOD() Block<> GetElementInner(Offset = 0)       IF_UNSAFE(noexcept);
       NOD() Block<> GetElementInner(Offset = 0) const IF_UNSAFE(noexcept);
@@ -430,15 +416,18 @@ namespace Langulus::Anyness
       noexcept(not LANGULUS_SAFE() and CT::BuiltinInteger<INDEX>);
 
    IF_LANGULUS_TESTING(public:)
-      template<CT::Data T>
-      NOD() auto GetHandle(Offset) const IF_UNSAFE(noexcept);
-      template<CT::Data T>
-      NOD() auto GetHandle(Offset) IF_UNSAFE(noexcept);
+      NOD() auto GetHandle(Offset = 0)       IF_UNSAFE(noexcept);
+      NOD() auto GetHandle(Offset = 0) const IF_UNSAFE(noexcept);
 
-      template<CT::Data> NOD() IF_UNSAFE(constexpr)
-      decltype(auto) Get(Offset = 0, Offset = 0) IF_UNSAFE(noexcept);
-      template<CT::Data> NOD() IF_UNSAFE(constexpr)
+      template<CT::Data = TYPE> NOD() IF_UNSAFE(constexpr)
+      decltype(auto) Get(Offset = 0, Offset = 0)       IF_UNSAFE(noexcept);
+      template<CT::Data = TYPE> NOD() IF_UNSAFE(constexpr)
       decltype(auto) Get(Offset = 0, Offset = 0) const IF_UNSAFE(noexcept);
+   
+      NOD() IF_UNSAFE(constexpr)
+      decltype(auto) GetDeep(Offset = 0)       IF_UNSAFE(noexcept);
+      NOD() IF_UNSAFE(constexpr)
+      decltype(auto) GetDeep(Offset = 0) const IF_UNSAFE(noexcept);
    
    public:
       ///                                                                     
@@ -553,12 +542,11 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Comparison                                                        
       ///                                                                     
-      template<CT::Block = Many, CT::NotSemantic T> requires CT::NotOwned<T>
+      template<CT::NotSemantic T> requires CT::NotOwned<T>
       bool operator == (const T&) const;
 
-      template<bool RESOLVE = true, CT::Block = Many>
+      template<bool RESOLVE = true>
       NOD() bool Compare(const CT::Block auto&) const;
-      template<CT::Block = Many>
       NOD() Hash GetHash() const;
 
       template<bool REVERSE = false>
@@ -566,29 +554,25 @@ namespace Langulus::Anyness
       NOD() Iterator      FindIt(const CT::NotSemantic auto&);
       NOD() ConstIterator FindIt(const CT::NotSemantic auto&) const;
 
-      template<bool REVERSE = false, CT::Block = Many>
+      template<bool REVERSE = false>
       NOD() Index FindBlock(const CT::Block auto&, CT::Index auto) const noexcept;
 
-      template<bool ASCEND = false, CT::Block = Many>
+      template<bool ASCEND = false>
       void Sort();
 
-      template<CT::Block>
-      NOD() bool CompareLoose(const CT::Block auto&) const noexcept;
-      template<CT::Block>
+      NOD() bool  CompareLoose(const CT::Block auto&) const noexcept;
       NOD() Count Matches(const CT::Block auto&) const noexcept;
-      template<CT::Block>
       NOD() Count MatchesLoose(const CT::Block auto&) const noexcept;
 
    protected:
-      template<CT::Block>
       NOD() bool CompareSingleValue(const CT::NotSemantic auto&) const;
       NOD() bool CompareStates(const Block&) const noexcept;
-      NOD() bool CompareTypes(const Block&, RTTI::Base&) const;
+      NOD() bool CompareTypes(const CT::Block auto&, RTTI::Base&) const;
       NOD() bool CallComparer(const Block&, const RTTI::Base&) const;
 
-      template<bool REVERSE = false, CT::Block = Many>
+      template<bool REVERSE = false>
       Count GatherInner(CT::Block auto&) const;
-      template<bool REVERSE = false, CT::Block = Many>
+      template<bool REVERSE = false>
       Count GatherPolarInner(DMeta, CT::Block auto&, DataState) const;
 
    public:
@@ -644,7 +628,7 @@ namespace Langulus::Anyness
       Count SmartPush(CT::Index auto, auto&&, DataState = {});
 
       template<CT::Deep T, bool TRANSFER_OR = true>
-      requires CT::CanBeDeepened<T, Block>
+      requires CT::CanBeDeepened<T, Block<TYPE>>
       T& Deepen();
 
       void Null(Count);
@@ -887,6 +871,8 @@ namespace Langulus::Anyness
    protected:
       template<class>
       friend struct Block;
+      template<class>
+      friend struct TBlockIterator;
 
       using TypeInner = Conditional<CT::Typed<BLOCK>, Type*, BLOCK>;
 

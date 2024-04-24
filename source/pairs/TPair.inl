@@ -80,7 +80,7 @@ namespace Langulus::Anyness
 
    /// Get contained key                                                      
    TEMPLATE() LANGULUS(INLINED)
-   Block PAIR()::GetKey() noexcept {
+   Block<K> PAIR()::GetKey() noexcept {
       if constexpr (CT::Reference<K> or CT::Dense<K>) {
          return Block {
             DataState::Member,
@@ -92,7 +92,7 @@ namespace Langulus::Anyness
    }
    
    TEMPLATE() LANGULUS(INLINED)
-   Block PAIR()::GetKey() const noexcept {
+   Block<K> PAIR()::GetKey() const noexcept {
       auto block = const_cast<PAIR()*>(this)->GetKey();
       block.MakeConst();
       return block;
@@ -100,7 +100,7 @@ namespace Langulus::Anyness
 
    /// Get contained value                                                    
    TEMPLATE() LANGULUS(INLINED)
-   Block PAIR()::GetValue() noexcept {
+   Block<V> PAIR()::GetValue() noexcept {
       if constexpr (CT::Reference<V> or CT::Dense<K>) {
          return Block {
             DataState::Member,
@@ -112,7 +112,7 @@ namespace Langulus::Anyness
    }
 
    TEMPLATE() LANGULUS(INLINED)
-   Block PAIR()::GetValue() const noexcept {
+   Block<V> PAIR()::GetValue() const noexcept {
       auto block = const_cast<PAIR()*>(this)->GetValue();
       block.MakeConst();
       return block;

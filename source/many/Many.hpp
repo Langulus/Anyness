@@ -25,21 +25,22 @@ namespace Langulus::Anyness
    /// binary-compatible.                                                     
    ///                                                                        
    class Many : public Block<> {
+      using Base = Block<>;
       LANGULUS(POD) false;
-      LANGULUS_BASES(Block);
+      LANGULUS_BASES(Base);
 
    protected: IF_LANGULUS_TESTING(public:)
       #if LANGULUS_DEBUG()
-         using Block::mRawChar;
+         using Base::mRawChar;
       #endif
 
-      using Block::mRaw;
-      using Block::mRawSparse;
-      using Block::mState;
-      using Block::mCount;
-      using Block::mReserved;
-      using Block::mType;
-      using Block::mEntry;
+      using Base::mRaw;
+      using Base::mRawSparse;
+      using Base::mState;
+      using Base::mCount;
+      using Base::mReserved;
+      using Base::mType;
+      using Base::mEntry;
 
    public:
       static constexpr bool Ownership = true;

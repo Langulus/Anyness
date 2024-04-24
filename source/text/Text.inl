@@ -44,7 +44,7 @@ namespace Langulus::Anyness
    ///   @param other - the character to copy                                 
    template<class T> requires CT::DenseCharacter<Desem<T>> LANGULUS(INLINED)
    Text::Text(T&& other) {
-      Block::AllocateFresh<Text>(Block::RequestSize<Text>(1));
+      AllocateFresh(RequestSize(1));
       mCount = 1;
       (*this)[0] = DesemCast(other);
    }
@@ -76,7 +76,7 @@ namespace Langulus::Anyness
          new (this) Block {
             DataState::Constrained, GetType(), count, DesemCast(other)
          };
-         TakeAuthority<Text>();
+         TakeAuthority();
       }
       else {
          // We're disowning it, so no transfer, just a static view      
@@ -108,7 +108,7 @@ namespace Langulus::Anyness
          new (this) Block {
             DataState::Constrained, GetType(), count, DesemCast(other).data()
          };
-         TakeAuthority<Text>();
+         TakeAuthority();
       }
       else {
          // We're disowning it, so no transfer, just a static view      
@@ -145,7 +145,7 @@ namespace Langulus::Anyness
    Text::Text(const CT::Bytes auto& from) {
       mType = MetaDataOf<Letter>();
       const auto count = from.GetCount() * 2;
-      AllocateFresh<Text>(RequestSize<Text>(count));
+      AllocateFresh(RequestSize(count));
       auto to_bytes = mRaw;
       for (auto& byte : from) {
          fmt::format_to_n(to_bytes, 2, "{:X}", byte.mValue);
@@ -159,7 +159,7 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    Text::Text(Byte from) {
       mType = MetaDataOf<Letter>();
-      AllocateFresh<Text>(RequestSize<Text>(2));
+      AllocateFresh(RequestSize(2));
       fmt::format_to_n(mRaw, 2, "{:X}", from.mValue);
       mCount = 2;
    }
@@ -187,7 +187,8 @@ namespace Langulus::Anyness
          // Stringify a real number                                     
          constexpr auto size = ::std::numeric_limits<T>::max_digits10 * 2;
          char temp[size];
-         auto [lastChar, errorCode] = ::std::to_chars(temp, temp + size, number, ::std::chars_format::general);
+         auto [lastChar, errorCode] = ::std::to_chars(
+            temp, temp + size, number, ::std::chars_format::general);
          LANGULUS_ASSERT(errorCode == ::std::errc(), Convert,
             "std::to_chars failure");
 
@@ -197,7 +198,9 @@ namespace Langulus::Anyness
             --lastChar;
          }
 
-         new (this) Text {Text::From(temp, static_cast<Count>(lastChar - temp))};
+         new (this) Text {
+            Text::From(temp, static_cast<Count>(lastChar - temp))
+         };
       }
       else if constexpr (CT::Integer<T>) {
          // Stringify an integer                                        
@@ -207,7 +210,9 @@ namespace Langulus::Anyness
          LANGULUS_ASSERT(errorCode == ::std::errc(), Convert,
             "std::to_chars failure");
 
-         new (this) Text {Text::From(temp, static_cast<Count>(lastChar - temp))};
+         new (this) Text {
+            Text::From(temp, static_cast<Count>(lastChar - temp))
+         };
       }
       else LANGULUS_ERROR("Unsupported number type");
    }
@@ -217,8 +222,8 @@ namespace Langulus::Anyness
    template<class T1, class T2, class...TN>
    requires CT::Inner::Stringifiable<T1, T2, TN...> LANGULUS(INLINED)
    Text::Text(T1&& t1, T2&& t2, TN&&...tn) {
-      UnfoldInsert(Forward<T1>(t1));
-      UnfoldInsert(Forward<T2>(t2));
+        UnfoldInsert(Forward<T1>(t1));
+        UnfoldInsert(Forward<T2>(t2));
       ((UnfoldInsert(Forward<TN>(tn))), ...);
    }
 
@@ -351,8 +356,8 @@ namespace Langulus::Anyness
             return *this;
          }
 
-         Block previousBlock {*this};
-         const auto request = RequestSize<Text>(mCount + 1);
+         Base previousBlock {*this};
+         const auto request = RequestSize(mCount + 1);
          mutableThis->mEntry = Allocator::Reallocate(
             request.mByteSize, const_cast<Allocation*>(mEntry));
          LANGULUS_ASSERT(mEntry, Allocate, "Out of memory");
@@ -362,7 +367,7 @@ namespace Langulus::Anyness
             // Memory moved, and we should move all elements in it      
             mutableThis->mRaw = const_cast<Byte*>(mEntry->GetBlockStart());
             CopyMemory(mutableThis->mRaw, previousBlock.mRaw, mCount);
-            previousBlock.Free<Text>();
+            previousBlock.Free();
          }
 
          // Add the null-termination                                    
@@ -372,9 +377,9 @@ namespace Langulus::Anyness
       else {
          // We have to branch-off and make another allocation           
          Text result;
-         const auto request = RequestSize<Text>(mCount + 1);
+         const auto request = RequestSize(mCount + 1);
          result.mType = mType;
-         result.AllocateFresh<Text>(request);
+         result.AllocateFresh(request);
          result.mCount = mCount;
          CopyMemory(result.mRaw, mRaw, mCount);
          result.GetRaw()[mCount] = '\0';
@@ -421,20 +426,20 @@ namespace Langulus::Anyness
    ///   @return new text that references the original memory                 
    LANGULUS(INLINED)
    Text Text::Crop(CT::Index auto start) const {
-      const auto index = SimplifyIndex<Text>(start);
+      const auto index = SimplifyIndex(start);
       return Crop(index, mCount - index);
    }
 
    LANGULUS(INLINED)
    Text Text::Crop(CT::Index auto start) {
-      const auto index = SimplifyIndex<Text>(start);
+      const auto index = SimplifyIndex(start);
       return Crop(index, mCount - index);
    }
 
    /// Remove all instances of 'what' from the text container                 
    ///   @param what - the character/string to remove                         
    ///   @return a new container with the text stripped                       
-   inline Text Text::Strip(const CT::Text auto& what) const {
+   Text Text::Strip(const CT::Text auto& what) const {
       const Text pattern = Disowned(what);
       if (IsEmpty() or pattern.IsEmpty())
          return *this;
@@ -444,15 +449,17 @@ namespace Langulus::Anyness
 
       Count copyStart = 0, copyEnd = 0;
       for (Count i = 0; i <= mCount - pattern.mCount; ++i) {
-         const auto matches = Block::CropInner(i, mCount - i)
-            .template Matches<Text>(pattern);
-
+         const auto matches = CropInner(i, mCount - i).Matches(pattern);
          if (matches == pattern.mCount) {
             // Found a match, skip it                                   
             // Copy any text that was skipped                           
             const auto copy = copyEnd - copyStart;
             if (copy) {
-               CopyMemory(result.GetRaw() + result.mCount, GetRaw() + copyStart, copy);
+               CopyMemory(
+                  result.GetRaw() + result.mCount,
+                  GetRaw() + copyStart,
+                  copy
+               );
                result.mCount += copy;
             }
 
@@ -465,7 +472,11 @@ namespace Langulus::Anyness
       // Account for any leftover                                       
       const auto copy = copyEnd - copyStart;
       if (copy) {
-         CopyMemory(result.GetRaw() + result.mCount, GetRaw() + copyStart, copy);
+         CopyMemory(
+            result.GetRaw() + result.mCount,
+            GetRaw() + copyStart,
+            copy
+         );
          result.mCount += copy;
       }
 
@@ -476,7 +487,7 @@ namespace Langulus::Anyness
    ///   @param what - characters/strings to search for                       
    ///   @param with - characters/strings to replace with                     
    ///   @return a new container with the text replaced                       
-   inline Text Text::Replace(const CT::Text auto& what, const CT::Text auto& with) const {
+   Text Text::Replace(const CT::Text auto& what, const CT::Text auto& with) const {
       const Text pattern = Disowned(what);
       const Text replacement = Disowned(with);
       if (IsEmpty() or pattern.IsEmpty())
@@ -487,8 +498,7 @@ namespace Langulus::Anyness
 
       Count copyStart = 0, copyEnd = 0;
       for (Count i = 0; i <= mCount - pattern.mCount; ++i) {
-         const auto matches = Block::CropInner(i, mCount - i)
-            .template Matches<Text>(pattern);
+         const auto matches = CropInner(i, mCount - i).Matches(pattern);
 
          if (matches == pattern.mCount) {
             // Found a match, replace it                                
@@ -496,10 +506,22 @@ namespace Langulus::Anyness
             auto segment = result.Extend(copy + replacement.mCount);
 
             if (copy) {
-               CopyMemory(segment.GetRaw(), GetRaw() + copyStart, copy);
-               CopyMemory(segment.GetRaw() + copy, replacement.GetRaw(), replacement.mCount);
+               CopyMemory(
+                  segment.GetRaw(),
+                  GetRaw() + copyStart,
+                  copy
+               );
+               CopyMemory(
+                  segment.GetRaw() + copy,
+                  replacement.GetRaw(),
+                  replacement.mCount
+               );
             }
-            else CopyMemory(segment.GetRaw(), replacement.GetRaw(), replacement.mCount);
+            else CopyMemory(
+               segment.GetRaw(),
+               replacement.GetRaw(),
+               replacement.mCount
+            );
 
             copyStart = copyEnd = i + matches;
             i += matches - 1;
@@ -510,7 +532,11 @@ namespace Langulus::Anyness
       // Account for any leftover                                       
       const auto copy = copyEnd - copyStart;
       if (copy) {
-         CopyMemory(result.GetRaw() + result.mCount, GetRaw() + copyStart, copy);
+         CopyMemory(
+            result.GetRaw() + result.mCount,
+            GetRaw() + copyStart,
+            copy
+         );
          result.mCount += copy;
       }
       return result;
@@ -538,13 +564,6 @@ namespace Langulus::Anyness
          fmt::format_to_n(GetRaw() + mCount, size, "{}", what);
          mCount += size;
       }
-   }
-
-   /// Hash the text                                                          
-   ///   @return a hash of the contained byte sequence                        
-   LANGULUS(INLINED)
-   Hash Text::GetHash() const {
-      return HashBytes(GetRaw(), static_cast<int>(GetCount()));
    }
 
    /// Interpret text container as a string_view                              
@@ -708,7 +727,7 @@ namespace Langulus::Anyness
    ///   @return the instantiated template                                    
    Text Text::Hex(const auto& from) {
       Text result;
-      result.AllocateFresh<Text>(result.RequestSize<Text>(sizeof(from) * 2));
+      result.AllocateFresh(result.RequestSize(sizeof(from) * 2));
       auto from_bytes = reinterpret_cast<const std::byte*>(&from);
       auto to_bytes = result.GetRaw();
       for (Offset i = 0; i < sizeof(from); ++i)
@@ -726,7 +745,7 @@ namespace Langulus::Anyness
    Text Text::Template(const Token& format, ARGS&&...args) {
       const auto size = fmt::formatted_size(format, Forward<ARGS>(args)...);
       Text result;
-      result.AllocateFresh<Text>(result.RequestSize<Text>(size));
+      result.AllocateFresh(result.RequestSize(size));
       fmt::format_to_n(
          result.GetRaw(), size, format,
          Forward<ARGS>(args)...
@@ -748,7 +767,7 @@ namespace Langulus::Anyness
       );
 
       Text result;
-      result.AllocateFresh<Text>(result.RequestSize<Text>(size));
+      result.AllocateFresh(result.RequestSize(size));
       fmt::format_to_n(
          result.GetRaw(), size,
          fmt::runtime(format),

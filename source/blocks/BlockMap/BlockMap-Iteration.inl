@@ -555,12 +555,13 @@ namespace Langulus::Anyness
          LANGULUS_OOPS(Access, "Trying to access end of iteration");
 
       const auto me = const_cast<Iterator<T>*>(this);
-      using B = Conditional<CT::Mutable<T>, Block&, const Block&>;
+      using B = Conditional<CT::Mutable<T>, Block<>&, const Block<>&>;
+
       if constexpr (CT::TypeErased<Key>) {
          if constexpr (CT::TypeErased<Value>)
-            return TPair<const Block&, B> {mKey, me->mValue};
+            return TPair<const Block<>&, B> {mKey, me->mValue};
          else
-            return TPair<const Block&, Value&> {mKey, *me->mValue};
+            return TPair<const Block<>&, Value&> {mKey, *me->mValue};
       }
       else {
          if constexpr (CT::TypeErased<Value>)

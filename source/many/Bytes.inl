@@ -38,7 +38,7 @@ namespace Langulus::Anyness
       using T = Deref<decltype(item)>;
       constexpr auto size = sizeof(T);
 
-      Block::AllocateFresh<Bytes>(Block::RequestSize<Bytes>(size));
+      AllocateFresh(RequestSize(size));
       if constexpr (CT::Array<T>)
          CopyMemory(mRaw, reinterpret_cast<const Byte*>( item), size);
       else
@@ -56,7 +56,7 @@ namespace Langulus::Anyness
          const auto token = meta->mToken;
          const Count tokensize = static_cast<Count>(token.size());
          const Count count = atom + tokensize;
-         Block::AllocateFresh<Bytes>(Block::RequestSize<Bytes>(count));
+         AllocateFresh(RequestSize(count));
          mCount = count;
          CopyMemory(GetRaw(),
             reinterpret_cast<const Byte*>(&tokensize), atom);
@@ -65,7 +65,7 @@ namespace Langulus::Anyness
       }
       else {
          const Count tokensize = 0;
-         Block::AllocateFresh<Bytes>(Block::RequestSize<Bytes>(atom));
+         AllocateFresh(RequestSize(atom));
          mCount = atom;
          CopyMemory(GetRaw(),
             reinterpret_cast<const Byte*>(&tokensize), atom);

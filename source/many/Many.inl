@@ -50,17 +50,17 @@ namespace Langulus::Anyness
          using T = TypeOf<S>;
 
          if constexpr (CT::Deep<T>)
-            Block::BlockTransfer<Many>(S::Nest(t1));
+            BlockTransfer(S::Nest(t1));
          else
-            Block::Insert<Many, Many, true>(IndexBack, Forward<T1>(t1));
+            Insert<Many, true>(IndexBack, Forward<T1>(t1));
       }
-      else Block::Insert<Many, Many, true>(IndexBack, Forward<T1>(t1), Forward<TN>(tn)...);
+      else Insert<Many, true>(IndexBack, Forward<T1>(t1), Forward<TN>(tn)...);
    }
 
    /// Destruction                                                            
    LANGULUS(INLINED)
    Many::~Many() {
-      Block::Free<Many>();
+      Free();
    }
 
    /// Create an empty Many from a dynamic type and state                     
@@ -69,7 +69,7 @@ namespace Langulus::Anyness
    ///   @return the new container instance                                   
    LANGULUS(INLINED)
    Many Many::FromMeta(DMeta type, DataState state) noexcept {
-      return Many {Block {state, type}};
+      return Many {Base {state, type}};
    }
 
    /// Create an empty Many by copying type and state of a block              
@@ -78,7 +78,8 @@ namespace Langulus::Anyness
    ///   @return the new container instance                                   
    LANGULUS(INLINED)
    Many Many::FromBlock(const CT::Block auto& block, DataState state) noexcept {
-      return Many::FromMeta(block.GetType(), block.GetUnconstrainedState() + state);
+      return Many::FromMeta(
+         block.GetType(), block.GetUnconstrainedState() + state);
    }
 
    /// Create an empty Many by copying only state of a block                  
@@ -87,7 +88,8 @@ namespace Langulus::Anyness
    ///   @return the new container instance                                   
    LANGULUS(INLINED)
    Many Many::FromState(const CT::Block auto& block, DataState state) noexcept {
-      return Many::FromMeta(nullptr, block.GetUnconstrainedState() + state);
+      return Many::FromMeta(
+         nullptr, block.GetUnconstrainedState() + state);
    }
 
    /// Create an empty Many from a static type and state                      
@@ -96,7 +98,7 @@ namespace Langulus::Anyness
    ///   @return the new container instance                                   
    template<CT::Data T> LANGULUS(INLINED)
    Many Many::From(DataState state) noexcept {
-      return Block {state, MetaDataOf<T>()};
+      return Base {state, MetaDataOf<T>()};
    }
    
    /// Refer assignment                                                       
@@ -125,21 +127,21 @@ namespace Langulus::Anyness
 
       if constexpr (CT::Deep<T>) {
          // Potentially absorb a container                              
-         if (static_cast<const Block*>(this)
-          == static_cast<const Block*>(&DesemCast(rhs)))
+         if (static_cast<const A::Block*>(this)
+          == static_cast<const A::Block*>(&DesemCast(rhs)))
             return *this;
 
-         Block::Free();
+         Free();
          new (this) Many {S::Nest(rhs)};
       }
       else if (IsSimilar<Unfold<T>>()) {
          // Unfold-insert by reusing memory                             
-         Block::Clear();
-         Block::UnfoldInsert<Many, void, true>(IndexFront, S::Nest(rhs));
+         Clear();
+         UnfoldInsert<void, true>(IndexFront, S::Nest(rhs));
       }
       else {
          // Allocate anew and unfold-insert                             
-         Block::Free();
+         Free();
          new (this) Many {S::Nest(rhs)};
       }
 
@@ -151,7 +153,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container for chaining                   
    LANGULUS(INLINED)
    Many& Many::operator << (CT::UnfoldInsertable auto&& other) {
-      Block::Insert<Many, Many, true>(IndexBack, Forward<decltype(other)>(other));
+      Insert<Many, true>(IndexBack, Forward<decltype(other)>(other));
       return *this;
    }
    
@@ -160,7 +162,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container for chaining                   
    LANGULUS(INLINED)
    Many& Many::operator >> (CT::UnfoldInsertable auto&& other) {
-      Block::Insert<Many, Many, true>(IndexFront, Forward<decltype(other)>(other));
+      Insert<Many, true>(IndexFront, Forward<decltype(other)>(other));
       return *this;
    }
 
@@ -169,7 +171,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container for chaining                   
    LANGULUS(INLINED)
    Many& Many::operator <<= (CT::UnfoldInsertable auto&& other) {
-      Block::Merge<Many, Many, true>(IndexBack, Forward<decltype(other)>(other));
+      Merge<Many, true>(IndexBack, Forward<decltype(other)>(other));
       return *this;
    }
 
@@ -178,7 +180,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container for chaining                   
    LANGULUS(INLINED)
    Many& Many::operator >>= (CT::UnfoldInsertable auto&& other) {
-      Block::Merge<Many, Many, true>(IndexFront, Forward<decltype(other)>(other));
+      Merge<Many, true>(IndexFront, Forward<decltype(other)>(other));
       return *this;
    }
 
@@ -188,123 +190,12 @@ namespace Langulus::Anyness
    ///   @return the container                                                
    LANGULUS(INLINED)
    Many Many::Crop(const Offset start, const Count count) {
-      return Block::Crop<Many>(start, count);
+      return Base::Crop<Many>(start, count);
    }
 
    LANGULUS(INLINED)
    Many Many::Crop(const Offset start, const Count count) const {
-      return Block::Crop<Many>(start, count);
-   }
-        
-   /// Iterate each element block and execute F for it                        
-   ///   @tparam REVERSE - whether to iterate in reverse                      
-   ///   @param call - function to execute for each element block             
-   ///   @return the number of executions                                     
-   template<bool REVERSE> LANGULUS(INLINED)
-   Count Many::ForEachElement(auto&& call) const {
-      return Block::ForEachElement<REVERSE, const Many>(
-         Forward<Deref<decltype(call)>>(call));
-   }
-
-   template<bool REVERSE> LANGULUS(INLINED)
-   Count Many::ForEachElement(auto&& call) {
-      return Block::ForEachElement<REVERSE, Many>(
-         Forward<Deref<decltype(call)>>(call));
-   }
-
-   /// Execute functions for each element inside container                    
-   /// Each function has a distinct argument type, that is tested against the 
-   /// contained type. If argument is compatible with the type, the block is  
-   /// iterated, and F is executed for all elements. The rest of the provided 
-   /// functions are ignored, after the first function with viable argument.  
-   ///   @tparam REVERSE - whether to iterate in reverse                      
-   ///   @param calls - all potential functions to iterate with               
-   ///   @return the number of executions                                     
-   template<bool REVERSE> LANGULUS(INLINED)
-   Count Many::ForEach(auto&&...call) const {
-      return Block::ForEach<REVERSE, const Many>(
-         Forward<Deref<decltype(call)>>(call)...);
-   }
-
-   template<bool REVERSE> LANGULUS(INLINED)
-   Count Many::ForEach(auto&&...call) {
-      return Block::ForEach<REVERSE, Many>(
-         Forward<Deref<decltype(call)>>(call)...);
-   }
-
-   /// Execute functions in each sub-block, inclusively                       
-   /// Unlike the flat variants above, this one reaches into sub-blocks.      
-   /// Each function has a distinct argument type, that is tested against the 
-   /// contained type. If argument is compatible with the type, the block is  
-   /// iterated, and F is executed for all elements. None of the provided     
-   /// functions are ignored.                                                 
-   ///   @tparam REVERSE - whether to iterate in reverse                      
-   ///   @tparam SKIP - set to false, to execute F for intermediate blocks,   
-   ///                  too; otherwise will execute only for non-blocks       
-   ///   @param calls - all potential functions to iterate with               
-   ///   @return the number of executions                                     
-   template<bool REVERSE, bool SKIP> LANGULUS(INLINED)
-   Count Many::ForEachDeep(auto&&...call) const {
-      return Block::ForEachDeep<REVERSE, SKIP, const Many>(
-         Forward<Deref<decltype(call)>>(call)...);
-   }
-
-   template<bool REVERSE, bool SKIP> LANGULUS(INLINED)
-   Count Many::ForEachDeep(auto&&...call) {
-      return Block::ForEachDeep<REVERSE, SKIP, Many>(
-         Forward<Deref<decltype(call)>>(call)...);
-   }
-
-   /// Check if type origin is the same as one of the provided types          
-   ///   @attention ignores sparsity and cv-qualifiers                        
-   ///   @tparam T1, TN... - the types to compare against                     
-   ///   @return true if data type is similar to at least one of the types    
-   template<CT::Data T1, CT::Data...TN> LANGULUS(INLINED)
-   constexpr bool Many::Is() const noexcept {
-      return Block::Is<Many, T1, TN...>();
-   }
-
-   /// Check if type origin is the same as another                            
-   ///   @attention ignores sparsity and cv-qualifiers                        
-   ///   @param type - the type to check for                                  
-   ///   @return true if this block contains similar data                     
-   LANGULUS(INLINED)
-   bool Many::Is(DMeta type) const noexcept {
-      return Block::Is(type);
-   }
-
-   /// Check if unqualified type is the same as one of the provided types     
-   ///   @attention ignores only cv-qualifiers                                
-   ///   @tparam T1, TN... - the types to compare against                     
-   ///   @return true if data type is similar to at least one of the types    
-   template<CT::Data T1, CT::Data...TN> LANGULUS(INLINED)
-   constexpr bool Many::IsSimilar() const noexcept {
-      return Block::IsSimilar<Many, T1, TN...>();
-   }
-
-   /// Check if unqualified type is the same as another                       
-   ///   @attention ignores only cv-qualifiers                                
-   ///   @param type - the type to check for                                  
-   ///   @return true if this block contains similar data                     
-   LANGULUS(INLINED)
-   bool Many::IsSimilar(DMeta type) const noexcept {
-      return Block::IsSimilar(type);
-   }
-
-   /// Check if this type is exactly one of the provided types                
-   ///   @tparam T1, TN... - the types to compare against                     
-   ///   @return true if data type matches at least one type                  
-   template<CT::Data T1, CT::Data...TN> LANGULUS(INLINED)
-   constexpr bool Many::IsExact() const noexcept {
-      return Block::IsExact<Many, T1, TN...>();
-   }
-
-   /// Check if this type is exactly another                                  
-   ///   @param type - the type to match                                      
-   ///   @return true if data type matches type exactly                       
-   LANGULUS(INLINED)
-   bool Many::IsExact(DMeta type) const noexcept {
-      return Block::IsExact(type);
+      return Base::Crop<Many>(start, count);
    }
 
    /// Concatenate with any deep type, semantically or not                    
@@ -313,7 +204,7 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    Many Many::operator + (CT::UnfoldInsertable auto&& rhs) const {
       using S = SemanticOf<decltype(rhs)>;
-      return Block::ConcatBlock<Many>(S::Nest(rhs));
+      return ConcatBlock<Many>(S::Nest(rhs));
    }
 
    /// Destructive concatenate with any deep type, semantically or not        
@@ -322,7 +213,7 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    Many& Many::operator += (CT::UnfoldInsertable auto&& rhs) {
       using S = SemanticOf<decltype(rhs)>;
-      Block::InsertBlock<Many, void>(IndexBack, S::Nest(rhs));
+      InsertBlock<void>(IndexBack, S::Nest(rhs));
       return *this;
    }
    

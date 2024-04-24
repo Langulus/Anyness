@@ -401,14 +401,14 @@ namespace Langulus::Anyness
          return end();
 
       if constexpr (TypeErased)
-         return {GetElement(), GetRawEndAs<Byte>()};
+         return {GetElement(), GetRawEnd<Byte>()};
       else
-         return {GetRaw(), GetRawEndAs<Byte>()};
+         return {GetRaw(), GetRawEnd<Byte>()};
    }
 
    template<class TYPE> LANGULUS(INLINED)
    constexpr typename Block<TYPE>::ConstIterator Block<TYPE>::begin() const noexcept {
-      return const_cast<Block*>(this)->begin();
+      return const_cast<Block<TYPE>*>(this)->begin();
    }
 
    /// Get iterator to the last element                                       
@@ -419,7 +419,7 @@ namespace Langulus::Anyness
          return end();
 
       if constexpr (TypeErased)
-         return {GetElement(), GetRawEndAs<Byte>()};
+         return {GetElement(), GetRawEnd<Byte>()};
       else {
          const auto ptr = GetRaw();
          return {ptr + (mCount - 1), reinterpret_cast<const Byte*>(ptr + mCount)};
@@ -428,7 +428,7 @@ namespace Langulus::Anyness
 
    template<class TYPE> LANGULUS(INLINED)
    constexpr typename Block<TYPE>::ConstIterator Block<TYPE>::last() const noexcept {
-      return const_cast<Block*>(this)->last();
+      return const_cast<Block<TYPE>*>(this)->last();
    }
    
    /// Prefix increment - get next element by incrementing data pointer       
