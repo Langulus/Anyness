@@ -134,7 +134,7 @@ namespace Langulus::Anyness
    ///   @param value - the value to hash, wrapped in a block                 
    ///   @return the bucket index                                             
    LANGULUS(INLINED)
-   Offset BlockMap::GetBucketUnknown(Offset mask, const Block& value) noexcept {
+   Offset BlockMap::GetBucketUnknown(Offset mask, const Block<>& value) noexcept {
       return value.GetHash().mHash & mask;
    }
 
@@ -284,17 +284,16 @@ namespace Langulus::Anyness
             "using type `", NameOf<V>(), "` instead of `", GetValueType(), '`');
 
          // We can't rely on Block::GetHandle, because it uses mReserved
-         const auto mthis = &mValues;
          if constexpr (CT::Sparse<V>) {
             return Handle {
-               mthis->template GetRawAs<V, TMany<V>>()[i],
+               mValues.template GetRaw<V>()[i],
                const_cast<const Allocation**>(
-                  reinterpret_cast<Allocation**>(mthis->mRawSparse + mKeys.mReserved))[i]
+                  reinterpret_cast<Allocation**>(mValues.mRawSparse + mKeys.mReserved))[i]
             };
          }
          else return Handle {
-            mthis->template GetRawAs<V, TMany<V>>()[i],
-            mthis->mEntry
+            mValues.template GetRaw<V>()[i],
+            mValues.mEntry
          };
       }
       else {
@@ -319,17 +318,16 @@ namespace Langulus::Anyness
             "using type `", NameOf<V>(), "` instead of `", GetValueType(), '`');
 
          // We can't rely on Block::GetHandle, because it uses mReserved
-         const auto mthis = &mValues;
          if constexpr (CT::Sparse<V>) {
             return Handle {
-               mthis->template GetRawAs<V, TMany<V>>()[i],
+               mValues.template GetRaw<V>()[i],
                const_cast<const Allocation**>(
-                  reinterpret_cast<Allocation**>(mthis->mRawSparse + mKeys.mReserved))[i]
+                  reinterpret_cast<Allocation**>(mValues.mRawSparse + mKeys.mReserved))[i]
             };
          }
          else return Handle {
-            mthis->template GetRawAs<V, TMany<V>>()[i],
-            mthis->mEntry
+            mValues.template GetRaw<V>()[i],
+            mValues.mEntry
          };
       }
       else {

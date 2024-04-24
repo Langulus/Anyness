@@ -111,12 +111,12 @@ namespace Langulus::Anyness
    ///   @param index - the index                                             
    ///   @return the mutable key reference                                    
    TEMPLATE() LANGULUS(INLINED)
-   Block TABLE()::GetKey(CT::Index auto index) {
+   Block<> TABLE()::GetKey(CT::Index auto index) {
       return BlockMap::GetKey<Map>(index);
    }
 
    TEMPLATE() LANGULUS(INLINED)
-   Block TABLE()::GetKey(CT::Index auto index) const {
+   Block<> TABLE()::GetKey(CT::Index auto index) const {
       return BlockMap::GetKey<Map>(index);
    }
 
@@ -125,12 +125,12 @@ namespace Langulus::Anyness
    ///   @param i - the index                                                 
    ///   @return the mutable value reference                                  
    TEMPLATE() LANGULUS(INLINED)
-   Block TABLE()::GetValue(CT::Index auto index) {
+   Block<> TABLE()::GetValue(CT::Index auto index) {
       return BlockMap::GetValue<Map>(index);
    }
 
    TEMPLATE() LANGULUS(INLINED)
-   Block TABLE()::GetValue(CT::Index auto index) const {
+   Block<> TABLE()::GetValue(CT::Index auto index) const {
       return BlockMap::GetValue<Map>(index);
    }
 

@@ -193,7 +193,7 @@ namespace Langulus::Anyness
    /// Can be invoked by the reflected resolver                               
    ///   @return the pointer, interfaced via a memory block                   
    TEMPLATE() LANGULUS(INLINED)
-   Block TME()::GetBlock() const {
+   Block<T*> TME()::GetBlock() const {
       return {
          DataState::Constrained,
          Base::GetType(), 1, &(mValue),

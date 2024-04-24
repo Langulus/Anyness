@@ -63,24 +63,51 @@ namespace Langulus::Anyness
    ///   @return either pointer or reference to the element (depends on T)    
    template<class TYPE> template<CT::Data T> LANGULUS(INLINED) IF_UNSAFE(constexpr)
    decltype(auto) Block<TYPE>::Get(Offset idx, Offset baseOffset) IF_UNSAFE(noexcept) {
-      LANGULUS_ASSUME(DevAssumes, mType, "Block is not typed");
-      Byte* pointer;
-      if (mType->mIsSparse)
-         pointer = GetRawSparseAs<Byte>()[idx] + baseOffset;
-      else
-         pointer = At(mType->mSize * idx) + baseOffset;
+      if constexpr (TypeErased) {
+         LANGULUS_ASSUME(DevAssumes, mType, "Block is not typed");
+         Byte* pointer;
+         if (mType->mIsSparse)
+            pointer = GetRaw<Byte*>()[idx] + baseOffset;
+         else
+            pointer = At(mType->mSize * idx) + baseOffset;
 
-      if constexpr (CT::Dense<T>)
-         return *reinterpret_cast<Deref<T>*>(pointer);
-      else
-         return reinterpret_cast<Deref<T>>(pointer);
+         if constexpr (CT::Dense<T>)
+            return *reinterpret_cast<Deref<T>*>(pointer);
+         else
+            return reinterpret_cast<Deref<T>>(pointer);
+      }
+      else LANGULUS_ERROR(
+         "Don't use for statically typed containers, "
+         "use conventional indexing instead");
    }
 
    template<class TYPE> template<CT::Data T> LANGULUS(INLINED) IF_UNSAFE(constexpr)
    decltype(auto) Block<TYPE>::Get(Offset idx, Offset baseOffset) const IF_UNSAFE(noexcept) {
-      return const_cast<Block*>(this)->Get<T>(idx, baseOffset);
+      return const_cast<Block<TYPE>*>(this)->template Get<T>(idx, baseOffset);
    }
-   
+
+   /// A safe (only in safe-mode!) way to get Nth deep entry                  
+   /// Will utilize any staticly typed deep containers, if available          
+   template<class TYPE> LANGULUS(INLINED) IF_UNSAFE(constexpr)
+   decltype(auto) Block<TYPE>::GetDeep(Offset idx) IF_UNSAFE(noexcept) {
+      if constexpr (TypeErased) {
+         LANGULUS_ASSUME(DevAssumes, IsDeep(), "Block is not deep");
+         return Get<Block<>>(idx);
+      }
+      else {
+         static_assert(CT::Deep<Decay<TYPE>>, "Block is not deep");
+         if constexpr (CT::Sparse<TYPE>)
+            return *GetRaw(idx);
+         else
+            return  GetRaw(idx);
+      }
+   }
+
+   template<class TYPE> LANGULUS(INLINED) IF_UNSAFE(constexpr)
+   decltype(auto) Block<TYPE>::GetDeep(Offset idx) const IF_UNSAFE(noexcept) {
+      return const_cast<Block<TYPE>*>(this)->GetDeep(idx);
+   }
+
    /// Get an element at an index, trying to interpret it as T                
    /// No conversion or copying shall occur in this routine, only pointer     
    /// arithmetic based on RTTI                                               
@@ -89,65 +116,118 @@ namespace Langulus::Anyness
    ///   @return either pointer or reference to the element (depends on T)    
    template<class TYPE> template<CT::Data T>
    decltype(auto) Block<TYPE>::As(CT::Index auto index) {
-      // First quick type stage for fast access                         
-      LANGULUS_ASSUME(DevAssumes, mType, "Block is not typed");
-      if (mType->IsSimilar<T>()) {
-         auto typed = reinterpret_cast<Block<T>*>(this);
-         const auto idx = typed->SimplifyIndex(index);
-         LANGULUS_ASSERT(idx < mCount, Access, "Index out of range");
-         return (*typed)[idx];
-      }
+      if constexpr (TypeErased) {
+         // Type-erased As                                              
+         // First quick type stage for fast access                      
+         LANGULUS_ASSUME(DevAssumes, mType, "Block is not typed");
+         if (mType->IsSimilar<T>()) {
+            auto typed = reinterpret_cast<Block<T>*>(this);
+            const auto idx = typed->SimplifyIndex(index);
+            LANGULUS_ASSERT(idx < mCount, Access, "Index out of range");
+            return (*typed)[idx];
+         }
       
-      // Optimize if we're interpreting as a container                  
-      if constexpr (CT::Deep<T>) {
-         LANGULUS_ASSERT(IsDeep(), Access, "Type mismatch");
-         auto typed = reinterpret_cast<Block<Block<>>*>(this);
-         const auto idx = typed->SimplifyIndex(index);
+         // Optimize if we're interpreting as a container               
+         if constexpr (CT::Deep<T>) {
+            LANGULUS_ASSERT(IsDeep(), Access, "Type mismatch");
+            auto typed = reinterpret_cast<Block<Block<>>*>(this);
+            const auto idx = typed->SimplifyIndex(index);
+            LANGULUS_ASSERT(idx < mCount, Access, "Index out of range");
+            auto& result = (*typed)[idx];
+
+            if constexpr (CT::Typed<T>) {
+               // Additional check, if T is a typed block               
+               LANGULUS_ASSERT(result.template IsSimilar<TypeOf<T>>(),
+                  Access, "Deep type mismatch");
+            }
+
+            if constexpr (CT::Sparse<T>)
+               return reinterpret_cast<T>(&result);
+            else
+               return reinterpret_cast<T&>(result);
+         }
+
+         // Fallback stage for compatible bases and mappings            
+         const auto idx = SimplifyIndex(index);
          LANGULUS_ASSERT(idx < mCount, Access, "Index out of range");
-         auto& result = (*typed)[idx];
 
-         if constexpr (CT::Typed<T>) {
-            // Additional check, if T is a typed block                  
-            LANGULUS_ASSERT(result.template IsSimilar<TypeOf<T>>(),
-               Access, "Deep type mismatch");
+         RTTI::Base base;
+         if (not mType->template GetBase<T>(0, base)) {
+            // There's still a chance if this container is resolvable   
+            // This is the third and final stage                        
+            auto resolved = GetElementResolved(idx);
+            if (resolved.mType->template IsExact<T>()) {
+               // Element resolved to a compatible type, so get it      
+               return resolved.template Get<T>();
+            }
+            else if (resolved.mType->template GetBase<T>(0, base)) {
+               // Get base memory of the resolved element and access    
+               return resolved.GetBaseMemory(base)
+                  .template Get<T>(idx % base.mCount);
+            }
+
+            // All stages of interpretation failed                      
+            // Don't log this, because it will spam the crap out of us  
+            // That throw is used by ForEach to handle irrelevant types 
+            LANGULUS_THROW(Access, "Type mismatch");
          }
 
-         if constexpr (CT::Sparse<T>)
-            return reinterpret_cast<T>(&result);
-         else
-            return reinterpret_cast<T&>(result);
+         // Get base memory of the required element and access          
+         return 
+            GetElementDense(idx / base.mCount)
+               .GetBaseMemory(base)
+                  .template Get<T>(idx % base.mCount);
       }
+      else {
+         // Statically optimized As                                     
+         if constexpr (CT::Deep<T>) {
+            // Optimize if we're interpreting as a container            
+            static_assert(CT::Deep<Decay<TYPE>>, "Type mismatch");
+            const auto idx = SimplifyIndex(index);
+            auto& result = (*this)[idx];
 
-      // Fallback stage for compatible bases and mappings               
-      const auto idx = SimplifyIndex(index);
-      LANGULUS_ASSERT(idx < mCount, Access, "Index out of range");
+            if constexpr (CT::Typed<T>) {
+               // Additional check, if T is a typed block               
+               if (not result.template IsSimilar<TypeOf<T>>())
+                  LANGULUS_THROW(Access, "Deep type mismatch");
+            }
 
-      RTTI::Base base;
-      if (not mType->template GetBase<T>(0, base)) {
-         // There's still a chance if this container is resolvable      
-         // This is the third and final stage                           
-         auto resolved = GetElementResolved(idx);
-         if (resolved.mType->template IsExact<T>()) {
-            // Element resolved to a compatible type, so get it         
-            return resolved.template Get<T>();
+            if constexpr (CT::Sparse<T>)
+               return reinterpret_cast<T>(&result);
+            else
+               return reinterpret_cast<T&>(result);
          }
-         else if (resolved.mType->template GetBase<T>(0, base)) {
-            // Get base memory of the resolved element and access       
-            return resolved.GetBaseMemory(base)
-               .template Get<T>(idx % base.mCount);
+         else if constexpr (CT::Sparse<T>
+         and requires (Decay<TYPE>* e) { dynamic_cast<T>(e); }) {
+            // Do a dynamic_cast whenever possible                      
+            const auto idx = SimplifyIndex(index);
+            Decvq<T> ptr;
+            if constexpr (CT::Sparse<TYPE>)
+               ptr = dynamic_cast<T>((*this)[idx]);
+            else
+               ptr = dynamic_cast<T>(&(*this)[idx]);
+            LANGULUS_ASSERT(ptr, Access, "Failed dynamic_cast");
+            return ptr;
          }
+         else if constexpr (requires (Decay<TYPE>* e) { static_cast<Decay<T>*>(e); }) {
+            // Do a quick static_cast whenever possible                 
+            const auto idx = SimplifyIndex(index);
 
-         // All stages of interpretation failed                         
-         // Don't log this, because it will spam the crap out of us     
-         // That throw is used by ForEach to handle irrelevant types    
-         LANGULUS_THROW(Access, "Type mismatch");
+            if constexpr (CT::Sparse<T>) {
+               if constexpr (CT::Sparse<TYPE>)
+                  return static_cast<T>((*this)[idx]);
+               else
+                  return static_cast<T>(&(*this)[idx]);
+            }
+            else {
+               if constexpr (CT::Sparse<TYPE>)
+                  return static_cast<T&>(*(*this)[idx]);
+               else
+                  return static_cast<T&>((*this)[idx]);
+            }
+         }
+         else LANGULUS_ERROR("Type mismatch");
       }
-
-      // Get base memory of the required element and access             
-      return 
-         GetElementDense(idx / base.mCount)
-            .GetBaseMemory(base)
-               .template Get<T>(idx % base.mCount);
    }
 
    template<class TYPE> template<CT::Data T> LANGULUS(INLINED)
@@ -546,82 +626,38 @@ namespace Langulus::Anyness
       }
       else return IndexNone;
    }
-
-   /// Sort the contents of this container using a static type                
-   ///   @attention assumes T is the type of the container                    
-   ///   @attention this is the most naive of sorting algorithms              
-   ///   @tparam ASCEND - whether to sort in ascending order (123)            
-   template<class TYPE> template<bool ASCEND>
-   void Block<TYPE>::Sort() noexcept {
-      auto lhs = GetRaw();
-      const auto lhsEnd = lhs + mCount;
-      while (lhs != lhsEnd) {
-         auto rhs = GetRaw();
-         while (rhs != lhs) {
-            if constexpr (ASCEND) {
-               if (*lhs < *rhs)
-                  ::std::swap(*lhs, *rhs);
-            }
-            else {
-               if (*lhs > *rhs)
-                  ::std::swap(*lhs, *rhs);
-            }
-
-            ++rhs;
-         }
-
-         ++rhs;
-
-         while (rhs != lhsEnd) {
-            if constexpr (ASCEND) {
-               if (*lhs < *rhs)
-                  ::std::swap(*lhs, *rhs);
-            }
-            else {
-               if (*lhs > *rhs)
-                  ::std::swap(*lhs, *rhs);
-            }
-
-            ++rhs;
-         }
-
-         ++lhs;
-      }
-   }
    
    /// Return a handle to an element                                          
-   ///   @tparam T - the contained type, or alternatively a Byte* for sparse  
-   ///      unknowns; Byte for dense unknowns                                 
    ///   @param index - the element index                                     
    ///   @return the handle                                                   
-   template<class TYPE> template<CT::Data T> LANGULUS(INLINED)
+   template<class TYPE> LANGULUS(INLINED)
    auto Block<TYPE>::GetHandle(const Offset index) IF_UNSAFE(noexcept) {
-      using TT = Conditional<CT::Handle<T>, TypeOf<T>, T>;
-      if constexpr (CT::Sparse<TT>) {
-         return Handle<TT> {
-            GetRawAs<TT>()[index],
-            GetEntries()[index]
-         };
+      if constexpr (CT::Sparse<TYPE> or not TypeErased) {
+         // Either sparse or not type-erased                            
+         if constexpr (CT::Sparse<TYPE>)
+            return Handle<TYPE> {GetRaw()[index], GetEntries()[index]};
+         else
+            return Handle<TYPE> {GetRaw()[index], mEntry};
       }
-      else return Handle<TT> {
-         GetRawAs<TT>()[index], 
-         mEntry
-      };
+      else {
+         // Type erased and dense                                       
+         return Handle<TYPE> {GetRaw<Byte*>() + index, mEntry};
+      }
    }
 
-   template<class TYPE> template<CT::Data T> LANGULUS(INLINED)
+   template<class TYPE> LANGULUS(INLINED)
    auto Block<TYPE>::GetHandle(const Offset index) const IF_UNSAFE(noexcept) {
-      using TT = Conditional<CT::Handle<T>, TypeOf<T>, T>;
-      if constexpr (CT::Sparse<TT>) {
-         return Handle<const TT> {
-            GetRawAs<TT>()[index],
-            GetEntries()[index]
-         };
+      if constexpr (CT::Sparse<TYPE> or not TypeErased) {
+         // Either sparse or not type-erased                            
+         if constexpr (CT::Sparse<TYPE>)
+            return Handle<const TYPE> {GetRaw()[index], GetEntries()[index]};
+         else
+            return Handle<const TYPE> {GetRaw()[index], mEntry};
       }
-      else return Handle<const TT> {
-         GetRawAs<TT>()[index], 
-         mEntry
-      };
+      else {
+         // Type erased and dense                                       
+         return Handle<const TYPE> {GetRaw<Byte*>() + index, mEntry};
+      }
    }
 
    /// Select region from the memory block - unsafe and may return memory     

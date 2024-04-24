@@ -322,7 +322,7 @@ namespace Langulus::Anyness
          else ambiguous = true;
       });
 
-      ForEachTail([&](const Block& c) noexcept {
+      ForEachTail([&](const Block<>& c) noexcept {
          if (not c.CastsToMeta(type))
             return;
 
@@ -823,7 +823,7 @@ namespace Langulus::Anyness
    inline const Many* Neat::Get(TMeta meta, Offset index) const {
       const auto found = mTraits.FindIt(meta);
       if (found and found.mValue->GetCount() > index)
-         return &found.mValue->Get(index);
+         return &(*found.mValue)[index];
       return nullptr;
    }
 

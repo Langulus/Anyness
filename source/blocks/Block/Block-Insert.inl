@@ -1318,9 +1318,9 @@ namespace Langulus::Anyness
    ///      overlap, but this is handled in the assignment operators)         
    ///   @attention assumes blocks are binary compatible                      
    ///   @param source - the elements to assign                               
-   template<CT::Block THIS, template<class> class S, CT::Block OTHER>
+   template<class TYPE> template<template<class> class S, CT::Block OTHER>
    requires CT::Semantic<S<OTHER>>
-   void Block::AssignSemantic(S<OTHER>&& source) {
+   void Block<TYPE>::AssignSemantic(S<OTHER>&& source) {
       const auto count = source->mCount;
       LANGULUS_ASSUME(DevAssumes, count and count <= mReserved,
          "Count outside limits", '(', count, " > ", mReserved);
@@ -1328,15 +1328,15 @@ namespace Langulus::Anyness
          "Data is referenced from multiple locations");
 
       // Type-erased pointers (void*) are acceptable                    
-      LANGULUS_ASSUME(DevAssumes, (source->GetType()->IsSimilar(GetType<THIS>())
-         or (source->GetType()->template IsSimilar<void*>() and IsSparse<THIS>())
-         or (source->GetType()->mIsSparse and GetType<THIS>()->template IsSimilar<void*>())),
-         "Type mismatch on assignment", ": ", source->GetType(), " != ", GetType<THIS>());
+      LANGULUS_ASSUME(DevAssumes, (source->IsSimilar(*this)
+         or (source->template IsSimilar<void*>() and IsSparse())
+         or (source->IsSparse() and IsSimilar<void*>())),
+         "Type mismatch on assignment", ": ", source->GetType(), " != ", GetType());
 
-      using B = Conditional<CT::Typed<THIS>, THIS, OTHER>;
-      using T = Conditional<CT::Typed<B>, TypeOf<B>, void>;
+      using B = Conditional<TypeErased, OTHER, Block<TYPE>>;
+      using T = TypeOf<B>;
       using SS = S<B>;
-      const auto mthis = reinterpret_cast<B*>(const_cast<Block*>(this));
+      const auto mthis = reinterpret_cast<B*>(this);
       const auto other = reinterpret_cast<B*>(const_cast<OTHER*>(&(*source)));
 
       if constexpr (not CT::TypeErased<T>) {
@@ -1345,28 +1345,28 @@ namespace Langulus::Anyness
             using DT = Deptr<T>;
             if constexpr (SS::Shallow) {
                // Shallow pointer transfer                              
-               Destroy<THIS>();
+               Destroy();
                ShallowBatchPointerConstruction(source.Forward());
             }
             else if constexpr (CT::Unallocatable<Decay<T>> or not CT::CloneAssignable<T>) {
                // We early-return with an enforced shallow pointer      
                // transfer, because its requesting to clone             
                // unallocatable/unclonable/abstract data, such as metas 
-               Destroy<THIS>();
+               Destroy();
                ShallowBatchPointerConstruction(Refer(*source));
             }
             else if constexpr (CT::Sparse<DT> or not CT::Resolvable<T>) {
                // If contained type is not resolvable, or its deptr     
                // version is still a pointer, we can coalesce all       
                // clones into a single allocation (optimization)        
-               Block clonedCoalescedSrc {mType->mDeptr};
-               clonedCoalescedSrc.AllocateFresh<Many>(
-                  clonedCoalescedSrc.RequestSize<Many>(count));
+               Block<> clonedCoalescedSrc {mType->mDeptr};
+               clonedCoalescedSrc.AllocateFresh(
+                  clonedCoalescedSrc.RequestSize(count));
                clonedCoalescedSrc.mCount = count;
 
                // Clone each inner element                              
-               auto handle = GetHandle<T, THIS>(0);
-               auto dst = clonedCoalescedSrc.template GetRawAs<DT, Many>();
+               auto handle = GetHandle<T>(0);
+               auto dst = clonedCoalescedSrc.template GetRawAs<DT>();
                auto src = source->GetRaw();
                const auto srcEnd = src + count;
                while (src != srcEnd) {
@@ -1477,8 +1477,8 @@ namespace Langulus::Anyness
             auto lhs = mthis->mRawSparse;
             const auto lhsEnd = lhs + count;
             auto rhs = other->mRawSparse;
-            auto lhsEntry = mthis->template GetEntries<THIS>();
-            auto rhsEntry = other->template GetEntries<THIS>();
+            auto lhsEntry = mthis->GetEntries();
+            auto rhsEntry = other->GetEntries();
 
             while (lhs != lhsEnd) {
                Handle (*lhs, *lhsEntry)
@@ -1494,7 +1494,7 @@ namespace Langulus::Anyness
          else if (mType->mIsPOD) {
             // Both RHS and LHS are dense and POD                       
             // So we batch-overwrite them at once                       
-            CopyMemory(mRaw, source->mRaw, GetBytesize<THIS>());
+            CopyMemory(mRaw, source->mRaw, GetBytesize());
          }
          else {
             // Both RHS and LHS are dense and non-POD                   
@@ -1534,34 +1534,31 @@ namespace Langulus::Anyness
    ///   @param what - the value to assign                                    
    ///   @attention be careful when filling using a move/abandon semantic -   
    ///      'what' can be reset after the first assignment if not trivial     
-   template<CT::Block THIS> LANGULUS(INLINED)
-   void Block::Fill(auto&& what) {
+   template<class TYPE> LANGULUS(INLINED)
+   void Block<TYPE>::Fill(auto&& what) {
       if (IsEmpty())
          return;
 
       using S = SemanticOf<decltype(what)>;
       using ST = TypeOf<S>;
-      auto mthis = reinterpret_cast<THIS*>(const_cast<Block*>(this));
 
-      if constexpr (CT::Typed<THIS>) {
+      if constexpr (not TypeErased) {
          // Assign by directly checking if argument satisfies an        
          // assignment signature, knowing what the contained type is    
          // at compile time                                             
-         using T = TypeOf<THIS>;
-
-         if constexpr (CT::AssignableFrom<T, decltype(what)>) {
-            auto lhs = mthis->template GetRaw<THIS>();
+         if constexpr (CT::AssignableFrom<TYPE, decltype(what)>) {
+            auto lhs = GetRaw();
             const auto lhsEnd = lhs + mCount;
             while (lhs != lhsEnd)
                *(lhs++) = S::Nest(what);
 
-            if constexpr (CT::Sparse<T>) {
+            if constexpr (CT::Sparse<TYPE>) {
                // We just copied a pointer multiple times, make sure    
                // we dereference the old entries, and reference the new 
                // memory multiple times, if we own it                   
-               auto ent = mthis->template GetEntries<THIS>();
+               auto ent = GetEntries();
                const auto entEnd = ent + mCount;
-               auto allocation = Allocator::Find(MetaDataOf<Deptr<T>>(), *(--lhs));
+               auto allocation = Allocator::Find(MetaDataOf<Deptr<TYPE>>(), *(--lhs));
 
                if (allocation) {
                   while (ent != entEnd) {
@@ -1591,16 +1588,16 @@ namespace Langulus::Anyness
          // We expect, that type has been previously set                
          LANGULUS_ASSUME(DevAssumes, IsTyped(),
             "Block was expected to be typed");
-         LANGULUS_ASSERT((IsSimilar<THIS, ST>()), Mutate,
+         LANGULUS_ASSERT(IsSimilar<ST>(), Mutate,
             "Type mismatch");
 
          // Wrap argument into a block, and assign it to each element   
-         auto rhs = Block::From(DesemCast(what));
+         auto rhs = Block<>::From(DesemCast(what));
          auto lhs = GetElement();
          const auto size = GetBytesize();
          const auto lhsEnd = mRaw + size;
          while (lhs.mRaw < lhsEnd) {
-            lhs.template AssignSemantic<THIS>(S::Nest(rhs));
+            lhs.AssignSemantic(S::Nest(rhs));
             lhs.mRaw += size;
          }
       }

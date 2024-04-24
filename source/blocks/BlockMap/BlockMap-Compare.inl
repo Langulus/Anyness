@@ -315,7 +315,7 @@ namespace Langulus::Anyness
    ///   @param match - the key to search for                                 
    ///   @return the index, or InvalidOffset if not found                     
    template<CT::Map THIS>
-   Offset BlockMap::FindBlockInner(const Block& match) const {
+   Offset BlockMap::FindBlockInner(const Block<>& match) const {
       if (IsEmpty() or not IsKeySimilar<THIS>(match.GetType()))
          return InvalidOffset;
 

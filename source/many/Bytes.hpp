@@ -65,8 +65,8 @@ namespace Langulus::Anyness
    /// represent any POD type as a sequence of bytes. Also used as a binary   
    /// serializer.                                                            
    ///                                                                        
-   struct Bytes : TMany<Byte> {
-      using Base = TMany<Byte>;
+   struct Bytes : Block<Byte> {
+      using Base = Block<Byte>;
 
       LANGULUS(DEEP) false;
       LANGULUS_BASES(Base);
