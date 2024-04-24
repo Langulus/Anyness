@@ -396,7 +396,7 @@ namespace Langulus::Anyness
    /// Get iterator to first element                                          
    ///   @return an iterator to the first element, or end if empty            
    template<class TYPE> LANGULUS(INLINED)
-   constexpr TIterator<Block<TYPE>> Block<TYPE>::begin() noexcept {
+   constexpr typename Block<TYPE>::Iterator Block<TYPE>::begin() noexcept {
       if (IsEmpty())
          return end();
 
@@ -407,14 +407,14 @@ namespace Langulus::Anyness
    }
 
    template<class TYPE> LANGULUS(INLINED)
-   constexpr TIterator<const Block<TYPE>> Block<TYPE>::begin() const noexcept {
+   constexpr typename Block<TYPE>::ConstIterator Block<TYPE>::begin() const noexcept {
       return const_cast<Block*>(this)->begin();
    }
 
    /// Get iterator to the last element                                       
    ///   @return an iterator to the last element, or end if empty             
    template<class TYPE> LANGULUS(INLINED)
-   constexpr TIterator<Block<TYPE>> Block<TYPE>::last() noexcept {
+   constexpr typename Block<TYPE>::Iterator Block<TYPE>::last() noexcept {
       if (IsEmpty())
          return end();
 
@@ -427,7 +427,7 @@ namespace Langulus::Anyness
    }
 
    template<class TYPE> LANGULUS(INLINED)
-   constexpr TIterator<const Block<TYPE>> Block<TYPE>::last() const noexcept {
+   constexpr typename Block<TYPE>::ConstIterator Block<TYPE>::last() const noexcept {
       return const_cast<Block*>(this)->last();
    }
    
@@ -528,22 +528,22 @@ namespace Langulus::Anyness
    /// Construct an iterator                                                  
    ///   @param start - the current iterator position                         
    ///   @param end - the ending marker                                       
-   template<CT::Block T> LANGULUS(INLINED)
-   constexpr TIterator<T>::TIterator(TypeInner start, Byte const* end) noexcept
+   template<class T> LANGULUS(INLINED)
+   constexpr TBlockIterator<T>::TBlockIterator(TypeInner start, Byte const* end) noexcept
       : mValue {start}
       , mEnd   {end} {}
 
    /// Construct an end iterator                                              
-   template<CT::Block T> LANGULUS(INLINED)
-   constexpr TIterator<T>::TIterator(const A::IteratorEnd&) noexcept
+   template<class T> LANGULUS(INLINED)
+   constexpr TBlockIterator<T>::TBlockIterator(const A::IteratorEnd&) noexcept
       : mValue {nullptr}
       , mEnd   {nullptr} {}
 
    /// Compare two iterators                                                  
    ///   @param rhs - the other iterator                                      
    ///   @return true if iterators point to the same element                  
-   template<CT::Block T> LANGULUS(INLINED)
-   constexpr bool TIterator<T>::operator == (const TIterator& rhs) const noexcept {
+   template<class T> LANGULUS(INLINED)
+   constexpr bool TBlockIterator<T>::operator == (const TBlockIterator& rhs) const noexcept {
       if constexpr (CT::Typed<T>)
          return mValue == reinterpret_cast<const Type*>(rhs.mValue);
       else
@@ -553,8 +553,8 @@ namespace Langulus::Anyness
    /// Compare iterator with an end marker                                    
    ///   @param rhs - the end iterator                                        
    ///   @return true element is at or beyond the end marker                  
-   template<CT::Block T> LANGULUS(INLINED)
-   constexpr bool TIterator<T>::operator == (const A::IteratorEnd&) const noexcept {
+   template<class T> LANGULUS(INLINED)
+   constexpr bool TBlockIterator<T>::operator == (const A::IteratorEnd&) const noexcept {
       if constexpr (CT::Typed<T>)
          return mValue >= reinterpret_cast<const Type*>(mEnd);
       else
@@ -563,8 +563,8 @@ namespace Langulus::Anyness
    
    /// Iterator access operator                                               
    ///   @return a reference to the element at the current iterator position  
-   template<CT::Block T> LANGULUS(INLINED)
-   constexpr decltype(auto) TIterator<T>::operator * () const noexcept {
+   template<class T> LANGULUS(INLINED)
+   constexpr decltype(auto) TBlockIterator<T>::operator * () const noexcept {
       if constexpr (CT::Typed<T>)
          return *mValue;
       else
@@ -573,8 +573,8 @@ namespace Langulus::Anyness
 
    /// Iterator access operator                                               
    ///   @return a reference to the element at the current iterator position  
-   template<CT::Block T> LANGULUS(INLINED)
-   constexpr decltype(auto) TIterator<T>::operator -> () const noexcept {
+   template<class T> LANGULUS(INLINED)
+   constexpr decltype(auto) TBlockIterator<T>::operator -> () const noexcept {
       if constexpr (CT::Typed<T>)
          return *mValue;
       else
@@ -584,8 +584,8 @@ namespace Langulus::Anyness
    /// Prefix increment operator                                              
    ///   @attention assumes iterator points to a valid element                
    ///   @return the modified iterator                                        
-   template<CT::Block T> LANGULUS(INLINED)
-   constexpr TIterator<T>& TIterator<T>::operator ++ () noexcept {
+   template<class T> LANGULUS(INLINED)
+   constexpr TBlockIterator<T>& TBlockIterator<T>::operator ++ () noexcept {
       ++mValue;
       return *this;
    }
@@ -593,16 +593,16 @@ namespace Langulus::Anyness
    /// Suffix increment operator                                              
    ///   @attention assumes iterator points to a valid element                
    ///   @return the previous value of the iterator                           
-   template<CT::Block T> LANGULUS(INLINED)
-   constexpr TIterator<T> TIterator<T>::operator ++ (int) noexcept {
+   template<class T> LANGULUS(INLINED)
+   constexpr TBlockIterator<T> TBlockIterator<T>::operator ++ (int) noexcept {
       const auto backup = *this;
       operator ++ ();
       return backup;
    }
 
    /// Check if iterator is valid                                             
-   template<CT::Block T> LANGULUS(INLINED)
-   constexpr TIterator<T>::operator bool() const noexcept {
+   template<class T> LANGULUS(INLINED)
+   constexpr TBlockIterator<T>::operator bool() const noexcept {
       return *this != A::IteratorEnd {};
    }
 

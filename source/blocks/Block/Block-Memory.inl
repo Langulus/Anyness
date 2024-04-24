@@ -16,24 +16,21 @@ namespace Langulus::Anyness
    /// Get a size based on reflected allocation page and count                
    ///   @param count - the number of elements to request                     
    ///   @return both the provided byte size and reserved count               
-   template<CT::Block THIS> LANGULUS(INLINED)
-   AllocationRequest Block::RequestSize(const Count count) const
+   template<class TYPE> LANGULUS(INLINED)
+   AllocationRequest Block<TYPE>::RequestSize(const Count count) const
    IF_UNSAFE(noexcept) {
-      if constexpr (CT::Typed<THIS>) {
-         using T = TypeOf<THIS>;
-         if constexpr (CT::Fundamental<T> or CT::Exact<T, Byte>) {
-            AllocationRequest result;
-            result.mByteSize = ::std::max(Roof2(count * sizeof(T)), Alignment);
-            result.mElementCount = result.mByteSize / sizeof(T);
-            return result;
-         }
-         else return GetType<THIS>()->RequestSize(count);
-      }
-      else {
-         LANGULUS_ASSUME(DevAssumes, IsTyped<THIS>(),
+      if constexpr (TypeErased) {
+         LANGULUS_ASSUME(DevAssumes, IsTyped(),
             "Requesting allocation size for an untyped container");
          return mType->RequestSize(count);
       }
+      else if constexpr (CT::Fundamental<TYPE> or CT::Exact<TYPE, Byte>) {
+         AllocationRequest result;
+         result.mByteSize = ::std::max(Roof2(count * sizeof(T)), Alignment);
+         result.mElementCount = result.mByteSize / sizeof(T);
+         return result;
+      }
+      else return GetType()->RequestSize(count);
    }
 
    /// Reserve a number of elements without initializing them                 
@@ -43,12 +40,12 @@ namespace Langulus::Anyness
    ///   @attention using SETSIZE will NOT construct any elements, use only   
    ///      if you know what you're doing                                     
    ///   @param count - number of elements to reserve                         
-   template<bool SETSIZE, CT::Block THIS> LANGULUS(INLINED)
-   void Block::Reserve(const Count count) {
+   template<class TYPE> template<bool SETSIZE> LANGULUS(INLINED)
+   void Block<TYPE>::Reserve(const Count count) {
       if (count < mCount)
-         AllocateLess<THIS>(count);
+         AllocateLess(count);
       else 
-         AllocateMore<THIS>(count);
+         AllocateMore(count);
 
       if constexpr (SETSIZE)
          mCount = count;
@@ -59,15 +56,13 @@ namespace Langulus::Anyness
    ///   @tparam CREATE - true to call constructors and set count             
    ///   @tparam SETSIZE - true to set count, despite not constructing        
    ///   @param elements - number of elements to allocate                     
-   template<CT::Block THIS, bool CREATE, bool SETSIZE>
-   void Block::AllocateMore(const Count elements) {
+   template<class TYPE> template<bool CREATE, bool SETSIZE>
+   void Block<TYPE>::AllocateMore(const Count elements) {
       LANGULUS_ASSUME(DevAssumes, elements > mCount, "Bad element count");
 
-      if constexpr (CT::Typed<THIS>) {
-         using T = TypeOf<THIS>;
-
+      if constexpr (not TypeErased) {
          // Allocate/reallocate                                         
-         const auto request = RequestSize<THIS>(elements);
+         const auto request = RequestSize(elements);
          if (mEntry) {
             if (mReserved >= elements) {
                // Required memory is already available                  
@@ -75,7 +70,7 @@ namespace Langulus::Anyness
                   // But is not yet initialized, so initialize it       
                   if (mCount < elements) {
                      const auto count = elements - mCount;
-                     CropInner(mCount, count).CreateDefault<THIS>();
+                     CropInner(mCount, count).CreateDefault();
                   }
                }
 
@@ -87,7 +82,7 @@ namespace Langulus::Anyness
             // Reallocate                                               
             Block previousBlock {*this};
             mEntry = Allocator::Reallocate(
-               request.mByteSize * (CT::Sparse<T> ? 2 : 1),
+               request.mByteSize * (CT::Sparse<TYPE> ? 2 : 1),
                const_cast<Allocation*>(mEntry)
             );
             LANGULUS_ASSERT(mEntry, Allocate, "Out of memory");
@@ -106,13 +101,13 @@ namespace Langulus::Anyness
                   // chance for a move). Sparse containers have         
                   // additional memory allocated for each pointer's     
                   // entry, if managed memory is enabled                
-                  if constexpr (CT::AbandonMakable<T>
-                            or  CT::MoveMakable<T>
-                            or  CT::ReferMakable<T>
-                            or  CT::CopyMakable<T>
+                  if constexpr (CT::AbandonMakable<TYPE>
+                            or  CT::MoveMakable<TYPE>
+                            or  CT::ReferMakable<TYPE>
+                            or  CT::CopyMakable<TYPE>
                   ) {
                      mRaw = const_cast<Byte*>(mEntry->GetBlockStart());
-                     CreateSemantic<THIS>(Abandon(previousBlock));
+                     CreateSemantic(Abandon(previousBlock));
                      previousBlock.Free();
                   }
                   else LANGULUS_THROW(Construct,
@@ -122,13 +117,13 @@ namespace Langulus::Anyness
                   // Memory is used from multiple locations, and we must
                   // copy the memory for this block - we can't move it! 
                   // This will throw, if data is not copiable/referable 
-                  if constexpr (CT::ReferMakable<T>) {
-                     AllocateFresh<THIS>(request);
-                     CreateSemantic<THIS>(Refer(previousBlock));
+                  if constexpr (CT::ReferMakable<TYPE>) {
+                     AllocateFresh(request);
+                     CreateSemantic(Refer(previousBlock));
                   }
-                  else if constexpr (CT::CopyMakable<T>) {
-                     AllocateFresh<THIS>(request);
-                     CreateSemantic<THIS>(Copy(previousBlock));
+                  else if constexpr (CT::CopyMakable<TYPE>) {
+                     AllocateFresh(request);
+                     CreateSemantic(Copy(previousBlock));
                   }
                   else LANGULUS_THROW(Construct,
                      "Memory moved, but T is not refer/copy-constructible");
@@ -136,11 +131,11 @@ namespace Langulus::Anyness
             }
             else {
                // Memory didn't move, but reserved count changed        
-               if constexpr (CT::Sparse<T>) {
+               if constexpr (CT::Sparse<TYPE>) {
                   // Move entry data to its new place                   
                   MoveMemory(
-                     GetEntries<THIS>(),
-                     previousBlock.GetEntries<THIS>(),
+                     GetEntries(),
+                     previousBlock.GetEntries(),
                      mCount
                   );
                }
@@ -149,17 +144,17 @@ namespace Langulus::Anyness
             if constexpr (CREATE) {
                // Default-construct the rest                            
                const auto count = elements - mCount;
-               CropInner(mCount, count).CreateDefault<THIS>();
+               CropInner(mCount, count).CreateDefault();
             }
          }
          else {
             // Allocate a fresh set of elements                         
-            mType = MetaDataOf<T>();
-            AllocateFresh<THIS>(request);
+            mType = MetaDataOf<TYPE>();
+            AllocateFresh(request);
 
             if constexpr (CREATE) {
                // Default-construct everything                          
-               CropInner(mCount, elements).CreateDefault<THIS>();
+               CropInner(mCount, elements).CreateDefault();
             }
          }
       }
@@ -180,11 +175,11 @@ namespace Langulus::Anyness
                // But is not yet initialized, so initialize it          
                if (mCount < elements) {
                   const auto count = elements - mCount;
-                  CropInner(mCount, count).CreateDefault<THIS>();
+                  CropInner(mCount, count).CreateDefault();
                }
             }
          }
-         else AllocateInner<THIS, CREATE>(elements);
+         else AllocateInner<CREATE>(elements);
       }
 
       if constexpr (CREATE or SETSIZE)
@@ -195,8 +190,8 @@ namespace Langulus::Anyness
    /// Initialized elements on the back will be destroyed                     
    ///   @attention assumes 'elements' is smaller than the current reserve    
    ///   @param elements - number of elements to allocate                     
-   template<CT::Block THIS> LANGULUS(INLINED)
-   void Block::AllocateLess(const Count elements) {
+   template<class TYPE> LANGULUS(INLINED)
+   void Block<TYPE>::AllocateLess(const Count elements) {
       LANGULUS_ASSUME(DevAssumes, elements < mReserved, "Bad element count");
 
       if (mCount > elements) {
@@ -204,28 +199,26 @@ namespace Langulus::Anyness
          // Allowed even when container is static and out of            
          // jurisdiction, as in that case this acts as a simple count   
          // decrease, and no destructors shall be called                
-         Trim<THIS>(elements);
+         Trim(elements);
          return;
       }
 
       #if LANGULUS_FEATURE(MANAGED_MEMORY)
          // Shrink the memory block                                     
          // Guaranteed that entry doesn't move                          
-         const auto request = RequestSize<THIS>(elements);
+         const auto request = RequestSize(elements);
          if (request.mElementCount != mReserved) {
-            if constexpr (CT::Typed<THIS>) {
-               using T = TypeOf<THIS>;
-
-               if constexpr (CT::Sparse<T>) {
+            if constexpr (not TypeErased) {
+               if constexpr (CT::Sparse<TYPE>) {
                   // Move entry data to its new place                   
                   MoveMemory(
-                     GetEntries<THIS>() - mReserved + request.mElementCount,
-                     GetEntries<THIS>(), mCount
+                     GetEntries() - mReserved + request.mElementCount,
+                     GetEntries(), mCount
                   );
                }
 
                mEntry = Allocator::Reallocate(
-                  request.mByteSize * (CT::Sparse<T> ? 2 : 1),
+                  request.mByteSize * (CT::Sparse<TYPE> ? 2 : 1),
                   const_cast<Allocation*>(mEntry)
                );
             }
@@ -235,8 +228,8 @@ namespace Langulus::Anyness
                if (mType->mIsSparse) {
                   // Move entry data to its new place                   
                   MoveMemory(
-                     GetEntries<THIS>() - mReserved + request.mElementCount,
-                     GetEntries<THIS>(), mCount
+                     GetEntries() - mReserved + request.mElementCount,
+                     GetEntries(), mCount
                   );
                }
 
@@ -255,8 +248,8 @@ namespace Langulus::Anyness
    /// that is owned by us. Preserve hierarchy, density and state, but remove 
    /// size constraints and constness. If we already own this block's memory, 
    /// then only a Keep() is done                                             
-   template<CT::Block THIS> LANGULUS(INLINED)
-   void Block::TakeAuthority() {
+   template<class TYPE> LANGULUS(INLINED)
+   void Block<TYPE>::TakeAuthority() {
       if (not mRaw)
          return;
 
@@ -268,8 +261,8 @@ namespace Langulus::Anyness
 
       // Shallow-copy all elements (equivalent to a Copy semantic)      
       Block shallowCopy {*this};
-      shallowCopy.AllocateFresh<THIS>(RequestSize<THIS>(mCount));
-      shallowCopy.CreateSemantic<THIS>(Refer(*this));
+      shallowCopy.AllocateFresh(RequestSize(mCount));
+      shallowCopy.CreateSemantic(Refer(*this));
       shallowCopy.mState -= DataState::Static | DataState::Constant;
       CopyMemory(this, &shallowCopy);
    }
@@ -278,15 +271,15 @@ namespace Langulus::Anyness
    ///   @attention assumes a valid and non-abstract type, if dense           
    ///   @tparam CREATE - true to call constructors and set count             
    ///   @param elements - number of elements to allocate                     
-   template<CT::Block THIS, bool CREATE>
-   void Block::AllocateInner(Count elements) {
-      LANGULUS_ASSERT(IsTyped<THIS>(), Allocate,
+   template<class TYPE> template<bool CREATE>
+   void Block<TYPE>::AllocateInner(Count elements) {
+      LANGULUS_ASSERT(IsTyped(), Allocate,
          "Invalid type");
-      LANGULUS_ASSERT(not GetType<THIS>()->mIsAbstract or IsSparse<THIS>(), Allocate,
+      LANGULUS_ASSERT(not GetType()->mIsAbstract or IsSparse(), Allocate,
          "Abstract dense type");
 
       // Retrieve the required byte size                                
-      const auto request = RequestSize<THIS>(elements);
+      const auto request = RequestSize(elements);
       
       // Allocate/reallocate                                            
       if (mEntry) {
@@ -313,14 +306,14 @@ namespace Langulus::Anyness
                // Sparse containers have additional memory allocated for
                // each pointer's entry, if managed memory is enabled    
                mRaw = const_cast<Byte*>(mEntry->GetBlockStart());
-               CreateSemantic<THIS>(Abandon(previousBlock));
+               CreateSemantic(Abandon(previousBlock));
             }
             else {
                // Memory is used from multiple locations, and we must   
                // copy the memory for this block - we can't move it!    
-               AllocateFresh<THIS>(request);
-               CreateSemantic<THIS>(Refer(previousBlock));
-               previousBlock.Free<Many>();
+               AllocateFresh(request);
+               CreateSemantic(Refer(previousBlock));
+               previousBlock.Free();
             }
          }
          else {
@@ -328,19 +321,19 @@ namespace Langulus::Anyness
             if (mType->mIsSparse) {
                // Move entry data to its new place                      
                MoveMemory(
-                  GetEntries<THIS>(),
-                  previousBlock.GetEntries<THIS>(),
+                  GetEntries(),
+                  previousBlock.GetEntries(),
                   mCount
                );
             }
          }
       }
-      else AllocateFresh<THIS>(request);
+      else AllocateFresh(request);
 
       if constexpr (CREATE) {
          // Default-construct the rest                                  
          const auto count = elements - mCount;
-         CropInner(mCount, count).CreateDefault<THIS>();
+         CropInner(mCount, count).CreateDefault();
          mCount = elements;
       }
    }
@@ -348,12 +341,12 @@ namespace Langulus::Anyness
    /// Allocate a fresh allocation (inner function)                           
    ///   @attention changes entry, memory and reserve count                   
    ///   @param request - request to fulfill                                  
-   template<CT::Block THIS> LANGULUS(INLINED)
-   void Block::AllocateFresh(const AllocationRequest& request) {
+   template<class TYPE> LANGULUS(INLINED)
+   void Block<TYPE>::AllocateFresh(const AllocationRequest& request) {
       // Sparse containers have additional memory allocated             
       // for each pointer's entry                                       
-      mEntry = Allocator::Allocate(GetType<THIS>(),
-         request.mByteSize * (IsSparse<THIS>() ? 2 : 1));
+      mEntry = Allocator::Allocate(GetType(),
+         request.mByteSize * (IsSparse() ? 2 : 1));
 
       LANGULUS_ASSERT(mEntry, Allocate, "Out of memory");
       mRaw = const_cast<Byte*>(mEntry->GetBlockStart());
@@ -361,8 +354,8 @@ namespace Langulus::Anyness
    }
 
    /// Reference memory block once                                            
-   LANGULUS(INLINED)
-   void Block::Keep() const noexcept {
+   template<class TYPE> LANGULUS(INLINED)
+   void Block<TYPE>::Keep() const noexcept {
       if (mEntry)
          const_cast<Allocation*>(mEntry)->Keep(1);
    }
@@ -370,8 +363,8 @@ namespace Langulus::Anyness
    /// Dereference memory block once and destroy all elements if data was     
    /// fully dereferenced                                                     
    ///   @attention this never modifies any state, except mEntry              
-   template<CT::Block THIS> LANGULUS(INLINED)
-   void Block::Free() {
+   template<class TYPE> LANGULUS(INLINED)
+   void Block<TYPE>::Free() {
       if (not mEntry)
          return;
 
@@ -386,13 +379,13 @@ namespace Langulus::Anyness
             "did you forget to add a reference?");
 
          if (mCount)
-            Destroy<THIS>();
+            Destroy();
          Allocator::Deallocate(const_cast<Allocation*>(mEntry));
       }
       else {
          // Dereference memory                                          
          if (mCount and not mState.IsStatic())
-            Destroy<THIS, false>();
+            Destroy<false>();
          const_cast<Allocation*>(mEntry)->Free();
       }
 

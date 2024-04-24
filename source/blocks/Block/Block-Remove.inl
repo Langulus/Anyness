@@ -169,7 +169,7 @@ namespace Langulus::Anyness
    ///   @return an iterator pointing to the element at index - 1, or at end  
    ///      if block became empty                                             
    template<class TYPE>
-   TIterator<Block<TYPE>> Block<TYPE>::RemoveIt(
+   typename Block<TYPE>::Iterator Block<TYPE>::RemoveIt(
       const Iterator& index, const Count count
    ) {
       if (index.mValue >= GetRaw())
@@ -447,20 +447,20 @@ namespace Langulus::Anyness
    ///   @attention assumes block is not empty                                
    ///   @attention assumes block is not static                               
    ///   @param mask - internally used for destroying tables (tag dispatch)   
-   template<CT::Block THIS, class MASK>
-   void Block::DestroySparse(MASK mask) const {
+   template<class TYPE> template<class MASK>
+   void Block<TYPE>::DestroySparse(MASK mask) const {
       // Destroy all indirection layers, if their references reach      
       // 1, and destroy the dense element, if it has destructor         
       // This is done in the following way:                             
       //    1. First dereference all handles that point to the          
       //       same memory together as one                              
       //    2. Destroy those groups, that are fully dereferenced        
-      using T = Conditional<CT::Typed<THIS>, TypeOf<THIS>, Byte*>;
+      using T = Conditional<TypeErased, Byte*, TYPE>;
       const auto count = CT::Nullptr<MASK> ? mCount : mReserved;
       const auto mthis = const_cast<Block*>(this);
       static_assert(CT::Sparse<T>);
 
-      auto handle = mthis->GetHandle<T, THIS>(0);
+      auto handle = mthis->GetHandle<T>(0);
       const auto begMarker = handle.mValue;
       const auto endMarker = handle.mValue + count;
 
@@ -539,10 +539,10 @@ namespace Langulus::Anyness
                   }
 
                   if (*handle.mEntry == *handle2.mEntry) {
-                     if constexpr (CT::Typed<THIS>)
-                        handle2.template Destroy<true, false>();
-                     else
+                     if constexpr (TypeErased)
                         handle2.template DestroyUnknown<true, false>(mType);
+                     else
+                        handle2.template Destroy<true, false>();
                   }
 
                   ++handle2;
@@ -579,18 +579,18 @@ namespace Langulus::Anyness
             }
          }
 
-         if constexpr (CT::Typed<THIS>)
-            handle.Destroy();
-         else
+         if constexpr (TypeErased)
             handle.DestroyUnknown(mType);
+         else
+            handle.Destroy();
 
          ++handle;
       }
    }
 
    /// Reset the memory inside the block                                      
-   LANGULUS(INLINED)
-   constexpr void Block::ResetMemory() noexcept {
+   template<class TYPE> LANGULUS(INLINED)
+   constexpr void Block<TYPE>::ResetMemory() noexcept {
       mRaw = nullptr;
       mEntry = nullptr;
       mCount = mReserved = 0;
