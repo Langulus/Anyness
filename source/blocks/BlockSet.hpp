@@ -41,7 +41,7 @@ namespace Langulus
          InfoType* mInfo {};
 
          // The block that contains the keys and info bytes             
-         Anyness::Block mKeys;
+         Anyness::Block<> mKeys;
 
       public:
          constexpr BlockSet() noexcept = default;
@@ -159,8 +159,8 @@ namespace Langulus::Anyness
       NOD() InfoType*       GetInfo() noexcept;
       NOD() InfoType const* GetInfoEnd() const noexcept;
 
-      NOD() Count GetCountDeep(const Block&) const noexcept;
-      NOD() Count GetCountElementsDeep(const Block&) const noexcept;
+      NOD() Count GetCountDeep(const Block<>&) const noexcept;
+      NOD() Count GetCountElementsDeep(const Block<>&) const noexcept;
 
    public:
       ///                                                                     
@@ -178,7 +178,7 @@ namespace Langulus::Anyness
       noexcept(not LANGULUS_SAFE() and CT::BuiltinInteger<INDEX>);
 
       NOD() static Offset GetBucket(Offset, const CT::NotSemantic auto&) noexcept;
-      NOD() static Offset GetBucketUnknown(Offset, const Block&) noexcept;
+      NOD() static Offset GetBucketUnknown(Offset, const Block<>&) noexcept;
 
       template<CT::Set = UnorderedSet>
       NOD() decltype(auto) GetRaw(Offset)       IF_UNSAFE(noexcept);
@@ -289,7 +289,7 @@ namespace Langulus::Anyness
       template<CT::Set>
       NOD() Offset FindInner(const CT::NotSemantic auto&) const;
       template<CT::Set>
-      NOD() Offset FindBlockInner(const Block&) const;
+      NOD() Offset FindBlockInner(const Block<>&) const;
 
    public:
       ///                                                                     
@@ -340,9 +340,9 @@ namespace Langulus::Anyness
       template<CT::Set, bool CHECK_FOR_MATCH>
       Offset InsertInner(Offset, auto&&);
 
-      template<CT::Set, bool CHECK_FOR_MATCH, template<class> class S>
-      requires CT::Semantic<S<Block>>
-      Offset InsertBlockInner(Offset, S<Block>&&);
+      template<CT::Set, bool CHECK_FOR_MATCH, template<class> class S, CT::Block B>
+      requires CT::Semantic<S<B>>
+      Offset InsertBlockInner(Offset, S<B>&&);
 
       template<CT::Set>
       Count UnfoldInsert(auto&&);

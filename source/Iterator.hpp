@@ -48,12 +48,4 @@ namespace Langulus
 
    } // namespace Langulus::CT
 
-   namespace Anyness
-   {
-
-      template<class>
-      struct TIterator;
-
-   } // namespace Langulus::Anyness
-
 } // namespace Langulus

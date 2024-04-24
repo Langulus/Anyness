@@ -152,6 +152,9 @@ namespace Langulus
 namespace Langulus::Anyness
 {
 
+   template<class>
+   struct TBlockIterator;
+
    #if LANGULUS_FEATURE(COMPRESSION)
       /// Compression types, analogous to zlib's                              
       enum class Compression {
@@ -441,13 +444,12 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Iteration                                                         
       ///                                                                     
-      using Iterator = TIterator<Block>;
-      using ConstIterator = TIterator<const Block>;
+      using Iterator      = TBlockIterator<Block>;
+      using ConstIterator = TBlockIterator<const Block>;
 
-      NOD() constexpr Iterator begin() noexcept;
+      NOD() constexpr Iterator      begin() noexcept;
       NOD() constexpr ConstIterator begin() const noexcept;
-
-      NOD() constexpr Iterator last() noexcept;
+      NOD() constexpr Iterator      last() noexcept;
       NOD() constexpr ConstIterator last() const noexcept;
 
       constexpr A::IteratorEnd end() const noexcept { return {}; }
@@ -593,28 +595,23 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Memory management                                                 
       ///                                                                     
-      template<bool SETSIZE = false, CT::Block = Many>
+      template<bool SETSIZE = false>
       void Reserve(Count);
 
    protected:
       /// @cond show_protected                                                
-      template<CT::Block>
       NOD() AllocationRequest RequestSize(Count) const IF_UNSAFE(noexcept);
 
-      template<CT::Block, bool CREATE = false, bool SETSIZE = false>
+      template<bool CREATE = false, bool SETSIZE = false>
       void AllocateMore(Count);
-      template<CT::Block>
       void AllocateLess(Count);
 
-      template<CT::Block>
       void TakeAuthority();
-      template<CT::Block, bool CREATE = false>
+      template<bool CREATE = false>
       void AllocateInner(Count);
-      template<CT::Block>
       void AllocateFresh(const AllocationRequest&);
 
       void Keep() const noexcept;
-      template<CT::Block = Many>
       void Free();
       /// @endcond                                                            
 
@@ -622,63 +619,58 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Insertion                                                         
       ///                                                                     
-      template<CT::Block = Many, class FORCE = Many, bool MOVE_ASIDE = true, class T1, class...TAIL>
+      template<class FORCE = Many, bool MOVE_ASIDE = true, class T1, class...TAIL>
       Count Insert(CT::Index auto, T1&&, TAIL&&...);
 
-      template<CT::Block = Many, class FORCE = Many, bool MOVE_ASIDE = true, class T>
+      template<class FORCE = Many, bool MOVE_ASIDE = true, class T>
       requires CT::Block<Desem<T>>
       Count InsertBlock(CT::Index auto, T&&);
 
-      template<CT::Block = Many, class FORCE = Many, bool MOVE_ASIDE = true, class T1, class...TAIL>
+      template<class FORCE = Many, bool MOVE_ASIDE = true, class T1, class...TAIL>
       Count Merge(CT::Index auto, T1&&, TAIL&&...);
 
-      template<CT::Block = Many, class FORCE = Many, bool MOVE_ASIDE = true, class T>
+      template<class FORCE = Many, bool MOVE_ASIDE = true, class T>
       requires CT::Block<Desem<T>>
       Count MergeBlock(CT::Index auto, T&&);
    
-      template<CT::Block = Many, bool MOVE_ASIDE = true, class...A>
+      template<bool MOVE_ASIDE = true, class...A>
       Count Emplace(CT::Index auto, A&&...);
 
-      template<CT::Block = Many, class...A>
+      template<class...A>
       Count New(Count, A&&...);
-
-      template<CT::Block>
       Count New(Count);
 
-      template<bool CONCAT = true, class FORCE = Many, CT::Block THIS = Many>
+      template<bool CONCAT = true, class FORCE = Many>
       Count SmartPush(CT::Index auto, auto&&, DataState = {});
 
-      template<CT::Deep T, bool TRANSFER_OR = true, CT::Block THIS>
-      requires CT::CanBeDeepened<T, THIS>
+      template<CT::Deep T, bool TRANSFER_OR = true>
+      requires CT::CanBeDeepened<T, Block>
       T& Deepen();
 
-      template<CT::Block>
       void Null(Count);
-
-      template<CT::Block>
       void Fill(auto&&);
 
       template<CT::Block THIS>
       NOD() THIS Extend(Count);
 
    protected:
-      template<CT::Block, class FORCE, bool MOVE_ASIDE>
+      template<class FORCE, bool MOVE_ASIDE>
       void InsertInner(CT::Index auto, auto&&);
 
-      template<CT::Block, class FORCE, bool MOVE_ASIDE, class T = void, template<class> class S>
-      requires CT::Semantic<S<Block>>
-      void InsertBlockInner(CT::Index auto, S<Block>&&);
+      template<class FORCE, bool MOVE_ASIDE, template<class> class S, CT::Block B>
+      requires CT::Semantic<S<B>>
+      void InsertBlockInner(CT::Index auto, S<B>&&);
 
-      template<CT::Block, class FORCE, bool MOVE_ASIDE>
+      template<class FORCE, bool MOVE_ASIDE>
       Count UnfoldInsert(CT::Index auto, auto&&);
-      template<CT::Block, class FORCE, bool MOVE_ASIDE>
+      template<class FORCE, bool MOVE_ASIDE>
       Count UnfoldMerge(CT::Index auto, auto&&);
 
-      template<CT::Block, class FORCE, template<class> class S, CT::Deep T>
+      template<class FORCE, template<class> class S, CT::Deep T>
       requires CT::Semantic<S<T>>
       Count SmartConcat(const CT::Index auto, bool, S<T>&&, DataState);
 
-      template<CT::Block, class FORCE, template<class> class S, class T>
+      template<class FORCE, template<class> class S, class T>
       requires CT::Semantic<S<T>>
       Count SmartPushInner(const CT::Index auto, S<T>&&, DataState);
 
@@ -686,20 +678,19 @@ namespace Langulus::Anyness
       requires CT::Semantic<S<T>>
       THIS ConcatBlock(S<T>&&) const;
 
-      template<CT::Block>
       void CreateDefault();
 
-      template<CT::Block, class...A>
+      template<class...A>
       void CreateDescribe(A&&...);
 
-      template<CT::Block, class...A>
+      template<class...A>
       void Create(A&&...);
 
-      template<CT::Block = Many, bool REVERSE = false, template<class> class S, CT::Block T>
+      template<bool REVERSE = false, template<class> class S, CT::Block T>
       requires CT::Semantic<S<T>>
       void CreateSemantic(S<T>&&);
 
-      template<CT::Block = Many, template<class> class S, CT::Handle T>
+      template<template<class> class S, CT::Handle T>
       requires CT::Semantic<S<T>>
       void CreateSemantic(S<T>&&);
 
@@ -708,7 +699,7 @@ namespace Langulus::Anyness
       void ShallowBatchPointerConstruction(S<T>&&);
 
    public:
-      template<CT::Block = Many, template<class> class S, CT::Block T>
+      template<template<class> class S, CT::Block T>
       requires CT::Semantic<S<T>>
       void AssignSemantic(S<T>&&);
 
@@ -752,10 +743,7 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Conversion                                                        
       ///                                                                     
-      template<CT::Block = Many>
       Count Convert(CT::Block auto&) const;
-
-      template<CT::Block = Many>
       Count Serialize(CT::Serial auto&) const;
 
    protected:
@@ -763,31 +751,28 @@ namespace Langulus::Anyness
       struct Header {
          enum { Default, BigEndian };
 
-         ::std::uint8_t  mAtomSize {sizeof(Offset)};
-         ::std::uint8_t  mFlags {BigEndianMachine ? BigEndian : Default};
-         ::std::uint16_t mVersion {0};
-         ::std::uint32_t mDefinitionCount {0};
+         ::std::uint8_t  mAtomSize = sizeof(Offset);
+         ::std::uint8_t  mFlags    = BigEndianMachine ? BigEndian : Default;
+         ::std::uint16_t mVersion  = 0;
+         ::std::uint32_t mDefinitionCount = 0;
       };
       #pragma pack(pop)
 
       using Loader = void(*)(Block&, Count);
 
-      template<CT::Block, class>
+      template<class>
       Count SerializeToText(CT::Serial auto&) const;
-      template<CT::Block, class>
+      template<class>
       Count SerializeToBinary(CT::Serial auto&) const;
-      template<CT::Block, class, class...RULES>
+      template<class, class...RULES>
       Count SerializeByRules(CT::Serial auto&, Types<RULES...>) const;
-      template<CT::Block, class, class RULE>
+      template<class, class RULE>
       Count SerializeApplyRule(CT::Serial auto&) const;
 
-      template<CT::Block, class>
+      template<class>
       Offset DeserializeBinary(CT::Block auto&, const Header&, Offset = 0, Loader = nullptr) const;
-      template<CT::Block>
       void ReadInner(Offset, Count, Loader) const;
-      template<CT::Block>
       NOD() Offset DeserializeAtom(Offset&, Offset, const Header&, Loader) const;
-      template<CT::Block>
       NOD() Offset DeserializeMeta(CT::Meta auto&, Offset, const Header&, Loader) const;
    };
 
@@ -887,8 +872,9 @@ namespace Langulus::Anyness
    ///                                                                        
    ///   Contiguous block iterator                                            
    ///                                                                        
-   template<CT::Block BLOCK>
-   struct TIterator<BLOCK> : A::Iterator {
+   template<class BLOCK>
+   struct TBlockIterator : A::Iterator {
+      static_assert(CT::Block<BLOCK>, "BLOCK must be a block type");
       static constexpr bool Mutable = CT::Mutable<BLOCK>;
 
       using Type = Conditional<CT::Typed<BLOCK>
@@ -909,32 +895,32 @@ namespace Langulus::Anyness
       // Iterator position which is considered the 'end' iterator       
       Byte const* mEnd;
 
-      constexpr TIterator(TypeInner, Byte const*) noexcept;
+      constexpr TBlockIterator(TypeInner, Byte const*) noexcept;
 
    public:
-      TIterator() noexcept = delete;
-      constexpr TIterator(const TIterator&) noexcept = default;
-      constexpr TIterator(TIterator&&) noexcept = default;
-      constexpr TIterator(const A::IteratorEnd&) noexcept;
+      TBlockIterator() noexcept = delete;
+      constexpr TBlockIterator(const TBlockIterator&) noexcept = default;
+      constexpr TBlockIterator(TBlockIterator&&) noexcept = default;
+      constexpr TBlockIterator(const A::IteratorEnd&) noexcept;
 
-      constexpr TIterator& operator = (const TIterator&) noexcept = default;
-      constexpr TIterator& operator = (TIterator&&) noexcept = default;
+      constexpr TBlockIterator& operator = (const TBlockIterator&) noexcept = default;
+      constexpr TBlockIterator& operator = (TBlockIterator&&) noexcept = default;
 
-      NOD() constexpr bool operator == (const TIterator&) const noexcept;
+      NOD() constexpr bool operator == (const TBlockIterator&) const noexcept;
       NOD() constexpr bool operator == (const A::IteratorEnd&) const noexcept;
 
       NOD() constexpr decltype(auto) operator *  () const noexcept;
       NOD() constexpr decltype(auto) operator -> () const noexcept;
 
       // Prefix operator                                                
-      constexpr TIterator& operator ++ () noexcept;
+      constexpr TBlockIterator& operator ++ () noexcept;
 
       // Suffix operator                                                
-      NOD() constexpr TIterator operator ++ (int) noexcept;
+      NOD() constexpr TBlockIterator operator ++ (int) noexcept;
 
       constexpr explicit operator bool() const noexcept;
 
-      constexpr operator TIterator<const BLOCK>() const noexcept
+      constexpr operator TBlockIterator<const BLOCK>() const noexcept
       requires Mutable {
          return {mValue, mEnd};
       }
