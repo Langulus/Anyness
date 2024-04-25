@@ -64,11 +64,11 @@ namespace Langulus::Anyness
       static_assert(Embedded or not TypeErased,
          "Can't have a type-erased local handle, unless it is sparse");
 
-      using Type      = Conditional<TypeErased, Byte*, T>;
+      //using Type      = Conditional<TypeErased, Byte*, T>;
       using AllocType = const Allocation*;
       using ValueType = Conditional<Embedded,
-            T*,
-            Conditional<Sparse, T*, Type>>;
+            Conditional<TypeErased, Byte*, T*>,
+            T>;
       using EntryType = Conditional<Embedded and Sparse,
             Conditional<Mutable, AllocType*, AllocType const*>,
             AllocType>;

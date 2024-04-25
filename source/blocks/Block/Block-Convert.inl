@@ -34,7 +34,6 @@ namespace Langulus::Anyness
       if constexpr (not TypeErased and not OUT::TypeErased) {
          // Both containers are statically typed, so leverage it to     
          // generate a well inlined routine for conversion              
-
          if constexpr (CT::Similar<TYPE, TO>) {
             // Types are already the same, just copy elements           
             out.AllocateMore(out.mCount + mCount);
@@ -44,7 +43,7 @@ namespace Langulus::Anyness
          else if constexpr (CT::Convertible<TYPE, TO>) {
             // Types are statically convertible                         
             out.AllocateMore(out.mCount + mCount);
-            for (auto& from : me) {
+            for (auto& from : *this) {
                out.template InsertInner<void, false>(
                   IndexBack, static_cast<TO>(from));
             }
@@ -415,7 +414,7 @@ namespace Langulus::Anyness
 
          if (IsSparse()) {
             // ... pointer by pointer if sparse                         
-            auto p = GetRawSparseAs<Byte>();
+            auto p = mRawSparse;
             const auto pEnd = p + GetCount();
             while (p != pEnd)
                to += Bytes::From(Disown(p++), denseStride);

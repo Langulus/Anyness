@@ -345,7 +345,7 @@ namespace Langulus::Anyness
    ///   @param rhs - what are we instantiating                               
    TEMPLATE() LANGULUS(INLINED)
    void HAND()::CreateSemantic(DMeta type, auto&& rhs) {
-      using S = SemanticOf<decltype(rhs)>;
+      using S  = SemanticOf<decltype(rhs)>;
       using ST = TypeOf<S>;
 
       if constexpr (TypeErased) {
@@ -433,15 +433,15 @@ namespace Langulus::Anyness
             else {
                static_assert(CT::Sparse<T> == CT::Sparse<ST>);
 
-               if constexpr (SS::Move) {
-                  if constexpr (SS::Keep)
+               if constexpr (S::Move) {
+                  if constexpr (S::Keep)
                      type->mMoveAssigner(&Get(), &*rhs);
                   else
                      type->mAbandonAssigner(&Get(), &*rhs);
                }
-               else if constexpr (SS::Shallow) {
-                  if constexpr (SS::Keep) {
-                     if constexpr (CT::Referred<SS>)
+               else if constexpr (S::Shallow) {
+                  if constexpr (S::Keep) {
+                     if constexpr (CT::Referred<S>)
                         type->mReferAssigner(&Get(), const_cast<void*>(reinterpret_cast<const void*>(&*rhs)));
                      else
                         type->mCopyAssigner(&Get(), &*rhs);
@@ -674,9 +674,7 @@ namespace Langulus::Anyness
                   if (meta->mDeptr->mIsSparse) {
                      // Pointer to pointer                              
                      // Release all nested indirection layers           
-                     HandleLocal<Byte*> {
-                        *reinterpret_cast<Byte**>(Get())
-                     }.DestroyUnknown(meta->mDeptr);
+                     HandleLocal<Deptr<T>> {Get()}.Destroy(meta->mDeptr);
                   }
                   else if (meta->mDestructor) {
                      // Pointer to a complete, destroyable dense        
@@ -714,8 +712,8 @@ namespace Langulus::Anyness
             }
 
             if constexpr (RESET) {
-               // Handle is dense and embedded, we should call the remote  
-               // destructor, but don't touch the entry, its irrelevant    
+               // Handle is dense and embedded, we should call remote   
+               // destructor, but don't touch the entry, its irrelevant 
                Get() = nullptr;
                GetEntry() = nullptr;
             }

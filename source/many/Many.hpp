@@ -78,7 +78,7 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Iteration                                                         
       ///                                                                     
-      template<bool REVERSE = false>
+      /*template<bool REVERSE = false>
       Count ForEachElement(auto&&) const;
       template<bool REVERSE = false>
       Count ForEachElement(auto&&);
@@ -106,7 +106,7 @@ namespace Langulus::Anyness
 
       template<CT::Data, CT::Data...>
       NOD() constexpr bool IsExact() const noexcept;
-      NOD() bool IsExact(DMeta) const noexcept;
+      NOD() bool IsExact(DMeta) const noexcept;*/
 
       ///                                                                     
       ///   Comparison                                                        

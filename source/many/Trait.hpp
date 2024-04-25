@@ -23,9 +23,12 @@ namespace Langulus
       struct Trait : Anyness::Many {
          LANGULUS(ABSTRACT) true;
          LANGULUS(DEEP) false;
-         LANGULUS_BASES(Many);
+         LANGULUS_BASES(Anyness::Many);
 
       protected:
+         using Base = Anyness::Many;
+
+         // The trait tag                                               
          mutable TMeta mTraitType {};
       };
 

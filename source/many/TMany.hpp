@@ -116,6 +116,8 @@ namespace Langulus::Anyness
    ///                                                                        
    template<CT::Data T>
    class TMany : public Block<T> {
+      using Base = Block<T>;
+
       static_assert(CT::Complete<T>,
          "Contained type must be complete");
       static_assert(CT::Insertable<T>,
@@ -132,20 +134,20 @@ namespace Langulus::Anyness
 
    protected: IF_LANGULUS_TESTING(public:)
       #if LANGULUS_DEBUG()
-         using Block<T>::mRawChar;
+         using Base::mRawChar;
       #endif
 
-      using Block<T>::mRaw;
-      using Block<T>::mRawSparse;
-      using Block<T>::mState;
-      using Block<T>::mCount;
-      using Block<T>::mReserved;
-      using Block<T>::mType;
-      using Block<T>::mEntry;
+      using Base::mRaw;
+      using Base::mRawSparse;
+      using Base::mState;
+      using Base::mCount;
+      using Base::mReserved;
+      using Base::mType;
+      using Base::mEntry;
 
    public:
-      using typename Block<T>::Iterator;
-      using typename Block<T>::ConstIterator;
+      using typename Base::Iterator;
+      using typename Base::ConstIterator;
 
       ///                                                                     
       ///   Construction                                                      
@@ -231,41 +233,6 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Insertion                                                         
       ///                                                                     
-      template<bool MOVE_ASIDE = true, class T1, class...TN>
-      requires CT::UnfoldMakableFrom<T, T1, TN...>
-      Count Insert(CT::Index auto, T1&&, TN&&...);
-
-      template<class FORCE = Many, bool MOVE_ASIDE = true, class T1>
-      requires CT::Block<Desem<T1>>
-      Count InsertBlock(CT::Index auto, T1&&);
-
-      template<bool MOVE_ASIDE = true, class T1, class...TN>
-      requires CT::UnfoldMakableFrom<T, T1, TN...>
-      Count Merge(CT::Index auto, T1&&, TN&&...);
-
-      template<class FORCE = Many, bool MOVE_ASIDE = true, class T1>
-      requires CT::Block<Desem<T1>>
-      Count MergeBlock(CT::Index auto, T1&&);
-   
-      template<bool MOVE_ASIDE = true, class...A>
-      requires ::std::constructible_from<T, A...>
-      Conditional<CT::Sparse<T>, T, T&> Emplace(CT::Index auto, A&&...);
-
-      template<class...A>
-      requires ::std::constructible_from<T, A...>
-      Count New(Count, A&&...);
-
-      Count New(Count = 1) requires CT::Defaultable<T>;
-
-      template<CT::Deep T1, bool TRANSFER_OR = true>
-      requires CT::CanBeDeepened<T1, TMany>
-      T1& Deepen();
-
-      void Null(Count);
-
-      template<class A> requires CT::AssignableFrom<T, A>
-      void Fill(A&&);
-
       NOD() TMany<T> Extend(Count);
 
       template<class T1> requires CT::UnfoldMakableFrom<T, T1>
@@ -281,20 +248,6 @@ namespace Langulus::Anyness
       TMany& operator >>= (T1&&);
 
       ///                                                                     
-      ///   Removal                                                           
-      ///                                                                     
-      template<bool REVERSE = false>
-      Count Remove(const CT::Data auto&);
-      Count RemoveIndex(CT::Index auto, Count = 1);
-      Count RemoveIndexDeep(CT::Index auto);
-      Iterator RemoveIt(const Iterator&, Count = 1);
-
-      void Trim(Count);
-      void Optimize();
-      void Clear();
-      void Reset();
-
-      ///                                                                     
       ///   Concatenation                                                     
       ///                                                                     
       template<class T1> requires CT::DeepMakable<T, T1>
@@ -305,10 +258,10 @@ namespace Langulus::Anyness
 
    private:
       /// Services graveyard - disallowed interface for typed containers      
-      using Block<T>::MakeTypeConstrained;
-      using Block<T>::GetResolved;
-      using Block<T>::GetDense;
-      using Block<T>::GetBlockDeep;
+      using Base::MakeTypeConstrained;
+      using Base::GetResolved;
+      using Base::GetDense;
+      using Base::GetBlockDeep;
    };
 
 

@@ -33,7 +33,7 @@ namespace Langulus
          union {
             DEBUGGERY(char* mRawChar);
             // Raw pointer to first element inside the memory block     
-            Byte* mRaw {};
+            Byte*  mRaw {};
             Byte** mRawSparse;
          };
    
@@ -184,6 +184,11 @@ namespace Langulus::Anyness
       static constexpr bool Ownership  = false;
       static constexpr bool Sequential = true;
       static constexpr bool TypeErased = CT::TypeErased<TYPE>;
+      static constexpr bool Sparse     = CT::Sparse<TYPE>;
+      static constexpr bool Dense      = not Sparse;
+
+      template<class>
+      friend struct Block;
 
       friend class Many;
       template<CT::Data>
@@ -416,8 +421,10 @@ namespace Langulus::Anyness
       noexcept(not LANGULUS_SAFE() and CT::BuiltinInteger<INDEX>);
 
    IF_LANGULUS_TESTING(public:)
-      NOD() auto GetHandle(Offset = 0)       IF_UNSAFE(noexcept);
-      NOD() auto GetHandle(Offset = 0) const IF_UNSAFE(noexcept);
+      template<class = TYPE> NOD()
+      auto GetHandle(Offset = 0)       IF_UNSAFE(noexcept);
+      template<class = TYPE> NOD()
+      auto GetHandle(Offset = 0) const IF_UNSAFE(noexcept);
 
       template<CT::Data = TYPE> NOD() IF_UNSAFE(constexpr)
       decltype(auto) Get(Offset = 0, Offset = 0)       IF_UNSAFE(noexcept);
@@ -492,14 +499,17 @@ namespace Langulus::Anyness
       template<CT::Data, CT::Data...>
       NOD() constexpr bool Is() const noexcept;
       NOD() bool Is(DMeta) const noexcept;
+      NOD() bool Is(const CT::Block auto&) const noexcept;
 
       template<CT::Data, CT::Data...>
       NOD() constexpr bool IsSimilar() const noexcept;
       NOD() bool IsSimilar(DMeta) const noexcept;
+      NOD() bool IsSimilar(const CT::Block auto&) const noexcept;
 
       template<CT::Data, CT::Data...>
       NOD() constexpr bool IsExact() const noexcept;
       NOD() bool IsExact(DMeta) const noexcept;
+      NOD() bool IsExact(const CT::Block auto&) const noexcept;
 
       template<bool BINARY_COMPATIBLE = false>
       NOD() bool CastsToMeta(DMeta) const;
@@ -547,10 +557,12 @@ namespace Langulus::Anyness
 
       template<bool RESOLVE = true>
       NOD() bool Compare(const CT::Block auto&) const;
-      NOD() Hash GetHash() const;
+      NOD() Hash GetHash() const requires (TypeErased or CT::Hashable<TYPE>);
 
-      template<bool REVERSE = false>
-      NOD() Index         Find  (const CT::NotSemantic auto&, Offset = 0) const noexcept;
+      template<bool REVERSE = false, CT::NotSemantic T1>
+      NOD() Index Find(const T1&, Offset = 0) const noexcept
+      requires (TypeErased or CT::Comparable<TYPE, T1>);
+
       NOD() Iterator      FindIt(const CT::NotSemantic auto&);
       NOD() ConstIterator FindIt(const CT::NotSemantic auto&) const;
 
@@ -558,7 +570,7 @@ namespace Langulus::Anyness
       NOD() Index FindBlock(const CT::Block auto&, CT::Index auto) const noexcept;
 
       template<bool ASCEND = false>
-      void Sort();
+      void Sort() requires (TypeErased or CT::Sortable<TYPE, TYPE>);
 
       NOD() bool  CompareLoose(const CT::Block auto&) const noexcept;
       NOD() Count Matches(const CT::Block auto&) const noexcept;
@@ -603,36 +615,42 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Insertion                                                         
       ///                                                                     
-      template<class FORCE = Many, bool MOVE_ASIDE = true, class T1, class...TAIL>
-      Count Insert(CT::Index auto, T1&&, TAIL&&...);
+      template<class FORCE = Many, bool MOVE_ASIDE = true, class T1, class...TN>
+      Count Insert(CT::Index auto, T1&&, TN&&...)
+      requires (TypeErased or CT::UnfoldMakableFrom<TYPE, T1, TN...>);
 
       template<class FORCE = Many, bool MOVE_ASIDE = true, class T>
       requires CT::Block<Desem<T>>
       Count InsertBlock(CT::Index auto, T&&);
 
-      template<class FORCE = Many, bool MOVE_ASIDE = true, class T1, class...TAIL>
-      Count Merge(CT::Index auto, T1&&, TAIL&&...);
+      template<class FORCE = Many, bool MOVE_ASIDE = true, class T1, class...TN>
+      Count Merge(CT::Index auto, T1&&, TN&&...)
+      requires (TypeErased or CT::UnfoldMakableFrom<TYPE, T1, TN...>);
 
       template<class FORCE = Many, bool MOVE_ASIDE = true, class T>
       requires CT::Block<Desem<T>>
       Count MergeBlock(CT::Index auto, T&&);
    
       template<bool MOVE_ASIDE = true, class...A>
-      Count Emplace(CT::Index auto, A&&...);
+      decltype(auto) Emplace(CT::Index auto, A&&...)
+      requires (TypeErased or ::std::constructible_from<TYPE, A...>);
 
       template<class...A>
-      Count New(Count, A&&...);
-      Count New(Count);
+      Count New(Count, A&&...)
+      requires (TypeErased or ::std::constructible_from<TYPE, A...>);
+
+      Count New(Count) requires (TypeErased or CT::Defaultable<TYPE>);
 
       template<bool CONCAT = true, class FORCE = Many>
       Count SmartPush(CT::Index auto, auto&&, DataState = {});
 
       template<CT::Deep T, bool TRANSFER_OR = true>
-      requires CT::CanBeDeepened<T, Block<TYPE>>
       T& Deepen();
 
       void Null(Count);
-      void Fill(auto&&);
+
+      template<class A>
+      void Fill(A&&) requires (TypeErased or CT::AssignableFrom<TYPE, A>);
 
       template<CT::Block THIS>
       NOD() THIS Extend(Count);

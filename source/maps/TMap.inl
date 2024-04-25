@@ -12,8 +12,8 @@
 #include "../pairs/TPair.inl"
 
 
-#define TEMPLATE() template<CT::Data K, CT::Data V, bool ORDERED>
-#define TABLE() TMap<K, V, ORDERED>
+#define TEMPLATE()   template<CT::Data K, CT::Data V, bool ORDERED>
+#define TABLE()      TMap<K, V, ORDERED>
 
 
 namespace Langulus::Anyness
