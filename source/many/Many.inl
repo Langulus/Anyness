@@ -50,11 +50,11 @@ namespace Langulus::Anyness
          using T = TypeOf<S>;
 
          if constexpr (CT::Deep<T>)
-            BlockTransfer(S::Nest(t1));
+            Base::BlockTransfer(S::Nest(t1));
          else
-            Insert<Many, true>(IndexBack, Forward<T1>(t1));
+            Base::Insert<Many, true>(IndexBack, Forward<T1>(t1));
       }
-      else Insert<Many, true>(IndexBack, Forward<T1>(t1), Forward<TN>(tn)...);
+      else Base::Insert<Many, true>(IndexBack, Forward<T1>(t1), Forward<TN>(tn)...);
    }
 
    /// Destruction                                                            

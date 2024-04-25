@@ -96,7 +96,7 @@ namespace Langulus::Anyness
       }
       else {
          static_assert(CT::Deep<Decay<TYPE>>, "Block is not deep");
-         if constexpr (CT::Sparse<TYPE>)
+         if constexpr (Sparse)
             return *GetRaw(idx);
          else
             return  GetRaw(idx);
@@ -202,7 +202,7 @@ namespace Langulus::Anyness
             // Do a dynamic_cast whenever possible                      
             const auto idx = SimplifyIndex(index);
             Decvq<T> ptr;
-            if constexpr (CT::Sparse<TYPE>)
+            if constexpr (Sparse)
                ptr = dynamic_cast<T>((*this)[idx]);
             else
                ptr = dynamic_cast<T>(&(*this)[idx]);
@@ -214,13 +214,13 @@ namespace Langulus::Anyness
             const auto idx = SimplifyIndex(index);
 
             if constexpr (CT::Sparse<T>) {
-               if constexpr (CT::Sparse<TYPE>)
+               if constexpr (Sparse)
                   return static_cast<T>((*this)[idx]);
                else
                   return static_cast<T>(&(*this)[idx]);
             }
             else {
-               if constexpr (CT::Sparse<TYPE>)
+               if constexpr (Sparse)
                   return static_cast<T&>(*(*this)[idx]);
                else
                   return static_cast<T&>((*this)[idx]);
@@ -245,14 +245,14 @@ namespace Langulus::Anyness
       LANGULUS_ASSUME(DevAssumes, start + count <= mCount, "Out of limits");
 
       if (count == 0) {
-         THIS result {Disown(*this)};
+         THIS result {Disown(reinterpret_cast<const THIS&>(*this))};
          result.ResetMemory();
          return Abandon(result);
       }
 
-      THIS result {Disown(*this)};
+      THIS result {Disown(reinterpret_cast<const THIS&>(*this))};
       result.mCount = result.mReserved = count;
-      result.mRaw += start * GetStride();
+      result.mRaw  += start * GetStride();
       return Abandon(result);
    }
 
@@ -263,7 +263,7 @@ namespace Langulus::Anyness
    template<class TYPE> template<CT::Block THIS>
    LANGULUS(INLINED) IF_UNSAFE(constexpr)
    THIS Block<TYPE>::Crop(Offset start, Count count) const IF_UNSAFE(noexcept) {
-      auto result = const_cast<Block*>(this)->Crop<THIS>(start, count);
+      auto result = const_cast<Block*>(this)->template Crop<THIS>(start, count);
       result.MakeConst();
       return result;
    }
@@ -359,12 +359,12 @@ namespace Langulus::Anyness
 
       // [1; mCount] always refer to subblocks in this block            
       if (index < mCount)
-         return GetRawAs<Block>() + index;
+         return &GetDeep(index);
 
       index -= mCount;
 
       // [mCount + 1; mCount + N] refer to subblocks in local blocks    
-      auto data = GetRawAs<Block>();
+      auto data = &GetDeep();
       const auto dataEnd = data + mCount;
       while (data != dataEnd) {
          const auto subpack = data->template GetBlockDeep(index + 1);
@@ -389,9 +389,9 @@ namespace Langulus::Anyness
    template<class TYPE>
    Block<> Block<TYPE>::GetElementDeep(Count index) noexcept {
       if (not IsDeep())
-         return index < mCount ? GetElement(index) : Block {};
+         return index < mCount ? GetElement(index) : Block<> {};
 
-      auto data = GetRawAs<Block>();
+      auto data = &GetDeep();
       const auto dataEnd = data + mCount;
       while (data != dataEnd) {
          const auto subpack = data->template GetElementDeep(index);
@@ -447,7 +447,7 @@ namespace Langulus::Anyness
       Block copy {*this};
       copy.mCount = 1;
 
-      if constexpr (not TypeErased and CT::Dense<TYPE>)
+      if constexpr (not TypeErased and Dense)
          return copy;
       else if constexpr (not TypeErased and COUNT == 1) {
          // Statically dereference once                                 
@@ -630,33 +630,41 @@ namespace Langulus::Anyness
    /// Return a handle to an element                                          
    ///   @param index - the element index                                     
    ///   @return the handle                                                   
-   template<class TYPE> LANGULUS(INLINED)
+   template<class TYPE> template<class T1> LANGULUS(INLINED)
    auto Block<TYPE>::GetHandle(const Offset index) IF_UNSAFE(noexcept) {
-      if constexpr (CT::Sparse<TYPE> or not TypeErased) {
+      if constexpr (Sparse or (not TypeErased and not CT::TypeErased<T1>)) {
          // Either sparse or not type-erased                            
-         if constexpr (CT::Sparse<TYPE>)
-            return Handle<TYPE> {GetRaw()[index], GetEntries()[index]};
-         else
-            return Handle<TYPE> {GetRaw()[index], mEntry};
+         if constexpr (Sparse) {
+            static_assert(CT::Sparse<T1>);
+            return Handle<T1> {GetRaw<T1>() + index, GetEntries() + index};
+         }
+         else {
+            static_assert(CT::Dense<T1>);
+            return Handle<T1> {GetRaw<T1>() + index, mEntry};
+         }
       }
       else {
          // Type erased and dense                                       
-         return Handle<TYPE> {GetRaw<Byte*>() + index, mEntry};
+         return Handle<TYPE> {GetRaw<Byte>() + index, mEntry};
       }
    }
 
-   template<class TYPE> LANGULUS(INLINED)
+   template<class TYPE> template<class T1> LANGULUS(INLINED)
    auto Block<TYPE>::GetHandle(const Offset index) const IF_UNSAFE(noexcept) {
-      if constexpr (CT::Sparse<TYPE> or not TypeErased) {
+      if constexpr (Sparse or (not TypeErased and not CT::TypeErased<T1>)) {
          // Either sparse or not type-erased                            
-         if constexpr (CT::Sparse<TYPE>)
-            return Handle<const TYPE> {GetRaw()[index], GetEntries()[index]};
-         else
-            return Handle<const TYPE> {GetRaw()[index], mEntry};
+         if constexpr (Sparse) {
+            static_assert(CT::Sparse<T1>);
+            return Handle<const T1> {GetRaw<T1>() + index, GetEntries() + index};
+         }
+         else {
+            static_assert(CT::Dense<T1>);
+            return Handle<const T1> {GetRaw<T1>() + index, mEntry};
+         }
       }
       else {
          // Type erased and dense                                       
-         return Handle<const TYPE> {GetRaw<Byte*>() + index, mEntry};
+         return Handle<const TYPE> {GetRaw<Byte>() + index, mEntry};
       }
    }
 

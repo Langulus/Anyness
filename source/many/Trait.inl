@@ -38,15 +38,15 @@ namespace Langulus::Anyness
          using T = TypeOf<S>;
 
          if constexpr (CT::TraitBased<T>) {
-            Many::BlockTransfer<Many>(S::Nest(t1).template Forward<Many>());
+            Base::BlockTransfer(S::Nest(t1).template Forward<Base>());
             mTraitType = DesemCast(t1).GetTrait();
          }
          else if constexpr (CT::Deep<T>)
-            Many::BlockTransfer<Many>(S::Nest(t1));
+            Base::BlockTransfer(S::Nest(t1));
          else
-            Many::Insert<Many>(IndexBack, Forward<T1>(t1));
+            Base::Insert(IndexBack, Forward<T1>(t1));
       }
-      else Many::Insert<Many>(IndexBack, Forward<T1>(t1), Forward<TN>(tn)...);
+      else Base::Insert(IndexBack, Forward<T1>(t1), Forward<TN>(tn)...);
    }
 
    /// Create a trait from a trait and data types                             
@@ -222,13 +222,13 @@ namespace Langulus::Anyness
       using T = TypeOf<S>;
 
       if constexpr (CT::TraitBased<T>) {
-         Many::operator = (S::Nest(rhs).template Forward<Many>());
+         Base::operator = (S::Nest(rhs).template Forward<Base>());
          mTraitType = DesemCast(rhs).GetTrait();
       }
       else if constexpr (CT::Deep<T>)
-         Many::operator = (S::Nest(rhs).template Forward<Many>());
+         Base::operator = (S::Nest(rhs).template Forward<Base>());
       else
-         Many::operator = (S::Nest(rhs));
+         Base::operator = (S::Nest(rhs));
       return *this;
    }
 

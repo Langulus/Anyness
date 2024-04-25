@@ -338,7 +338,7 @@ namespace Langulus::Anyness
       // These are used as detectors for block change while iterating   
       // Should be optimized-out when !MUTABLE                          
       using DA = Deref<A>;
-      const auto raw = const_cast<Block*>(this)->GetRawAs<DA>();
+      const auto raw = const_cast<Block*>(this)->GetRaw<DA>();
 
       // Prepare for the loop                                           
       auto data = raw;

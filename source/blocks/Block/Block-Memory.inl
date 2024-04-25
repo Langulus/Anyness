@@ -26,8 +26,8 @@ namespace Langulus::Anyness
       }
       else if constexpr (CT::Fundamental<TYPE> or CT::Exact<TYPE, Byte>) {
          AllocationRequest result;
-         result.mByteSize = ::std::max(Roof2(count * sizeof(T)), Alignment);
-         result.mElementCount = result.mByteSize / sizeof(T);
+         result.mByteSize = ::std::max(Roof2(count * sizeof(TYPE)), Alignment);
+         result.mElementCount = result.mByteSize / sizeof(TYPE);
          return result;
       }
       else return GetType()->RequestSize(count);
@@ -82,7 +82,7 @@ namespace Langulus::Anyness
             // Reallocate                                               
             Block previousBlock {*this};
             mEntry = Allocator::Reallocate(
-               request.mByteSize * (CT::Sparse<TYPE> ? 2 : 1),
+               request.mByteSize * (Sparse ? 2 : 1),
                const_cast<Allocation*>(mEntry)
             );
             LANGULUS_ASSERT(mEntry, Allocate, "Out of memory");
@@ -131,7 +131,7 @@ namespace Langulus::Anyness
             }
             else {
                // Memory didn't move, but reserved count changed        
-               if constexpr (CT::Sparse<TYPE>) {
+               if constexpr (Sparse) {
                   // Move entry data to its new place                   
                   MoveMemory(
                      GetEntries(),
@@ -209,7 +209,7 @@ namespace Langulus::Anyness
          const auto request = RequestSize(elements);
          if (request.mElementCount != mReserved) {
             if constexpr (not TypeErased) {
-               if constexpr (CT::Sparse<TYPE>) {
+               if constexpr (Sparse) {
                   // Move entry data to its new place                   
                   MoveMemory(
                      GetEntries() - mReserved + request.mElementCount,
@@ -218,7 +218,7 @@ namespace Langulus::Anyness
                }
 
                mEntry = Allocator::Reallocate(
-                  request.mByteSize * (CT::Sparse<TYPE> ? 2 : 1),
+                  request.mByteSize * (Sparse ? 2 : 1),
                   const_cast<Allocation*>(mEntry)
                );
             }
@@ -380,12 +380,14 @@ namespace Langulus::Anyness
 
          if (mCount)
             Destroy();
+
          Allocator::Deallocate(const_cast<Allocation*>(mEntry));
       }
       else {
          // Dereference memory                                          
          if (mCount and not mState.IsStatic())
             Destroy<false>();
+
          const_cast<Allocation*>(mEntry)->Free();
       }
 

@@ -483,7 +483,7 @@ namespace Langulus::Anyness
             --remaining;
          }
 
-         if (not *handle.mEntry) {
+         if (not handle.GetEntry()) {
             ++handle;
             continue;
          }
@@ -509,15 +509,15 @@ namespace Langulus::Anyness
                --remaining2;
             }
 
-            if (*handle.mEntry == *handle2.mEntry)
+            if (handle.GetEntry() == handle2.GetEntry())
                ++matches;
 
             ++handle2;
          }
 
-         const_cast<Allocation*>(*handle.mEntry)->Free(matches);
+         const_cast<Allocation*>(handle.GetEntry())->Free(matches);
 
-         if (1 == (*handle.mEntry)->GetUses()) {
+         if (1 == handle.GetEntry()->GetUses()) {
             // Destroy all matching handles, but deallocate only        
             // once after that                                          
             if (matches) {
@@ -539,12 +539,8 @@ namespace Langulus::Anyness
                      --remaining2;
                   }
 
-                  if (*handle.mEntry == *handle2.mEntry) {
-                     if constexpr (TypeErased)
-                        handle2.template DestroyUnknown<true, false>(mType);
-                     else
-                        handle2.template Destroy<true, false>();
-                  }
+                  if (handle.GetEntry() == handle2.GetEntry())
+                     handle2.template Destroy<true, false>(mType);
 
                   ++handle2;
                }
@@ -572,19 +568,15 @@ namespace Langulus::Anyness
                      --remaining2;
                   }
 
-                  if (*handle.mEntry == *handle2.mEntry)
-                     *handle2.mEntry = nullptr;
+                  if (handle.GetEntry() == handle2.GetEntry())
+                     handle2.GetEntry() = nullptr;
 
                   ++handle2;
                }
             }
          }
 
-         if constexpr (TypeErased)
-            handle.DestroyUnknown(mType);
-         else
-            handle.Destroy();
-
+         handle.Destroy(mType);
          ++handle;
       }
    }

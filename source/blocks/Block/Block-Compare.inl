@@ -323,7 +323,7 @@ namespace Langulus::Anyness
    ///   @attention order matters, so you might want to Neat data first       
    ///   @return the hash                                                     
    template<class TYPE>
-   Hash Block<TYPE>::GetHash() const {
+   Hash Block<TYPE>::GetHash() const requires (TypeErased or CT::Hashable<TYPE>) {
       if constexpr (not TypeErased) {
          if (not mCount)
             return {};
@@ -334,7 +334,7 @@ namespace Langulus::Anyness
          }
 
          // Hashing multiple elements                                   
-         if constexpr (CT::Sparse<TYPE>) {
+         if constexpr (Sparse) {
             return HashBytes<DefaultHashSeed, false>(
                mRaw, static_cast<int>(GetBytesize()));
          }
@@ -359,7 +359,7 @@ namespace Langulus::Anyness
          if (mCount == 1) {
             // Exactly one element means exactly one hash               
             if (mType->mIsSparse)
-               return HashOf(*GetRawSparse());
+               return HashOf(*mRawSparse);
             else if (mType->Is<Hash>())
                return Get<Hash>();
             else if (mType->mHasher)
@@ -412,14 +412,10 @@ namespace Langulus::Anyness
    ///   @param item - the item to search for                                 
    ///   @param cookie - resume search from a given index                     
    ///   @return the index of the found item, or IndexNone if none found      
-   template<class TYPE> template<bool REVERSE>
-   Index Block<TYPE>::Find(const CT::NotSemantic auto& item, Offset cookie) const noexcept {
-      using ALT_T = Deref<decltype(item)>;
-
+   template<class TYPE> template<bool REVERSE, CT::NotSemantic T1>
+   Index Block<TYPE>::Find(const T1& item, Offset cookie) const noexcept
+   requires (TypeErased or CT::Comparable<TYPE, T1>) {
       if constexpr (not TypeErased) {
-         if constexpr (not CT::Comparable<TYPE, ALT_T>)
-            return IndexNone;
-
          auto start = REVERSE
             ? GetRawEnd() - 1 - cookie
             : GetRaw() + cookie;
@@ -498,7 +494,7 @@ namespace Langulus::Anyness
          using TL = Conditional<   TypeErased, TypeOf<B>, TYPE>;
          using TR = Conditional<B::TypeErased, TYPE, TypeOf<B>>;
 
-         if constexpr (CT::Typed<Block<TYPE>, B>) {
+         if constexpr (not TypeErased and not B::TypeErased) {
             // Leverage the fact, that both participants are typed      
             if constexpr (not CT::Comparable<TL, TR>)
                return IndexNone;
@@ -846,7 +842,7 @@ namespace Langulus::Anyness
    ///   @attention this is the most naive of sorting algorithms              
    ///   @tparam ASCEND - whether to sort in ascending order (123)            
    template<class TYPE> template<bool ASCEND>
-   void Block<TYPE>::Sort() {
+   void Block<TYPE>::Sort() requires (TypeErased or CT::Sortable<TYPE, TYPE>) {
       auto lhs = GetRaw();
       const auto lhsEnd = lhs + mCount;
       while (lhs != lhsEnd) {
