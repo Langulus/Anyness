@@ -113,13 +113,11 @@ namespace Langulus::Anyness
       if (IsEmpty() or not IsDeep())
          return 1;
 
+      using B = decltype(GetDeep());
       Count counter = 1;
-      IterateInner(mCount, 
-         [&counter](const Block<>& block) noexcept {
-            //TODO could be optimized further, if THIS is typed
-            counter += block.GetCountDeep();
-         }
-      );
+      IterateInner<false, false>(mCount, [&counter](B block) noexcept {
+         counter += block.GetCountDeep();
+      });
       return counter;
    }
 
@@ -133,13 +131,11 @@ namespace Langulus::Anyness
       if (not IsDeep())
          return mCount;
 
+      using B = decltype(GetDeep());
       Count counter = 0;
-      const_cast<Block*>(this)->IterateInner(mCount,
-         [&counter](const Block<>& block) noexcept {
-            //TODO could be optimized further, if THIS is typed
-            counter += block.GetCountElementsDeep();
-         }
-      );
+      IterateInner<false, false>(mCount, [&counter](B block) noexcept {
+         counter += block.GetCountElementsDeep();
+      });
       return counter;
    }
    

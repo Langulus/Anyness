@@ -15,7 +15,7 @@
 SCENARIO("Deep sequential containers", "[any]") {
    static Allocator::State memoryState;
 
-   static_assert(sizeof(A::Block) == sizeof(Block));
+   static_assert(sizeof(A::Block) == sizeof(Block<>));
 
    GIVEN("Any with some deep items") {
       IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
@@ -371,7 +371,7 @@ SCENARIO("Deep sequential containers", "[any]") {
       WHEN("ForEachDeep with dense Block element (immutable, skipping)") {
          Count total = 0;
          const auto iterated = pack.ForEachDeep(
-            [&](const Block& i) {
+            [&](const Block<>& i) {
                (void)i;
                ++total;
             }
@@ -384,7 +384,7 @@ SCENARIO("Deep sequential containers", "[any]") {
       WHEN("ForEachDeep with dense Block element (mutable, skipping)") {
          Count total = 0;
          const auto iterated = pack.ForEachDeep(
-            [&](Block& i) {
+            [&](Block<>& i) {
                (void)i;
                ++total;
             }
@@ -397,7 +397,7 @@ SCENARIO("Deep sequential containers", "[any]") {
       WHEN("ForEachDeep with dense Block element (immutable, non-skipping)") {
          Count total = 0;
          const auto iterated = pack.template ForEachDeep<false, false>(
-            [&](const Block& i) {
+            [&](const Block<>& i) {
                (void)i;
                ++total;
             }
@@ -410,7 +410,7 @@ SCENARIO("Deep sequential containers", "[any]") {
       WHEN("ForEachDeep with dense Block element (mutable, non-skipping)") {
          Count total = 0;
          const auto iterated = pack.template ForEachDeep<false, false>(
-            [&](Block& i) {
+            [&](Block<>& i) {
                (void)i;
                ++total;
             }
@@ -461,14 +461,14 @@ SCENARIO("Deep sequential containers", "[any]") {
       subpack3.MakeOr();
       pack << subpack1 << subpack2 << subpack3;
 
-      auto baseRange = Many::From<Block>();
+      auto baseRange = Many::From<Block<>>();
       baseRange.Reserve(3);
 
       for (Count e = 0; e < pack.GetCount(); ++e) {
          auto element = pack.GetElement(e);
          RTTI::Base base;
-         REQUIRE(element.GetType()->GetBase<Block>(0, base));
-         auto baseBlock = element.GetBaseMemory(MetaOf<Block>(), base);
+         REQUIRE(element.GetType()->GetBase<Block<>>(0, base));
+         auto baseBlock = element.GetBaseMemory(MetaOf<Block<>>(), base);
          baseRange.InsertBlock(IndexBack, baseBlock);
       }
 

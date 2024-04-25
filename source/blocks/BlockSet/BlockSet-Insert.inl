@@ -371,7 +371,7 @@ namespace Langulus::Anyness
                }
                else {
                   Block keyswap {DataState {}, GetType(), 1};
-                  keyswap.AllocateFresh<Many>(keyswap.RequestSize<Many>(1));
+                  keyswap.AllocateFresh(keyswap.RequestSize(1));
                   keyswap.CreateSemantic(Abandon(oldKey));
 
                   // Destroy the pair and info at old index             
@@ -507,9 +507,9 @@ namespace Langulus::Anyness
    ///   @param start - the starting index                                    
    ///   @param key - key & semantic to insert                                
    ///   @return the offset at which pair was inserted                        
-   template<CT::Set THIS, bool CHECK_FOR_MATCH, template<class> class S>
-   requires CT::Semantic<S<Block>>
-   Offset BlockSet::InsertBlockInner(const Offset start, S<Block>&& key) {
+   template<CT::Set THIS, bool CHECK_FOR_MATCH, template<class> class S, CT::Block B>
+   requires CT::Semantic<S<B>>
+   Offset BlockSet::InsertBlockInner(const Offset start, S<B>&& key) {
       if (GetUses() > 1) {
          // Set is used from multiple locations, and we mush branch out 
          // before changing it                                          
@@ -556,7 +556,7 @@ namespace Langulus::Anyness
       if (insertedAt == mKeys.mReserved)
          insertedAt = index;
 
-      if constexpr (S<Block>::Move) {
+      if constexpr (S<B>::Move) {
          key->Destroy();
          key->mCount = 0;
       }

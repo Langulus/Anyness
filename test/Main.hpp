@@ -64,10 +64,10 @@ T CreateElement(const auto& e) {
    T element;
    if constexpr (CT::Same<T, decltype(e)>)
       element = e;
-   else if constexpr (not CT::Same<T, Block>)
+   else if constexpr (not CT::Same<T, Block<>>)
       element = Decay<T> {e};
    else {
-      element = Block {};
+      element = Block<> {};
       element.Insert(e);
    }
 
@@ -88,21 +88,21 @@ T CreateElement(const auto& e) {
       // memory manager. Notice we don't use 'new' operator here,       
       // because it is weakly linked, and can be overriden to use our   
       // memory manager.                                                
-      if constexpr (not CT::Same<T, Block>) {
+      if constexpr (not CT::Same<T, Block<>>) {
          element = malloc(sizeof(Decay<T>));
          new (element) Decay<T> {e};
       }
       else {
-         element = malloc(sizeof(Block));
-         new (element) Block {};
-         static_cast<Block*>(element)->Insert(e);
+         element = malloc(sizeof(Block<>));
+         new (element) Block<> {};
+         static_cast<Block<>*>(element)->Insert(e);
       }
    }
    else {
       // Create a pointer owned by the memory manager                   
       auto& container = BANK.Emplace(IndexBack);
 
-      if constexpr (not CT::Same<T, Block>) {
+      if constexpr (not CT::Same<T, Block<>>) {
          container << Decay<T> {e};
          element = container.GetRaw();
       }

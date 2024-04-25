@@ -91,6 +91,8 @@ namespace Langulus::Anyness
       constexpr Handle(ValueType) noexcept requires Embedded;
       constexpr Handle(ValueType, EntryType = nullptr) noexcept requires Embedded;
 
+      constexpr Handle(auto&&) noexcept requires (not Embedded);
+
       // Mutable constructors                                           
       /*constexpr Handle(T&, AllocType&) IF_UNSAFE(noexcept)
       requires (Embedded and Sparse and Mutable);
@@ -145,19 +147,24 @@ namespace Langulus::Anyness
       void Create(T const&, AllocType = nullptr) noexcept requires CT::Dense<T>;
       void Create(T&&,      AllocType = nullptr) noexcept requires CT::Dense<T>;*/
 
-      void CreateSemantic(DMeta, auto&&);
+      void CreateSemantic(auto&&, DMeta = {});
+      void Create(auto&&, AllocType = nullptr) noexcept;
 
       /*template<template<class> class S, class T1> requires CT::Semantic<S<T1>>
       void CreateSemanticUnknown(DMeta, S<T1>&&);*/
 
-      void AssignSemantic(DMeta, auto&&) requires Mutable;
+      void AssignSemantic(auto&&, DMeta = {}) requires Mutable;
 
       /*template<template<class> class S, class T1> requires (CT::Semantic<S<T1>> and CT::Mutable<T>)
       void AssignSemanticUnknown(DMeta, S<T1>&&);*/
 
-      void Swap(DMeta, CT::Handle auto&) requires Mutable;
+      void Swap(CT::Handle auto&, DMeta = {}) requires Mutable;
 
-      NOD() bool Compare(DMeta, const auto&) const;
+      NOD() bool Compare(const auto&, DMeta = {}) const;
+
+      template<bool RESET = false, bool DEALLOCATE = true>
+      void Destroy(DMeta = {}) const;
+
 
       /*template<class T1> requires CT::Comparable<T, T1>
       NOD() bool Compare(const T1&) const;
@@ -177,8 +184,6 @@ namespace Langulus::Anyness
       Handle& operator += (Offset) noexcept requires Embedded;
       Handle& operator -= (Offset) noexcept requires Embedded;
 
-      template<bool RESET = false, bool DEALLOCATE = true>
-      void Destroy(DMeta) const;
 
       /*template<bool RESET = false, bool DEALLOCATE = true>
       void DestroyUnknown(DMeta) const;*/

@@ -235,14 +235,10 @@ namespace Langulus::Anyness
       using S = SemanticOf<decltype(text)>;
       using ST = TypeOf<S>;
 
-      if constexpr (CT::Array<ST>) {
-         auto temp = Base::From(S::Nest(&DesemCast(text)[0]), count);
-         return Abandon(reinterpret_cast<Text&>(temp));
-      }
-      else {
-         auto temp = Base::From(Forward<T>(text), count);
-         return Abandon(reinterpret_cast<Text&>(temp));
-      }
+      if constexpr (CT::Array<ST>)
+         return Base::From<Text>(S::Nest(&DesemCast(text)[0]), count);
+      else
+         return Base::From<Text>(Forward<T>(text), count);
    }
 
    /// Refer assignment                                                       
@@ -250,6 +246,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container                                
    LANGULUS(INLINED)
    Text& Text::operator = (const Text& rhs) {
+      static_assert(CT::DeepAssignable<Text, Referred<Text>>);
       return operator = (Refer(rhs));
    }
 
@@ -258,6 +255,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container                                
    LANGULUS(INLINED)
    Text& Text::operator = (Text&& rhs) noexcept {
+      static_assert(CT::DeepAssignable<Text, Moved<Text>>);
       return operator = (Move(rhs));
    }
    
@@ -265,7 +263,7 @@ namespace Langulus::Anyness
    ///   @param rhs - the block to assign                                     
    template<class T> requires CT::TextBased<Desem<T>> LANGULUS(INLINED)
    Text& Text::operator = (T&& rhs) {
-      Base::operator = (Forward<T>(rhs));
+      Base::BlockAssign(Forward<T>(rhs));
       return *this;
    }
 
@@ -554,13 +552,13 @@ namespace Langulus::Anyness
    void Text::UnfoldInsert(auto&& what) {
       using T = Deref<decltype(what)>;
       if constexpr (CT::TextBased<T>) {
-         Block::AllocateMore<Text>(mCount + what.mCount);
+         Base::AllocateMore(mCount + what.mCount);
          CopyMemory(GetRaw() + mCount, what.GetRaw(), what.mCount);
          mCount += what.mCount;
       }
       else {
          const auto size = fmt::formatted_size("{}", what);
-         Block::AllocateMore<Text>(mCount + size);
+         Base::AllocateMore(mCount + size);
          fmt::format_to_n(GetRaw() + mCount, size, "{}", what);
          mCount += size;
       }
@@ -699,7 +697,7 @@ namespace Langulus::Anyness
          if constexpr (CT::Typed<B>) {
             if constexpr (CT::Similar<Letter, TypeOf<B>>) {
                // We can concat directly                                
-               Block::InsertBlock<THIS, void>(IndexBack, S::Nest(rhs));
+               Base::InsertBlock<void>(IndexBack, S::Nest(rhs));
             }
             else if constexpr (CT::DenseCharacter<TypeOf<B>>) {
                // We're concatenating with different type of characters 
@@ -710,7 +708,7 @@ namespace Langulus::Anyness
          }
          else {
             // Type-erased concat                                       
-            Block::InsertBlock<THIS, void>(IndexBack, S::Nest(rhs));
+            Block::InsertBlock<void>(IndexBack, S::Nest(rhs));
          }
       }
       else {
@@ -801,7 +799,7 @@ namespace Langulus::Anyness
    ///   @param from - the data to serialize                                  
    ///   @param to - the serialized data                                      
    ///   @return the number of written characters                             
-   inline bool Text::SerializationRules::BeginScope(const Block& from, Text& to) {
+   inline bool Text::SerializationRules::BeginScope(const Block<>& from, Text& to) {
       const bool scoped = from.GetCount() > 1 or from.IsInvalid() or from.IsExecutable(); //TODO could check verb precedence to avoid scoping in some cases
       if (scoped) {
          if (from.IsPast())
@@ -819,7 +817,7 @@ namespace Langulus::Anyness
    ///   @param from - the data to serialize                                  
    ///   @param to - the serialized data                                      
    ///   @return the number of written characters                             
-   inline bool Text::SerializationRules::EndScope(const Block& from, Text& to) {
+   inline bool Text::SerializationRules::EndScope(const Block<>& from, Text& to) {
       const bool scoped = from.GetCount() > 1 or from.IsInvalid() or from.IsExecutable(); //TODO could check verb precedence to avoid scoping in some cases
       if (scoped)
          to += Operator::CloseScope;
@@ -831,7 +829,7 @@ namespace Langulus::Anyness
    ///   @param from - the data to serialize                                  
    ///   @param to - the serialized data                                      
    ///   @return the number of written characters                             
-   inline bool Text::SerializationRules::Separate(const Block& from, Text& to) {
+   inline bool Text::SerializationRules::Separate(const Block<>& from, Text& to) {
       const auto initial = to.GetCount();
       to += (from.IsOr() ? " or " : ", ");
       return to.GetCount() - initial;

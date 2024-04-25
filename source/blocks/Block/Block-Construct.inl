@@ -224,6 +224,93 @@ namespace Langulus::Anyness
          return result;
       }
    }
+   
+   /// Construct manually by interfacing memory directly                      
+   /// Data will be copied, if not in jurisdiction, which involves a slow     
+   /// authority check. If you want to avoid checking and copying, use the    
+   /// Disowned semantic                                                      
+   ///   @param what - data to semantically interface                         
+   ///   @param count - number of items, in case 'what' is sparse             
+   ///   @return the provided data, wrapped inside a TMany<T>                 
+   template<class TYPE> template<CT::Block B>
+   B Block<TYPE>::From(auto&& what, Count count) requires (not TypeErased) {
+      using S  = SemanticOf<decltype(what)>;
+      using ST = TypeOf<S>;
+
+      B result;
+      if constexpr (not Sparse) {
+         // We're creating a dense block...                             
+         if constexpr (CT::Array<ST>) {
+            // ... from a bounded array                                 
+            using DST = Deext<ST>;
+            const auto count2 = count * ExtentOf<ST> * sizeof(DST);
+            LANGULUS_ASSERT(0 == (count2 % sizeof(TYPE)),
+               Meta, "Provided array type is not a multiple of sizeof(T)");
+            count = count2 / sizeof(TYPE);
+
+            if constexpr (CT::Similar<TYPE, DST> or CT::POD<TYPE, DST>) {
+               new (&result) Block {
+                  DataState::Constrained,
+                  result.GetType(), count,
+                  DesemCast(what), nullptr
+               };
+            }
+            else {
+               LANGULUS_ERROR(
+                  "Can't wrap a bounded array inside incompatible TMany<T>:"
+                  " types are not binary compatible"
+               );
+            }
+         }
+         else if constexpr (CT::Sparse<ST>) {
+            // ... from a pointer                                       
+            using DST = Deptr<ST>;
+            const auto count2 = count * sizeof(DST);
+            LANGULUS_ASSERT(0 == (count2 % sizeof(TYPE)),
+               Meta, "Provided pointer type is not a multiple of sizeof(T)");
+            count = count2 / sizeof(TYPE);
+
+            if constexpr (CT::Similar<TYPE, DST> or CT::POD<TYPE, DST>) {
+               new (&result) Block {
+                  DataState::Constrained,
+                  result.GetType(), count,
+                  DesemCast(what), nullptr
+               };
+            }
+            else {
+               LANGULUS_ERROR(
+                  "Can't wrap a unbounded array inside incompatible TMany<T>:"
+                  " types are not binary compatible"
+               );
+            }
+         }
+         else {
+            // ... from a value                                         
+            static_assert(0 == (sizeof(ST) % sizeof(TYPE)),
+               "Provided type is not a multiple of sizeof(T)");
+            count = sizeof(ST) / sizeof(TYPE);
+
+            if constexpr (CT::Similar<TYPE, ST> or CT::POD<TYPE, ST>) {
+               new (&result) Block {
+                  DataState::Constrained,
+                  result.GetType(), count,
+                  &DesemCast(what), nullptr
+               };
+            }
+            else {
+               LANGULUS_ERROR(
+                  "Can't wrap a dense element inside incompatible TMany<T>:"
+                  " types are not binary compatible"
+               );
+            }
+         }
+      }
+      else LANGULUS_ERROR("Can't manually interface a sparse block");
+
+      if constexpr (not S::Move and S::Keep)
+         result.TakeAuthority();
+      return result;
+   }
 
    /// Semantically transfer the members of one block onto another with the   
    /// smallest number of instructions possible                               
@@ -352,6 +439,47 @@ namespace Langulus::Anyness
 
          // This validates elements, do it last in case something throw 
          mCount = from->mCount;
+      }
+   }
+
+   template<class TYPE> template<class T1>
+   void Block<TYPE>::BlockAssign(T1&& rhs)
+   requires (CT::Block<Desem<T1>> and CT::DeepAssignable<TYPE, T1>) {
+      using S = SemanticOf<decltype(rhs)>;
+      using T = TypeOf<S>;
+
+      if (static_cast<const A::Block*>(this)
+       == static_cast<const A::Block*>(&DesemCast(rhs)))
+         return;
+
+      if constexpr (TypeErased) {
+         if constexpr (CT::Deep<T>) {
+            // Potentially absorb a container                           
+            Free();
+            new (this) Block {S::Nest(rhs)};
+         }
+         else if (IsSimilar<Unfold<T>>()) {
+            // Unfold-insert by reusing memory                          
+            Clear();
+            UnfoldInsert<void, true>(IndexBack, S::Nest(rhs));
+         }
+         else {
+            // Allocate anew and unfold-insert                          
+            Free();
+            new (this) Block {S::Nest(rhs)};
+         }
+      }
+      else {
+         if constexpr (CT::Block<T>) {
+            // Potentially absorb a container                           
+            Free();
+            new (this) Block {S::Nest(rhs)};
+         }
+         else {
+            // Unfold-insert                                            
+            Clear();
+            UnfoldInsert<void, true>(IndexBack, S::Nest(rhs));
+         }
       }
    }
 

@@ -96,10 +96,7 @@ namespace Langulus::Anyness
       }
       else {
          static_assert(CT::Deep<Decay<TYPE>>, "Block is not deep");
-         if constexpr (Sparse)
-            return *GetRaw(idx);
-         else
-            return  GetRaw(idx);
+         return DenseCast(GetRaw(idx));
       }
    }
 
@@ -123,17 +120,14 @@ namespace Langulus::Anyness
          if (mType->IsSimilar<T>()) {
             auto typed = reinterpret_cast<Block<T>*>(this);
             const auto idx = typed->SimplifyIndex(index);
-            LANGULUS_ASSERT(idx < mCount, Access, "Index out of range");
             return (*typed)[idx];
          }
       
          // Optimize if we're interpreting as a container               
          if constexpr (CT::Deep<T>) {
             LANGULUS_ASSERT(IsDeep(), Access, "Type mismatch");
-            auto typed = reinterpret_cast<Block<Block<>>*>(this);
-            const auto idx = typed->SimplifyIndex(index);
-            LANGULUS_ASSERT(idx < mCount, Access, "Index out of range");
-            auto& result = (*typed)[idx];
+            const auto idx = SimplifyIndex(index);
+            auto& result = GetDeep(idx);
 
             if constexpr (CT::Typed<T>) {
                // Additional check, if T is a typed block               
@@ -291,12 +285,12 @@ namespace Langulus::Anyness
    ///   @return the dense resolved memory block for the element              
    template<class TYPE> LANGULUS(INLINED)
    Block<> Block<TYPE>::GetElementResolved(Offset index) {
-      return GetElement(index).template GetResolved();
+      return GetElement(index).GetResolved();
    }
 
    template<class TYPE> LANGULUS(INLINED)
    Block<> Block<TYPE>::GetElementResolved(Offset index) const {
-      auto result = GetElement(index).template GetResolved();
+      auto result = GetElement(index).GetResolved();
       result.MakeConst();
       return result;
    }
@@ -367,11 +361,11 @@ namespace Langulus::Anyness
       auto data = &GetDeep();
       const auto dataEnd = data + mCount;
       while (data != dataEnd) {
-         const auto subpack = data->template GetBlockDeep(index + 1);
+         const auto subpack = data->GetBlockDeep(index + 1);
          if (subpack)
             return subpack;
 
-         index -= data->template GetCountDeep() - 1; //TODO excess loops here, should be retrieved from GetElementDeep above as an optimization
+         index -= data->GetCountDeep() - 1; //TODO excess loops here, should be retrieved from GetElementDeep above as an optimization
          ++data;
       }
 
@@ -394,11 +388,11 @@ namespace Langulus::Anyness
       auto data = &GetDeep();
       const auto dataEnd = data + mCount;
       while (data != dataEnd) {
-         const auto subpack = data->template GetElementDeep(index);
+         const auto subpack = data->GetElementDeep(index);
          if (subpack)
             return subpack;
 
-         index -= data->template GetCountElementsDeep(); //TODO excess loops here, should be retrieved from GetElementDeep above as an optimization
+         index -= data->GetCountElementsDeep(); //TODO excess loops here, should be retrieved from GetElementDeep above as an optimization
          ++data;
       }
 

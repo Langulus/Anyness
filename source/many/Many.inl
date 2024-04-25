@@ -106,6 +106,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container                                
    LANGULUS(INLINED)
    Many& Many::operator = (const Many& rhs) {
+      static_assert(CT::DeepAssignable<Many, Referred<Many>>);
       return operator = (Refer(rhs));
    }
 
@@ -114,6 +115,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container                                
    LANGULUS(INLINED)
    Many& Many::operator = (Many&& rhs) noexcept {
+      static_assert(CT::DeepAssignable<Many, Moved<Many>>);
       return operator = (Move(rhs));
    }
 
@@ -122,7 +124,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container                                
    LANGULUS(INLINED)
    Many& Many::operator = (CT::UnfoldInsertable auto&& rhs) {
-      using S = SemanticOf<decltype(rhs)>;
+      /*using S = SemanticOf<decltype(rhs)>;
       using T = TypeOf<S>;
 
       if constexpr (CT::Deep<T>) {
@@ -143,8 +145,8 @@ namespace Langulus::Anyness
          // Allocate anew and unfold-insert                             
          Free();
          new (this) Many {S::Nest(rhs)};
-      }
-
+      }*/
+      Base::BlockAssign(Forward<T>(rhs));
       return *this;
    }
 
@@ -153,7 +155,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container for chaining                   
    LANGULUS(INLINED)
    Many& Many::operator << (CT::UnfoldInsertable auto&& other) {
-      Insert<Many, true>(IndexBack, Forward<decltype(other)>(other));
+      Base::Insert<true>(IndexBack, Forward<decltype(other)>(other));
       return *this;
    }
    
@@ -162,7 +164,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container for chaining                   
    LANGULUS(INLINED)
    Many& Many::operator >> (CT::UnfoldInsertable auto&& other) {
-      Insert<Many, true>(IndexFront, Forward<decltype(other)>(other));
+      Base::Insert<true>(IndexFront, Forward<decltype(other)>(other));
       return *this;
    }
 
@@ -171,7 +173,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container for chaining                   
    LANGULUS(INLINED)
    Many& Many::operator <<= (CT::UnfoldInsertable auto&& other) {
-      Merge<Many, true>(IndexBack, Forward<decltype(other)>(other));
+      Base::Merge<true>(IndexBack, Forward<decltype(other)>(other));
       return *this;
    }
 
@@ -180,7 +182,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container for chaining                   
    LANGULUS(INLINED)
    Many& Many::operator >>= (CT::UnfoldInsertable auto&& other) {
-      Merge<Many, true>(IndexFront, Forward<decltype(other)>(other));
+      Base::Merge<true>(IndexFront, Forward<decltype(other)>(other));
       return *this;
    }
 

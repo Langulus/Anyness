@@ -285,13 +285,13 @@ namespace Langulus::Anyness
 
          // We can't rely on Block::GetHandle, because it uses mReserved
          if constexpr (CT::Sparse<V>) {
-            return Handle {
+            return Handle<V> {
                mValues.template GetRaw<V>()[i],
                const_cast<const Allocation**>(
                   reinterpret_cast<Allocation**>(mValues.mRawSparse + mKeys.mReserved))[i]
             };
          }
-         else return Handle {
+         else return Handle<V> {
             mValues.template GetRaw<V>()[i],
             mValues.mEntry
          };
@@ -319,13 +319,13 @@ namespace Langulus::Anyness
 
          // We can't rely on Block::GetHandle, because it uses mReserved
          if constexpr (CT::Sparse<V>) {
-            return Handle {
+            return Handle<const V> {
                mValues.template GetRaw<V>()[i],
                const_cast<const Allocation**>(
                   reinterpret_cast<Allocation**>(mValues.mRawSparse + mKeys.mReserved))[i]
             };
          }
-         else return Handle {
+         else return Handle<const V> {
             mValues.template GetRaw<V>()[i],
             mValues.mEntry
          };

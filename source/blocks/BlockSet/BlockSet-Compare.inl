@@ -201,7 +201,7 @@ namespace Langulus::Anyness
    ///   @param match - the key to search for                                 
    ///   @return the index, or InvalidOffset if not found                     
    template<CT::Set THIS>
-   Offset BlockSet::FindBlockInner(const Block& match) const {
+   Offset BlockSet::FindBlockInner(const Block<>& match) const {
       if (IsEmpty() or not IsSimilar<THIS>(match.GetType()))
          return InvalidOffset;
 

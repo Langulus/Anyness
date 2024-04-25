@@ -289,24 +289,24 @@ namespace Langulus::Anyness
    LoopControl BlockMap::ForEachDeepInner(
       const CT::Block auto& part, auto&& call, Count& counter
    ) const {
+      constexpr bool MUTABLE = CT::Mutable<THIS>;
       using F = Deref<decltype(call)>;
       using A = ArgumentOf<F>;
-      using SubBlock = Conditional<CT::Mutable<THIS>, Block&, const Block&>;
+      using SubBlock = Conditional<MUTABLE, Block<>&, const Block<>&>;
 
       if (part.IsDeep()) {
          // Iterate deep keys/values using non-block type               
          return ForEachInner<THIS, REVERSE>(part,
             [&counter, &call](SubBlock group) -> LoopControl {
                return DenseCast(group).template
-                  ForEachDeepInner<SubBlock, REVERSE, SKIP>(
+                  ForEachDeepInner<MUTABLE, REVERSE, SKIP>(
                      ::std::move(call), counter);
             }, counter
          );
       }
       else if constexpr (not CT::Deep<A>) {
          // Equivalent to non-deep iteration                            
-         return ForEachInner<THIS, REVERSE>(
-            part, ::std::move(call), counter);
+         return ForEachInner<THIS, REVERSE>(part, ::std::move(call), counter);
       }
 
       return Loop::Continue;

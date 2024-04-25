@@ -130,6 +130,11 @@ namespace Langulus::Anyness
       else mEntry = other->GetEntry();
    }
       
+   TEMPLATE() template<class A>
+   constexpr HAND()::Handle(A&& argument) noexcept requires (not Embedded)
+      : mValue (Forward<A>(argument))
+      , mEntry {nullptr} {}
+
    /// Semantically construct using compatible non-handle type                
    ///   @param other - the handle and semantic to construct with             
    /*TEMPLATE() template<class T1>
@@ -340,15 +345,18 @@ namespace Langulus::Anyness
    /// Semantically instantiate anything at the handle                        
    ///   @attention this overwrites previous handle without dereferencing it, 
    ///      and without destroying anything - that's your responsibility      
+   ///   @param rhs - what are we instantiating                               
    ///   @param type - type of the contained data, used only if handle is     
    ///      type-erased                                                       
-   ///   @param rhs - what are we instantiating                               
    TEMPLATE() LANGULUS(INLINED)
-   void HAND()::CreateSemantic(DMeta type, auto&& rhs) {
+   void HAND()::CreateSemantic(auto&& rhs, DMeta type) {
       using S  = SemanticOf<decltype(rhs)>;
       using ST = TypeOf<S>;
 
       if constexpr (TypeErased) {
+         LANGULUS_ASSUME(DevAssumes, type,
+            "Invalid type provided for type-erased handle");
+
          if (type->mIsSparse) {
             if constexpr (S::Shallow) {
                // Do a copy/disown/abandon/move sparse LHS              
@@ -553,6 +561,17 @@ namespace Langulus::Anyness
       }
    }
    
+   /// Refer-assign a new value and entry at the handle                       
+   ///   @attention this overwrites previous handle without dereferencing it, 
+   ///      and without destroying anything                                   
+   ///   @param value - the new value to assign                               
+   ///   @param entry - the allocation that the value is part of              
+   TEMPLATE() LANGULUS(INLINED)
+   void HAND()::Create(auto&& value, AllocType entry) noexcept {
+      Get() = Forward<decltype(value)>(value);
+      GetEntry() = entry;
+   }
+
    /// Semantically assign anything at the handle                             
    ///   @attention this overwrites previous handle without dereferencing it, 
    ///      and without destroying anything                                   
@@ -574,22 +593,22 @@ namespace Langulus::Anyness
    }*/
    
    /// Dereference/destroy the current handle contents, and set new ones      
+   ///   @param rhs - new contents to assign                                  
    ///   @param type - type of the contained data, used only if handle is     
    ///      type-erased                                                       
-   ///   @param rhs - new contents to assign                                  
    TEMPLATE() LANGULUS(INLINED)
-   void HAND()::AssignSemantic(DMeta type, auto&& rhs) requires Mutable {
+   void HAND()::AssignSemantic(auto&& rhs, DMeta type) requires Mutable {
       using S = SemanticOf<decltype(rhs)>;
       Destroy(type);
-      CreateSemantic(type, S::Nest(rhs));
+      CreateSemantic(S::Nest(rhs), type);
    }
    
    /// Swap any two handles, often this is embedded, while rhs is not         
+   ///   @param rhs - right hand side                                         
    ///   @param type - type of the contained data, used only if handle is     
    ///      type-erased                                                       
-   ///   @param rhs - right hand side                                         
    TEMPLATE() LANGULUS(INLINED)
-   void HAND()::Swap(DMeta type, CT::Handle auto& rhs) requires Mutable {
+   void HAND()::Swap(CT::Handle auto& rhs, DMeta type) requires Mutable {
       using RHS = Deref<decltype(rhs)>;
 
       if constexpr (Sparse) {
@@ -621,18 +640,18 @@ namespace Langulus::Anyness
       else {
          HandleLocal<T> tmp {Abandon(*this)};
          Destroy<false, true>(type);
-         CreateSemantic(type, Abandon(rhs));
-         rhs.CreateSemantic(type, Abandon(tmp));
+         CreateSemantic(Abandon(rhs), type);
+         rhs.CreateSemantic(Abandon(tmp), type);
       }
    }
 
    /// Compare the contents of the handle with content                        
+   ///   @param rhs - data to compare against                                 
    ///   @param type - type of the contained data, used only if handle is     
    ///      type-erased                                                       
-   ///   @param rhs - data to compare against                                 
    ///   @return true if contents are equal                                   
    TEMPLATE() LANGULUS(INLINED)
-   bool HAND()::Compare(DMeta type, const auto& rhs) const {
+   bool HAND()::Compare(const auto& rhs, DMeta type) const {
       using RHS = Deref<decltype(rhs)>;
 
       if constexpr (CT::Handle<RHS>)
@@ -661,6 +680,9 @@ namespace Langulus::Anyness
    TEMPLATE() template<bool RESET, bool DEALLOCATE>
    void HAND()::Destroy(DMeta meta) const {
       if constexpr (TypeErased) {
+         LANGULUS_ASSUME(DevAssumes, meta,
+            "Invalid type provided for type-erased handle");
+
          if constexpr (CT::Sparse<T>) {
             // Handle is sparse, we should handle each indirection layer
             LANGULUS_ASSUME(DevAssumes, meta->mIsSparse,
