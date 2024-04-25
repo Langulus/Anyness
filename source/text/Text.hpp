@@ -251,9 +251,9 @@ namespace Langulus::Anyness
          static constexpr bool CriticalFailure = false;
          static constexpr bool SkipElements = true;
 
-         static bool BeginScope(const Block&, Text&);
-         static bool EndScope(const Block&, Text&);
-         static bool Separate(const Block&, Text&);
+         static bool BeginScope(const Block<>&, Text&);
+         static bool EndScope(const Block<>&, Text&);
+         static bool Separate(const Block<>&, Text&);
          
          using Rules = Types<
             Serial::Rule<Serial::Wrap, Serial::BasedOn, A::Code,Operator::OpenCode,      Operator::CloseCode>,

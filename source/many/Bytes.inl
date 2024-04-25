@@ -205,13 +205,13 @@ namespace Langulus::Anyness
          if constexpr (CT::Typed<B>) {
             if constexpr (CT::Similar<Byte, TypeOf<B>>) {
                // We can concat directly                                
-               return Block::ConcatBlock<THIS>(S::Nest(rhs));
+               return Base::ConcatBlock<THIS>(S::Nest(rhs));
             }
             else LANGULUS_ERROR("Can't concatenate with this container");
          }
          else {
             // Type-erased concat                                       
-            return Block::ConcatBlock<THIS>(S::Nest(rhs));
+            return Base::ConcatBlock<THIS>(S::Nest(rhs));
          }
       }
       else {
@@ -232,13 +232,13 @@ namespace Langulus::Anyness
          if constexpr (CT::Typed<B>) {
             if constexpr (CT::Similar<Byte, TypeOf<B>>) {
                // We can concat directly                                
-               Block::InsertBlock<THIS, void>(IndexBack, S::Nest(rhs));
+               Base::InsertBlock<void>(IndexBack, S::Nest(rhs));
             }
             else LANGULUS_ERROR("Can't concatenate with this container");
          }
          else {
             // Type-erased concat                                       
-            Block::InsertBlock<THIS, void>(IndexBack, S::Nest(rhs));
+            Base::InsertBlock<void>(IndexBack, S::Nest(rhs));
          }
       }
       else {
@@ -269,11 +269,11 @@ namespace Langulus::Anyness
 
          if constexpr (CT::POD<DT> and CT::Dense<DT>) {
             // Insert as byte array                                     
-            auto data = Block::From(
+            auto data = Base::From(
                reinterpret_cast<const Byte*>(DesemCast(item)),
                sizeof(T)
             );
-            Block::InsertBlockInner<Bytes, void, true>(IndexBack, Refer(data));
+            Base::InsertBlockInner<void, true>(IndexBack, Refer(data));
          }
          else {
             // Unfold and serialize elements, one by one                
@@ -284,7 +284,7 @@ namespace Langulus::Anyness
       else if constexpr (CT::Block<T>) {
          if constexpr (CT::Bytes<T>) {
             // Insert another byte block's contents                     
-            Block::AllocateMore<Bytes>(mCount + DesemCast(item).GetCount());
+            Base::AllocateMore(mCount + DesemCast(item).GetCount());
             CopyMemory(GetRaw() + mCount, DesemCast(item).GetRaw());
             mCount += DesemCast(item).GetCount();
          }
@@ -297,8 +297,8 @@ namespace Langulus::Anyness
             // Check a type-erased block                                
             if (DesemCast(item).GetType()->template IsSimilar<Byte>()) {
                // Insert another byte block's contents directly         
-               Block::AllocateMore<Bytes>(mCount + DesemCast(item).GetCount());
-               CopyMemory(GetRaw() + mCount, DesemCast(item).template GetRaw<Bytes>());
+               Base::AllocateMore(mCount + DesemCast(item).GetCount());
+               CopyMemory(GetRaw() + mCount, DesemCast(item).template GetRaw<Byte>());
                mCount += DesemCast(item).GetCount();
             }
             else for (auto subblock : DesemCast(item))
@@ -307,11 +307,11 @@ namespace Langulus::Anyness
       }
       else if constexpr (CT::POD<T> and CT::Dense<T>) {
          // Insert as byte array                                        
-         auto data = Block::From(
+         auto data = Base::From(
             reinterpret_cast<const Byte*>(&DesemCast(item)),
             sizeof(T)
          );
-         InsertBlockInner<Bytes, void, true>(IndexBack, Refer(data));
+         Base::InsertBlockInner<void, true>(IndexBack, Refer(data));
       }
       else LANGULUS_ERROR("Unable to insert as bytes");
    }
@@ -321,7 +321,7 @@ namespace Langulus::Anyness
    ///   @return the number of parsed bytes                                   
    Count Bytes::Deserialize(CT::Data auto& result) const {
       Header header;
-      return Block::DeserializeBinary<Bytes, void>(result, header);
+      return Base::DeserializeBinary<void>(result, header);
    }
 
 } // namespace Langulus::Anyness

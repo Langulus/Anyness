@@ -20,10 +20,10 @@ namespace Langulus::Anyness
    /// Compare to any other kind of deep container, or single custom element  
    ///   @param rhs - element to compare against                              
    ///   @return true if containers match                                     
-   template<class TYPE> template<CT::NotSemantic T>
-   requires CT::NotOwned<T> LANGULUS(INLINED)
-   bool Block<TYPE>::operator == (const T& rhs) const {
-      if constexpr (CT::Deep<T>)
+   template<class TYPE> template<CT::NotSemantic T1> LANGULUS(INLINED)
+   bool Block<TYPE>::operator == (const T1& rhs) const
+   requires (TypeErased or CT::Comparable<TYPE, T1>) {
+      if constexpr (CT::Deep<T1>)
          return Compare<true>(rhs) or CompareSingleValue(rhs);
       else
          return CompareSingleValue(rhs);
@@ -80,7 +80,7 @@ namespace Langulus::Anyness
             return false;
 
          if constexpr (not TypeErased)
-            return Compare<RESOLVE>(reinterpret_cast<const THIS&>(right));
+            return Compare<RESOLVE>(reinterpret_cast<const Block<TYPE>&>(right));
          else
             return right.Compare<RESOLVE>(reinterpret_cast<const RHS&>(*this));
       }
@@ -128,9 +128,9 @@ namespace Langulus::Anyness
             }
             else if (mType->mComparer) {
                // Call compare operator for each element pair           
-               auto lhs = GetRawAs<Byte>();
-               auto rhs = right.template GetRawAs<Byte>();
-               const auto lhsEnd = GetRawEndAs<Byte>();
+               auto lhs = mRaw;
+               auto rhs = right.mRaw;
+               const auto lhsEnd = GetRawEnd<Byte>();
                while (lhs != lhsEnd) {
                   if (not mType->mComparer(lhs, rhs))
                      return false;
@@ -148,7 +148,7 @@ namespace Langulus::Anyness
          if constexpr (RESOLVE) {
             // We will test type for each resolved element, individually
             if (not IsResolvable() and not right.IsResolvable()
-               and not CompareTypes(right, baseForComparison)) {
+            and not CompareTypes(right, baseForComparison)) {
                // Types differ and are not resolvable                   
                VERBOSE(Logger::Red,
                   "Data types are not related: ",
@@ -296,16 +296,16 @@ namespace Langulus::Anyness
             // Deep types can be more loosely compared                  
             if (mType->mIsSparse or not mType->mIsDeep)
                return false;
-            return *GetRawAs<Block<>>() == rhs;
+            return GetDeep() == rhs;
          }
          else if constexpr (CT::StringLiteral<T>) {
             if (mType->template IsSimilar<Text>()) {
                // Implicitly make a text container on string literal    
-               return *GetRawAs<Text>() == Text {Disown(rhs)};
+               return *GetRaw<Text>() == Text {Disown(rhs)};
             }
             else if (mType->template IsSimilar<char*, wchar_t*>()) {
                // Cast away the extent, compare against pointer         
-               return *GetRawSparse() == static_cast<const void*>(rhs);
+               return GetRaw<void*>() == static_cast<const void*>(rhs);
             }
             else return false;
          }
@@ -313,7 +313,7 @@ namespace Langulus::Anyness
             // Non-deep element compare                                 
             if (not mType->template IsSimilar<T>())
                return false;
-            return *GetRawAs<T>() == rhs;
+            return *GetRaw<T>() == rhs;
          }
          else return false;
       }

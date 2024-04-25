@@ -24,17 +24,17 @@ namespace Langulus::Anyness
       if constexpr (not CT::TypedMap<TO>) {
          // TO is not statically typed, so we can safely                
          // overwrite type and state                                    
-         mKeys.mType = other->GetKeyType();
-         mValues.mType = other->GetValueType();
-         mKeys.mState = other->mKeys.mState;
+         mKeys.mType    = other->GetKeyType();
+         mValues.mType  = other->GetValueType();
+         mKeys.mState   = other->mKeys.mState;
          mValues.mState = other->mValues.mState;
       }
       else {
          // TO is typed, so we never touch mType, and we make sure that 
          // we don't affect Typed state                                 
-         mKeys.mType = MetaDataOf<typename TO::Key>();
-         mValues.mType = MetaDataOf<typename TO::Value>();
-         mKeys.mState = other->mKeys.mState + DataState::Typed;
+         mKeys.mType    = MetaDataOf<typename TO::Key>();
+         mValues.mType  = MetaDataOf<typename TO::Value>();
+         mKeys.mState   = other->mKeys.mState + DataState::Typed;
          mValues.mState = other->mValues.mState + DataState::Typed;
       }
 
@@ -82,7 +82,7 @@ namespace Langulus::Anyness
                // Copy                                                  
                // We're shallow-copying, so we're 100% sure, that       
                // each pair will end up in the same place               
-               mKeys.mState -= DataState::Static | DataState::Constant;
+               mKeys.mState   -= DataState::Static | DataState::Constant;
                mValues.mState -= DataState::Static | DataState::Constant;
                if (other->IsEmpty())
                   return;
@@ -95,12 +95,14 @@ namespace Langulus::Anyness
 
                if constexpr (CT::Untyped<B>) {
                   // Runtime checks are required before allocating      
-                  LANGULUS_ASSERT(asFrom->mKeys.mType->mReferConstructor, Construct,
-                     "Can't refer-construct keys"
-                     " - no refer-constructor was reflected for type ", asFrom->mKeys.mType);
-                  LANGULUS_ASSERT(asFrom->mValues.mType->mReferConstructor, Construct,
-                     "Can't refer-construct values"
-                     " - no refer-constructor was reflected for type ", asFrom->mValues.mType);
+                  LANGULUS_ASSERT(asFrom->mKeys.mType->mReferConstructor,
+                     Construct, "Can't refer-construct keys"
+                     " - no refer-constructor was reflected for type ",
+                     asFrom->mKeys.mType);
+                  LANGULUS_ASSERT(asFrom->mValues.mType->mReferConstructor,
+                     Construct, "Can't refer-construct values"
+                     " - no refer-constructor was reflected for type ",
+                     asFrom->mValues.mType);
                }
                else {
                   static_assert(CT::ReferMakable<K>,
@@ -194,7 +196,7 @@ namespace Langulus::Anyness
       else {
          // We're cloning, so we guarantee, that data is no longer      
          // static                                                      
-         mKeys.mState -= DataState::Static | DataState::Constant;
+         mKeys.mState   -= DataState::Static | DataState::Constant;
          mValues.mState -= DataState::Static | DataState::Constant;
          if (other->IsEmpty())
             return;
@@ -207,12 +209,14 @@ namespace Langulus::Anyness
 
          if constexpr (CT::Untyped<B>) {
             // Runtime checks are required before allocating      
-            LANGULUS_ASSERT(asFrom->mKeys.mType->mCloneConstructor, Construct,
-               "Can't clone-construct keys"
-               " - no clone-constructor was reflected for type ", asFrom->mKeys.mType);
-            LANGULUS_ASSERT(asFrom->mValues.mType->mCloneConstructor, Construct,
-               "Can't clone-construct values"
-               " - no clone-constructor was reflected for type ", asFrom->mValues.mType);
+            LANGULUS_ASSERT(asFrom->mKeys.mType->mCloneConstructor,
+               Construct, "Can't clone-construct keys"
+               " - no clone-constructor was reflected for type ",
+               asFrom->mKeys.mType);
+            LANGULUS_ASSERT(asFrom->mValues.mType->mCloneConstructor,
+               Construct, "Can't clone-construct values"
+               " - no clone-constructor was reflected for type ",
+               asFrom->mValues.mType);
          }
          else {
             static_assert(CT::CloneMakable<K>,
@@ -263,14 +267,13 @@ namespace Langulus::Anyness
                // We're cloning pointers, which will inevitably end up  
                // pointing elsewhere, which means that all pairs must   
                // be rehashed and reinserted                            
-               using CK = TMany<Deptr<K>>;
-               CK coalescedKeys;
+               TMany<Deptr<K>> coalescedKeys;
                coalescedKeys.Reserve(asFrom->GetCount());
 
                // Coalesce all densified elements, to avoid multiple    
                // allocations                                           
                for (auto& item : *asFrom) {
-                  coalescedKeys.template InsertInner<CK, void, false>(
+                  coalescedKeys.template InsertInner<void, false>(
                      IndexBack, SS::Nest(*item.mKey));
                }
 
@@ -330,7 +333,7 @@ namespace Langulus::Anyness
                // Coalesce all densified elements, to avoid multiple    
                // allocations                                           
                for (auto item : *asFrom) {
-                  coalescedKeys.template InsertBlockInner<Many, void, false>(
+                  coalescedKeys.template InsertBlockInner<void, false>(
                      IndexBack, SS::Nest(*item.mKey));
                }
 
@@ -387,11 +390,10 @@ namespace Langulus::Anyness
          }
          else {
             // Values are sparse, too - treat them the same             
-            using CV = TMany<Deptr<V>>;
-            CV coalescedValues;
+            TMany<Deptr<V>> coalescedValues;
             coalescedValues.Reserve(asFrom->GetCount());
             for (auto item : *asFrom) {
-               coalescedValues.template InsertInner<CV, void, false>(
+               coalescedValues.template InsertInner<void, false>(
                   IndexBack, SS::Nest(*item.mValue));
             }
 
@@ -447,7 +449,7 @@ namespace Langulus::Anyness
             auto coalescedValues = Many::FromMeta(asFrom->mValues.mType->mDeptr);
             coalescedValues.Reserve(asFrom->GetCount());
             for (auto item : *asFrom) {
-               coalescedValues.template InsertBlockInner<Many, void, false>(
+               coalescedValues.template InsertBlockInner<void, false>(
                   IndexBack, SS::Nest(*item.mValue));
             }
 
@@ -506,17 +508,17 @@ namespace Langulus::Anyness
 
                ++ptr;
                ++valIdx;
+
                while (not asFrom->mInfo[valIdx])
                   ++valIdx;
             }
          }
          else {
             // Values are sparse, too - treat them the same             
-            using CV = TMany<Deptr<V>>;
-            CV coalescedValues;
+            TMany<Deptr<V>> coalescedValues;
             coalescedValues.Reserve(asFrom->GetCount());
             for (auto& item : *asFrom) {
-               coalescedValues.template InsertInner<CV, void, false>(
+               coalescedValues.template InsertInner<void, false>(
                   IndexBack, SS::Nest(*item.mValue));
             }
 
@@ -569,7 +571,7 @@ namespace Langulus::Anyness
             auto coalescedValues = Many::FromMeta(asFrom->mValues.mType->mDeptr);
             coalescedValues.Reserve(asFrom->GetCount());
             for (auto item : *asFrom) {
-               coalescedValues.template InsertBlockInner<Many, void, false>(
+               coalescedValues.template InsertBlockInner<void, false>(
                   IndexBack, SS::Nest(*item.mValue));
             }
 

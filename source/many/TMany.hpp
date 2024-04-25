@@ -10,93 +10,6 @@
 #include "Many.hpp"
 
 
-namespace Langulus::CT
-{
-   namespace Inner
-   {
-
-      /// Test whether a TMany is constructible with the given arguments      
-      ///   @tparam T - the contained type in TMany<T>                         
-      ///   @tparam ...A - the arguments to test                              
-      ///   @return true if TMany<T> is constructible using {A...}             
-      template<class T, class...A>
-      consteval bool DeepMakable() noexcept {
-         if constexpr (UnfoldMakableFrom<T, A...>) {
-            // If we can directly forward A..., then always prefer that 
-            return true;
-         }
-         else if constexpr (sizeof...(A) == 1) {
-            // If only one A provided, it HAS to be a CT::Block type    
-            using FA = FirstOf<A...>;
-            using SA = SemanticOf<FA>;
-
-            if constexpr (CT::Block<Desem<FA>>) {
-               if constexpr (SA::Shallow) {
-                  // Generally, shallow semantics are always supported, 
-                  // but copying will call element constructors, so we  
-                  // have to check if the contained type supports it    
-                  if constexpr (CT::Copied<SA>)
-                     return ReferMakable<T>;
-                  else
-                     return true;
-               }
-               else {
-                  // Cloning always calls element constructors, and we  
-                  // have to check whether contained elements can do it 
-                  return SemanticMakableAlt<typename SA::template As<T>>;
-               }
-            }
-            else return false;
-         }
-         else return false;
-      };
-      
-      /// Test whether a TMany is assignable with the given argument          
-      ///   @tparam T - the contained type in TMany<T>                         
-      ///   @tparam A - the argument to test                                  
-      ///   @return true if TMany<T> is assignable using = A                  
-      template<class T, class A>
-      consteval bool DeepAssignable() noexcept {
-         if constexpr (UnfoldMakableFrom<T, A>) {
-            // If we can directly forward A..., then always prefer that 
-            // Othewise, it has to be a CT::Block type                  
-            return true;
-         }
-         else if constexpr (CT::Block<Desem<A>>) {
-            using SA = SemanticOf<A>;
-
-            if constexpr (SA::Shallow) {
-               // Generally, shallow semantics are always supported,    
-               // but copying will call element assigners, so we        
-               // have to check if the contained type supports it       
-               if constexpr (CT::Copied<SA>)
-                  return ReferAssignable<T>;
-               else
-                  return true;
-            }
-            else {
-               // Cloning always calls element assigners, and we        
-               // have to check whether contained elements can do it    
-               return SemanticAssignableAlt<typename SA::template As<T>>;
-            }
-         }
-         else return false;
-      };
-
-   } // namespace Langulus::CT::Inner
-
-   /// Concept for recognizing arguments, with which a statically typed       
-   /// container can be constructed                                           
-   template<class T, class...A>
-   concept DeepMakable = Inner::DeepMakable<T, A...>();
-
-   /// Concept for recognizing argument, with which a statically typed        
-   /// container can be assigned                                              
-   template<class T, class A>
-   concept DeepAssignable = Inner::DeepAssignable<T, A>();
-
-} // namespace Langulus::CT
-
 namespace Langulus::Anyness
 {
    
@@ -118,19 +31,9 @@ namespace Langulus::Anyness
    class TMany : public Block<T> {
       using Base = Block<T>;
 
-      static_assert(CT::Complete<T>,
-         "Contained type must be complete");
-      static_assert(CT::Insertable<T>,
-         "Contained type must be insertable");
-      static_assert(CT::Allocatable<T>,
-         "Contained type must be allocatable");
-      static_assert(not CT::Reference<T>,
-         "Contained type can't be a reference");
-
       LANGULUS(DEEP) true;
       LANGULUS(POD) false;
-      LANGULUS(TYPED) T;
-      LANGULUS_BASES(Many);
+      LANGULUS_BASES(Base);
 
    protected: IF_LANGULUS_TESTING(public:)
       #if LANGULUS_DEBUG()
@@ -146,6 +49,12 @@ namespace Langulus::Anyness
       using Base::mEntry;
 
    public:
+      static constexpr bool Ownership = true;
+      static constexpr bool Sequential = Base::Sequential;
+      static constexpr bool TypeErased = Base::TypeErased;
+      static constexpr bool Sparse = Base::Sparse;
+      static constexpr bool Dense = Base::Dense;
+
       using typename Base::Iterator;
       using typename Base::ConstIterator;
 
@@ -156,16 +65,13 @@ namespace Langulus::Anyness
       TMany(const TMany&);
       TMany(TMany&&) noexcept;
 
-      template<class T1, class...TN>
-      requires CT::DeepMakable<T, T1, TN...>
+      template<class T1, class...TN> requires CT::DeepMakable<T, T1, TN...>
       TMany(T1&&, TN&&...);
 
       ~TMany();
 
       NOD() static TMany From(auto&&, Count = 1);
-
-      template<CT::Data...LIST_T>
-      NOD() static TMany Wrap(LIST_T&&...);
+      NOD() static TMany Wrap(CT::Data auto&&...);
 
       ///                                                                     
       ///   Assignment                                                        
@@ -179,42 +85,30 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Indexing                                                          
       ///                                                                     
-      NOD() IF_UNSAFE(constexpr) TMany Crop(Offset, Count)       IF_UNSAFE(noexcept);
-      NOD() IF_UNSAFE(constexpr) TMany Crop(Offset, Count) const IF_UNSAFE(noexcept);
+      NOD() IF_UNSAFE(constexpr)
+      TMany Crop(Offset, Count)       IF_UNSAFE(noexcept);
+      NOD() IF_UNSAFE(constexpr)
+      TMany Crop(Offset, Count) const IF_UNSAFE(noexcept);
 
       ///                                                                     
       ///   Comparison                                                        
       ///                                                                     
-      template<CT::NotSemantic T1> requires (not CT::Block<T1> and CT::Comparable<T, T1> and CT::NotOwned<T1>)
-      bool operator == (const T1&) const;
-      template<CT::NotSemantic T1> requires (CT::UntypedBlock<T1> or (CT::TypedBlock<T1> and CT::Comparable<T, TypeOf<T1>>))
-      bool operator == (const T1&) const;
+      using Base::operator ==;
 
-      template<bool RESOLVE = true>
-      NOD() bool Compare(const CT::Block auto&) const;
-      NOD() Hash GetHash() const requires CT::Hashable<T>;
-
-      template<bool REVERSE = false, CT::NotSemantic T1>
-      requires CT::Comparable<T, T1>
-      NOD() Index Find(const T1&, Offset = 0) const noexcept;
-
-      template<CT::NotSemantic T1>
-      requires CT::Comparable<T, T1>
+      template<CT::NotSemantic T1> requires CT::Comparable<T, T1>
       NOD() Iterator FindIt(const T1&);
 
-      template<CT::NotSemantic T1>
-      requires CT::Comparable<T, T1>
+      template<CT::NotSemantic T1> requires CT::Comparable<T, T1>
       NOD() ConstIterator FindIt(const T1&) const;
 
       template<bool REVERSE = false>
       NOD() Index FindBlock(const CT::Block auto&, CT::Index auto) const noexcept;
 
-      NOD() bool CompareLoose(const CT::Block auto&) const noexcept;
+      NOD() bool  CompareLoose(const CT::Block auto&) const noexcept;
       NOD() Count Matches(const CT::Block auto&) const noexcept;
       NOD() Count MatchesLoose(const CT::Block auto&) const noexcept;
 
-      template<bool ASCEND = false>
-      requires CT::Sortable<T>
+      template<bool ASCEND = false> requires CT::Sortable<T>
       void Sort();
 
       void Swap(CT::Index auto, CT::Index auto);

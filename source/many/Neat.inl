@@ -332,9 +332,8 @@ namespace Langulus::Anyness
 
       if (ambiguous) {
          Logger::Warning(
-            "Multiple primitives defined in a single Neat on FindData"
-            " - all except the first `", primitive, "` will be ignored"
-         );
+            "Multiple primitives defined in a single Neat on FindData - "
+            "all except the first `", primitive, "` will be ignored");
       }
 
       return primitive;

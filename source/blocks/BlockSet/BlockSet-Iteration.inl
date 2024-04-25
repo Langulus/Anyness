@@ -29,9 +29,7 @@ namespace Langulus::Anyness
       constexpr auto NOE = NoexceptIterator<decltype(f)>;
 
       auto& keys = GetValues<THIS>();
-      using KEYS = Conditional<CT::Mutable<THIS>,
-         Decvq<Deref<decltype(keys)>>,
-         Deref<decltype(keys)>>;
+      constexpr bool MUTABLE = CT::Mutable<THIS>;
 
       if (   (CT::Deep<A> and keys.IsDeep())
       or (not CT::Deep<A> and keys.template CastsTo<A>())) {
@@ -39,7 +37,7 @@ namespace Langulus::Anyness
          if (mKeys.mType->mIsSparse) {
             // Iterate using pointers of A                              
             using DA = Conditional<CT::Mutable<THIS>, Deref<A>*, const Deref<A>*>;
-            return mKeys.IterateInner<KEYS, REVERSE>(mKeys.mReserved,
+            return mKeys.IterateInner<MUTABLE, REVERSE>(mKeys.mReserved,
                [&](DA element) noexcept(NOE) -> R {
                   if (not mInfo[index++]) {
                      if constexpr (CT::Bool<R>)
@@ -58,7 +56,7 @@ namespace Langulus::Anyness
          else {
             // Iterate using references of A                            
             using DA = Conditional<CT::Mutable<THIS>, Deref<A>&, const Deref<A>&>;
-            return mKeys.IterateInner<KEYS, REVERSE>(mKeys.mReserved,
+            return mKeys.IterateInner<MUTABLE, REVERSE>(mKeys.mReserved,
                [&](DA element) noexcept(NOE) -> R {
                   if (not mInfo[index++]) {
                      if constexpr (CT::Bool<R>)

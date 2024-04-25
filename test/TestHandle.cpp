@@ -286,7 +286,7 @@ TEMPLATE_TEST_CASE("Handles from sequential containers", "[handle]",
 
          // After the swap, n now holds h0, and will result in a leak   
          // This is by design - we have to manually free h0             
-         n.template Destroy<false, true>();
+         n.Destroy();
 
          if constexpr (CT::Referencable<T>)
             REQUIRE(n0p.Reference(-1) == 0);
@@ -361,7 +361,7 @@ TEMPLATE_TEST_CASE("Handles from sequential containers", "[handle]",
 
          // After the swap, n now holds h0, and will result in a leak   
          // This is by design - we have to manually free h0             
-         n.template Destroy<false, true>();
+         n.Destroy();
 
          if constexpr (CT::Referencable<T>)
             REQUIRE(n0p.Reference(-1) == 0);
@@ -415,7 +415,7 @@ TEMPLATE_TEST_CASE("Handles from sequential containers", "[handle]",
 
          // After the move, local now holds h0, and will result in a    
          // leak. This is by design - we have to manually free h0       
-         local.template Destroy<false, true>();
+         local.Destroy();
       }
 
       if constexpr (CT::Referencable<T>)

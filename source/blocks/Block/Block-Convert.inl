@@ -421,7 +421,7 @@ namespace Langulus::Anyness
          }
          else {
             // ... at once if dense                                     
-            to += Bytes::From(Disown(GetRawAs<Byte>()), byteCount);
+            to += Bytes::From(Disown(mRaw), byteCount);
          }
 
          return to.GetCount() - initial;
@@ -441,7 +441,7 @@ namespace Langulus::Anyness
             [this,&to](const Trait& trait) {
                if (IsSimilar<Trait>())
                   to += Bytes {trait.GetTrait()};
-               trait.SerializeToBinary<Block, void>(to);
+               trait.SerializeToBinary<void>(to);
             }
          );
 
@@ -547,7 +547,7 @@ namespace Langulus::Anyness
       read = DeserializeAtom(count, read, header, loader);
       if (count) {
          ReadInner(read, count, loader);
-         const Token token {GetRawAs<Letter>() + read, count};
+         const Token token {GetRaw<Letter>() + read, count};
 
       #if LANGULUS_FEATURE(MANAGED_REFLECTION)
          using META = Deref<decltype(result)>;

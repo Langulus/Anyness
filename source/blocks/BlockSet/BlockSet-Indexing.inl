@@ -186,7 +186,7 @@ namespace Langulus::Anyness
    ///   @param value - the value to hash, wrapped in a block                 
    ///   @return the bucket index                                             
    LANGULUS(INLINED)
-   Offset BlockSet::GetBucketUnknown(const Offset mask, const Block& value) noexcept {
+   Offset BlockSet::GetBucketUnknown(const Offset mask, const Block<>& value) noexcept {
       return value.GetHash().mHash & mask;
    }
 

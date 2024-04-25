@@ -343,7 +343,7 @@ namespace Langulus::Anyness
       Block mthis = part;
       mthis.mCount = mKeys.mCount;
       mthis.mReserved = mKeys.mReserved;
-      mthis.template Destroy<Deref<decltype(part)>, FORCE>(mInfo);
+      mthis.template Destroy<FORCE>(mInfo);
    }
 
 } // namespace Langulus::Anyness

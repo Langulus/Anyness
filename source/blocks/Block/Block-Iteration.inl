@@ -77,6 +77,12 @@ namespace Langulus::Anyness
       return mCount;
    }
 
+   template<class TYPE> template<bool REVERSE>
+   Count Block<TYPE>::ForEachElement(auto&& call) {
+      return const_cast<const Block*>(this)->template
+         ForEachElement<REVERSE, true>(Forward<decltype(call)>(call));
+   }
+
    /// Execute functions for each element inside container                    
    /// Each function has a distinct argument type, that is tested against the 
    /// contained type. If argument is compatible with the type, the block is  
@@ -96,6 +102,12 @@ namespace Langulus::Anyness
          ForEachInner<MUTABLE, REVERSE>(Forward<F>(calls), result)
       ));
       return result;
+   }
+
+   template<class TYPE> template<bool REVERSE, class...F> LANGULUS(INLINED)
+   Count Block<TYPE>::ForEach(F&&...calls) {
+      return const_cast<const Block*>(this)->template
+         ForEach<REVERSE, true>(Forward<F>(calls)...);
    }
 
    /// Execute functions in each sub-block, inclusively                       
@@ -119,10 +131,22 @@ namespace Langulus::Anyness
       return result;
    }
 
+   template<class TYPE>
+   template<bool REVERSE, bool SKIP, class...F> LANGULUS(INLINED)
+   Count Block<TYPE>::ForEachDeep(F&&...calls) {
+      return const_cast<const Block*>(this)->template
+         ForEachDeep<REVERSE, SKIP, true>(Forward<F>(calls)...);
+   }
+
    /// Same as ForEachElement, but in reverse                                 
    template<class TYPE> template<bool MUTABLE, class...F> LANGULUS(INLINED)
    Count Block<TYPE>::ForEachElementRev(F&&...f) const {
       return ForEachElement<true, MUTABLE>(Forward<F>(f)...);
+   }
+
+   template<class TYPE> template<class...F> LANGULUS(INLINED)
+   Count Block<TYPE>::ForEachElementRev(F&&...f) {
+      return ForEachElement<true, true>(Forward<F>(f)...);
    }
 
    /// Same as ForEach, but in reverse                                        
@@ -131,11 +155,21 @@ namespace Langulus::Anyness
       return ForEach<true, MUTABLE>(Forward<F>(f)...);
    }
 
+   template<class TYPE> template<class...F> LANGULUS(INLINED)
+   Count Block<TYPE>::ForEachRev(F&&...f) {
+      return ForEach<true, true>(Forward<F>(f)...);
+   }
+
    /// Same as ForEachDeep, but in reverse                                    
    template<class TYPE>
    template<bool SKIP, bool MUTABLE, class...F> LANGULUS(INLINED)
    Count Block<TYPE>::ForEachDeepRev(F&&...f) const {
       return ForEachDeep<true, SKIP, MUTABLE>(Forward<F>(f)...);
+   }
+
+   template<class TYPE> template<bool SKIP, class...F> LANGULUS(INLINED)
+   Count Block<TYPE>::ForEachDeepRev(F&&...f) {
+      return ForEachDeep<true, SKIP, true>(Forward<F>(f)...);
    }
 
    /// Iterate and execute call for each flat element, counting each          
@@ -154,6 +188,7 @@ namespace Langulus::Anyness
       UNUSED() static constexpr auto NOE = NoexceptIterator<decltype(f)>;
 
       if constexpr (not TypeErased) {
+         // Container is not type-erased                                
          if constexpr (    CT::Deep<Decay<A>, Decay<T>>
                    or (not CT::Deep<Decay<A>> and CT::DerivedFrom<T, A>)
                    or (CT::Same<A, T>)
@@ -183,6 +218,7 @@ namespace Langulus::Anyness
       else if (   (CT::Deep<Decay<A>> and IsDeep())
            or (not CT::Deep<Decay<A>> and CastsTo<A>())
       ) {
+         // Container is type-erased                                    
          if (mType->mIsSparse) {
             // Iterate sparse container                                 
             using DA = Conditional<MUTABLE, void*&, const void* const&>;
@@ -316,7 +352,7 @@ namespace Langulus::Anyness
 
       static_assert(CT::Complete<Decay<A>> or CT::Sparse<A>,
          "Can't iterate with incomplete type, use pointer instead");
-      static_assert(CT::Slab<A> or CT::Constant<Deptr<A>> or MUTABLE,
+      static_assert(CT::Slab<A> or CT::Constant<Deptr<A>> or not MUTABLE,
          "Non-constant iterator for constant memory is not allowed");
 
       LANGULUS_ASSUME(DevAssumes, IsTyped(),

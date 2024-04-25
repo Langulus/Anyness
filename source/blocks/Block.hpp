@@ -145,9 +145,93 @@ namespace Langulus
       concept Serial = Block<T...> and ((requires {
          typename T::SerializationRules; }) and ...);
 
+      
+      namespace Inner
+      {
+
+         /// Test whether a TMany is constructible with the given arguments   
+         ///   @tparam T - the contained type in TMany<T>                     
+         ///   @tparam ...A - the arguments to test                           
+         ///   @return true if TMany<T> is constructible using {A...}         
+         template<class T, class...A>
+         consteval bool DeepMakable() noexcept {
+            if constexpr (UnfoldMakableFrom<T, A...>) {
+               // If we can directly forward As, then always prefer that
+               return true;
+            }
+            else if constexpr (sizeof...(A) == 1) {
+               // If only one A provided, it HAS to be a CT::Block type 
+               using FA = FirstOf<A...>;
+               using SA = SemanticOf<FA>;
+
+               if constexpr (CT::Block<Desem<FA>>) {
+                  if constexpr (SA::Shallow) {
+                     // Generally, shallow semantics are always supported, 
+                     // but copying will call element constructors, so we  
+                     // have to check if the contained type supports it    
+                     if constexpr (CT::Copied<SA>)
+                        return ReferMakable<T>;
+                     else
+                        return true;
+                  }
+                  else {
+                     // Cloning always calls element constructors, and we  
+                     // have to check whether contained elements can do it 
+                     return SemanticMakableAlt<typename SA::template As<T>>;
+                  }
+               }
+               else return false;
+            }
+            else return false;
+         };
+
+         /// Test whether a TMany is assignable with the given argument       
+         ///   @tparam T - the contained type in TMany<T>                     
+         ///   @tparam A - the argument to test                               
+         ///   @return true if TMany<T> is assignable using = A               
+         template<class T, class A>
+         consteval bool DeepAssignable() noexcept {
+            if constexpr (UnfoldMakableFrom<T, A>) {
+               // If we can directly forward A..., then always prefer   
+               // that. Othewise, it has to be a CT::Block type         
+               return true;
+            }
+            else if constexpr (CT::Block<Desem<A>>) {
+               using SA = SemanticOf<A>;
+
+               if constexpr (SA::Shallow) {
+                  // Generally, shallow semantics are always supported, 
+                  // but copying will call element assigners, so we     
+                  // have to check if the contained type supports it    
+                  if constexpr (CT::Copied<SA>)
+                     return ReferAssignable<T>;
+                  else
+                     return true;
+               }
+               else {
+                  // Cloning always calls element assigners, and we     
+                  // have to check whether contained elements can do it 
+                  return SemanticAssignableAlt<typename SA::template As<T>>;
+               }
+            }
+            else return false;
+         };
+      }
+
+      /// Concept for recognizing arguments, with which a statically typed    
+      /// container can be constructed                                        
+      template<class T, class...A>
+      concept DeepMakable = Inner::DeepMakable<T, A...>();
+
+      /// Concept for recognizing argument, with which a statically typed     
+      /// container can be assigned                                           
+      template<class T, class A>
+      concept DeepAssignable = Inner::DeepAssignable<T, A>();
+
    } // namespace Langulus::CT
 
 } // namespace Langulus
+
 
 namespace Langulus::Anyness
 {
@@ -186,6 +270,13 @@ namespace Langulus::Anyness
       static constexpr bool TypeErased = CT::TypeErased<TYPE>;
       static constexpr bool Sparse     = CT::Sparse<TYPE>;
       static constexpr bool Dense      = not Sparse;
+
+      static_assert(TypeErased or CT::Insertable<TYPE>,
+         "Contained type must be insertable");
+      static_assert(TypeErased or CT::Allocatable<TYPE>,
+         "Contained type must be allocatable");
+      static_assert(not CT::Reference<TYPE>,
+         "Contained type can't be a reference");
 
       template<class>
       friend struct Block;
@@ -228,7 +319,9 @@ namespace Langulus::Anyness
       ///   Construction & Assignment                                         
       ///                                                                     
       using A::Block::Block;
-   
+      using A::Block::operator =;
+
+      // Type-erased utilities                                          
       template<bool CONSTRAIN_TYPE = false>
       NOD() static Block From(auto&&, Count = 1) requires TypeErased;
 
@@ -238,12 +331,20 @@ namespace Langulus::Anyness
       template<class AS = void, CT::Data T1, CT::Data...TN>
       NOD() static auto Wrap(T1&&, TN&&...) requires TypeErased;
 
-      using A::Block::operator =;
+      // Statically optimized utilities                                 
+      template<CT::Block B>
+      NOD() static B From(auto&&, Count = 1) requires (not TypeErased);
+      template<CT::Block B>
+      NOD() static B Wrap(CT::Data auto&&...) requires (not TypeErased);
          
    protected:
       template<template<class> class S, CT::Block FROM>
       requires CT::Semantic<S<FROM>>
       void BlockTransfer(S<FROM>&&);
+
+      template<class T1>
+      void BlockAssign(T1&&)
+      requires (CT::Block<Desem<T1>> and CT::DeepAssignable<TYPE, T1>);
 
    public:
       ///                                                                     
@@ -452,18 +553,31 @@ namespace Langulus::Anyness
 
       template<bool REVERSE = false, bool MUTABLE = false>
       Count ForEachElement(auto&&) const;
+      template<bool REVERSE = false>
+      Count ForEachElement(auto&&);
+
       template<bool MUTABLE = false>
       Count ForEachElementRev(auto&&...) const;
+      Count ForEachElementRev(auto&&...);
 
       template<bool REVERSE = false, bool MUTABLE = false>
       Count ForEach(auto&&...) const;
+      template<bool REVERSE = false>
+      Count ForEach(auto&&...);
+
       template<bool MUTABLE = false>
       Count ForEachRev(auto&&...) const;
+      Count ForEachRev(auto&&...);
 
       template<bool REVERSE = false, bool SKIP = true, bool MUTABLE = false>
       Count ForEachDeep(auto&&...) const;
+      template<bool REVERSE = false, bool SKIP = true>
+      Count ForEachDeep(auto&&...);
+
       template<bool SKIP = true, bool MUTABLE = false>
       Count ForEachDeepRev(auto&&...) const;
+      template<bool SKIP = true>
+      Count ForEachDeepRev(auto&&...);
 
    protected:
       template<class F>
@@ -476,7 +590,7 @@ namespace Langulus::Anyness
       template<bool MUTABLE, bool REVERSE, bool SKIP>
       LoopControl ForEachDeepInner(auto&&, Count&) const;
 
-      template<bool MUTABLE, bool REVERSE = false>
+      template<bool MUTABLE, bool REVERSE>
       LoopControl IterateInner(Count, auto&& f) const noexcept(NoexceptIterator<decltype(f)>);
 
       // Prefix operators                                               
@@ -552,8 +666,9 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Comparison                                                        
       ///                                                                     
-      template<CT::NotSemantic T> requires CT::NotOwned<T>
-      bool operator == (const T&) const;
+      template<CT::NotSemantic T1>
+      bool operator == (const T1&) const
+      requires (TypeErased or CT::Comparable<TYPE, T1>);
 
       template<bool RESOLVE = true>
       NOD() bool Compare(const CT::Block auto&) const;
@@ -701,9 +816,8 @@ namespace Langulus::Anyness
       void ShallowBatchPointerConstruction(S<T>&&);
 
    public:
-      template<template<class> class S, CT::Block T>
-      requires CT::Semantic<S<T>>
-      void AssignSemantic(S<T>&&);
+      template<class T>
+      void AssignSemantic(T&&) requires CT::Block<Desem<T>>;
 
       ///                                                                     
       ///   Removal                                                           

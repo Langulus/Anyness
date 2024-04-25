@@ -102,9 +102,9 @@ namespace Langulus::Anyness
          // If reached, then type mutated to a deep type                
          if (depened) {
             FORCE temp;
-            temp.template InsertBlockInner<FORCE, void, true>(
+            temp.template InsertBlockInner<void, true>(
                IndexBack, Forward<S<B>>(data));
-            Insert<void, true>(index, Abandon(temp));
+            Insert<void>(index, Abandon(temp));
             return;
          }
       }
@@ -142,9 +142,8 @@ namespace Langulus::Anyness
             // We're moving to the right, so make sure we do it in      
             // reverse to avoid any potential overlap                   
             const auto moved = mCount - idx;
-            CropInner(idx + count, moved)
-               .template CreateSemantic<true>(
-                  Abandon(CropInner(idx, moved)));
+            CropInner(idx + count, moved).template CreateSemantic<true>(
+               Abandon(CropInner(idx, moved)));
          }
       }
 
@@ -186,7 +185,7 @@ namespace Langulus::Anyness
                // We're moving to the right, so make sure we do it in   
                // reverse to avoid any potential overlap                
                const auto moved = mCount - idx;
-               CropInner(idx + 1, moved) .template CreateSemantic<true>(
+               CropInner(idx + 1, moved).template CreateSemantic<true>(
                   Abandon(CropInner(idx, moved)));
             }
          }
@@ -231,7 +230,7 @@ namespace Langulus::Anyness
             }
          }
 
-         GetHandle<T>(idx).CreateSemantic(mType, S::Nest(item));
+         GetHandle<T>(idx).CreateSemantic(S::Nest(item), mType);
       }
 
       ++mCount;
@@ -615,16 +614,15 @@ namespace Langulus::Anyness
       }
       else if (IsDeep()) {
          // Already deep, push value wrapped in a container             
-         //TODO hmm, what if this is deep but of specific Block<type>, that doesn't correspond to FORCE?
+         //TODO hmm, what if this is deep but of specific Block<type>, that doesn't correspond to Many? should be checked inside Deepen!
          if (mCount > 1 and not IsOr() and state.IsOr()) {
             // If container is not or-compliant after insertion, we     
             // need to add another layer                                
-            Deepen<FORCE, true>();
-            SetState(mState + state);
+            Deepen<Many>();
          }
-         else SetState(mState + state);
 
-         return Insert<void>(index, FORCE {value.Forward()});
+         SetState(mState + state);
+         return Insert<void>(index, Many {value.Forward()});
       }
 
       if constexpr (not CT::Void<FORCE>) {
@@ -1127,10 +1125,10 @@ namespace Langulus::Anyness
                clonedCoalescedSrc.mCount = count;
 
                // Clone each inner element by nesting this call         
-               auto lhs = mthis->template GetHandle<Byte*>(0);
-               const auto lhsEnd = lhs + count;
+               auto lhs = mthis->GetHandle();
                auto dst = clonedCoalescedSrc.GetElementInner();
                auto src = source->GetElementInner();
+               const auto lhsEnd = lhs + count;
                while (lhs.mValue != lhsEnd.mValue) {
                   dst.CreateSemantic(Clone(src.template GetDense<1>()));
                   lhs.Create(dst.mRaw, clonedCoalescedSrc.mEntry);

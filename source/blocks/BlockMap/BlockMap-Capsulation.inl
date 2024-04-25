@@ -387,7 +387,7 @@ namespace Langulus::Anyness
          return true;
 
       bool missing = false;
-      ForEachKeyDeep<false, false, THIS>([&](const Block& key) {
+      ForEachKeyDeep<false, false, THIS>([&](const Block<>& key) {
          return not (missing = key.IsMissing());
       });
       return missing;
@@ -401,7 +401,7 @@ namespace Langulus::Anyness
          return true;
 
       bool missing = false;
-      ForEachValueDeep<false, false, THIS>([&](const Block& val) {
+      ForEachValueDeep<false, false, THIS>([&](const Block<>& val) {
          return not (missing = val.IsMissing());
       });
       return missing;
@@ -429,7 +429,7 @@ namespace Langulus::Anyness
          return true;
 
       bool exec = false;
-      ForEachKeyDeep<false, true, THIS>([&](const Block& key) {
+      ForEachKeyDeep<false, true, THIS>([&](const Block<>& key) {
          return not (exec = key.IsExecutable());
       });
       return exec;
@@ -443,7 +443,7 @@ namespace Langulus::Anyness
          return true;
 
       bool exec = false;
-      ForEachValueDeep<false, true, THIS>([&](const Block& val) {
+      ForEachValueDeep<false, true, THIS>([&](const Block<>& val) {
          return not (exec = val.IsExecutable());
       });
       return exec;

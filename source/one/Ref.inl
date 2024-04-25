@@ -18,20 +18,21 @@ namespace Langulus::Anyness
 {
    
    /// Get handle representation of the contained pointer                     
+   ///   @return a handle                                                     
    TEMPLATE() LANGULUS(INLINED)
    Handle<T* const> TME()::GetHandle() const {
-      return {mValue, mEntry};
+      return {&mValue, &mEntry};
    }
 
    TEMPLATE() LANGULUS(INLINED)
    Handle<T*> TME()::GetHandle() {
-      return {mValue, mEntry};
+      return {&mValue, &mEntry};
    }
 
    /// Default costructor                                                     
    TEMPLATE() LANGULUS(INLINED)
    constexpr TME()::Ref() noexcept
-      : Base {nullptr}
+      : Base   {nullptr}
       , mEntry {nullptr} {}
 
    /// Refer constructor                                                      
@@ -103,7 +104,7 @@ namespace Langulus::Anyness
    void TME()::ResetInner() {
       LANGULUS_ASSUME(DevAssumes, mValue, "Null value");
       LANGULUS_ASSUME(DevAssumes, mEntry, "Null entry");
-      GetHandle().template Destroy<false>();
+      GetHandle().Destroy(MetaDataOf<T*>());
    }
 
    /// Reset the pointer                                                      
