@@ -22,7 +22,7 @@ namespace Langulus::Anyness
    /// avoid requesting meta definitions before meta database initialization, 
    /// and to significanty improve TMany initialization time (also to allow   
    /// for constexpr default construction)                                    
-   TEMPLATE() LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(ALWAYS_INLINED)
    constexpr TMany<T>::TMany() {
       if constexpr (CT::Constant<T>)
          mState = DataState::Typed | DataState::Constant;
@@ -32,13 +32,13 @@ namespace Langulus::Anyness
 
    /// Refer constructor                                                      
    ///   @param other - the TMany to reference                                
-   TEMPLATE() LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(ALWAYS_INLINED)
    TMany<T>::TMany(const TMany& other)
       : TMany {Refer(other)} {}
     
    /// Move constructor                                                       
    ///   @param other - the TMany to move                                     
-   TEMPLATE() LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(ALWAYS_INLINED)
    TMany<T>::TMany(TMany&& other) noexcept
       : TMany {Move(other)} {}
    
@@ -49,70 +49,11 @@ namespace Langulus::Anyness
    TEMPLATE() template<class T1, class...TN>
    requires CT::DeepMakable<T, T1, TN...> LANGULUS(INLINED)
    TMany<T>::TMany(T1&& t1, TN&&...tn) {
-      mType = MetaDataOf<T>();
-
-      if constexpr (sizeof...(TN) == 0) {
-         using S = SemanticOf<decltype(t1)>;
-         using ST = TypeOf<S>;
-
-         if constexpr (CT::Block<ST>) {
-            if constexpr (CT::Typed<ST>) {
-               // Not type-erased block, do compile-time type checks    
-               using STT = TypeOf<ST>;
-
-               if constexpr (CT::Similar<T, STT>) {
-                  // Type is binary compatible, just transfer block     
-                  Base::BlockTransfer(S::Nest(t1));
-               }
-               else if constexpr (CT::Sparse<T, STT>) {
-                  if constexpr (CT::DerivedFrom<T, STT>) {
-                     // The statically typed block contains items that  
-                     // are base of this container's type. Each element 
-                     // should be dynamically cast to this type         
-                     for (auto pointer : DesemCast(t1)) {
-                        auto dcast = dynamic_cast<T>(&(*pointer));
-                        if (dcast)
-                           (*this) << dcast;
-                     }
-                  }
-                  else if constexpr (CT::DerivedFrom<STT, T>) {
-                     // The statically typed block contains items that  
-                     // are derived from this container's type. Each    
-                     // element should be statically sliced to this type
-                     for (auto pointer : DesemCast(t1))
-                        (*this) << static_cast<T>(&(*pointer));
-                  }
-                  else Base::Insert(IndexBack, Forward<T1>(t1));
-               }
-               else Base::Insert(IndexBack, Forward<T1>(t1));
-            }
-            else if constexpr (CT::Deep<ST>) {
-               // Type-erased block, do run-time type checks            
-               if (IsSimilar(DesemCast(t1).GetType())) {
-                  // If types are similar, it is safe to                
-                  // absorb the block, essentially converting a type-   
-                  // erased Many back to its TMany equivalent           
-                  Base::BlockTransfer(S::Nest(t1));
-               }
-               else if constexpr (CT::Deep<T>) {
-                  // This TMany accepts any kind of deep element        
-                  Base::Insert(IndexBack, Forward<T1>(t1));
-               }
-               else if constexpr (CT::Typed<ST> and CT::MakableFrom<T, typename S::template As<TypeOf<ST>>>) {
-                  // Attempt converting all elements to T               
-                  Base::InsertBlock(IndexBack, Forward<T1>(t1));
-               }
-               else LANGULUS_OOPS(Meta, "Unable to absorb block");
-            }
-            else LANGULUS_ERROR("Can't construct this TMany from this kind of Block");
-         }
-         else Base::Insert(IndexBack, Forward<T1>(t1));
-      }
-      else Base::Insert(IndexBack, Forward<T1>(t1), Forward<TN>(tn)...);
+      Base::BlockCreate(Forward<T1>(t1), Forward<TN>(tn)...);
    }
 
    /// Destructor                                                             
-   TEMPLATE() LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(ALWAYS_INLINED)
    TMany<T>::~TMany() {
       Base::Free();
    }
@@ -124,10 +65,11 @@ namespace Langulus::Anyness
    ///   @param what - data to semantically interface                         
    ///   @param count - number of items, in case 'what' is sparse             
    ///   @return the provided data, wrapped inside a TMany<T>                 
-   TEMPLATE() LANGULUS(INLINED)
+   /*TEMPLATE() LANGULUS(ALWAYS_INLINED)
    TMany<T> TMany<T>::From(auto&& what, Count count) {
-      return Base::From<TMany>(Forward(what), count);
-   }
+      using S = SemanticOf<decltype(what)>;
+      return Base::template From<TMany>(S::Nest(what), count);
+   }*/
 
    /// Refer assignment                                                       
    ///   @param rhs - the container to refer to                               
@@ -153,25 +95,7 @@ namespace Langulus::Anyness
    TEMPLATE() template<class T1>
    requires CT::DeepAssignable<T, T1> LANGULUS(INLINED)
    TMany<T>& TMany<T>::operator = (T1&& rhs) {
-      /*using S  = SemanticOf<decltype(rhs)>;
-      using ST = TypeOf<S>;
-
-      if constexpr (CT::Block<ST>) {
-         // Potentially absorb a container                              
-         if (static_cast<const A::Block*>(this)
-          == static_cast<const A::Block*>(&DesemCast(rhs)))
-            return *this;
-
-         Base::Free();
-         new (this) TMany {S::Nest(rhs)};
-      }
-      else {
-         // Unfold-insert                                               
-         Base::Clear();
-         Base::template UnfoldInsert<void, true>(IndexBack, S::Nest(rhs));
-      }*/
-      Base::BlockAssign(Forward<T1>(rhs));
-      return *this;
+      return Base::template BlockAssign<TMany>(Forward<T1>(rhs));
    }
 
    /// Insert an element at the back of the container                         
@@ -220,12 +144,12 @@ namespace Langulus::Anyness
    ///   @return the container                                                
    TEMPLATE() LANGULUS(INLINED)
    TMany<T> TMany<T>::Crop(Offset start, Count count) const {
-      return Base::Crop<TMany>(start, count);
+      return Base::template Crop<TMany>(start, count);
    }
    
    TEMPLATE() LANGULUS(INLINED)
    TMany<T> TMany<T>::Crop(Offset start, Count count) {
-      return Base::Crop<TMany>(start, count);
+      return Base::template Crop<TMany>(start, count);
    }
    
    /// Extend the container via default construction, and return the new part 
@@ -233,7 +157,7 @@ namespace Langulus::Anyness
    ///   @return a container that represents only the extended part           
    TEMPLATE() LANGULUS(INLINED)
    TMany<T> TMany<T>::Extend(const Count count) {
-      return Base::Extend<TMany>(count);
+      return Base::template Extend<TMany>(count);
    }
   
    /// Concatenate anything, semantically or not                              
@@ -243,7 +167,7 @@ namespace Langulus::Anyness
    requires CT::DeepMakable<T, T1> LANGULUS(INLINED)
    TMany<T> TMany<T>::operator + (T1&& rhs) const {
       using S = SemanticOf<decltype(rhs)>;
-      return Base::ConcatBlock<TMany>(S::Nest(rhs));
+      return Base::template ConcatBlock<TMany>(S::Nest(rhs));
    }
 
    /// Concatenate destructively, semantically or not                         

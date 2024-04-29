@@ -70,7 +70,7 @@ namespace Langulus::Anyness
 
       ~TMany();
 
-      NOD() static TMany From(auto&&, Count = 1);
+      //NOD() static TMany From(auto&&, Count = 1);
       NOD() static TMany Wrap(CT::Data auto&&...);
 
       ///                                                                     
@@ -91,11 +91,22 @@ namespace Langulus::Anyness
       TMany Crop(Offset, Count) const IF_UNSAFE(noexcept);
 
       ///                                                                     
+      ///   RTTI                                                              
+      ///                                                                     
+      using Base::Is;
+      using Base::IsSimilar;
+      using Base::IsExact;
+      using Base::CastsToMeta;
+      using Base::CastsTo;
+      using Base::ReinterpretAs;
+      using Base::GetMember;
+
+      ///                                                                     
       ///   Comparison                                                        
       ///                                                                     
       using Base::operator ==;
 
-      template<CT::NotSemantic T1> requires CT::Comparable<T, T1>
+      /*template<CT::NotSemantic T1> requires CT::Comparable<T, T1>
       NOD() Iterator FindIt(const T1&);
 
       template<CT::NotSemantic T1> requires CT::Comparable<T, T1>
@@ -106,23 +117,18 @@ namespace Langulus::Anyness
 
       NOD() bool  CompareLoose(const CT::Block auto&) const noexcept;
       NOD() Count Matches(const CT::Block auto&) const noexcept;
-      NOD() Count MatchesLoose(const CT::Block auto&) const noexcept;
+      NOD() Count MatchesLoose(const CT::Block auto&) const noexcept;*/
 
-      template<bool ASCEND = false> requires CT::Sortable<T>
+      /*template<bool ASCEND = false> requires CT::Sortable<T>
       void Sort();
 
-      void Swap(CT::Index auto, CT::Index auto);
-
-      template<bool REVERSE = false>
-      Count GatherFrom(const CT::Block auto&);
-      template<bool REVERSE = false>
-      Count GatherFrom(const CT::Block auto&, DataState);
+      void Swap(CT::Index auto, CT::Index auto);*/
 
       ///                                                                     
       ///   Memory management                                                 
       ///                                                                     
-      template<bool SETSIZE = false>
-      void Reserve(Count);
+      /*template<bool SETSIZE = false>
+      void Reserve(Count);*/
 
       ///                                                                     
       ///   Insertion                                                         
@@ -131,13 +137,11 @@ namespace Langulus::Anyness
 
       template<class T1> requires CT::UnfoldMakableFrom<T, T1>
       TMany& operator << (T1&&);
-
       template<class T1> requires CT::UnfoldMakableFrom<T, T1>
       TMany& operator >> (T1&&);
 
       template<class T1> requires CT::UnfoldMakableFrom<T, T1>
       TMany& operator <<= (T1&&);
-
       template<class T1> requires CT::UnfoldMakableFrom<T, T1>
       TMany& operator >>= (T1&&);
 

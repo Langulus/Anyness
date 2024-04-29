@@ -45,16 +45,7 @@ namespace Langulus::Anyness
    ///   @param tn... - the rest of the elements (optional, can be semantic)  
    template<class T1, class...TN> requires CT::UnfoldInsertable<T1, TN...>
    LANGULUS(INLINED) Many::Many(T1&& t1, TN&&...tn) {
-      if constexpr (sizeof...(TN) == 0) {
-         using S = SemanticOf<decltype(t1)>;
-         using T = TypeOf<S>;
-
-         if constexpr (CT::Deep<T>)
-            Base::BlockTransfer(S::Nest(t1));
-         else
-            Base::Insert<Many, true>(IndexBack, Forward<T1>(t1));
-      }
-      else Base::Insert<Many, true>(IndexBack, Forward<T1>(t1), Forward<TN>(tn)...);
+      Base::BlockCreate(Forward<T1>(t1), Forward<TN>(tn)...);
    }
 
    /// Destruction                                                            
@@ -78,8 +69,7 @@ namespace Langulus::Anyness
    ///   @return the new container instance                                   
    LANGULUS(INLINED)
    Many Many::FromBlock(const CT::Block auto& block, DataState state) noexcept {
-      return Many::FromMeta(
-         block.GetType(), block.GetUnconstrainedState() + state);
+      return Many::FromMeta(block.GetType(), block.GetUnconstrainedState() + state);
    }
 
    /// Create an empty Many by copying only state of a block                  
@@ -88,8 +78,7 @@ namespace Langulus::Anyness
    ///   @return the new container instance                                   
    LANGULUS(INLINED)
    Many Many::FromState(const CT::Block auto& block, DataState state) noexcept {
-      return Many::FromMeta(
-         nullptr, block.GetUnconstrainedState() + state);
+      return Many::FromMeta(nullptr, block.GetUnconstrainedState() + state);
    }
 
    /// Create an empty Many from a static type and state                      
@@ -101,12 +90,44 @@ namespace Langulus::Anyness
       return Base {state, MetaDataOf<T>()};
    }
    
+   /// Insert the provided elements, making sure to insert and never absorb   
+   ///   @tparam AS - the type to wrap elements as, use void to auto-deduce   
+   ///   @param items... - items to insert                                    
+   ///   @returns the new container containing the data                       
+   template<class AS, CT::Data...TN> LANGULUS(INLINED)
+   Many Many::Wrap(TN&&...items) {
+      if constexpr (CT::TypeErased<AS>) {
+         // Auto-detect type, statically optimize as much as possible   
+         if constexpr (sizeof...(TN) > 0) {
+            using First = FirstOf<Decvq<CT::Unfold<TN>>...>;
+            if constexpr (CT::Similar<First, CT::Unfold<TN>...>) {
+               // All provided types are the same                       
+               TMany<First> result;
+               (result.template Insert<void>(IndexBack, Forward<TN>(items)), ...);
+               return result;
+            }
+            else {
+               // Different kinds of data, wrap them in Manies          
+               TMany<Many> result;
+               (result.template Insert<void>(IndexBack, Forward<TN>(items)), ...);
+               return result;
+            }
+         }
+         else return {};
+      }
+      else {
+         TMany<AS> result;
+         (result.template Insert<void>(IndexBack, Forward<TN>(items)), ...);
+         return result;
+      }
+   }
+
    /// Refer assignment                                                       
    ///   @param rhs - the container to refer to                               
    ///   @return a reference to this container                                
    LANGULUS(INLINED)
    Many& Many::operator = (const Many& rhs) {
-      static_assert(CT::DeepAssignable<Many, Referred<Many>>);
+      static_assert(CT::DeepAssignable<void, Referred<Many>>);
       return operator = (Refer(rhs));
    }
 
@@ -115,7 +136,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container                                
    LANGULUS(INLINED)
    Many& Many::operator = (Many&& rhs) noexcept {
-      static_assert(CT::DeepAssignable<Many, Moved<Many>>);
+      static_assert(CT::DeepAssignable<void, Moved<Many>>);
       return operator = (Move(rhs));
    }
 
@@ -124,30 +145,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container                                
    LANGULUS(INLINED)
    Many& Many::operator = (CT::UnfoldInsertable auto&& rhs) {
-      /*using S = SemanticOf<decltype(rhs)>;
-      using T = TypeOf<S>;
-
-      if constexpr (CT::Deep<T>) {
-         // Potentially absorb a container                              
-         if (static_cast<const A::Block*>(this)
-          == static_cast<const A::Block*>(&DesemCast(rhs)))
-            return *this;
-
-         Free();
-         new (this) Many {S::Nest(rhs)};
-      }
-      else if (IsSimilar<Unfold<T>>()) {
-         // Unfold-insert by reusing memory                             
-         Clear();
-         UnfoldInsert<void, true>(IndexFront, S::Nest(rhs));
-      }
-      else {
-         // Allocate anew and unfold-insert                             
-         Free();
-         new (this) Many {S::Nest(rhs)};
-      }*/
-      Base::BlockAssign(Forward<T>(rhs));
-      return *this;
+      return Base::BlockAssign<Many>(Forward<decltype(rhs)>(rhs));
    }
 
    /// Move-insert an element at the back                                     
@@ -155,7 +153,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container for chaining                   
    LANGULUS(INLINED)
    Many& Many::operator << (CT::UnfoldInsertable auto&& other) {
-      Base::Insert<true>(IndexBack, Forward<decltype(other)>(other));
+      Base::Insert<Many>(IndexBack, Forward<decltype(other)>(other));
       return *this;
    }
    
@@ -164,7 +162,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container for chaining                   
    LANGULUS(INLINED)
    Many& Many::operator >> (CT::UnfoldInsertable auto&& other) {
-      Base::Insert<true>(IndexFront, Forward<decltype(other)>(other));
+      Base::Insert<Many>(IndexFront, Forward<decltype(other)>(other));
       return *this;
    }
 
@@ -173,7 +171,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container for chaining                   
    LANGULUS(INLINED)
    Many& Many::operator <<= (CT::UnfoldInsertable auto&& other) {
-      Base::Merge<true>(IndexBack, Forward<decltype(other)>(other));
+      Base::Merge<Many>(IndexBack, Forward<decltype(other)>(other));
       return *this;
    }
 
@@ -182,7 +180,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container for chaining                   
    LANGULUS(INLINED)
    Many& Many::operator >>= (CT::UnfoldInsertable auto&& other) {
-      Base::Merge<true>(IndexFront, Forward<decltype(other)>(other));
+      Base::Merge<Many>(IndexFront, Forward<decltype(other)>(other));
       return *this;
    }
 

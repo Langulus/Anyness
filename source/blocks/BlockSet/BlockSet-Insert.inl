@@ -56,7 +56,7 @@ namespace Langulus::Anyness
                }
                return ExtentOf<T>;
             }
-            else if constexpr (CT::MakableFrom<E, Unfold<Deext<T>>>) {
+            else if constexpr (CT::MakableFrom<E, CT::Unfold<Deext<T>>>) {
                // Construct from an array of things, which can't be used
                // to directly construct elements, so nest this insert   
                Count inserted = 0;
@@ -128,7 +128,7 @@ namespace Langulus::Anyness
                   }
                   return DesemCast(item).GetCount();
                }
-               else if constexpr (CT::MakableFrom<E, Unfold<T2>>) {
+               else if constexpr (CT::MakableFrom<E, CT::Unfold<T2>>) {
                   // Set elements need to be unfolded one by one        
                   Count inserted = 0;
                   for (auto& key : DesemCast(item))
@@ -370,7 +370,7 @@ namespace Langulus::Anyness
                   InsertInner<THIS, false>(newBucket, Abandon(keyswap));
                }
                else {
-                  Block keyswap {DataState {}, GetType(), 1};
+                  Block<> keyswap {DataState {}, GetType(), 1};
                   keyswap.AllocateFresh(keyswap.RequestSize(1));
                   keyswap.CreateSemantic(Abandon(oldKey));
 

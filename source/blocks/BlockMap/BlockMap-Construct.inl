@@ -408,7 +408,7 @@ namespace Langulus::Anyness
             auto dstKey = GetValHandle<B>(0);
             while (info != infoEnd) {
                if (*info)
-                  dstKey.Create(ptrVal++, coalescedValues.mEntry);
+                  dstKey.Assign(ptrVal++, coalescedValues.mEntry);
 
                ++info;
                ++dstKey;
@@ -463,7 +463,7 @@ namespace Langulus::Anyness
             while (info != infoEnd) {
                if (*info) {
                   GetValHandle<B>(info - GetInfo()).CreateSemantic(
-                     Abandon(HandleLocal<void*> {ptrVal, coalescedValues.mEntry})
+                     HandleLocal<void*> {ptrVal, coalescedValues.mEntry}
                   );
                   ptrVal += valstride.mSize;
                }

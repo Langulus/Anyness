@@ -85,17 +85,17 @@ namespace Langulus::Anyness
    ///   @param index - the offset at which to start inserting                
    ///   @param data - data and semantic to use                               
    template<class TYPE>
-   template<class FORCE, bool MOVE_ASIDE, template<class> class S, CT::Block B>
-   requires CT::Semantic<S<B>>
-   void Block<TYPE>::InsertBlockInner(CT::Index auto index, S<B>&& data) {
+   template<class FORCE, bool MOVE_ASIDE, class T1> requires CT::Block<Desem<T1>>
+   void Block<TYPE>::InsertBlockInner(CT::Index auto index, T1&& data) {
       // If both sids are void, then we have a type-erased insertion       
-      using T = Conditional<TypeErased, TypeOf<B>, TYPE>;
+      using S = SemanticOf<decltype(data)>;
+      using T = Conditional<TypeErased, TypeOf<Desem<T1>>, TYPE>;
 
       if constexpr (CT::CanBeDeepened<FORCE, Block> and MOVE_ASIDE) {
          // Type may mutate                                             
          bool depened;
          if constexpr (CT::TypeErased<T>)
-            depened = Mutate<FORCE>(data->GetType());
+            depened = Mutate<FORCE>(DesemCast(data).GetType());
          else
             depened = Mutate<T, FORCE>();
 
@@ -103,7 +103,7 @@ namespace Langulus::Anyness
          if (depened) {
             FORCE temp;
             temp.template InsertBlockInner<void, true>(
-               IndexBack, Forward<S<B>>(data));
+               IndexBack, Forward<T1>(data));
             Insert<void>(index, Abandon(temp));
             return;
          }
@@ -113,7 +113,7 @@ namespace Langulus::Anyness
          if constexpr (CT::TypeErased<T>) {
             // This branch will always do a slower run-time type check  
             LANGULUS_ASSERT(IsSimilar(*data), Meta,
-               "Inserting incompatible type `", data->GetType(),
+               "Inserting incompatible type `", DesemCast(data).GetType(),
                "` to container of type `", GetType(), '`'
             );
          }
@@ -128,8 +128,8 @@ namespace Langulus::Anyness
       }
 
       // If reached, then we have binary compatible type, so allocate   
-      const auto count = data->GetCount();
-      const auto idx = SimplifyIndex<false>(index);
+      const auto count = DesemCast(data).GetCount();
+      const auto idx   = SimplifyIndex<false>(index);
 
       if constexpr (MOVE_ASIDE) {
          AllocateMore(mCount + count);
@@ -148,7 +148,7 @@ namespace Langulus::Anyness
       }
 
       // Construct data in place                                        
-      CropInner(idx, count).CreateSemantic(data.Forward());
+      CropInner(idx, count).CreateSemantic(Forward<T1>(data));
       mCount += count;
    }
 
@@ -257,8 +257,7 @@ namespace Langulus::Anyness
          }
          else {
             // Insert the array                                         
-            InsertBlockInner<FORCE, MOVE_ASIDE>(
-               index, S::Nest(Block<Deext<T>>::From(item)));
+            InsertBlockInner<FORCE, MOVE_ASIDE>(index, MakeBlock(S::Nest(item)));
             return ExtentOf<T>;
          }
       }
@@ -487,7 +486,7 @@ namespace Langulus::Anyness
       // Allocate a new T and move this inside it                       
       Block<T> wrapper;
       wrapper.AllocateFresh(wrapper.RequestSize(1));
-      new (wrapper.mRaw) Block<TYPE> {*this};
+      new (wrapper.mRaw) Block {*this};
       wrapper.mCount = 1;
       wrapper.mState -= DataState::Typed;
       *this = wrapper;
@@ -552,32 +551,51 @@ namespace Langulus::Anyness
    ///   @param value - the value to concatenate                              
    ///   @param state - the state to apply after concatenation                
    ///   @return the number of inserted elements                              
-   template<class TYPE> template<class FORCE, template<class> class S, CT::Deep T>
-   requires CT::Semantic<S<T>> LANGULUS(INLINED)
-   Count Block<TYPE>::SmartConcat(
-      CT::Index auto index, bool sc, S<T>&& value, DataState state
+   template<class TYPE> template<class FORCE, class T1> requires CT::Deep<Desem<T1>>
+   LANGULUS(INLINED) Count Block<TYPE>::SmartConcat(
+      CT::Index auto index, bool sc, T1&& value, DataState state
    ) {
-      // If this container is compatible and concatenation is           
-      // enabled, try concatenating the two containers                  
-      const bool typeCompliant = IsUntyped()
-              or (not CT::Void<FORCE> and value->IsDeep())
-              or IsSimilar(*value);
+      if constexpr (TypeErased) {
+         // If this container is compatible and concatenation is        
+         // enabled, try concatenating the two containers               
+         const bool typeCompliant = IsUntyped()
+            or (not CT::Void<FORCE> and DesemCast(value).IsDeep())
+            or IsSimilar(DesemCast(value));
 
-      if (not IsConstant() and not IsStatic() and typeCompliant and sc
-      and not (GetCount() > 1 and not IsOr() and state.IsOr())) {
-         if (IsUntyped()) {
-            // Block insert never mutates, so make sure type            
-            // is valid before insertion                                
-            SetType<false>(value->GetType());
-         }
-         else if constexpr (not CT::Void<FORCE>) {
-            if (not IsDeep() and value->IsDeep())
-               Deepen<FORCE, false>();
-         }
+         if (not IsConstant() and not IsStatic() and typeCompliant and sc
+         and not (GetCount() > 1 and not IsOr() and state.IsOr())) {
+            if (IsUntyped()) {
+               // Block insert never mutates, so make sure type         
+               // is valid before insertion                             
+               SetType<false>(DesemCast(value).GetType());
+            }
+            else if constexpr (not CT::Void<FORCE>) {
+               if (not IsDeep() and DesemCast(value).IsDeep())
+                  Deepen<FORCE, false>();
+            }
 
-         const auto cat = InsertBlock<void>(index, value.Forward());
-         mState += state;
-         return cat;
+            const auto cat = InsertBlock<void>(index, Forward<T1>(value));
+            mState += state;
+            return cat;
+         }
+      }
+      else {
+         // If this container is compatible and concatenation is        
+         // enabled, try concatenating the two containers               
+         const bool typeCompliant = IsSimilar(DesemCast(value)) or
+            (not CT::Void<FORCE> and DesemCast(value).IsDeep());
+
+         if (not IsConstant() and not IsStatic() and typeCompliant and sc
+         and not (GetCount() > 1 and not IsOr() and state.IsOr())) {
+            if constexpr (CT::CanBeDeepened<FORCE, Block>) {
+               if (not IsDeep() and DesemCast(value).IsDeep())
+                  Deepen<FORCE, false>();
+            }
+
+            const auto cat = InsertBlock<void>(index, Forward<T1>(value));
+            mState += state;
+            return cat;
+         }
       }
 
       return 0;
@@ -590,62 +608,87 @@ namespace Langulus::Anyness
    ///   @param value - the value to concatenate                              
    ///   @param state - the state to apply after concatenation                
    ///   @return the number of inserted elements                              
-   template<class TYPE> template<class FORCE, template<class> class S, class T>
-   requires CT::Semantic<S<T>> LANGULUS(INLINED)
+   template<class TYPE> template<class FORCE> LANGULUS(INLINED)
    Count Block<TYPE>::SmartPushInner(
-      CT::Index auto index, S<T>&& value, DataState state
+      CT::Index auto index, auto&& value, DataState state
    ) {
-      if (IsUntyped() and IsInvalid()) {
-         // Mutate-insert inside untyped container                      
-         SetState(mState + state);
-         return Insert<void>(index, value.Forward());
-      }
-      else if (IsExact<T>()) {
-         // Insert to a same-typed container                            
-         SetState(mState + state);
-         return Insert<void>(index, value.Forward());
-      }
-      else if (IsEmpty() and IsTyped() and not IsTypeConstrained()) {
-         // If incompatibly typed but empty and not constrained, we     
-         // can still reset the container and reuse it                  
-         Reset();
-         SetState(mState + state);
-         return Insert<void>(index, value.Forward());
-      }
-      else if (IsDeep()) {
-         // Already deep, push value wrapped in a container             
-         //TODO hmm, what if this is deep but of specific Block<type>, that doesn't correspond to Many? should be checked inside Deepen!
-         if (mCount > 1 and not IsOr() and state.IsOr()) {
-            // If container is not or-compliant after insertion, we     
-            // need to add another layer                                
-            Deepen<Many>();
+      using S = SemanticOf<decltype(value)>;
+      using T = TypeOf<S>;
+
+      if constexpr (TypeErased) {
+         if (IsUntyped() and IsInvalid()) {
+            // Mutate-insert inside untyped container                   
+            SetState(mState + state);
+            return Insert<void>(index, S::Nest(value));
+         }
+         else if (IsSimilar<T>()) {
+            // Insert to a same-typed container                         
+            SetState(mState + state);
+            return Insert<void>(index, S::Nest(value));
+         }
+         else if (IsEmpty() and IsTyped() and not IsTypeConstrained()) {
+            // If incompatibly typed but empty and not constrained, we  
+            // can still reset the container and reuse it               
+            Reset();
+            SetState(mState + state);
+            return Insert<void>(index, S::Nest(value));
+         }
+         else if (IsDeep()) {
+            // Already deep, push value wrapped in a container          
+            //TODO hmm, what if this is deep but of specific Block<type>, that doesn't correspond to Many? should be checked inside Deepen!
+            if (mCount > 1 and not IsOr() and state.IsOr()) {
+               // If container is not or-compliant after insertion, we  
+               // need to add another layer                             
+               Deepen<Many>();
+            }
+
+            SetState(mState + state);
+            return Insert<void>(index, Many {S::Nest(value)});
          }
 
-         SetState(mState + state);
-         return Insert<void>(index, Many {value.Forward()});
+         if constexpr (not CT::Void<FORCE>) {
+            // If this is reached, all else failed, but we are allowed  
+            // to deepen, so do it                                      
+            Deepen<FORCE, false>();
+            SetState(mState + state);
+            return Insert<void>(index, FORCE {S::Nest(value)});
+         }
+         else return 0;
       }
+      else {
+         if constexpr (CT::Similar<TYPE, T>) {
+            // Insert to a same-typed container                         
+            SetState(mState + state);
+            return Insert<void>(index, S::Nest(value));
+         }
+         else if constexpr (CT::Deep<Decay<TYPE>>) {
+            // Already deep, push value wrapped in a container          
+            //TODO hmm, what if this is deep but of specific Block<type>, that doesn't correspond to Many? should be checked inside Deepen!
+            if (mCount > 1 and not IsOr() and state.IsOr()) {
+               // If container is not or-compliant after insertion, we  
+               // need to add another layer                             
+               Deepen<Many>();
+            }
 
-      if constexpr (not CT::Void<FORCE>) {
-         // If this is reached, all else failed, but we are allowed to  
-         // deepen, so do it                                            
-         Deepen<FORCE, false>();
-         SetState(mState + state);
-         return Insert<void>(index, FORCE {value.Forward()});
+            SetState(mState + state);
+            return Insert<void>(index, Many {S::Nest(value)});
+         }
+         else return 0;
       }
-      else return 0;
    }
    
    /// Concatenate this, and another block into a new block, semantically     
    ///   @param rhs - block and semantic to concatenate with (right side)     
    ///   @return the concatenated container                                   
-   template<class TYPE> 
-   template<CT::Block THIS, template<class> class S, CT::Block T>
-   requires CT::Semantic<S<T>> LANGULUS(INLINED)
-   THIS Block<TYPE>::ConcatBlock(S<T>&& rhs) const {
+   template<class TYPE> template<CT::Block THIS, class T1>
+   requires CT::Block<Desem<T1>> LANGULUS(INLINED)
+   THIS Block<TYPE>::ConcatBlock(T1&& rhs) const {
+      using S = SemanticOf<decltype(rhs)>;
       auto& lhs = reinterpret_cast<const THIS&>(*this);
+
       if (IsEmpty())
-         return {rhs.Forward()};
-      else if (rhs->IsEmpty())
+         return {S::Nest(rhs)};
+      else if (DesemCast(rhs).IsEmpty())
          return lhs;
 
       if (GetUses() == 1 and not mType->mDestructor and not mType->mIsSparse) {
@@ -655,7 +698,7 @@ namespace Langulus::Anyness
          // if the container contains dense indestructible items        
          const auto countBackup = mCount;
          const_cast<Block*>(this)->template
-            InsertBlock<void>(IndexBack, rhs.Forward());
+            InsertBlock<void>(IndexBack, S::Nest(rhs));
          Block result = *this;
          const_cast<Block*>(this)->mCount = countBackup;
          return reinterpret_cast<THIS&>(result);
@@ -664,10 +707,10 @@ namespace Langulus::Anyness
       // Allocate a new concatenated container, and push inside         
       THIS result;
       if constexpr (TypeErased)
-         result.template SetType<false>(rhs->GetType());
-      result.AllocateFresh(result.RequestSize(mCount + rhs->GetCount()));
+         result.template SetType<false>(DesemCast(rhs).GetType());
+      result.AllocateFresh(result.RequestSize(mCount + DesemCast(rhs).GetCount()));
       result.template InsertBlock<void, false>(IndexBack, Refer(lhs));
-      result.template InsertBlock<void, false>(IndexBack, rhs.Forward());
+      result.template InsertBlock<void, false>(IndexBack, S::Nest(rhs));
       return Abandon(result);
    }
 
@@ -918,12 +961,12 @@ namespace Langulus::Anyness
                // appropriate reflected semantic constructor, if any    
                using FT = TypeOf<F>;
                if (IsSimilar<FT>())
-                  Create<TMany<FT>>(Forward<A>(arguments)...);
+                  Create(Forward<A>(arguments)...);
                else
                   CreateDescribe(Forward<A>(arguments)...);
             }
             else if (IsSimilar<F>())
-               Create<TMany<F>>(Forward<A>(arguments)...);
+               Create(Forward<A>(arguments)...);
             else
                CreateDescribe(Forward<A>(arguments)...);
          }
@@ -940,40 +983,40 @@ namespace Langulus::Anyness
    ///                     account for potential memory overlap               
    ///   @param source - the source of the elements to initialize with        
    template<class TYPE>
-   template<bool REVERSE, template<class> class S, CT::Block OTHER>
-   requires CT::Semantic<S<OTHER>>
-   void Block<TYPE>::CreateSemantic(S<OTHER>&& source) {
-      const auto count = source->mCount;
+   template<bool REVERSE, class T1> requires CT::Block<Desem<T1>>
+   void Block<TYPE>::CreateSemantic(T1&& source) {
+      using S = SemanticOf<decltype(source)>;
+      using OTHER = TypeOf<S>;
+      const auto count = DesemCast(source).mCount;
       LANGULUS_ASSUME(DevAssumes, count and count <= mReserved,
          "Count outside limits", '(', count, " > ", mReserved);
 
       // Type-erased pointers (void*) are acceptable                    
       LANGULUS_ASSUME(DevAssumes, 
-            (source->IsSimilar(*this)
-         or (source->template IsSimilar<void*>() and IsSparse())
-         or (source->IsSparse() and IsSimilar<void*>())),
-         "Type mismatch on creation", ": ", source->GetType(), " != ", GetType());
+            (DesemCast(source).IsSimilar(*this)
+         or (DesemCast(source).template IsSimilar<void*>() and IsSparse())
+         or (DesemCast(source).IsSparse() and IsSimilar<void*>())),
+         "Type mismatch on creation", ": ", DesemCast(source).GetType(), " != ", GetType());
 
       using B = Conditional<TypeErased, OTHER, Block>;
       using T = Conditional<CT::Typed<B>, TypeOf<B>, void>;
-      using SS = S<B>;
       const auto mthis = reinterpret_cast<B*>(const_cast<Block*>(this));
-      const auto other = reinterpret_cast<B*>(const_cast<OTHER*>(&(*source)));
+      const auto other = reinterpret_cast<B*>(const_cast<OTHER*>(&DesemCast(source)));
 
       if constexpr (not CT::TypeErased<T>) {
          // Leverage the fact, that containers are statically typed     
          if constexpr (CT::Sparse<T>) {
             using DT = Deptr<T>;
 
-            if constexpr (SS::Shallow) {
+            if constexpr (S::Shallow) {
                // Shallow pointer transfer                              
-               ShallowBatchPointerConstruction(source.Forward());
+               ShallowBatchPointerConstruction(Forward<T1>(source));
             }
             else if constexpr (CT::Unallocatable<Decay<T>> or not CT::CloneMakable<T>) {
                // We early-return with an enforced shallow pointer      
                // transfer, because its requesting to clone             
                // unallocatable/unclonable/abstract data                
-               ShallowBatchPointerConstruction(Refer(*source));
+               ShallowBatchPointerConstruction(Refer(Forward<T1>(source)));
             }
             else if constexpr (CT::Sparse<DT> or not CT::Resolvable<T>) {
                // If contained type is not resolvable, or its deptr     
@@ -987,11 +1030,11 @@ namespace Langulus::Anyness
                // Clone each inner element                              
                auto handle = GetHandle<T>(0);
                auto dst = clonedCoalescedSrc.GetRaw();
-               auto src = source->GetRaw();
+               auto src = DesemCast(source).GetRaw();
                const auto srcEnd = src + count;
                while (src != srcEnd) {
                   SemanticNew(dst, Clone(**src));
-                  handle.Create(dst, clonedCoalescedSrc.mEntry);
+                  handle.Assign(dst, clonedCoalescedSrc.mEntry);
 
                   ++dst;
                   ++src;
@@ -1010,7 +1053,9 @@ namespace Langulus::Anyness
          }
          else if constexpr (CT::POD<T>) {
             // Both RHS and LHS are dense and POD                       
-            auto lhs = mthis->GetRaw();
+            // This is a constructor, so we're allowed to cast away     
+            // any qualifiers on the left side                          
+            auto lhs = DecvqCast(mthis->GetRaw());
             auto rhs = other->GetRaw();
             if constexpr (REVERSE)
                MoveMemory(lhs, rhs, count);
@@ -1020,7 +1065,9 @@ namespace Langulus::Anyness
          else {
             // Both RHS and LHS are dense and non POD                   
             // Call constructor for each element (optionally in reverse)
-            auto lhs = mthis->GetRaw();
+            // This is a constructor, so we're allowed to cast away     
+            // any qualifiers on the left side                          
+            auto lhs = DecvqCast(mthis->GetRaw());
             auto rhs = other->GetRaw();
             if constexpr (REVERSE) {
                lhs += count - 1;
@@ -1028,7 +1075,7 @@ namespace Langulus::Anyness
             }
             const auto lhsEnd = REVERSE ? lhs - count : lhs + count;
             while (lhs != lhsEnd) {
-               if constexpr (CT::Abandoned<SS> and not CT::AbandonMakable<T>) {
+               if constexpr (CT::Abandoned<S> and not CT::AbandonMakable<T>) {
                   if constexpr (CT::MoveMakable<T>) {
                      // We can fallback to move-construction, but report
                      // a performance warning                           
@@ -1041,7 +1088,7 @@ namespace Langulus::Anyness
                   }
                   else LANGULUS_ERROR("T is not movable, nor abandon-constructible");
                }
-               else SemanticNew(lhs, SS::Nest(*rhs));
+               else SemanticNew(lhs, S::Nest(*rhs));
 
                if constexpr (REVERSE) {
                   --lhs;
@@ -1058,8 +1105,8 @@ namespace Langulus::Anyness
          // Containers are type-erased                                  
          // First make sure that reflected constructors are available   
          // There's no point in iterating anything otherwise            
-         if constexpr (SS::Move) {
-            if constexpr (SS::Keep) {
+         if constexpr (S::Move) {
+            if constexpr (S::Keep) {
                LANGULUS_ASSERT(
                   mType->mIsSparse or mType->mMoveConstructor, Construct,
                   "Can't move-construct elements "
@@ -1074,9 +1121,9 @@ namespace Langulus::Anyness
                );
             }
          }
-         else if constexpr (SS::Shallow) {
-            if constexpr (SS::Keep) {
-               if constexpr (CT::Referred<SS>) {
+         else if constexpr (S::Shallow) {
+            if constexpr (S::Keep) {
+               if constexpr (CT::Referred<S>) {
                   LANGULUS_ASSERT(
                      mType->mIsSparse or mType->mReferConstructor, Construct,
                      "Can't refer-construct elements"
@@ -1104,16 +1151,16 @@ namespace Langulus::Anyness
 
          if (mType->mIsSparse) {
             // Both LHS and RHS are sparse                              
-            if constexpr (SS::Shallow) {
+            if constexpr (S::Shallow) {
                // Shallow pointer transfer                              
-               ShallowBatchPointerConstruction(source.Forward());
+               ShallowBatchPointerConstruction(Forward<T1>(source));
             }
             else if (not mType->mDeptr->mIsSparse
             and (mType->mIsUnallocatable or not mType->mCloneConstructor)) {
                // We early-return with an enforced shallow pointer      
                // transfer, because its requesting to clone             
                // unallocatable/unclonable/abstract data                
-               ShallowBatchPointerConstruction(Refer(source));
+               ShallowBatchPointerConstruction(Refer(Forward<T1>(source)));
             }
             else if (mType->mDeptr->mIsSparse or not mType->mResolver) {
                // If contained type is not resolvable (or is just       
@@ -1125,13 +1172,13 @@ namespace Langulus::Anyness
                clonedCoalescedSrc.mCount = count;
 
                // Clone each inner element by nesting this call         
-               auto lhs = mthis->GetHandle();
+               auto lhs = mthis->template GetHandle<void*>();
                auto dst = clonedCoalescedSrc.GetElementInner();
-               auto src = source->GetElementInner();
+               auto src = DesemCast(source).GetElementInner();
                const auto lhsEnd = lhs + count;
                while (lhs.mValue != lhsEnd.mValue) {
                   dst.CreateSemantic(Clone(src.template GetDense<1>()));
-                  lhs.Create(dst.mRaw, clonedCoalescedSrc.mEntry);
+                  lhs.Assign(dst.mRaw, clonedCoalescedSrc.mEntry);
                   ++dst;
                   ++src;
                   ++lhs;
@@ -1152,28 +1199,28 @@ namespace Langulus::Anyness
             // by memcpy all at once (batch optimization)               
             const auto bytesize = mType->mSize * count;
             if constexpr (REVERSE)
-               MoveMemory(mRaw, source->mRaw, bytesize);
+               MoveMemory(mRaw, DesemCast(source).mRaw, bytesize);
             else
-               CopyMemory(mRaw, source->mRaw, bytesize);
+               CopyMemory(mRaw, DesemCast(source).mRaw, bytesize);
          }
          else {
             // Both RHS and LHS are dense and non-POD                   
             // We invoke reflected constructors for each element        
             const auto stride = mType->mSize;
             auto lhs = mRaw + (REVERSE ? (count - 1) * stride : 0);
-            auto rhs = source->mRaw + (REVERSE ? (count - 1) * stride : 0);
+            auto rhs = DesemCast(source).mRaw + (REVERSE ? (count - 1) * stride : 0);
             const auto rhsEnd = REVERSE ? rhs - count * stride : rhs + count * stride;
 
             while (rhs != rhsEnd) {
-               if constexpr (SS::Move) {
-                  if constexpr (SS::Keep)
+               if constexpr (S::Move) {
+                  if constexpr (S::Keep)
                      mType->mMoveConstructor(rhs, lhs);
                   else
                      mType->mAbandonConstructor(rhs, lhs);
                }
-               else if constexpr (SS::Shallow) {
-                  if constexpr (SS::Keep) {
-                     if constexpr (CT::Referred<SS>)
+               else if constexpr (S::Shallow) {
+                  if constexpr (S::Keep) {
+                     if constexpr (CT::Referred<S>)
                         mType->mReferConstructor(rhs, lhs);
                      else
                         mType->mCopyConstructor(rhs, lhs);
@@ -1200,10 +1247,12 @@ namespace Langulus::Anyness
    ///   @attention assumes none of the elements are constructed              
    ///   @attention assumes blocks types are similar                          
    ///   @param source - the handle to initialize with                        
-   template<class TYPE> template<template<class> class S, CT::Handle OTHER>
-   requires CT::Semantic<S<OTHER>>
-   void Block<TYPE>::CreateSemantic(S<OTHER>&& source) {
-      static_assert(CT::Sparse<TypeOf<OTHER>>,
+   template<class TYPE> template<class T1> requires CT::Handle<Desem<T1>>
+   void Block<TYPE>::CreateSemantic(T1&& source) {
+      using S = SemanticOf<decltype(source)>;
+      using T = TypeOf<TypeOf<S>>;
+
+      static_assert(CT::Sparse<T>,
          "Handle isn't sparse");
       LANGULUS_ASSUME(DevAssumes, 1 <= mReserved,
          "Count outside limits (1 > ", mReserved);
@@ -1215,39 +1264,46 @@ namespace Langulus::Anyness
       // Type-erased pointers (void*) are acceptable, because they're   
       // required for some internal stuff, although not recommended     
       LANGULUS_ASSUME(DevAssumes, (
-         CT::Similar<TypeOf<OTHER>, void*> or IsSimilar<TypeOf<OTHER>>()),
+         CT::Similar<T, void*> or IsSimilar<T>()),
          "Type mismatch on creation from handle", ": ", GetType(),
-         " instead of ", MetaDataOf<TypeOf<OTHER>>());
+         " instead of ", MetaDataOf<T>());
 
-      using T = Conditional<TypeErased, TypeOf<OTHER>, TYPE>;
-      auto handle = GetHandle<T>(0);
-      handle.CreateSemantic(source.Forward());
+      using LOSSLESS = Conditional<TypeErased, T, TYPE>;
+      GetHandle<LOSSLESS>().CreateSemantic(S::Nest(source));
    }
    
    /// Batch-optimized semantic pointer constructions                         
    ///   @attention overwrites pointers without dereferencing their memory    
    ///   @attention doesn't modify any container state                        
+   ///   @attention assumes blocks are similar                                
    ///   @param source - the source of pointers                               
-   template<class TYPE>
-   template<template<class> class S, CT::Block T> requires CT::Semantic<S<T>>
-   void Block<TYPE>::ShallowBatchPointerConstruction(S<T>&& source) {
-      using SS = S<T>;
+   template<class TYPE> template<class T> requires CT::Block<Desem<T>>
+   void Block<TYPE>::ShallowBatchPointerConstruction(T&& source) {
+      using S  = SemanticOf<decltype(source)>;
+      using ST = TypeOf<S>;
+
+      LANGULUS_ASSUME(DevAssumes, IsSimilar(DesemCast(source)),
+         "Type mismatch");
+
       static_assert(TypeErased or Sparse,
          "This isn't sparse");
-      static_assert(T::TypeErased or T::Sparse,
+      static_assert(ST::TypeErased or ST::Sparse,
          "Source isn't sparse");
-      static_assert(SS::Shallow,
+      static_assert(S::Shallow,
          "This function works only for shallow semantics");
 
-      const auto count = source->mCount;
-      const auto pointersDst = mRawSparse;
-      const auto pointersSrc = source->mRawSparse;
+      using P = Conditional<TypeErased,
+         Conditional<ST::TypeErased, void*, DecvqAll<TypeOf<ST>>>, void*>;
+
+      const auto count = DesemCast(source).mCount;
+      const auto pointersDst = GetRaw<P>();
+      const auto pointersSrc = DesemCast(source).template GetRaw<P>();
       const auto entriesDst  = GetEntries();
-      const auto entriesSrc  = source->mEntry
-         ? source->GetEntries()
+      const auto entriesSrc  = DesemCast(source).mEntry
+         ? DesemCast(source).GetEntries()
          : nullptr;
 
-      if constexpr (SS::Move) {
+      if constexpr (S::Move) {
          // Move/Abandon                                                
          MoveMemory(pointersDst, pointersSrc, count);
 
@@ -1262,14 +1318,14 @@ namespace Langulus::Anyness
          }
 
          // Reset source pointers, too, if not abandoned                
-         if constexpr (SS::Keep)
+         if constexpr (S::Keep)
             ZeroMemory(pointersSrc, count);
       }
       else {
          // Copy/Refer/Disown                                           
          CopyMemory(pointersDst, pointersSrc, count);
 
-         if constexpr (SS::Keep) {
+         if constexpr (S::Keep) {
             // Copy/Refer                                               
             // Reference each entry, if not disowned                    
             if (entriesSrc) {
@@ -1277,18 +1333,18 @@ namespace Langulus::Anyness
                auto entry = entriesDst;
                const auto entryEnd = entry + count;
 
-               if constexpr (not T::TypeErased) {
+               if constexpr (not ST::TypeErased) {
                   while (entry != entryEnd) {
                      if (*entry) {
                         const_cast<Allocation*>(*entry)->Keep();
-                        if constexpr (CT::Referencable<Deptr<TypeOf<T>>>)
+                        if constexpr (CT::Referencable<Deptr<P>>)
                            pointersDst[entry - entriesDst]->Reference(1);
                      }
                      ++entry;
                   }
                }
-               else if (source->mType->mReference) {
-                  auto reference = source->mType->mReference;
+               else if (DesemCast(source).mType->mReference) {
+                  auto reference = DesemCast(source).mType->mReference;
                   while (entry != entryEnd) {
                      if (*entry) {
                         const_cast<Allocation*>(*entry)->Keep();
@@ -1323,9 +1379,8 @@ namespace Langulus::Anyness
    ///      overlap, but this is handled in the assignment operators)         
    ///   @attention assumes blocks are binary compatible                      
    ///   @param source - the elements to assign                               
-   template<class TYPE> template<template<class> class S, CT::Block OTHER>
-   requires CT::Semantic<S<OTHER>>
-   void Block<TYPE>::AssignSemantic(S<OTHER>&& source) {
+   template<class TYPE> template<class T1>
+   void Block<TYPE>::AssignSemantic(T1&& source) requires CT::Block<Desem<T1>> {
       const auto count = source->mCount;
       LANGULUS_ASSUME(DevAssumes, count and count <= mReserved,
          "Count outside limits", '(', count, " > ", mReserved);
@@ -1338,9 +1393,10 @@ namespace Langulus::Anyness
          or (source->IsSparse() and IsSimilar<void*>())),
          "Type mismatch on assignment", ": ", source->GetType(), " != ", GetType());
 
-      using B = Conditional<TypeErased, OTHER, Block<TYPE>>;
+      using OTHER = Desem<T1>;
+      using S = SemanticOf<decltype(source)>;
+      using B = Conditional<TypeErased, OTHER, Block>;
       using T = TypeOf<B>;
-      using SS = S<B>;
       const auto mthis = reinterpret_cast<B*>(this);
       const auto other = reinterpret_cast<B*>(const_cast<OTHER*>(&(*source)));
 
@@ -1349,7 +1405,7 @@ namespace Langulus::Anyness
             // We're reassigning pointers                               
             using DT = Deptr<T>;
 
-            if constexpr (SS::Shallow) {
+            if constexpr (S::Shallow) {
                // Shallow pointer transfer                              
                Destroy();
                ShallowBatchPointerConstruction(source.Forward());
@@ -1408,7 +1464,7 @@ namespace Langulus::Anyness
             auto rhs = other->GetRaw();
             const auto lhsEnd = lhs + count;
             while (lhs != lhsEnd) {
-               if constexpr (CT::Abandoned<SS> and not CT::AbandonAssignable<T>) {
+               if constexpr (CT::Abandoned<S> and not CT::AbandonAssignable<T>) {
                   if constexpr (CT::MoveAssignable<T>) {
                      // We can fallback to move-assignment, but report  
                      // a performance warning                           
@@ -1421,9 +1477,8 @@ namespace Langulus::Anyness
                   }
                   else LANGULUS_ERROR("T is not movable, nor abandon-assignable");
                }
-               else SemanticAssign(*lhs, SS::Nest(*rhs));
+               else SemanticAssign(*lhs, S::Nest(*rhs));
 
-               //SemanticAssign(*lhs, S<Block>::Nest(*rhs));
                ++lhs;
                ++rhs;
             }
@@ -1433,8 +1488,8 @@ namespace Langulus::Anyness
          // Containers are type-erased                                  
          // First make sure that reflected assigners are available      
          // There's no point in iterating anything otherwise            
-         if constexpr (SS::Move) {
-            if constexpr (SS::Keep) {
+         if constexpr (S::Move) {
+            if constexpr (S::Keep) {
                LANGULUS_ASSERT(
                   mType->mIsSparse or mType->mMoveAssigner, Construct,
                   "Can't move-assign elements "
@@ -1449,9 +1504,9 @@ namespace Langulus::Anyness
                );
             }
          }
-         else if constexpr (SS::Shallow) {
-            if constexpr (SS::Keep) {
-               if constexpr (CT::Referred<SS>) {
+         else if constexpr (S::Shallow) {
+            if constexpr (S::Keep) {
+               if constexpr (CT::Referred<S>) {
                   LANGULUS_ASSERT(
                      mType->mIsSparse or mType->mReferAssigner, Construct,
                      "Can't refer-assign elements"
@@ -1480,20 +1535,15 @@ namespace Langulus::Anyness
          if (mType->mIsSparse) {
             // Since we're overwriting pointers, we have to dereference 
             // the old ones, but conditionally reference the new ones   
-            auto lhs = mthis->mRawSparse;
-            auto rhs = other->mRawSparse;
-            auto lhsEntry = mthis->GetEntries();
-            auto rhsEntry = other->GetEntries();
+            auto lhs = mthis->template GetHandle<void*>();
+            auto rhs = other->template GetHandle<void*>();
             const auto lhsEnd = lhs + count;
 
-            while (lhs != lhsEnd) {
-               Handle (*lhs, *lhsEntry).AssignSemantic(mType,
-                  SS::Nest(Handle (*rhs, *rhsEntry)));
+            while (lhs.mValue != lhsEnd.mValue) {
+               lhs.AssignSemantic(S::Nest(rhs), mType);
 
                ++lhs;
                ++rhs;
-               ++lhsEntry;
-               ++rhsEntry;
             }
          }
          else if (mType->mIsPOD) {
@@ -1510,15 +1560,15 @@ namespace Langulus::Anyness
             const auto rhsEnd = rhs + count * stride;
 
             while (rhs != rhsEnd) {
-               if constexpr (SS::Move) {
-                  if constexpr (SS::Keep)
+               if constexpr (S::Move) {
+                  if constexpr (S::Keep)
                      mType->mMoveAssigner(rhs, lhs);
                   else
                      mType->mAbandonAssigner(rhs, lhs);
                }
-               else if constexpr (SS::Shallow) {
-                  if constexpr (SS::Keep) {
-                     if constexpr (CT::Referred<SS>)
+               else if constexpr (S::Shallow) {
+                  if constexpr (S::Keep) {
+                     if constexpr (CT::Referred<S>)
                         mType->mReferAssigner(rhs, lhs);
                      else
                         mType->mCopyAssigner(rhs, lhs);

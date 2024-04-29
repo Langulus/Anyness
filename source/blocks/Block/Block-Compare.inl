@@ -17,16 +17,21 @@
 namespace Langulus::Anyness
 {
    
+   /// Compare to any other kind of deep container                            
+   ///   @param rhs - element to compare against                              
+   ///   @return true if containers match                                     
+   template<class TYPE> LANGULUS(INLINED)
+   bool Block<TYPE>::operator == (const CT::Block auto& rhs) const {
+      return Compare<true>(rhs) or CompareSingleValue(rhs);
+   }
+   
    /// Compare to any other kind of deep container, or single custom element  
    ///   @param rhs - element to compare against                              
    ///   @return true if containers match                                     
-   template<class TYPE> template<CT::NotSemantic T1> LANGULUS(INLINED)
+   template<class TYPE> template<CT::NotBlock T1> LANGULUS(INLINED)
    bool Block<TYPE>::operator == (const T1& rhs) const
    requires (TypeErased or CT::Comparable<TYPE, T1>) {
-      if constexpr (CT::Deep<T1>)
-         return Compare<true>(rhs) or CompareSingleValue(rhs);
-      else
-         return CompareSingleValue(rhs);
+      return CompareSingleValue(rhs);
    }
    
    /// Compare two block's contents for equality                              
@@ -70,7 +75,7 @@ namespace Langulus::Anyness
                }
                return t1 == t1end;
             }
-            else LANGULUS_ERROR("Elements not comparable");
+            else return false;
          }
       }
       else if constexpr (not TypeErased or not RHS::TypeErased) {
@@ -82,7 +87,7 @@ namespace Langulus::Anyness
          if constexpr (not TypeErased)
             return Compare<RESOLVE>(reinterpret_cast<const Block<TYPE>&>(right));
          else
-            return right.Compare<RESOLVE>(reinterpret_cast<const RHS&>(*this));
+            return right.template Compare<RESOLVE>(reinterpret_cast<const RHS&>(*this));
       }
       else {
          // Type-erased blocks                                          
@@ -282,7 +287,7 @@ namespace Langulus::Anyness
 
       if constexpr (not TypeErased) {
          // Both sides are statically typed                             
-         if constexpr (CT::Comparable<TYPE, T>)
+         if constexpr (CT::Similar<TYPE, T> and CT::Comparable<TYPE, T>)
             return *GetRaw() == rhs;
          else
             return false;

@@ -189,9 +189,9 @@ namespace Langulus::Anyness
 
       if constexpr (not TypeErased) {
          // Container is not type-erased                                
-         if constexpr (    CT::Deep<Decay<A>, Decay<T>>
-                   or (not CT::Deep<Decay<A>> and CT::DerivedFrom<T, A>)
-                   or (CT::Same<A, T>)
+         if constexpr (CT::Deep<Decay<A>, Decay<T>>
+         or (not CT::Deep<Decay<A>> and CT::DerivedFrom<T, A>)
+         or (CT::Same<A, T>)
          ) {
             using IT = Conditional<MUTABLE, T&, const T&>;
 
@@ -205,7 +205,7 @@ namespace Langulus::Anyness
                   // even if int***** is contained
                   // it can be done on compile time without any cost whatsoever
                   if constexpr (CT::Dense<A, T> or CT::Sparse<A, T>)
-                     return f(element);
+                     return f( element);
                   else if constexpr (CT::Dense<A>)
                      return f(*element);
                   else
@@ -215,8 +215,8 @@ namespace Langulus::Anyness
          }
          else return Loop::NextLoop;
       }
-      else if (   (CT::Deep<Decay<A>> and IsDeep())
-           or (not CT::Deep<Decay<A>> and CastsTo<A>())
+      else if ((CT::Deep<Decay<A>> and IsDeep())
+      or   (not CT::Deep<Decay<A>> and CastsTo<A>())
       ) {
          // Container is type-erased                                    
          if (mType->mIsSparse) {
@@ -228,11 +228,11 @@ namespace Langulus::Anyness
                   ++index;
                   if constexpr (CT::Dense<A>) {
                      if constexpr (MUTABLE)
-                        return f(*static_cast<Deref<A>*>(element));
+                        return f(*static_cast<      Deref<A>*>(element));
                      else
                         return f(*static_cast<const Deref<A>*>(element));
                   }
-                  else return f( static_cast<A>(element));
+                  else return  f( static_cast<A>(element));
                }
             );
          }
@@ -244,7 +244,7 @@ namespace Langulus::Anyness
                [&index, &f](DA element) noexcept(NOE) -> R {
                   ++index;
                   if constexpr (CT::Dense<A>)
-                     return f(element);
+                     return f( element);
                   else
                      return f(&element);
                }
@@ -264,11 +264,78 @@ namespace Langulus::Anyness
       using F = Deref<decltype(call)>;
       using A = ArgumentOf<F>;
       using R = ReturnOf<F>;
-      using SubBlock = Conditional<MUTABLE, Block&, const Block&>;
       static_assert(CT::Dense<A>, "Iterator must be dense value/reference");
 
-      if constexpr (CT::Deep<A>) {
-         if (not SKIP or (not IsDeep() and not Is<Neat>())) {
+      if constexpr (TypeErased) {
+         if constexpr (CT::Deep<A>) {
+            if (not SKIP or (not IsDeep() and not Is<Neat>())) {
+               // Always execute for intermediate/non-deep *this        
+               ++counter;
+
+               auto b = reinterpret_cast<Deref<A>*>(const_cast<Block*>(this));
+               if constexpr (CT::Bool<R>) {
+                  if (not call(*b))
+                     return Loop::Break;
+               }
+               else if constexpr (CT::Exact<R, LoopControl>) {
+                  // Do things depending on the F's return              
+                  const auto loop = call(*b);
+                  switch (loop) {
+                  case Loop::Break:
+                     return Loop::Break;
+                  case Loop::Continue:
+                     break;
+                  case Loop::Discard:
+                     if constexpr (MUTABLE) {
+                        // Discard is allowed only if THIS is mutable   
+                        // You can't fully discard the topmost block,   
+                        // only reset it                                
+                        const_cast<Block*>(this)->Reset();
+                        return Loop::Discard;
+                     }
+                     else {
+                        // ...otherwise it acts like a Loop::Continue   
+                        break;
+                     }
+                  }
+               }
+               else call(*b);
+            }
+         }
+
+         if (IsDeep()) {
+            // Iterate subblocks                                        
+            Count intermediateCounterSink = 0;
+            using SubBlock = Conditional<MUTABLE, Block<>&, const Block<>&>;
+
+            return ForEachInner<MUTABLE, REVERSE>(
+               [&counter, &call](SubBlock group) {
+                  return DenseCast(group).template
+                     ForEachDeepInner<MUTABLE, REVERSE, SKIP>(
+                        ::std::move(call), counter);
+               },
+               intermediateCounterSink
+            );
+         }
+         else if (Is<Neat>()) {
+            // Iterate normalized subblocks                             
+            using SubNeat = Conditional<MUTABLE, Neat&, const Neat&>;
+
+            return ForEachInner<MUTABLE, REVERSE>(
+               [&call](SubNeat neat) {
+                  return neat.ForEachDeep(::std::move(call));
+               },
+               counter
+            );
+         }
+         else if constexpr (not CT::Deep<A>) {
+            // Equivalent to non-deep iteration                         
+            return ForEachInner<MUTABLE, REVERSE>(::std::move(call), counter);
+         }
+      }
+      else {
+         if constexpr (CT::Deep<A> and (not SKIP
+         or (not CT::Deep<Decay<TYPE>> and not CT::Same<TYPE, Neat>))) {
             // Always execute for intermediate/non-deep *this           
             ++counter;
 
@@ -301,36 +368,36 @@ namespace Langulus::Anyness
             }
             else call(*b);
          }
-      }
 
-      if (IsDeep()) {
-         // Iterate subblocks                                           
-         Count intermediateCounterSink = 0;
+         if constexpr (CT::Deep<Decay<TYPE>>) {
+            // Iterate subblocks                                        
+            Count intermediateCounterSink = 0;
+            using SubBlock = Conditional<MUTABLE, Decay<TYPE>&, const Decay<TYPE>&>;
 
-         return ForEachInner<MUTABLE, REVERSE>(
-            [&counter, &call](SubBlock group) {
-               return DenseCast(group).template
-                  ForEachDeepInner<MUTABLE, REVERSE, SKIP>(
-                     ::std::move(call), counter
-                  );
-            },
-            intermediateCounterSink
-         );
-      }
-      else if (Is<Neat>()) {
-         // Iterate normalized subblocks                                
-         using SubNeat = Conditional<MUTABLE, Neat&, const Neat&>;
+            return ForEachInner<MUTABLE, REVERSE>(
+               [&counter, &call](SubBlock group) {
+                  return DenseCast(group).template
+                     ForEachDeepInner<MUTABLE, REVERSE, SKIP>(
+                        ::std::move(call), counter);
+               },
+               intermediateCounterSink
+            );
+         }
+         else if constexpr (CT::Same<TYPE, Neat>) {
+            // Iterate normalized subblocks                             
+            using SubNeat = Conditional<MUTABLE, Neat&, const Neat&>;
 
-         return ForEachInner<MUTABLE, REVERSE>(
-            [&call](SubNeat neat) {
-               return neat.ForEachDeep(::std::move(call));
-            },
-            counter
-         );
-      }
-      else if constexpr (not CT::Deep<A>) {
-         // Equivalent to non-deep iteration                            
-         return ForEachInner<MUTABLE, REVERSE>(::std::move(call), counter);
+            return ForEachInner<MUTABLE, REVERSE>(
+               [&call](SubNeat neat) {
+                  return neat.ForEachDeep(::std::move(call));
+               },
+               counter
+            );
+         }
+         else if constexpr (not CT::Deep<A>) {
+            // Equivalent to non-deep iteration                         
+            return ForEachInner<MUTABLE, REVERSE>(::std::move(call), counter);
+         }
       }
 
       return Loop::Continue;
@@ -352,7 +419,7 @@ namespace Langulus::Anyness
 
       static_assert(CT::Complete<Decay<A>> or CT::Sparse<A>,
          "Can't iterate with incomplete type, use pointer instead");
-      static_assert(CT::Slab<A> or CT::Constant<Deptr<A>> or not MUTABLE,
+      static_assert(CT::Slab<A> or CT::Constant<Deptr<A>> or MUTABLE,
          "Non-constant iterator for constant memory is not allowed");
 
       LANGULUS_ASSUME(DevAssumes, IsTyped(),
@@ -437,12 +504,12 @@ namespace Langulus::Anyness
          return end();
 
       if constexpr (TypeErased)
-         return {GetElement(), GetRawEnd<Byte>()};
+         return {GetElement(), GetRawEnd()};
       else
-         return {GetRaw(), GetRawEnd<Byte>()};
+         return {GetRaw(), GetRawEnd()};
    }
 
-   template<class TYPE> LANGULUS(INLINED)
+   template<class TYPE> LANGULUS(ALWAYS_INLINED)
    constexpr typename Block<TYPE>::ConstIterator Block<TYPE>::begin() const noexcept {
       return const_cast<Block<TYPE>*>(this)->begin();
    }
@@ -455,20 +522,20 @@ namespace Langulus::Anyness
          return end();
 
       if constexpr (TypeErased)
-         return {GetElement(), GetRawEnd<Byte>()};
+         return {GetElement(), GetRawEnd()};
       else {
          const auto ptr = GetRaw();
-         return {ptr + (mCount - 1), reinterpret_cast<const Byte*>(ptr + mCount)};
+         return {ptr + mCount - 1, ptr + mCount};
       }
    }
 
-   template<class TYPE> LANGULUS(INLINED)
+   template<class TYPE> LANGULUS(ALWAYS_INLINED)
    constexpr typename Block<TYPE>::ConstIterator Block<TYPE>::last() const noexcept {
       return const_cast<Block<TYPE>*>(this)->last();
    }
    
    /// Prefix increment - get next element by incrementing data pointer       
-   template<class TYPE> LANGULUS(INLINED)
+   template<class TYPE> LANGULUS(ALWAYS_INLINED)
    Block<TYPE>& Block<TYPE>::operator ++ () IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, mRaw,
          "Block is not allocated");
@@ -482,7 +549,7 @@ namespace Langulus::Anyness
    }
 
    /// Prefix decrement - get previous element by decrementing data pointer   
-   template<class TYPE> LANGULUS(INLINED)
+   template<class TYPE> LANGULUS(ALWAYS_INLINED)
    Block<TYPE>& Block<TYPE>::operator -- () IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, mRaw,
          "Block is not allocated");
@@ -496,14 +563,14 @@ namespace Langulus::Anyness
    }
 
    /// Suffic increment - get next element by incrementing data pointer       
-   template<class TYPE> LANGULUS(INLINED)
+   template<class TYPE> LANGULUS(ALWAYS_INLINED)
    Block<TYPE> Block<TYPE>::operator ++ (int) const IF_UNSAFE(noexcept) {
       auto copy {*this};
       return ++copy;
    }
 
    /// Suffic decrement - get previous element by decrementing data pointer   
-   template<class TYPE> LANGULUS(INLINED)
+   template<class TYPE> LANGULUS(ALWAYS_INLINED)
    Block<TYPE> Block<TYPE>::operator -- (int) const IF_UNSAFE(noexcept) {
       auto copy {*this};
       return --copy;
@@ -512,7 +579,7 @@ namespace Langulus::Anyness
    /// Offset the handle                                                      
    ///   @param offset - the offset to apply                                  
    ///   @return the offsetted handle                                         
-   template<class TYPE> LANGULUS(INLINED)
+   template<class TYPE> LANGULUS(ALWAYS_INLINED)
    Block<TYPE> Block<TYPE>::operator + (Offset offset) const IF_UNSAFE(noexcept) {
       auto copy {*this};
       return copy += offset;
@@ -521,7 +588,7 @@ namespace Langulus::Anyness
    /// Offset the handle                                                      
    ///   @param offset - the offset to apply                                  
    ///   @return the offsetted handle                                         
-   template<class TYPE> LANGULUS(INLINED)
+   template<class TYPE> LANGULUS(ALWAYS_INLINED)
    Block<TYPE> Block<TYPE>::operator - (Offset offset) const IF_UNSAFE(noexcept) {
       auto copy {*this};
       return copy -= offset;
@@ -529,7 +596,7 @@ namespace Langulus::Anyness
    
    /// Prefix increment operator                                              
    ///   @return the next handle                                              
-   template<class TYPE> LANGULUS(INLINED)
+   template<class TYPE> LANGULUS(ALWAYS_INLINED)
    Block<TYPE>& Block<TYPE>::operator += (Offset offset) IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, mRaw,
          "Block is not allocated");
@@ -544,7 +611,7 @@ namespace Langulus::Anyness
 
    /// Prefix decrement operator                                              
    ///   @return the next handle                                              
-   template<class TYPE> LANGULUS(INLINED)
+   template<class TYPE> LANGULUS(ALWAYS_INLINED)
    Block<TYPE>& Block<TYPE>::operator -= (Offset offset) IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, mRaw,
          "Block is not allocated");
@@ -564,42 +631,41 @@ namespace Langulus::Anyness
    /// Construct an iterator                                                  
    ///   @param start - the current iterator position                         
    ///   @param end - the ending marker                                       
-   template<class T> LANGULUS(INLINED)
-   constexpr TBlockIterator<T>::TBlockIterator(TypeInner start, Byte const* end) noexcept
+   template<class T> LANGULUS(ALWAYS_INLINED)
+   constexpr TBlockIterator<T>::TBlockIterator(const TypeInner& start, Type const* end) noexcept
       : mValue {start}
       , mEnd   {end} {}
 
    /// Construct an end iterator                                              
-   template<class T> LANGULUS(INLINED)
-   constexpr TBlockIterator<T>::TBlockIterator(const A::IteratorEnd&) noexcept
+   template<class T> LANGULUS(ALWAYS_INLINED)
+   constexpr TBlockIterator<T>::TBlockIterator(A::IteratorEnd) noexcept
       : mValue {nullptr}
       , mEnd   {nullptr} {}
 
    /// Compare two iterators                                                  
    ///   @param rhs - the other iterator                                      
    ///   @return true if iterators point to the same element                  
-   template<class T> LANGULUS(INLINED)
+   template<class T> LANGULUS(ALWAYS_INLINED)
    constexpr bool TBlockIterator<T>::operator == (const TBlockIterator& rhs) const noexcept {
-      if constexpr (CT::Typed<T>)
-         return mValue == reinterpret_cast<const Type*>(rhs.mValue);
-      else
+      if constexpr (T::TypeErased)
          return mValue.mRaw == rhs.mValue.mRaw;
+      else
+         return mValue == rhs.mValue;
    }
 
    /// Compare iterator with an end marker                                    
-   ///   @param rhs - the end iterator                                        
-   ///   @return true element is at or beyond the end marker                  
-   template<class T> LANGULUS(INLINED)
-   constexpr bool TBlockIterator<T>::operator == (const A::IteratorEnd&) const noexcept {
-      if constexpr (CT::Typed<T>)
-         return mValue >= reinterpret_cast<const Type*>(mEnd);
-      else
+   ///   @return true if element is at or beyond the end marker               
+   template<class T> LANGULUS(ALWAYS_INLINED)
+   constexpr bool TBlockIterator<T>::operator == (A::IteratorEnd) const noexcept {
+      if constexpr (T::TypeErased)
          return mValue.mRaw >= mEnd;
+      else
+         return mValue >= mEnd;
    }
    
    /// Iterator access operator                                               
    ///   @return a reference to the element at the current iterator position  
-   template<class T> LANGULUS(INLINED)
+   template<class T> LANGULUS(ALWAYS_INLINED)
    constexpr decltype(auto) TBlockIterator<T>::operator * () const noexcept {
       if constexpr (CT::Typed<T>)
          return *mValue;
@@ -609,7 +675,7 @@ namespace Langulus::Anyness
 
    /// Iterator access operator                                               
    ///   @return a reference to the element at the current iterator position  
-   template<class T> LANGULUS(INLINED)
+   template<class T> LANGULUS(ALWAYS_INLINED)
    constexpr decltype(auto) TBlockIterator<T>::operator -> () const noexcept {
       if constexpr (CT::Typed<T>)
          return *mValue;
@@ -620,7 +686,7 @@ namespace Langulus::Anyness
    /// Prefix increment operator                                              
    ///   @attention assumes iterator points to a valid element                
    ///   @return the modified iterator                                        
-   template<class T> LANGULUS(INLINED)
+   template<class T> LANGULUS(ALWAYS_INLINED)
    constexpr TBlockIterator<T>& TBlockIterator<T>::operator ++ () noexcept {
       ++mValue;
       return *this;
@@ -629,7 +695,7 @@ namespace Langulus::Anyness
    /// Suffix increment operator                                              
    ///   @attention assumes iterator points to a valid element                
    ///   @return the previous value of the iterator                           
-   template<class T> LANGULUS(INLINED)
+   template<class T> LANGULUS(ALWAYS_INLINED)
    constexpr TBlockIterator<T> TBlockIterator<T>::operator ++ (int) noexcept {
       const auto backup = *this;
       operator ++ ();
@@ -637,7 +703,7 @@ namespace Langulus::Anyness
    }
 
    /// Check if iterator is valid                                             
-   template<class T> LANGULUS(INLINED)
+   template<class T> LANGULUS(ALWAYS_INLINED)
    constexpr TBlockIterator<T>::operator bool() const noexcept {
       return *this != A::IteratorEnd {};
    }

@@ -66,13 +66,13 @@ namespace Langulus::Anyness
    /// Get the pair's hash                                                    
    ///   @attention hash is not cached, so this function is slow              
    ///   @return the hash                                                     
-   TEMPLATE() LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(ALWAYS_INLINED)
    Hash PAIR()::GetHash() const requires CT::Hashable<K, V> {
       return HashOf(mKey, mValue);
    }
 
    /// Implicit cast to constant pair                                         
-   TEMPLATE() LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(ALWAYS_INLINED)
    PAIR()::operator TPair<const Deref<K>&, const Deref<V>&>() const noexcept
    requires CT::Reference<K, V> {
       return {mKey, mValue};
@@ -82,7 +82,7 @@ namespace Langulus::Anyness
    TEMPLATE() LANGULUS(INLINED)
    Block<K> PAIR()::GetKey() noexcept {
       if constexpr (CT::Reference<K> or CT::Dense<K>) {
-         return Block {
+         return Block<K> {
             DataState::Member,
             MetaDataOf<Deref<K>>(), 1,
             &mKey
@@ -91,7 +91,7 @@ namespace Langulus::Anyness
       else return mKey.GetBlock();
    }
    
-   TEMPLATE() LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(ALWAYS_INLINED)
    Block<K> PAIR()::GetKey() const noexcept {
       auto block = const_cast<PAIR()*>(this)->GetKey();
       block.MakeConst();
@@ -102,7 +102,7 @@ namespace Langulus::Anyness
    TEMPLATE() LANGULUS(INLINED)
    Block<V> PAIR()::GetValue() noexcept {
       if constexpr (CT::Reference<V> or CT::Dense<K>) {
-         return Block {
+         return Block<V> {
             DataState::Member,
             MetaDataOf<Deref<V>>(), 1,
             &mValue
@@ -111,7 +111,7 @@ namespace Langulus::Anyness
       else return mValue.GetBlock();
    }
 
-   TEMPLATE() LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(ALWAYS_INLINED)
    Block<V> PAIR()::GetValue() const noexcept {
       auto block = const_cast<PAIR()*>(this)->GetValue();
       block.MakeConst();
@@ -123,7 +123,7 @@ namespace Langulus::Anyness
       if constexpr (CT::Sparse<K> and not CT::Reference<K>)
          return mKey.GetHandle();
       else
-         return {mKey};
+         return {&mKey};
    }
 
    TEMPLATE() LANGULUS(INLINED)
@@ -131,23 +131,17 @@ namespace Langulus::Anyness
       if constexpr (CT::Sparse<V> and not CT::Reference<V>)
          return mValue.GetHandle();
       else
-         return {mValue};
+         return {&mValue};
    }
    
-   TEMPLATE() LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(ALWAYS_INLINED)
    Handle<const K> PAIR()::GetKeyHandle() const {
-      if constexpr (CT::Sparse<K> and not CT::Reference<K>)
-         return mKey.GetHandle();
-      else
-         return {mKey};
+      return const_cast<PAIR()*>(this)->GetKeyHandle().MakeConst();
    }
 
-   TEMPLATE() LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(ALWAYS_INLINED)
    Handle<const V> PAIR()::GetValueHandle() const {
-      if constexpr (CT::Sparse<V> and not CT::Reference<V>)
-         return mValue.GetHandle();
-      else
-         return {mValue};
+      return const_cast<PAIR()*>(this)->GetValueHandle().MakeConst();
    }
 
    /// Clear anything contained, but don't release memory                     
@@ -160,7 +154,7 @@ namespace Langulus::Anyness
    }
 
    /// Clear and release memory                                               
-   TEMPLATE() LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(ALWAYS_INLINED)
    void PAIR()::Reset() {
       Clear();
    }

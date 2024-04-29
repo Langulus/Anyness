@@ -191,8 +191,7 @@ namespace Langulus::Anyness
    ///   @tparam FORCE - used only when GetUses() == 1                        
    template<CT::Set THIS, bool FORCE> LANGULUS(INLINED)
    void BlockSet::ClearInner() {
-      using B = Deref<decltype(GetValues<THIS>())>;
-      mKeys.Destroy<B, FORCE>(mInfo);
+      GetValues<THIS>().template Destroy<FORCE>(mInfo);
    }
 
 } // namespace Langulus::Anyness

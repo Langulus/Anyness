@@ -37,8 +37,9 @@ namespace Langulus::Anyness
    /// Semantic text constructor                                              
    ///   @param other - the text container to use semantically                
    template<class T> requires CT::TextBased<Desem<T>> LANGULUS(INLINED)
-   Text::Text(T&& other)
-      : Base {SemanticOf<decltype(other)>(other).template Forward<Base>()} {}
+   Text::Text(T&& other) {
+      Base::BlockCreate(Forward<T>(other));
+   }
 
    /// Construct from single character                                        
    ///   @param other - the character to copy                                 
@@ -61,11 +62,13 @@ namespace Langulus::Anyness
 
       if constexpr (CT::StringLiteral<Desem<T>>) {
          count = DesemCast(other)
-            ? strnlen(DesemCast(other), ExtentOf<Desem<T>>) : 0;
+            ? strnlen(DesemCast(other), ExtentOf<Desem<T>>)
+            : 0;
       }
       else {
          count = DesemCast(other)
-            ? ::std::strlen(DesemCast(other)) : 0;
+            ? ::std::strlen(DesemCast(other))
+            : 0;
       }
 
       if (not count)
@@ -73,14 +76,14 @@ namespace Langulus::Anyness
 
       if constexpr (S::Move or S::Keep) {
          // Will perform search and take authority if not owned by us   
-         new (this) Block {
+         new (this) Base {
             DataState::Constrained, GetType(), count, DesemCast(other)
          };
          TakeAuthority();
       }
       else {
          // We're disowning it, so no transfer, just a static view      
-         new (this) Block {
+         new (this) Base {
             DataState::Constrained, GetType(), count, DesemCast(other), nullptr
          };
       }
@@ -105,14 +108,14 @@ namespace Langulus::Anyness
 
       if constexpr (S::Move or S::Keep) {
          // Will perform search and take authority if not owned by us   
-         new (this) Block {
+         new (this) Base {
             DataState::Constrained, GetType(), count, DesemCast(other).data()
          };
          TakeAuthority();
       }
       else {
          // We're disowning it, so no transfer, just a static view      
-         new (this) Block {
+         new (this) Base {
             DataState::Constrained, GetType(), count, DesemCast(other).data(), nullptr
          };
       }
@@ -227,18 +230,16 @@ namespace Langulus::Anyness
       ((UnfoldInsert(Forward<TN>(tn))), ...);
    }
 
-   /// Semantic construction from count-terminated array                      
+   /// Construction from bounded or unbounded array/pointer of characters     
+   ///   @attention semantic is ignored, this doesn't apply ownership, only   
+   ///      interfaces the data - you can TakeAuthority() after this call.    
    ///   @param text - text memory to wrap                                    
    ///   @param count - number of characters inside text                      
+   ///   @return the text wrapped inside a Text container                     
    template<class T> requires CT::String<Desem<T>> LANGULUS(INLINED)
    Text Text::From(T&& text, Count count) {
       using S = SemanticOf<decltype(text)>;
-      using ST = TypeOf<S>;
-
-      if constexpr (CT::Array<ST>)
-         return Base::From<Text>(S::Nest(&DesemCast(text)[0]), count);
-      else
-         return Base::From<Text>(Forward<T>(text), count);
+      return MakeBlock<Text>(S::Nest(text), count);
    }
 
    /// Refer assignment                                                       
@@ -246,7 +247,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container                                
    LANGULUS(INLINED)
    Text& Text::operator = (const Text& rhs) {
-      static_assert(CT::DeepAssignable<Text, Referred<Text>>);
+      static_assert(CT::DeepAssignable<Letter, Referred<Text>>);
       return operator = (Refer(rhs));
    }
 
@@ -255,7 +256,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container                                
    LANGULUS(INLINED)
    Text& Text::operator = (Text&& rhs) noexcept {
-      static_assert(CT::DeepAssignable<Text, Moved<Text>>);
+      static_assert(CT::DeepAssignable<Letter, Moved<Text>>);
       return operator = (Move(rhs));
    }
    
@@ -263,8 +264,7 @@ namespace Langulus::Anyness
    ///   @param rhs - the block to assign                                     
    template<class T> requires CT::TextBased<Desem<T>> LANGULUS(INLINED)
    Text& Text::operator = (T&& rhs) {
-      Base::BlockAssign(Forward<T>(rhs));
-      return *this;
+      return Base::BlockAssign<Text>(Forward<T>(rhs));
    }
 
    #if LANGULUS_FEATURE(UNICODE)
@@ -799,7 +799,7 @@ namespace Langulus::Anyness
    ///   @param from - the data to serialize                                  
    ///   @param to - the serialized data                                      
    ///   @return the number of written characters                             
-   inline bool Text::SerializationRules::BeginScope(const Block<>& from, Text& to) {
+   inline bool Text::SerializationRules::BeginScope(const CT::Block auto& from, Text& to) {
       const bool scoped = from.GetCount() > 1 or from.IsInvalid() or from.IsExecutable(); //TODO could check verb precedence to avoid scoping in some cases
       if (scoped) {
          if (from.IsPast())
@@ -817,7 +817,7 @@ namespace Langulus::Anyness
    ///   @param from - the data to serialize                                  
    ///   @param to - the serialized data                                      
    ///   @return the number of written characters                             
-   inline bool Text::SerializationRules::EndScope(const Block<>& from, Text& to) {
+   inline bool Text::SerializationRules::EndScope(const CT::Block auto& from, Text& to) {
       const bool scoped = from.GetCount() > 1 or from.IsInvalid() or from.IsExecutable(); //TODO could check verb precedence to avoid scoping in some cases
       if (scoped)
          to += Operator::CloseScope;
@@ -829,7 +829,7 @@ namespace Langulus::Anyness
    ///   @param from - the data to serialize                                  
    ///   @param to - the serialized data                                      
    ///   @return the number of written characters                             
-   inline bool Text::SerializationRules::Separate(const Block<>& from, Text& to) {
+   inline bool Text::SerializationRules::Separate(const CT::Block auto& from, Text& to) {
       const auto initial = to.GetCount();
       to += (from.IsOr() ? " or " : ", ");
       return to.GetCount() - initial;

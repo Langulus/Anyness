@@ -65,10 +65,9 @@ namespace Langulus::Anyness
          "Can't have a type-erased local handle, unless it is sparse");
 
       //using Type      = Conditional<TypeErased, Byte*, T>;
+      using Type = Conditional<TypeErased, Byte, T>;
       using AllocType = const Allocation*;
-      using ValueType = Conditional<Embedded,
-            Conditional<TypeErased, Byte*, T*>,
-            T>;
+      using ValueType = Conditional<Embedded, Type*, Type>;
       using EntryType = Conditional<Embedded and Sparse,
             Conditional<Mutable, AllocType*, AllocType const*>,
             AllocType>;
@@ -88,8 +87,8 @@ namespace Langulus::Anyness
       constexpr Handle(const Handle&) noexcept = default;
       constexpr Handle(Handle&&) noexcept = default;
 
-      constexpr Handle(ValueType) noexcept requires Embedded;
-      constexpr Handle(ValueType, EntryType = nullptr) noexcept requires Embedded;
+      constexpr Handle(ValueType) noexcept requires (Embedded or Sparse);
+      constexpr Handle(ValueType, EntryType) noexcept requires (Embedded or Sparse);
 
       constexpr Handle(auto&&) noexcept requires (not Embedded);
 
@@ -132,23 +131,33 @@ namespace Langulus::Anyness
 
       ~Handle();
 
+      NOD() Handle<const T, EMBED> MakeConst() const noexcept {
+         return {mValue, mEntry};
+      }
+
       constexpr Handle& operator = (const Handle&) noexcept = default;
       constexpr Handle& operator = (Handle&&) noexcept = default;
+
+      constexpr bool operator == (const auto&) const noexcept requires (not TypeErased or Sparse);
 
       /*template<CT::NotHandle RHS> requires CT::Comparable<T, RHS>
       constexpr bool operator == (const RHS&) const noexcept;
       template<CT::Handle RHS> requires CT::Comparable<T, TypeOf<RHS>>
       constexpr bool operator == (const RHS&) const noexcept;*/
 
-      NOD() decltype(auto) Get() const noexcept requires (not TypeErased);
-      NOD() decltype(auto) GetEntry() const noexcept;
+      NOD() Type&       Get() noexcept;
+      NOD() Type const& Get() const noexcept;
+
+      NOD() AllocType&       GetEntry() noexcept;
+      NOD() AllocType const& GetEntry() const noexcept;
 
       /*void Create(T,        AllocType = nullptr) noexcept requires CT::Sparse<T>;
       void Create(T const&, AllocType = nullptr) noexcept requires CT::Dense<T>;
       void Create(T&&,      AllocType = nullptr) noexcept requires CT::Dense<T>;*/
 
       void CreateSemantic(auto&&, DMeta = {});
-      void Create(auto&&, AllocType = nullptr) noexcept;
+
+      void Assign(const Type&, AllocType = nullptr) noexcept requires (Embedded and Mutable);
 
       /*template<template<class> class S, class T1> requires CT::Semantic<S<T1>>
       void CreateSemanticUnknown(DMeta, S<T1>&&);*/
@@ -163,7 +172,7 @@ namespace Langulus::Anyness
       NOD() bool Compare(const auto&, DMeta = {}) const;
 
       template<bool RESET = false, bool DEALLOCATE = true>
-      void Destroy(DMeta = {}) const;
+      void Destroy(DMeta = {}) const requires Mutable;
 
 
       /*template<class T1> requires CT::Comparable<T, T1>
@@ -218,49 +227,13 @@ namespace Langulus
    namespace CT::Inner
    {
 
-      /// Unfolds T, if it is a bounded array, or std::range, and returns     
-      /// a nullptr pointer of the type, contained inside. Nested for ranges  
-      /// containing other ranges, or arrays containing ranges. Removes       
-      /// semantics and handles, too                                          
-      ///   @tparam T - type to unfold                                        
-      ///   @return a pointer of the most inner type                          
-      template<class T>
-      consteval auto Unfold() noexcept {
-         if constexpr (CT::Sparse<T>) {
-            if constexpr (CT::Array<T>)
-               return Unfold<Deext<T>>();
-            else
-               return (Deref<T>*) nullptr;
-         }
-         else if constexpr (CT::Handle<Desem<T>>)
-            return (TypeOf<Desem<T>>*) nullptr;
-         else if constexpr (::std::ranges::range<T>)
-            return Unfold<TypeOf<T>>();
-         else
-            return (Deref<T>*) nullptr;
-      }
 
    } // namespace Langulus::CT::Inner
 
-   /// Nest-unfold any bounded array or std::range, and get most inner type   
-   template<class T>
-   using Unfold = Deptr<decltype(CT::Inner::Unfold<T>())>;
 
    namespace CT
    {
 
-      /// Check if T is constructible with each of the provided arguments,    
-      /// either directly, or by unfolding that argument                      
-      template<class T, class...A>
-      concept UnfoldMakableFrom = ((
-               ::std::constructible_from<T, A>
-            or ::std::constructible_from<T, Langulus::Unfold<A>>
-         ) and ...);
-
-      /// Check if T is insertable to containers, either directly, or while   
-      /// wrapped in a semantic                                               
-      template<class T1, class...TN>
-      concept UnfoldInsertable = Insertable<Desem<T1>, Desem<TN>...>;
 
    } // namespace Langulus::CT
 

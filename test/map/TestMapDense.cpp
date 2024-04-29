@@ -64,7 +64,7 @@ TEMPLATE_TEST_CASE(
    }
 
    const auto pair    = CreatePair<Pair,    K, V>("five hundred", 555);
-   const auto stdpair = CreatePair<StdPair, K, V>("five hundred", 555);
+   UNUSED() const auto stdpair = CreatePair<StdPair, K, V>("five hundred", 555);
 
    const Pair darray1[5] {
       CreatePair<Pair, K, V>("one", 1),
@@ -81,14 +81,14 @@ TEMPLATE_TEST_CASE(
       CreatePair<Pair, K, V>("ten", 10)
    };
    
-   const StdPair darray1std[5] {
+   UNUSED() const StdPair darray1std[5] {
       CreatePair<StdPair, K, V>("one", 1),
       CreatePair<StdPair, K, V>("two", 2),
       CreatePair<StdPair, K, V>("three", 3),
       CreatePair<StdPair, K, V>("four", 4),
       CreatePair<StdPair, K, V>("five", 5)
    };
-   const StdPair darray2std[5] {
+   UNUSED() const StdPair darray2std[5] {
       CreatePair<StdPair, K, V>("six", 6),
       CreatePair<StdPair, K, V>("seven", 7),
       CreatePair<StdPair, K, V>("eight", 8),
