@@ -34,6 +34,19 @@ namespace Langulus::Anyness
       return GetType() | type;
    }
 
+   /// Check if type origin is the same as another block's type origin        
+   ///   @attention ignores sparsity and cv-qualifiers                        
+   ///   @param other - the type to check for                                 
+   ///   @return true if this block contains similar data                     
+   template<class TYPE> LANGULUS(INLINED)
+   bool Block<TYPE>::Is(const CT::Block auto& other) const noexcept {
+      using T = Deref<decltype(other)>;
+      if constexpr (TypeErased or T::TypeErased)
+         return Is(other.GetType());
+      else
+         return Is<TypeOf<T>>();
+   }
+
    /// Check if unqualified type is the same as one of the provided types     
    ///   @attention ignores only cv-qualifiers                                
    ///   @tparam T1, TN... - the types to compare against                     
@@ -55,6 +68,19 @@ namespace Langulus::Anyness
       return GetType() & type;
    }
 
+   /// Check if unqualified type is the same as another block's type          
+   ///   @attention ignores only cv-qualifiers                                
+   ///   @param other - the block to check for                                
+   ///   @return true if this block contains similar data                     
+   template<class TYPE> LANGULUS(INLINED)
+   bool Block<TYPE>::IsSimilar(const CT::Block auto& other) const noexcept {
+      using T = Deref<decltype(other)>;
+      if constexpr (TypeErased or T::TypeErased)
+         return IsSimilar(other.GetType());
+      else
+         return IsSimilar<TypeOf<T>>();
+   }
+
    /// Check if this type is exactly one of the provided types                
    ///   @tparam T1, TN... - the types to compare against                     
    ///   @return true if data type matches at least one type                  
@@ -72,6 +98,18 @@ namespace Langulus::Anyness
    template<class TYPE> LANGULUS(INLINED)
    bool Block<TYPE>::IsExact(DMeta type) const noexcept {
       return GetType() == type;
+   }
+
+   /// Check if this type is exactly another block's type                     
+   ///   @param other - the block to match                                    
+   ///   @return true if data type matches type exactly                       
+   template<class TYPE> LANGULUS(INLINED)
+   bool Block<TYPE>::IsExact(const CT::Block auto& other) const noexcept {
+      using T = Deref<decltype(other)>;
+      if constexpr (TypeErased or T::TypeErased)
+         return IsExact(other.GetType());
+      else
+         return IsExact<TypeOf<T>>();
    }
 
    /// Check if contained data can be interpreted as a given type             
@@ -142,11 +180,10 @@ namespace Langulus::Anyness
    ///   @return a block representing this block, interpreted as the pattern  
    template<class TYPE> template<CT::Block B> LANGULUS(INLINED)
    B Block<TYPE>::ReinterpretAs(const B& pattern) const {
-      if (IsEmpty() or IsSparse() or IsUntyped()
-      or pattern.template IsUntyped<B>())
+      if (IsEmpty() or IsSparse() or IsUntyped() or pattern.IsUntyped())
          return B {};
 
-      if constexpr (not TypeErased and CT::Typed<B>) {
+      if constexpr (not TypeErased and not B::TypeErased) {
          // Both containers are statically typed                        
          using T = TypeOf<B>;
 
@@ -208,7 +245,7 @@ namespace Langulus::Anyness
    template<class TYPE> template<CT::Data T> LANGULUS(INLINED)
    TMany<T> Block<TYPE>::ReinterpretAs() const {
       static_assert(CT::Dense<T>, "T must be dense");
-      return ReinterpretAs(Block::From<T>());
+      return ReinterpretAs(Block<T> {});
    }
 
    /// Get the memory block corresponding to a local member variable          

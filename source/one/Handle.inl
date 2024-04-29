@@ -19,7 +19,7 @@ namespace Langulus::Anyness
    /// Create an embedded handle while searching for memory entry             
    ///   @param v - pointer to the element's position inside a Block          
    TEMPLATE() LANGULUS(INLINED)
-   constexpr HAND()::Handle(ValueType v) noexcept requires Embedded
+   constexpr HAND()::Handle(ValueType v) noexcept requires (Embedded or Sparse)
       : mValue {v} {
       if constexpr (TypeErased or CT::Allocatable<T>)
          mEntry = Allocator::Find(MetaDataOf<T>(), mValue);
@@ -31,7 +31,7 @@ namespace Langulus::Anyness
    ///   @param v - pointer to the element's position inside a Block          
    ///   @param e - pointer to the element's entry inside a Block             
    TEMPLATE() LANGULUS(INLINED)
-   constexpr HAND()::Handle(ValueType v, EntryType e) noexcept requires Embedded
+   constexpr HAND()::Handle(ValueType v, EntryType e) noexcept requires (Embedded or Sparse)
       : mValue {v}
       , mEntry {e} {}
 
@@ -187,6 +187,31 @@ namespace Langulus::Anyness
       }
    }
 
+   /// Compare a handle with a comparable value/handle                        
+   ///   @attention this compares contents and isn't suitable for iteration   
+   TEMPLATE()
+   constexpr bool HAND()::operator == (const auto& rhs) const
+   noexcept requires (not TypeErased or Sparse) {
+      using RHS = Deref<decltype(rhs)>;
+      if constexpr (CT::Handle<RHS> and CT::Comparable<T, TypeOf<RHS>>) {
+         if constexpr (Embedded) {
+            if constexpr (RHS::Embedded)  return *mValue == *rhs.mValue;
+            else                          return *mValue == rhs.mValue;
+         }
+         else {
+            if constexpr (RHS::Embedded)  return  mValue == *rhs.mValue;
+            else                          return  mValue == rhs.mValue;
+         }
+      }
+      else if constexpr (CT::Comparable<T, RHS>) {
+         if constexpr (Embedded)
+            return *mValue == rhs;
+         else
+            return  mValue == rhs;
+      }
+      else LANGULUS_ERROR("Can't compare");
+   }
+
    /// Compare a handle with a comparable value                               
    ///   @attention this compares contents and isn't suitable for iteration   
    /*TEMPLATE() template<CT::NotHandle T1>
@@ -293,20 +318,28 @@ namespace Langulus::Anyness
 
    /// Get a reference to the contents                                        
    TEMPLATE() LANGULUS(INLINED)
-   decltype(auto) HAND()::Get() const noexcept requires (not TypeErased) {
-      if constexpr (Embedded)
-         return const_cast<T&>(*mValue);
-      else
-         return const_cast<T&>(mValue);
+   typename HAND()::Type& HAND()::Get() noexcept {
+      if constexpr (Embedded) return *mValue;
+      else                    return  mValue;
+   }
+   
+   TEMPLATE() LANGULUS(INLINED)
+   typename HAND()::Type const& HAND()::Get() const noexcept {
+      if constexpr (Embedded) return *mValue;
+      else                    return  mValue;
    }
    
    /// Get the entry                                                          
    TEMPLATE() LANGULUS(INLINED)
-   decltype(auto) HAND()::GetEntry() const noexcept {
-      if constexpr (Embedded and Sparse)
-         return const_cast<AllocType&>(*mEntry);
-      else
-         return const_cast<AllocType&>( mEntry);
+   typename HAND()::AllocType& HAND()::GetEntry() noexcept {
+      if constexpr (Embedded and Sparse)  return *mEntry;
+      else                                return  mEntry;
+   }
+
+   TEMPLATE() LANGULUS(INLINED)
+   typename HAND()::AllocType const& HAND()::GetEntry() const noexcept {
+      if constexpr (Embedded and Sparse)  return *mEntry;
+      else                                return  mEntry;
    }
 
    /// Assign a new pointer and entry at the handle                           
@@ -567,30 +600,10 @@ namespace Langulus::Anyness
    ///   @param value - the new value to assign                               
    ///   @param entry - the allocation that the value is part of              
    TEMPLATE() LANGULUS(INLINED)
-   void HAND()::Create(auto&& value, AllocType entry) noexcept {
-      Get() = Forward<decltype(value)>(value);
+   void HAND()::Assign(const Type& value, AllocType entry) noexcept requires (Embedded and Mutable) {
+      Get() = value;
       GetEntry() = entry;
    }
-
-   /// Semantically assign anything at the handle                             
-   ///   @attention this overwrites previous handle without dereferencing it, 
-   ///      and without destroying anything                                   
-   ///   @param rhs - what are we assigning                                   
-   /*TEMPLATE() template<template<class> class S, class ST>
-   requires CT::Semantic<S<ST>> LANGULUS(INLINED)
-   void HAND()::CreateSemanticUnknown(DMeta type, S<ST>&& rhs) {
-      using SS = S<ST>;
-
-   }*/
-
-   /// Dereference/destroy the current handle contents, and set new ones      
-   ///   @param rhs - new contents to assign                                  
-   /*TEMPLATE() template<template<class> class S, class ST>
-   requires (CT::Semantic<S<ST>> and CT::Mutable<T>) LANGULUS(INLINED)
-   void HAND()::AssignSemantic(S<ST>&& rhs) {
-      Destroy();
-      CreateSemantic(rhs.Forward());
-   }*/
    
    /// Dereference/destroy the current handle contents, and set new ones      
    ///   @param rhs - new contents to assign                                  
@@ -660,15 +673,6 @@ namespace Langulus::Anyness
          return Get() == rhs;
    }
 
-   /// Compare the contents of the handle with another handle                 
-   ///   @param rhs - handle to compare against                               
-   ///   @return true if contents are equal                                   
-   /*TEMPLATE() template<class T1, bool RHS_EMBED>
-   requires CT::Comparable<T, T1> LANGULUS(INLINED)
-   bool HAND()::Compare(const Handle<T1, RHS_EMBED>& rhs) const {
-      return Get() == rhs.Get();
-   }*/
-
    /// Reset the handle, by dereferencing entry, and destroying value, if     
    /// entry has been fully dereferenced                                      
    /// Does absolutely nothing for dense handles, they are destroyed when     
@@ -678,7 +682,7 @@ namespace Langulus::Anyness
    ///   @param meta - type of the contained data, used only if handle is     
    ///      type-erased                                                       
    TEMPLATE() template<bool RESET, bool DEALLOCATE>
-   void HAND()::Destroy(DMeta meta) const {
+   void HAND()::Destroy(DMeta meta) const requires Mutable {
       if constexpr (TypeErased) {
          LANGULUS_ASSUME(DevAssumes, meta,
             "Invalid type provided for type-erased handle");
@@ -790,8 +794,8 @@ namespace Langulus::Anyness
             }
 
             if constexpr (RESET) {
-               Get() = nullptr;
-               GetEntry() = nullptr;
+               const_cast<Type&>(Get()) = nullptr;
+               const_cast<AllocType&>(GetEntry()) = nullptr;
             }
          }
          else if constexpr (EMBED and CT::Destroyable<DT>) {
@@ -803,18 +807,6 @@ namespace Langulus::Anyness
          }
       }
    }
-   
-   /// Reset the handle, by dereferencing entry, and destroying value, if     
-   /// entry has been fully dereferenced                                      
-   /// Does absolutely nothing for dense handles, they are destroyed when     
-   /// handle is destroyed                                                    
-   ///   @tparam RESET - whether or not to reset pointers to null             
-   ///   @tparam DEALLOCATE - are we allowed to deallocate the memory?        
-   ///   @param meta - the true type behind the pointer in this handle        
-   /*TEMPLATE() template<bool RESET, bool DEALLOCATE>
-   void HAND()::DestroyUnknown(DMeta meta) const {
-      
-   }*/
 
 } // namespace Langulus::Anyness
 

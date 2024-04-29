@@ -205,15 +205,15 @@ void Any_CheckState_ContainsOne(const auto& pack, const auto& e, Allocation* ent
       REQUIRE(&pack.template As<Deptr<E>>() ==  e);
       REQUIRE( pack.template As<Deptr<E>>() == *e);
       REQUIRE(*pack.template As<E>() == *e);
-      REQUIRE(*pack.template GetRawSparse<T>() == e);
+      REQUIRE(*pack.template GetRaw<E>() == e);
    }
-   else {
+   else if constexpr (T::TypeErased or CT::Same<TypeOf<T>, E>) {
       REQUIRE(pack.template As<E>() == e);
    }
 
-   IF_LANGULUS_MANAGED_MEMORY(REQUIRE(*pack.template GetEntries<T>() == entry));
+   IF_LANGULUS_MANAGED_MEMORY(REQUIRE(*pack.GetEntries() == entry));
 
-   if constexpr (not CT::Typed<T>) {
+   if constexpr (T::TypeErased) {
       REQUIRE_THROWS(pack.template As<float>() == 0.0f);
       REQUIRE_THROWS(pack.template As<float*>() == nullptr);
    }
@@ -234,10 +234,10 @@ void Any_CheckState_ContainsN(Count n, const auto& pack, const CT::Sparse auto& 
       REQUIRE(&pack.template As<Deptr<E>>(i) == e);
       REQUIRE(pack.template As<Deptr<E>>(i) == *e);
       REQUIRE(*pack.template As<E>(i) == *e);
-      REQUIRE(pack.template GetRawSparse<T>()[i] == e);
-      IF_LANGULUS_MANAGED_MEMORY(REQUIRE(pack.template GetEntries<T>()[i] == entry));
+      REQUIRE(pack.template GetRaw<E>()[i] == e);
+      IF_LANGULUS_MANAGED_MEMORY(REQUIRE(pack.GetEntries()[i] == entry));
 
-      if constexpr (not CT::Typed<T>) {
+      if constexpr (T::TypeErased) {
          REQUIRE_THROWS(pack.template As<float>(i) == 0.0f);
          REQUIRE_THROWS(pack.template As<float*>(i) == nullptr);
       }
@@ -262,10 +262,10 @@ void Any_CheckState_ContainsArray(const auto& pack, const CT::Array auto& e, All
       REQUIRE(&pack.template As<Deptr<E>>(i) == e[i]);
       REQUIRE(pack.template As<Deptr<E>>(i) == *e[i]);
       REQUIRE(*pack.template As<E>(i) == *e[i]);
-      REQUIRE(pack.template GetRawSparse<T>()[i] == e[i]);
-      IF_LANGULUS_MANAGED_MEMORY(REQUIRE(pack.template GetEntries<T>()[i] == entry));
+      REQUIRE(pack.template GetRaw<E>()[i] == e[i]);
+      IF_LANGULUS_MANAGED_MEMORY(REQUIRE(pack.GetEntries()[i] == entry));
 
-      if constexpr (not CT::Typed<T>) {
+      if constexpr (T::TypeErased) {
          REQUIRE_THROWS(pack.template As<float>(i) == 0.0f);
          REQUIRE_THROWS(pack.template As<float*>(i) == nullptr);
       }

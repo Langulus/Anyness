@@ -18,7 +18,7 @@ namespace Langulus::Anyness
    /// Overwrite the current data state                                       
    ///   @attention you can not add/remove constraints like that              
    ///   @param state - the state to overwrite with                           
-   template<class TYPE> LANGULUS(INLINED)
+   template<class TYPE> LANGULUS(ALWAYS_INLINED)
    constexpr void Block<TYPE>::SetState(DataState state) noexcept {
       mState = state - DataState::Constrained;
    }
@@ -26,7 +26,7 @@ namespace Langulus::Anyness
    /// Add a state                                                            
    ///   @attention you can not add constraints like that                     
    ///   @param state - the state to add to the current                       
-   template<class TYPE> LANGULUS(INLINED)
+   template<class TYPE> LANGULUS(ALWAYS_INLINED)
    constexpr void Block<TYPE>::AddState(DataState state) noexcept {
       mState += state - DataState::Constrained;
    }
@@ -34,14 +34,14 @@ namespace Langulus::Anyness
    /// Remove a state                                                         
    ///   @attention you can not remove constraints like that                  
    ///   @param state - the state to remove from the current                  
-   template<class TYPE> LANGULUS(INLINED)
+   template<class TYPE> LANGULUS(ALWAYS_INLINED)
    constexpr void Block<TYPE>::RemoveState(DataState state) noexcept {
       mState -= state - DataState::Constrained;
    }
 
    /// Explicit bool cast operator, for use in if statements                  
    ///   @return true if block contains at least one valid element            
-   template<class TYPE> LANGULUS(INLINED)
+   template<class TYPE> LANGULUS(ALWAYS_INLINED)
    constexpr Block<TYPE>::operator bool() const noexcept {
       return not IsEmpty();
    }
@@ -57,7 +57,7 @@ namespace Langulus::Anyness
 
    /// Check if we have jurisdiction over the contained memory                
    ///   @return true if memory is under our authority                        
-   template<class TYPE> LANGULUS(INLINED)
+   template<class TYPE> LANGULUS(ALWAYS_INLINED)
    constexpr bool Block<TYPE>::HasAuthority() const noexcept {
       return mEntry != nullptr;
    }
@@ -82,14 +82,14 @@ namespace Langulus::Anyness
 
    /// Get the number of initialized elements                                 
    ///   @return the number of initialized elements                           
-   template<class TYPE> LANGULUS(INLINED)
+   template<class TYPE> LANGULUS(ALWAYS_INLINED)
    constexpr Count Block<TYPE>::GetCount() const noexcept {
       return mCount;
    }
 
    /// Get the number of reserved (maybe uninitialized) elements              
    ///   @return the number of reserved (maybe uninitialized) elements        
-   template<class TYPE> LANGULUS(INLINED)
+   template<class TYPE> LANGULUS(ALWAYS_INLINED)
    constexpr Count Block<TYPE>::GetReserved() const noexcept {
       return mReserved;
    }
@@ -141,42 +141,42 @@ namespace Langulus::Anyness
    
    /// Check if memory is allocated                                           
    ///   @return true if the block contains any reserved memory               
-   template<class TYPE> LANGULUS(INLINED)
+   template<class TYPE> LANGULUS(ALWAYS_INLINED)
    constexpr bool Block<TYPE>::IsAllocated() const noexcept {
       return mRaw != nullptr;
    }
 
    /// Check if block is marked as past                                       
    ///   @return true if this container is marked as past                     
-   template<class TYPE> LANGULUS(INLINED)
+   template<class TYPE> LANGULUS(ALWAYS_INLINED)
    constexpr bool Block<TYPE>::IsPast() const noexcept {
       return mState.IsPast();
    }
 
    /// Check if block is marked as future                                     
    ///   @return true if this container is marked as future                   
-   template<class TYPE> LANGULUS(INLINED)
+   template<class TYPE> LANGULUS(ALWAYS_INLINED)
    constexpr bool Block<TYPE>::IsFuture() const noexcept {
       return mState.IsFuture();
    }
 
    /// Check if block is not phased (is neither past, nor future)             
    ///   @return true if this container is not phased                         
-   template<class TYPE> LANGULUS(INLINED)
+   template<class TYPE> LANGULUS(ALWAYS_INLINED)
    constexpr bool Block<TYPE>::IsNow() const noexcept {
       return mState.IsNow();
    }
 
    /// Check if block is marked as missing                                    
    ///   @return true if this container is marked as missing                  
-   template<class TYPE> LANGULUS(INLINED)
+   template<class TYPE> LANGULUS(ALWAYS_INLINED)
    constexpr bool Block<TYPE>::IsMissing() const noexcept {
       return mState.IsMissing();
    }
 
    /// Check if block has a data type                                         
    ///   @return true if data contained in this pack is specified             
-   template<class TYPE> LANGULUS(INLINED)
+   template<class TYPE> LANGULUS(ALWAYS_INLINED)
    constexpr bool Block<TYPE>::IsTyped() const noexcept {
       if constexpr (TypeErased)
          return static_cast<bool>(mType);
@@ -186,7 +186,7 @@ namespace Langulus::Anyness
 
    /// Check if block has a data type                                         
    ///   @return true if data contained in this pack is unspecified           
-   template<class TYPE> LANGULUS(INLINED)
+   template<class TYPE> LANGULUS(ALWAYS_INLINED)
    constexpr bool Block<TYPE>::IsUntyped() const noexcept {
       if constexpr (TypeErased)
          return not mType;
@@ -206,28 +206,28 @@ namespace Langulus::Anyness
 
    /// Check if block is encrypted                                            
    ///   @return true if the contents of this pack are encrypted              
-   template<class TYPE> LANGULUS(INLINED)
+   template<class TYPE> LANGULUS(ALWAYS_INLINED)
    constexpr bool Block<TYPE>::IsEncrypted() const noexcept {
       return mState.IsEncrypted();
    }
 
    /// Check if block is compressed                                           
    ///   @return true if the contents of this pack are compressed             
-   template<class TYPE> LANGULUS(INLINED)
+   template<class TYPE> LANGULUS(ALWAYS_INLINED)
    constexpr bool Block<TYPE>::IsCompressed() const noexcept {
       return mState.IsCompressed();
    }
 
    /// Check if block is constant                                             
    ///   @return true if the contents are constant                            
-   template<class TYPE> LANGULUS(INLINED)
+   template<class TYPE> LANGULUS(ALWAYS_INLINED)
    constexpr bool Block<TYPE>::IsConstant() const noexcept {
       return mState.IsConstant();
    }
 
    /// Check if block is mutable                                              
    ///   @return true if the contents are mutable                             
-   template<class TYPE> LANGULUS(INLINED)
+   template<class TYPE> LANGULUS(ALWAYS_INLINED)
    constexpr bool Block<TYPE>::IsMutable() const noexcept {
       return not IsConstant();
    }
@@ -367,14 +367,14 @@ namespace Langulus::Anyness
 
    /// Get the size of the contained data, in bytes                           
    ///   @return the byte size                                                
-   template<class TYPE> LANGULUS(INLINED)
+   template<class TYPE> LANGULUS(ALWAYS_INLINED)
    constexpr Size Block<TYPE>::GetBytesize() const noexcept {
       return mCount * GetStride();
    }
 
    /// Get the token of the contained type                                    
    ///   @return the token                                                    
-   template<class TYPE> LANGULUS(INLINED)
+   template<class TYPE> LANGULUS(ALWAYS_INLINED)
    constexpr Token Block<TYPE>::GetToken() const noexcept {
       return GetType().GetToken();
    }
@@ -392,7 +392,7 @@ namespace Langulus::Anyness
    
    /// Get the data state of the container                                    
    ///   @return the current block state                                      
-   template<class TYPE> LANGULUS(INLINED)
+   template<class TYPE> LANGULUS(ALWAYS_INLINED)
    constexpr DataState Block<TYPE>::GetState() const noexcept {
       return mState;
    }
@@ -400,7 +400,7 @@ namespace Langulus::Anyness
    /// Get the relevant state when relaying one block	to another              
    /// Relevant states exclude size and type constraints                      
    ///   @return the current unconstrained block state                        
-   template<class TYPE> LANGULUS(INLINED)
+   template<class TYPE> LANGULUS(ALWAYS_INLINED)
    constexpr DataState Block<TYPE>::GetUnconstrainedState() const noexcept {
       return mState - DataState::Constrained;
    }
@@ -458,14 +458,14 @@ namespace Langulus::Anyness
    /// Get the raw data inside the container                                  
    ///   @attention as unsafe as it gets, but as fast as it gets              
    ///   @return a pointer to the first allocated element                     
-   template<class TYPE> template<class T> LANGULUS(INLINED)
+   template<class TYPE> template<class T> LANGULUS(ALWAYS_INLINED)
    T* Block<TYPE>::GetRaw() IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, CT::Dense<T> or IsSparse(),
          "Representing dense data as sparse");
       return reinterpret_cast<T*>(mRaw);
    }
 
-   template<class TYPE> template<class T> LANGULUS(INLINED)
+   template<class TYPE> template<class T> LANGULUS(ALWAYS_INLINED)
    T const* Block<TYPE>::GetRaw() const IF_UNSAFE(noexcept) {
       return const_cast<Block<TYPE>*>(this)->template GetRaw<T>();
    }
@@ -474,7 +474,7 @@ namespace Langulus::Anyness
    ///   @attention as unsafe as it gets, but as fast as it gets              
    ///   @attention the resulting pointer never points to a valid element     
    ///   @return a pointer to the last+1 element (never initialized)          
-   template<class TYPE> template<class T> LANGULUS(INLINED)
+   template<class TYPE> template<class T> LANGULUS(ALWAYS_INLINED)
    const T* Block<TYPE>::GetRawEnd() const IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, CT::Dense<T> or IsSparse(),
          "Representing dense data as sparse");
@@ -490,7 +490,7 @@ namespace Langulus::Anyness
    /// and reallocation. Useful to interface static data, or data on stack.   
    /// Extensively used when accessing members/bases of elements in blocks.   
    ///   @param enable - whether to enable or disable the static state        
-   template<class TYPE> LANGULUS(INLINED)
+   template<class TYPE> LANGULUS(ALWAYS_INLINED)
    constexpr void Block<TYPE>::MakeStatic(bool enable) noexcept {
       if (enable)
          mState += DataState::Static;
@@ -502,7 +502,7 @@ namespace Langulus::Anyness
    /// Disables the ability to access members as mutable, and disallows       
    /// memory movement and reallocation                                       
    ///   @param enable - whether to enable or disable the constant state      
-   template<class TYPE> LANGULUS(INLINED)
+   template<class TYPE> LANGULUS(ALWAYS_INLINED)
    constexpr void Block<TYPE>::MakeConst(bool enable) noexcept {
       if (enable)
          mState += DataState::Constant;
@@ -515,7 +515,7 @@ namespace Langulus::Anyness
    /// one. Disallows any type mutations. Used extensively by TMany and other 
    /// statically typed Block equivalents.                                    
    ///   @param enable - whether to enable or disable the typed state         
-   template<class TYPE> LANGULUS(INLINED)
+   template<class TYPE> LANGULUS(ALWAYS_INLINED)
    constexpr void Block<TYPE>::MakeTypeConstrained(bool enable) noexcept {
       if (enable)
          mState += DataState::Typed;
@@ -526,7 +526,7 @@ namespace Langulus::Anyness
    /// Make memory block exclusive (aka an `OR` block)                        
    /// OR blocks are handled differently by Langulus::Flow, when executing    
    /// verbs in them, or when used as arguments for verbs.                    
-   template<class TYPE> LANGULUS(INLINED)
+   template<class TYPE> LANGULUS(ALWAYS_INLINED)
    constexpr void Block<TYPE>::MakeOr() noexcept {
       mState += DataState::Or;
    }
@@ -534,14 +534,14 @@ namespace Langulus::Anyness
    /// Make memory block inclusive (aka an `AND` block)                       
    /// AND blocks are handled conventionally by Langulus::Flow, as they are   
    /// the default type of blocks                                             
-   template<class TYPE> LANGULUS(INLINED)
+   template<class TYPE> LANGULUS(ALWAYS_INLINED)
    constexpr void Block<TYPE>::MakeAnd() noexcept {
       mState -= DataState::Or;
    }
 
    /// Set memory block phase to past                                         
    /// This is used to mark missing past symbols for Langulus::Flow           
-   template<class TYPE> LANGULUS(INLINED)
+   template<class TYPE> LANGULUS(ALWAYS_INLINED)
    constexpr void Block<TYPE>::MakePast() noexcept {
       mState -= DataState::Future;
       mState += DataState::Missing;
@@ -549,7 +549,7 @@ namespace Langulus::Anyness
 
    /// Set memory block phase to future                                       
    /// This is used to mark missing future symbols for Langulus::Flow         
-   template<class TYPE> LANGULUS(INLINED)
+   template<class TYPE> LANGULUS(ALWAYS_INLINED)
    constexpr void Block<TYPE>::MakeFuture() noexcept {
       mState += DataState::MissingFuture;
    }
@@ -557,7 +557,7 @@ namespace Langulus::Anyness
    /// Set memory block phase to neutral                                      
    /// This restores the default state of any kind of missing block, so that  
    /// it is processed conventionally by Langulus::Flow                       
-   template<class TYPE> LANGULUS(INLINED)
+   template<class TYPE> LANGULUS(ALWAYS_INLINED)
    constexpr void Block<TYPE>::MakeNow() noexcept {
       mState -= DataState::MissingFuture;
    }
@@ -581,7 +581,7 @@ namespace Langulus::Anyness
          reinterpret_cast<Allocation**>(mRawSparse + mReserved));
    }
 
-   template<class TYPE> LANGULUS(INLINED)
+   template<class TYPE> LANGULUS(ALWAYS_INLINED)
    Allocation const* const* Block<TYPE>::GetEntries() const IF_UNSAFE(noexcept) {
       return const_cast<Block*>(this)->GetEntries();
    }

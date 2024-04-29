@@ -71,7 +71,7 @@ namespace Langulus::Anyness
       return GetKeyRef<THIS>(idx);
    }
 
-   template<CT::Map THIS> LANGULUS(INLINED)
+   template<CT::Map THIS> LANGULUS(ALWAYS_INLINED)
    decltype(auto) BlockMap::GetKey(CT::Index auto index) const {
       return const_cast<BlockMap*>(this)->template GetKey<THIS>(index);
    }
@@ -90,7 +90,7 @@ namespace Langulus::Anyness
       return GetValRef<THIS>(idx);
    }
 
-   template<CT::Map THIS> LANGULUS(INLINED)
+   template<CT::Map THIS> LANGULUS(ALWAYS_INLINED)
    decltype(auto) BlockMap::GetValue(CT::Index auto index) const {
       return const_cast<BlockMap&>(*this).template GetValue<THIS>(index);
    }
@@ -113,7 +113,7 @@ namespace Langulus::Anyness
       };
    }
    
-   template<CT::Map THIS> LANGULUS(INLINED)
+   template<CT::Map THIS> LANGULUS(ALWAYS_INLINED)
    auto BlockMap::GetPair(CT::Index auto index) const {
       return typename THIS::PairConstRef {
          const_cast<BlockMap*>(this)->template GetPair<THIS>(index)
@@ -124,7 +124,7 @@ namespace Langulus::Anyness
    ///   @param mask - a mask for ANDing the relevant part of the hash        
    ///   @param value - the value to hash                                     
    ///   @return the bucket index                                             
-   LANGULUS(INLINED)
+   LANGULUS(ALWAYS_INLINED)
    Offset BlockMap::GetBucket(Offset mask, const CT::NotSemantic auto& value) noexcept {
       return HashOf(value).mHash & mask;
    }
@@ -133,7 +133,7 @@ namespace Langulus::Anyness
    ///   @param mask - a mask for ANDing the relevant part of the hash        
    ///   @param value - the value to hash, wrapped in a block                 
    ///   @return the bucket index                                             
-   LANGULUS(INLINED)
+   LANGULUS(ALWAYS_INLINED)
    Offset BlockMap::GetBucketUnknown(Offset mask, const Block<>& value) noexcept {
       return value.GetHash().mHash & mask;
    }
@@ -159,12 +159,12 @@ namespace Langulus::Anyness
       else return GetKeys<THIS>().GetElementInner(i);
    }
    
-   template<CT::Map THIS> LANGULUS(INLINED)
+   template<CT::Map THIS> LANGULUS(ALWAYS_INLINED)
    decltype(auto) BlockMap::GetRawKey(Offset i) const IF_UNSAFE(noexcept) {
       return const_cast<BlockMap*>(this)->template GetRawKey<THIS>(i);
    }
 
-   template<CT::Map THIS> LANGULUS(INLINED)
+   template<CT::Map THIS> LANGULUS(ALWAYS_INLINED)
    decltype(auto) BlockMap::GetKeyRef(Offset i) IF_UNSAFE(noexcept) {
       if constexpr (CT::Typed<THIS>)
          return *GetRawKey<THIS>(i);
@@ -172,7 +172,7 @@ namespace Langulus::Anyness
          return GetRawKey<THIS>(i);
    }
 
-   template<CT::Map THIS> LANGULUS(INLINED)
+   template<CT::Map THIS> LANGULUS(ALWAYS_INLINED)
    decltype(auto) BlockMap::GetKeyRef(Offset i) const IF_UNSAFE(noexcept) {
       if constexpr (CT::Typed<THIS>)
          return *GetRawKey<THIS>(i);
@@ -207,25 +207,25 @@ namespace Langulus::Anyness
       }
    }
 
-   template<CT::Map THIS> LANGULUS(INLINED)
+   template<CT::Map THIS> LANGULUS(ALWAYS_INLINED)
    decltype(auto) BlockMap::GetRawVal(Offset i) const IF_UNSAFE(noexcept) {
       return const_cast<BlockMap*>(this)->template GetRawVal<THIS>(i);
    }
 
-   template<CT::Map THIS> LANGULUS(INLINED)
+   template<CT::Map THIS> LANGULUS(ALWAYS_INLINED)
    decltype(auto) BlockMap::GetValRef(Offset i) IF_UNSAFE(noexcept) {
       if constexpr (CT::Typed<THIS>)
          return *GetRawVal<THIS>(i);
       else
-         return GetRawVal<THIS>(i);
+         return  GetRawVal<THIS>(i);
    }
 
-   template<CT::Map THIS> LANGULUS(INLINED)
+   template<CT::Map THIS> LANGULUS(ALWAYS_INLINED)
    decltype(auto) BlockMap::GetValRef(Offset i) const IF_UNSAFE(noexcept) {
       if constexpr (CT::Typed<THIS>)
          return *GetRawVal<THIS>(i);
       else
-         return GetRawVal<THIS>(i);
+         return  GetRawVal<THIS>(i);
    }
 
 
@@ -250,20 +250,18 @@ namespace Langulus::Anyness
       else return GetKeys<THIS>().GetElementInner(i);
    }
    
-   template<CT::Map THIS> LANGULUS(INLINED)
+   template<CT::Map THIS> LANGULUS(ALWAYS_INLINED)
    auto BlockMap::GetKeyHandle(const Offset i) const IF_UNSAFE(noexcept) {
-      LANGULUS_ASSUME(DevAssumes, i < GetReserved(),
-         "Index out of limits when accessing ", NameOf<THIS>(), " key, ",
-         "index ", i, " is beyond the reserved ", GetReserved(), " elements");
-
       if constexpr (CT::Typed<THIS>) {
-         IF_SAFE(using K = typename THIS::Key);
-         LANGULUS_ASSUME(DevAssumes, (IsKeySimilar<THIS, K>()),
-            "Wrong type when accessing ", NameOf<THIS>(), " key, ",
-            "using type `", NameOf<K>(), "` instead of `", GetKeyType(), '`');
-         return GetKeys<THIS>().GetHandle(i);
+         return const_cast<BlockMap*>(this)->template
+            GetKeyHandle<THIS>(i).MakeConst();
       }
-      else return GetKeys<THIS>().GetElementInner(i);
+      else {
+         auto block = const_cast<BlockMap*>(this)->template
+            GetKeyHandle<THIS>(i);
+         block.MakeConst();
+         return block;
+      }
    }
    
    /// Get a value handle if THIS is typed, otherwise get a block             
@@ -286,13 +284,13 @@ namespace Langulus::Anyness
          // We can't rely on Block::GetHandle, because it uses mReserved
          if constexpr (CT::Sparse<V>) {
             return Handle<V> {
-               mValues.template GetRaw<V>()[i],
-               const_cast<const Allocation**>(
-                  reinterpret_cast<Allocation**>(mValues.mRawSparse + mKeys.mReserved))[i]
+               mValues.template GetRaw<V>() + i,
+               mValues.template GetRaw<const Allocation*>() + mKeys.mReserved + i,
+               //reinterpret_cast<const Allocation**>(mValues.mRawSparse) + mKeys.mReserved + i
             };
          }
          else return Handle<V> {
-            mValues.template GetRaw<V>()[i],
+            mValues.template GetRaw<V>() + i,
             mValues.mEntry
          };
       }
@@ -305,37 +303,17 @@ namespace Langulus::Anyness
       }
    }
 
-   template<CT::Map THIS> LANGULUS(INLINED)
+   template<CT::Map THIS> LANGULUS(ALWAYS_INLINED)
    auto BlockMap::GetValHandle(const Offset i) const IF_UNSAFE(noexcept) {
-      LANGULUS_ASSUME(DevAssumes, i < GetReserved(),
-         "Index out of limits when accessing ", NameOf<THIS>(), " value, ",
-         "index ", i, " is beyond the reserved ", GetReserved(), " elements");
-
       if constexpr (CT::Typed<THIS>) {
-         using V = typename THIS::Value;
-         LANGULUS_ASSUME(DevAssumes, (IsValueSimilar<THIS, V>()),
-            "Wrong type when accessing ", NameOf<THIS>(), " value, ",
-            "using type `", NameOf<V>(), "` instead of `", GetValueType(), '`');
-
-         // We can't rely on Block::GetHandle, because it uses mReserved
-         if constexpr (CT::Sparse<V>) {
-            return Handle<const V> {
-               mValues.template GetRaw<V>()[i],
-               const_cast<const Allocation**>(
-                  reinterpret_cast<Allocation**>(mValues.mRawSparse + mKeys.mReserved))[i]
-            };
-         }
-         else return Handle<const V> {
-            mValues.template GetRaw<V>()[i],
-            mValues.mEntry
-         };
+         return const_cast<BlockMap*>(this)->template
+            GetValHandle<THIS>(i).MakeConst();
       }
       else {
-         // We use mReserved for different purpose in this map, so we   
-         // have to compensate for that here                            
-         auto e = GetVals<THIS>().GetElementInner(i);
-         e.mReserved = mKeys.mReserved;
-         return e;
+         auto block = const_cast<BlockMap*>(this)->template
+            GetValHandle<THIS>(i);
+         block.MakeConst();
+         return block;
       }
    }
 

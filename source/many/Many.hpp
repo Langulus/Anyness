@@ -52,8 +52,7 @@ namespace Langulus::Anyness
       Many(const Many&);
       Many(Many&&) noexcept;
 
-      template<class T1, class...TN>
-      requires CT::UnfoldInsertable<T1, TN...>
+      template<class T1, class...TN> requires CT::UnfoldInsertable<T1, TN...>
       Many(T1&&, TN&&...);
 
       ~Many();
@@ -63,6 +62,8 @@ namespace Langulus::Anyness
       NOD() static Many FromState(const CT::Block auto&, DataState = {}) noexcept;
       template<CT::Data T>
       NOD() static Many From(DataState = {}) noexcept;
+      template<class AS = void, CT::Data...TN>
+      NOD() static Many Wrap(TN&&...);
 
       ///                                                                     
       ///   Assignment                                                        
@@ -74,39 +75,6 @@ namespace Langulus::Anyness
    public:
       NOD() Many Crop(Offset, Count) const;
       NOD() Many Crop(Offset, Count);
-
-      ///                                                                     
-      ///   Iteration                                                         
-      ///                                                                     
-      /*template<bool REVERSE = false>
-      Count ForEachElement(auto&&) const;
-      template<bool REVERSE = false>
-      Count ForEachElement(auto&&);
-
-      template<bool REVERSE = false>
-      Count ForEach(auto&&...) const;
-      template<bool REVERSE = false>
-      Count ForEach(auto&&...);
-
-      template<bool REVERSE = false, bool SKIP = true>
-      Count ForEachDeep(auto&&...) const;
-      template<bool REVERSE = false, bool SKIP = true>
-      Count ForEachDeep(auto&&...);
-
-      ///                                                                     
-      ///   RTTI                                                              
-      ///                                                                     
-      template<CT::Data, CT::Data...>
-      NOD() constexpr bool Is() const noexcept;
-      NOD() bool Is(DMeta) const noexcept;
-
-      template<CT::Data, CT::Data...>
-      NOD() constexpr bool IsSimilar() const noexcept;
-      NOD() bool IsSimilar(DMeta) const noexcept;
-
-      template<CT::Data, CT::Data...>
-      NOD() constexpr bool IsExact() const noexcept;
-      NOD() bool IsExact(DMeta) const noexcept;*/
 
       ///                                                                     
       ///   Comparison                                                        
@@ -127,6 +95,12 @@ namespace Langulus::Anyness
       ///                                                                     
       NOD() Many  operator +  (CT::UnfoldInsertable auto&&) const;
             Many& operator += (CT::UnfoldInsertable auto&&);
+
+      ///                                                                     
+      ///   Conversion                                                        
+      ///                                                                     
+   //protected:
+   //   using Base::SerializeToBinary;
    };
 
 } // namespace Langulus::Anyness

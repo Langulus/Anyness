@@ -232,14 +232,13 @@ namespace Langulus::Anyness
                // We're cloning pointers, which will inevitably end up  
                // pointing elsewhere, which means that all elements must
                // be rehashed and reinserted                            
-               using BT = TMany<Deptr<TypeOf<B>>>;
-               BT coalesced;
+               TMany<Deptr<TypeOf<B>>> coalesced;
                coalesced.Reserve(asFrom->GetCount());
 
                // Coalesce all densified elements, to avoid multiple    
                // allocations                                           
                for (auto& item : *asFrom) {
-                  coalesced.template InsertInner<BT, void, false>(
+                  coalesced.template InsertInner<void, false>(
                      IndexBack, SS::Nest(*item));
                }
 
@@ -304,7 +303,7 @@ namespace Langulus::Anyness
                // Coalesce all densified elements, to avoid multiple    
                // allocations                                           
                for (auto& item : *asFrom) {
-                  coalesced.template InsertBlock<Many, void, false>(
+                  coalesced.template InsertBlock<void, false>(
                      IndexBack, SS::Nest(*item));
                }
 

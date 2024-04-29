@@ -99,6 +99,9 @@ namespace Langulus
           and ((sizeof(T) == sizeof(A::Block)) and ...);
 
       template<class...T>
+      concept NotBlock = ((not Block<T>) and ...);
+
+      template<class...T>
       concept TypedBlock = Block<T...> and Typed<T...>;
 
       template<class...T>
@@ -149,34 +152,85 @@ namespace Langulus
       namespace Inner
       {
 
+         /// Unfolds T, if it is a bounded array, or std::range, and returns  
+         /// a nullptr pointer of the type contained inside. Nested for       
+         /// ranges containing other ranges, or arrays containing ranges.     
+         /// Removes semantics and handles, too.                              
+         ///   @tparam T - type to unfold                                     
+         ///   @return a pointer of the most inner type                       
+         template<class T>
+         consteval auto Unfold() {
+            if constexpr (CT::Sparse<Desem<T>>) {
+               if constexpr (CT::Array<Desem<T>>)
+                  return Unfold<Deext<Desem<T>>>();
+               else
+                  return (Deref<Desem<T>>*) nullptr;
+            }
+            else if constexpr (CT::Handle<Desem<T>>)
+               return (TypeOf<Desem<T>>*) nullptr;
+            else if constexpr (::std::ranges::range<Desem<T>>)
+               return Unfold<TypeOf<Desem<T>>>();
+            else
+               return (Deref<Desem<T>>*) nullptr;
+         }
+
+      } // namespace Langulus::CT::Inner
+      
+      /// Nest-unfold any bounded array or std::range, and get most inner type
+      template<class T>
+      using Unfold = Deptr<decltype(Inner::Unfold<T>())>;
+
+      /// Check if T is constructible with each of the provided arguments,    
+      /// either directly, or by unfolding that argument                      
+      template<class T, class...A>
+      concept UnfoldMakableFrom = ((
+               ::std::constructible_from<T, A>
+            or ::std::constructible_from<T, Unfold<A>>
+         ) and ...);
+
+      /// Check if T is insertable to containers, either directly, or while   
+      /// wrapped in a semantic                                               
+      template<class...TN>
+      concept UnfoldInsertable = Insertable<Desem<TN>...>;
+
+      namespace Inner
+      {
+
          /// Test whether a TMany is constructible with the given arguments   
          ///   @tparam T - the contained type in TMany<T>                     
          ///   @tparam ...A - the arguments to test                           
          ///   @return true if TMany<T> is constructible using {A...}         
          template<class T, class...A>
          consteval bool DeepMakable() noexcept {
-            if constexpr (UnfoldMakableFrom<T, A...>) {
-               // If we can directly forward As, then always prefer that
+            if constexpr (TypeErased<T>) {
+               // Type-erased containers accept almost any type - they  
+               // will report errors at runtime instead, if any         
+               return UnfoldInsertable<A...>;
+            }
+            else if constexpr (UnfoldMakableFrom<T, A...>) {
+               // If we can directly forward, always prefer it          
                return true;
             }
             else if constexpr (sizeof...(A) == 1) {
-               // If only one A provided, it HAS to be a CT::Block type 
+               // If only one A provided, it HAS to be a CT::Block      
                using FA = FirstOf<A...>;
                using SA = SemanticOf<FA>;
 
                if constexpr (CT::Block<Desem<FA>>) {
                   if constexpr (SA::Shallow) {
-                     // Generally, shallow semantics are always supported, 
-                     // but copying will call element constructors, so we  
-                     // have to check if the contained type supports it    
+                     // Generally, shallow semantics are always         
+                     // supported,  but copying will call element       
+                     // constructors, so we have to check if the        
+                     // contained type supports it                      
                      if constexpr (CT::Copied<SA>)
                         return ReferMakable<T>;
                      else
                         return true;
                   }
                   else {
-                     // Cloning always calls element constructors, and we  
-                     // have to check whether contained elements can do it 
+                     // Cloning always calls element constructors, and  
+                     // we have to check whether contained elements can 
+                     // do it                                           
                      return SemanticMakableAlt<typename SA::template As<T>>;
                   }
                }
@@ -191,7 +245,12 @@ namespace Langulus
          ///   @return true if TMany<T> is assignable using = A               
          template<class T, class A>
          consteval bool DeepAssignable() noexcept {
-            if constexpr (UnfoldMakableFrom<T, A>) {
+            if constexpr (TypeErased<T>) {
+               // Type-erased containers accept almost any type - they  
+               // will report errors at runtime instead, if any         
+               return UnfoldInsertable<A>;
+            }
+            else if constexpr (UnfoldMakableFrom<T, A>) {
                // If we can directly forward A..., then always prefer   
                // that. Othewise, it has to be a CT::Block type         
                return true;
@@ -216,7 +275,8 @@ namespace Langulus
             }
             else return false;
          };
-      }
+
+      } // namespace Langulus::CT::Inner
 
       /// Concept for recognizing arguments, with which a statically typed    
       /// container can be constructed                                        
@@ -281,6 +341,9 @@ namespace Langulus::Anyness
       template<class>
       friend struct Block;
 
+      template<class>
+      friend struct TBlockIterator;
+
       friend class Many;
       template<CT::Data>
       friend class TMany;
@@ -319,10 +382,12 @@ namespace Langulus::Anyness
       ///   Construction & Assignment                                         
       ///                                                                     
       using A::Block::Block;
-      using A::Block::operator =;
+
+      constexpr Block(const A::Block&) noexcept;
+      constexpr Block& operator = (const A::Block&) noexcept;
 
       // Type-erased utilities                                          
-      template<bool CONSTRAIN_TYPE = false>
+      /*template<bool CONSTRAIN_TYPE = false>
       NOD() static Block From(auto&&, Count = 1) requires TypeErased;
 
       template<CT::Data, bool CONSTRAIN_TYPE = false>
@@ -335,16 +400,20 @@ namespace Langulus::Anyness
       template<CT::Block B>
       NOD() static B From(auto&&, Count = 1) requires (not TypeErased);
       template<CT::Block B>
-      NOD() static B Wrap(CT::Data auto&&...) requires (not TypeErased);
+      NOD() static B Wrap(CT::Data auto&&...) requires (not TypeErased);*/
+         
+      //template<CT::Block B>
+      //NOD() static B From(auto&&, Count = 1);
          
    protected:
-      template<template<class> class S, CT::Block FROM>
-      requires CT::Semantic<S<FROM>>
-      void BlockTransfer(S<FROM>&&);
+      template<class T1, class...TN> requires CT::DeepMakable<TYPE, T1, TN...>
+      void BlockCreate(T1&&, TN&&...);
 
-      template<class T1>
-      void BlockAssign(T1&&)
-      requires (CT::Block<Desem<T1>> and CT::DeepAssignable<TYPE, T1>);
+      template<class B> requires CT::Block<Desem<B>>
+      void BlockTransfer(B&&);
+
+      template<CT::Block THIS, class T1>
+      THIS& BlockAssign(T1&&) requires CT::DeepAssignable<TYPE, T1>;
 
    public:
       ///                                                                     
@@ -440,12 +509,12 @@ namespace Langulus::Anyness
       NOD() decltype(auto) As(CT::Index auto) const;
 
       template<CT::Data T>
-      NOD() LANGULUS(INLINED) decltype(auto) As() {
+      NOD() LANGULUS(ALWAYS_INLINED) decltype(auto) As() {
          return As<T>(0);
       }
 
       template<CT::Data T>
-      NOD() LANGULUS(INLINED) decltype(auto) As() const {
+      NOD() LANGULUS(ALWAYS_INLINED) decltype(auto) As() const {
          return As<T>(0);
       }
 
@@ -456,12 +525,12 @@ namespace Langulus::Anyness
       // and relies on Verbs::Interpret                                 
       // If you receive missing externals, include the following:       
       //    #include <Flow/Verbs/Interpret.hpp>                         
-      template<CT::Data T, bool FATAL_FAILURE = true, CT::Block = Many>
+      template<CT::Data T, bool FATAL_FAILURE = true>
       NOD() T AsCast(CT::Index auto) const;
 
-      template<CT::Data T, bool FATAL_FAILURE = true, CT::Block THIS = Many>
+      template<CT::Data T, bool FATAL_FAILURE = true>
       NOD() LANGULUS(INLINED) T AsCast() const {
-         return AsCast<T, FATAL_FAILURE, THIS>(0);
+         return AsCast<T, FATAL_FAILURE>(0);
       }
    
       template<CT::Block THIS> NOD() IF_UNSAFE(constexpr)
@@ -501,6 +570,11 @@ namespace Langulus::Anyness
       template<class T> requires CT::Block<Desem<T>>
       void Swap(T&&);
 
+      template<bool REVERSE = false>
+      Count GatherFrom(const CT::Block auto&);
+      template<bool REVERSE = false>
+      Count GatherFrom(const CT::Block auto&, DataState);
+
       template<Index>
       NOD() Index GetIndex() const IF_UNSAFE(noexcept);
       NOD() Index GetIndexMode(Count&) const IF_UNSAFE(noexcept);
@@ -528,9 +602,9 @@ namespace Langulus::Anyness
       auto GetHandle(Offset = 0) const IF_UNSAFE(noexcept);
 
       template<CT::Data = TYPE> NOD() IF_UNSAFE(constexpr)
-      decltype(auto) Get(Offset = 0, Offset = 0)       IF_UNSAFE(noexcept);
+      decltype(auto) Get(Offset = 0/*, Offset = 0*/)       IF_UNSAFE(noexcept);
       template<CT::Data = TYPE> NOD() IF_UNSAFE(constexpr)
-      decltype(auto) Get(Offset = 0, Offset = 0) const IF_UNSAFE(noexcept);
+      decltype(auto) Get(Offset = 0/*, Offset = 0*/) const IF_UNSAFE(noexcept);
    
       NOD() IF_UNSAFE(constexpr)
       decltype(auto) GetDeep(Offset = 0)       IF_UNSAFE(noexcept);
@@ -594,17 +668,22 @@ namespace Langulus::Anyness
       LoopControl IterateInner(Count, auto&& f) const noexcept(NoexceptIterator<decltype(f)>);
 
       // Prefix operators                                               
-      Block& operator ++ () IF_UNSAFE(noexcept);
-      Block& operator -- () IF_UNSAFE(noexcept);
+      Block&       operator ++ ()       IF_UNSAFE(noexcept);
+      Block const& operator ++ () const IF_UNSAFE(noexcept);
+      Block&       operator -- ()       IF_UNSAFE(noexcept);
+      Block const& operator -- () const IF_UNSAFE(noexcept);
 
       // Suffix operators                                               
-      NOD() Block operator ++ (int) const IF_UNSAFE(noexcept);
-      NOD() Block operator -- (int) const IF_UNSAFE(noexcept);
+      NOD() Block  operator ++ (int) const IF_UNSAFE(noexcept);
+      NOD() Block  operator -- (int) const IF_UNSAFE(noexcept);
+                   
+      NOD() Block  operator +  (Offset) const IF_UNSAFE(noexcept);
+      NOD() Block  operator -  (Offset) const IF_UNSAFE(noexcept);
 
-      NOD() Block operator + (Offset) const IF_UNSAFE(noexcept);
-      NOD() Block operator - (Offset) const IF_UNSAFE(noexcept);
-      Block& operator += (Offset) IF_UNSAFE(noexcept);
-      Block& operator -= (Offset) IF_UNSAFE(noexcept);
+      Block&       operator += (Offset)       IF_UNSAFE(noexcept);
+      Block const& operator += (Offset) const IF_UNSAFE(noexcept);
+      Block&       operator -= (Offset)       IF_UNSAFE(noexcept);
+      Block const& operator -= (Offset) const IF_UNSAFE(noexcept);
 
    public:
       ///                                                                     
@@ -666,7 +745,9 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Comparison                                                        
       ///                                                                     
-      template<CT::NotSemantic T1>
+      bool operator == (const CT::Block auto&) const;
+
+      template<CT::NotBlock T1>
       bool operator == (const T1&) const
       requires (TypeErased or CT::Comparable<TYPE, T1>);
 
@@ -708,6 +789,7 @@ namespace Langulus::Anyness
       ///                                                                     
       template<bool SETSIZE = false>
       void Reserve(Count);
+      void TakeAuthority();
 
    protected:
       /// @cond show_protected                                                
@@ -717,7 +799,6 @@ namespace Langulus::Anyness
       void AllocateMore(Count);
       void AllocateLess(Count);
 
-      void TakeAuthority();
       template<bool CREATE = false>
       void AllocateInner(Count);
       void AllocateFresh(const AllocationRequest&);
@@ -774,26 +855,22 @@ namespace Langulus::Anyness
       template<class FORCE, bool MOVE_ASIDE>
       void InsertInner(CT::Index auto, auto&&);
 
-      template<class FORCE, bool MOVE_ASIDE, template<class> class S, CT::Block B>
-      requires CT::Semantic<S<B>>
-      void InsertBlockInner(CT::Index auto, S<B>&&);
+      template<class FORCE, bool MOVE_ASIDE, class T> requires CT::Block<Desem<T>>
+      void InsertBlockInner(CT::Index auto, T&&);
 
       template<class FORCE, bool MOVE_ASIDE>
       Count UnfoldInsert(CT::Index auto, auto&&);
       template<class FORCE, bool MOVE_ASIDE>
       Count UnfoldMerge(CT::Index auto, auto&&);
 
-      template<class FORCE, template<class> class S, CT::Deep T>
-      requires CT::Semantic<S<T>>
-      Count SmartConcat(const CT::Index auto, bool, S<T>&&, DataState);
+      template<class FORCE, class T> requires CT::Deep<Desem<T>>
+      Count SmartConcat(const CT::Index auto, bool, T&&, DataState);
 
-      template<class FORCE, template<class> class S, class T>
-      requires CT::Semantic<S<T>>
-      Count SmartPushInner(const CT::Index auto, S<T>&&, DataState);
+      template<class FORCE>
+      Count SmartPushInner(const CT::Index auto, auto&&, DataState);
 
-      template<CT::Block THIS, template<class> class S, CT::Block T>
-      requires CT::Semantic<S<T>>
-      THIS ConcatBlock(S<T>&&) const;
+      template<CT::Block THIS, class T> requires CT::Block<Desem<T>>
+      THIS ConcatBlock(T&&) const;
 
       void CreateDefault();
 
@@ -803,17 +880,14 @@ namespace Langulus::Anyness
       template<class...A>
       void Create(A&&...);
 
-      template<bool REVERSE = false, template<class> class S, CT::Block T>
-      requires CT::Semantic<S<T>>
-      void CreateSemantic(S<T>&&);
+      template<bool REVERSE = false, class T> requires CT::Block<Desem<T>>
+      void CreateSemantic(T&&);
 
-      template<template<class> class S, CT::Handle T>
-      requires CT::Semantic<S<T>>
-      void CreateSemantic(S<T>&&);
+      template<class T> requires CT::Handle<Desem<T>>
+      void CreateSemantic(T&&);
 
-      template<template<class> class S, CT::Block T>
-      requires CT::Semantic<S<T>>
-      void ShallowBatchPointerConstruction(S<T>&&);
+      template<class T> requires CT::Block<Desem<T>>
+      void ShallowBatchPointerConstruction(T&&);
 
    public:
       template<class T>
@@ -892,6 +966,8 @@ namespace Langulus::Anyness
       NOD() Offset DeserializeMeta(CT::Meta auto&, Offset, const Header&, Loader) const;
    };
 
+   template<class BLOCK = void>
+   NOD() auto MakeBlock(auto&&, Count = 1);
 
    namespace Inner
    {
@@ -988,14 +1064,11 @@ namespace Langulus::Anyness
    ///                                                                        
    ///   Contiguous block iterator                                            
    ///                                                                        
-   template<class BLOCK>
+   template<class B>
    struct TBlockIterator : A::Iterator {
-      static_assert(CT::Block<BLOCK>, "BLOCK must be a block type");
-      static constexpr bool Mutable = CT::Mutable<BLOCK>;
-
-      using Type = Conditional<CT::Typed<BLOCK>
-         , Conditional<Mutable, TypeOf<BLOCK>, const TypeOf<BLOCK>>
-         , void>;
+      static_assert(CT::Block<B>, "B must be a Block type");
+      static constexpr bool Mutable = CT::Mutable<B>;
+      using Type = Conditional<Mutable, TypeOf<B>, const TypeOf<B>>;
 
       LANGULUS(ABSTRACT) false;
       LANGULUS(TYPED)    Type;
@@ -1006,26 +1079,27 @@ namespace Langulus::Anyness
       template<class>
       friend struct TBlockIterator;
 
-      using TypeInner = Conditional<CT::Typed<BLOCK>, Type*, BLOCK>;
+      using TypeInner = Conditional<B::TypeErased, B, Type*>;
 
       // Current iterator position pointer                              
-      TypeInner mValue;
+      TypeInner   mValue;
       // Iterator position which is considered the 'end' iterator       
-      Byte const* mEnd;
+      Type const* mEnd;
 
-      constexpr TBlockIterator(TypeInner, Byte const*) noexcept;
+      constexpr TBlockIterator(const TypeInner&, Type const*) noexcept;
 
    public:
       TBlockIterator() noexcept = delete;
+
       constexpr TBlockIterator(const TBlockIterator&) noexcept = default;
       constexpr TBlockIterator(TBlockIterator&&) noexcept = default;
-      constexpr TBlockIterator(const A::IteratorEnd&) noexcept;
+      constexpr TBlockIterator(A::IteratorEnd) noexcept;
 
       constexpr TBlockIterator& operator = (const TBlockIterator&) noexcept = default;
       constexpr TBlockIterator& operator = (TBlockIterator&&) noexcept = default;
 
       NOD() constexpr bool operator == (const TBlockIterator&) const noexcept;
-      NOD() constexpr bool operator == (const A::IteratorEnd&) const noexcept;
+      NOD() constexpr bool operator == (A::IteratorEnd) const noexcept;
 
       NOD() constexpr decltype(auto) operator *  () const noexcept;
       NOD() constexpr decltype(auto) operator -> () const noexcept;
@@ -1038,10 +1112,9 @@ namespace Langulus::Anyness
 
       constexpr explicit operator bool() const noexcept;
 
-      constexpr operator TBlockIterator<const BLOCK>() const noexcept
-      requires Mutable {
-         return {mValue, mEnd};
-      }
+      // Implicit cast to a constant iterator                           
+      constexpr operator TBlockIterator<const B>() const noexcept
+      requires Mutable { return {mValue, mEnd}; }
    };
 
 } // namespace Langulus::Anyness

@@ -126,7 +126,12 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Insertion                                                         
       ///                                                                     
-      Bytes Extend(Count);
+      NOD() Bytes Extend(Count);
+
+      template<class T> requires CT::Binable<Desem<T>>
+      Bytes& operator << (T&&);
+      template<class T> requires CT::Binable<Desem<T>>
+      Bytes& operator >> (T&&);
 
       ///                                                                     
       ///   Concatenation                                                     

@@ -171,12 +171,12 @@ namespace Langulus::Anyness
          ++counter;
 
          if constexpr (CT::Bool<R>) {
-            if (not call(part.template Get<A>(inf - mInfo)))
+            if (not call(DecvqCast(part).template Get<A>(inf - mInfo)))
                return Loop::Break;
             next();
          }
          else if constexpr (CT::Exact<R, LoopControl>) {
-            const auto loop = call(part.template Get<A>(inf - mInfo));
+            const auto loop = call(DecvqCast(part).template Get<A>(inf - mInfo));
             switch (loop.mControl) {
             case LoopControl::Break:
             case LoopControl::NextLoop:
@@ -200,7 +200,7 @@ namespace Langulus::Anyness
             }
          }
          else {
-            call(part.template Get<A>(inf - mInfo));
+            call(DecvqCast(part).template Get<A>(inf - mInfo));
             next();
          }
       }
@@ -290,23 +290,44 @@ namespace Langulus::Anyness
       const CT::Block auto& part, auto&& call, Count& counter
    ) const {
       constexpr bool MUTABLE = CT::Mutable<THIS>;
+      using B = Deref<decltype(part)>;
       using F = Deref<decltype(call)>;
       using A = ArgumentOf<F>;
-      using SubBlock = Conditional<MUTABLE, Block<>&, const Block<>&>;
 
-      if (part.IsDeep()) {
-         // Iterate deep keys/values using non-block type               
-         return ForEachInner<THIS, REVERSE>(part,
-            [&counter, &call](SubBlock group) -> LoopControl {
-               return DenseCast(group).template
-                  ForEachDeepInner<MUTABLE, REVERSE, SKIP>(
-                     ::std::move(call), counter);
-            }, counter
-         );
+      if constexpr (B::TypeErased) {
+         if (part.IsDeep()) {
+            // Iterate deep keys/values using non-block type            
+            using SubBlock = Conditional<MUTABLE, Block<>&, const Block<>&>;
+            return ForEachInner<THIS, REVERSE>(part,
+               [&counter, &call](SubBlock group) -> LoopControl {
+                  return DenseCast(group).template
+                     ForEachDeepInner<MUTABLE, REVERSE, SKIP>(
+                        ::std::move(call), counter);
+               }, counter
+            );
+         }
+         else if constexpr (not CT::Deep<A>) {
+            // Equivalent to non-deep iteration                         
+            return ForEachInner<THIS, REVERSE>(part, ::std::move(call), counter);
+         }
       }
-      else if constexpr (not CT::Deep<A>) {
-         // Equivalent to non-deep iteration                            
-         return ForEachInner<THIS, REVERSE>(part, ::std::move(call), counter);
+      else {
+         using BB = Decay<TypeOf<B>>;
+         if constexpr (CT::Deep<BB>) {
+            // Iterate deep keys/values using non-block type            
+            using SubBlock = Conditional<MUTABLE, BB&, const BB&>;
+            return ForEachInner<THIS, REVERSE>(part,
+               [&counter, &call](SubBlock group) -> LoopControl {
+                  return DenseCast(group).template
+                     ForEachDeepInner<MUTABLE, REVERSE, SKIP>(
+                        ::std::move(call), counter);
+               }, counter
+            );
+         }
+         else if constexpr (not CT::Deep<A>) {
+            // Equivalent to non-deep iteration                         
+            return ForEachInner<THIS, REVERSE>(part, ::std::move(call), counter);
+         }
       }
 
       return Loop::Continue;

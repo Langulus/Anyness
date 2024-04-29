@@ -477,7 +477,7 @@ namespace Langulus::Anyness
       }
       else if constexpr (CT::Same<T, CMeta>) {
          // Expand the constant, and push it                            
-         operator << (Clone(Block {{}, DesemCast(item)}));
+         operator << (Clone(Block<> {{}, DesemCast(item)}));
       }
       else if constexpr (CT::Construct<T>) {
          // Construct's arguments are always Neat                       
@@ -1221,8 +1221,7 @@ namespace Langulus::Anyness
    /// Remove data, that matches the given type                               
    ///   @tparam T - type of data to remove                                   
    ///   @tparam EMPTY_TOO - use true, to remove all empty data entries, that 
-   ///                       are usually produced, by pushing DMeta           
-   ///                       (disabled by default)                            
+   ///      are usually produced, by pushing DMeta (disabled by default)      
    ///   @return the number of removed data entries                           
    template<CT::Data T, bool EMPTY_TOO>
    Count Neat::RemoveData() {
@@ -1312,6 +1311,8 @@ namespace Langulus::Anyness
    }
    
    /// Serialize the neat to anything text-based                              
+   ///   @param to - the serialized container                                 
+   ///   @return the number of elements written to 'to'                       
    LANGULUS(INLINED)
    Count Neat::Serialize(CT::Serial auto& to) const {
       const auto initial = to.GetCount();
@@ -1324,7 +1325,7 @@ namespace Langulus::Anyness
                to += ", ";
 
             if (group.IsValid())
-               group.SerializeToText<Block, void>(to);
+               group.SerializeToText<void>(to);
             else
                to += static_cast<OUT>(pair.mKey);
             separator = true;

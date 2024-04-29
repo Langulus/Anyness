@@ -116,7 +116,199 @@ namespace Langulus::A
 
 namespace Langulus::Anyness
 {
-   
+
+   /// Blocks are always constructible from other blocks                      
+   /// This is only a binary-compatible intermediate container without        
+   /// ownership - all it does is copy block properties.                      
+   ///   @param other - block to copy                                         
+   template<class TYPE> LANGULUS(ALWAYS_INLINED)
+   constexpr Block<TYPE>::Block(const A::Block& other) noexcept
+      : A::Block {other} {}
+
+   /// Construct from a list of elements, each of them can be semantic or not,
+   /// an array, as well as any other kinds of blocks                         
+   ///   @param t1 - first element                                            
+   ///   @param tn - tail of elements (optional)                              
+   template<class TYPE> template<class T1, class...TN>
+   requires CT::DeepMakable<TYPE, T1, TN...>
+   void Block<TYPE>::BlockCreate(T1&& t1, TN&&...tn) {
+      using S = SemanticOf<decltype(t1)>;
+      using T = TypeOf<S>;
+
+      if constexpr (TypeErased) {
+         // Construct a type-erased block                               
+         if constexpr (sizeof...(TN) == 0) {
+            if constexpr (CT::Deep<T>)
+               BlockTransfer(Forward<T1>(t1));
+            else
+               Insert<Many, true>(IndexBack, Forward<T1>(t1));
+         }
+         else Insert<Many, true>(IndexBack, Forward<T1>(t1), Forward<TN>(tn)...);
+      }
+      else {
+         // Construct a typed block                                     
+         mType = MetaDataOf<TYPE>();
+
+         if constexpr (sizeof...(TN) == 0) {
+            if constexpr (CT::Block<T>) {
+               if constexpr (CT::Typed<T>) {
+                  // Not type-erased block, do compile-time type checks 
+                  using STT = TypeOf<T>;
+
+                  if constexpr (CT::Similar<TYPE, STT>) {
+                     // Type is binary compatible, just transfer block  
+                     BlockTransfer(Forward<T1>(t1));
+                  }
+                  else if constexpr (CT::Sparse<TYPE, STT>) {
+                     if constexpr (CT::DerivedFrom<TYPE, STT>) {
+                        // The statically typed block contains items    
+                        // that are base of this container's type. Each 
+                        // element should be dynamically cast to this   
+                        // type                                         
+                        for (auto pointer : DesemCast(t1)) {
+                           auto dcast = dynamic_cast<TYPE>(&(*pointer));
+                           if (dcast)
+                              Insert<void, true>(IndexBack, dcast);
+                        }
+                     }
+                     else if constexpr (CT::DerivedFrom<STT, TYPE>) {
+                        // The statically typed block contains items    
+                        // that are derived from this container's type. 
+                        // Each element should be statically sliced to  
+                        // this type                                    
+                        for (auto pointer : DesemCast(t1))
+                           Insert<void, true>(IndexBack, static_cast<TYPE>(&(*pointer)));
+                     }
+                     else Insert(IndexBack, Forward<T1>(t1));
+                  }
+                  else Insert(IndexBack, Forward<T1>(t1));
+               }
+               else if constexpr (CT::Deep<T>) {
+                  // Type-erased block, do run-time type checks         
+                  if (IsSimilar(DesemCast(t1).GetType())) {
+                     // If types are similar, it is safe to absorb the  
+                     // block, essentially converting a type- erased    
+                     // Many back to its TMany equivalent               
+                     BlockTransfer(Forward<T1>(t1));
+                  }
+                  else if constexpr (CT::Deep<TYPE>) {
+                     // This block accepts any kind of deep element     
+                     Insert(IndexBack, Forward<T1>(t1));
+                  }
+                  /*else if constexpr (CT::Typed<ST> and CT::MakableFrom<T, typename S::template As<TypeOf<ST>>>) {
+                     // Attempt converting all elements to T
+                     Base::InsertBlock(IndexBack, Forward<T1>(t1));
+                  }*/
+                  else LANGULUS_OOPS(Meta, "Unable to absorb block");
+               }
+               else LANGULUS_ERROR("Can't construct this TMany from this kind of Block");
+            }
+            else Insert(IndexBack, Forward<T1>(t1));
+         }
+         else Insert(IndexBack, Forward<T1>(t1), Forward<TN>(tn)...);
+      }
+   }
+
+   /// Blocks are always assignable from other blocks                         
+   /// This is only a binary-compatible intermediate container without        
+   /// ownership - all it does is copy block properties.                      
+   ///   @param other - block to copy                                         
+   ///   @return a reference to this block                                    
+   template<class TYPE> LANGULUS(ALWAYS_INLINED)
+   constexpr Block<TYPE>& Block<TYPE>::operator = (const A::Block& rhs) noexcept {
+      A::Block::operator = (rhs);
+      return *this;
+   }
+
+   /// Construct manually by interfacing memory directly                      
+   /// Data will only be interfaced, never owned or copied, so semantic is    
+   /// ignored, but left out for compatiblity with other interfaces           
+   ///   @param what - data to interface                                      
+   ///   @param count - number of items, in case 'what' is sparse             
+   ///   @attention risky, the interfaced data's lifetime is yours to manage  
+   ///   @return the provided data, wrapped inside a Block                    
+   /*template<class TYPE> LANGULUS(INLINED)
+   auto Block<TYPE>::From(auto&& what, Count count) {
+      using S  = SemanticOf<decltype(what)>;
+      using ST = TypeOf<S>;
+
+      if constexpr (CT::Array<ST>) {
+         // ... from a bounded array                                    
+         count *= ExtentOf<ST>;
+         return Block<Deext<ST>> {
+            DataState::Constrained,
+            MetaDataOf<Deext<ST>>(), count,
+            DesemCast(what), nullptr
+         };
+      }
+      else if constexpr (CT::Sparse<ST>) {
+         // ... from an unbounded array/pointer                         
+         return Block<Deptr<ST>> {
+            DataState::Constrained,
+            MetaDataOf<Deptr<ST>>(), count,
+            DesemCast(what), nullptr
+         };
+      }
+      else {
+         // ... from a value                                            
+         if constexpr (CT::Resolvable<ST>) {
+            // Resolve a runtime-resolvable value                       
+            return DesemCast(what).GetBlock();
+         }
+         else if constexpr (CT::Deep<ST>) {
+            // Static cast to Block if CT::Deep                         
+            return DesemCast(what);
+         }
+         else {
+            // Any other value gets wrapped inside a temporary Block    
+            return Block<ST> {
+               DataState::Constrained,
+               MetaDataOf<ST>(), 1,
+               &DesemCast(what), nullptr
+            };
+         }
+      }
+   }*/
+
+   /// Insert the provided elements, making sure to insert, and never absorb  
+   ///   @tparam AS - the type to wrap elements as, use void to auto-deduce   
+   ///   @param t1 - first element                                            
+   ///   @param tn... - the rest of the elements (optional)                   
+   ///   @returns the new container containing the data                       
+   /*template<class TYPE> template<class AS, CT::Data T1, CT::Data...TN>
+   LANGULUS(INLINED) auto Block<TYPE>::Wrap(T1&& t1, TN&&...tn) requires TypeErased {
+      if constexpr (CT::TypeErased<AS>) {
+         using DT1 = Deref<Decvq<Desem<T1>>>;
+         if constexpr (sizeof...(TN) > 0) {
+            if constexpr (CT::Similar<DT1, DT1, Deref<Desem<TN>>...>) {
+               TMany<DT1> result;
+               result.Insert(IndexBack, Forward<T1>(t1), Forward<TN>(tn)...);
+               return result;
+            }
+            else {
+               TMany<Many> result;
+               result.Insert(IndexBack, Forward<T1>(t1), Forward<TN>(tn)...);
+               return result;
+            }
+         }
+         else if constexpr (CT::Handle<DT1>) {
+            TMany<Decvq<TypeOf<DT1>>> result;
+            result.Insert(IndexBack, Forward<T1>(t1));
+            return result;
+         }
+         else {
+            TMany<DT1> result;
+            result.Insert(IndexBack, Forward<T1>(t1));
+            return result;
+         }
+      }
+      else {
+         TMany<AS> result;
+         result.Insert(IndexBack, Forward<T1>(t1), Forward<TN>(tn)...);
+         return result;
+      }
+   }*/
+
    /// Construct manually by interfacing memory directly                      
    /// Data will only be interfaced, never owned or copied, so semantic is    
    /// ignored, but left out for compatiblity with other interfaces           
@@ -125,7 +317,7 @@ namespace Langulus::Anyness
    ///   @param what - data to interface                                      
    ///   @param count - number of items, in case 'what' is sparse             
    ///   @return the provided data, wrapped inside a Block                    
-   template<class TYPE> template<bool CONSTRAIN_TYPE> LANGULUS(INLINED)
+   /*template<class TYPE> template<bool CONSTRAIN_TYPE> LANGULUS(INLINED)
    Block<TYPE> Block<TYPE>::From(auto&& what, Count count) requires TypeErased {
       using S  = SemanticOf<decltype(what)>;
       using ST = TypeOf<S>;
@@ -223,33 +415,35 @@ namespace Langulus::Anyness
          result.Insert(IndexBack, Forward<T1>(t1), Forward<TN>(tn)...);
          return result;
       }
-   }
+   }*/
    
    /// Construct manually by interfacing memory directly                      
-   /// Data will be copied, if not in jurisdiction, which involves a slow     
-   /// authority check. If you want to avoid checking and copying, use the    
-   /// Disowned semantic                                                      
+   /// If B is a container with ownership, then data will be copied if not in 
+   /// jurisdiction, which involves a slow authority check. If you want to    
+   /// avoid checking and copying at all, use can use the Disown semantics.   
    ///   @param what - data to semantically interface                         
    ///   @param count - number of items, in case 'what' is sparse             
    ///   @return the provided data, wrapped inside a TMany<T>                 
-   template<class TYPE> template<CT::Block B>
-   B Block<TYPE>::From(auto&& what, Count count) requires (not TypeErased) {
+   /*template<class TYPE> template<CT::Block B>
+   B Block<TYPE>::From(auto&& what, Count count) {
       using S  = SemanticOf<decltype(what)>;
       using ST = TypeOf<S>;
-
       B result;
-      if constexpr (not Sparse) {
+
+      if constexpr (not B::TypeErased) {
+         using T = TypeOf<B>;
+
          // We're creating a dense block...                             
          if constexpr (CT::Array<ST>) {
             // ... from a bounded array                                 
             using DST = Deext<ST>;
             const auto count2 = count * ExtentOf<ST> * sizeof(DST);
-            LANGULUS_ASSERT(0 == (count2 % sizeof(TYPE)),
+            LANGULUS_ASSERT(0 == (count2 % sizeof(T)),
                Meta, "Provided array type is not a multiple of sizeof(T)");
-            count = count2 / sizeof(TYPE);
+            count = count2 / sizeof(T);
 
-            if constexpr (CT::Similar<TYPE, DST> or CT::POD<TYPE, DST>) {
-               new (&result) Block {
+            if constexpr (CT::Similar<T, DST> or CT::POD<T, DST>) {
+               new (&result) Block<T> {
                   DataState::Constrained,
                   result.GetType(), count,
                   DesemCast(what), nullptr
@@ -257,21 +451,20 @@ namespace Langulus::Anyness
             }
             else {
                LANGULUS_ERROR(
-                  "Can't wrap a bounded array inside incompatible TMany<T>:"
-                  " types are not binary compatible"
-               );
+                  "Can't wrap a bounded array inside incompatible block:"
+                  " types are not binary compatible");
             }
          }
          else if constexpr (CT::Sparse<ST>) {
             // ... from a pointer                                       
             using DST = Deptr<ST>;
             const auto count2 = count * sizeof(DST);
-            LANGULUS_ASSERT(0 == (count2 % sizeof(TYPE)),
+            LANGULUS_ASSERT(0 == (count2 % sizeof(T)),
                Meta, "Provided pointer type is not a multiple of sizeof(T)");
-            count = count2 / sizeof(TYPE);
+            count = count2 / sizeof(T);
 
-            if constexpr (CT::Similar<TYPE, DST> or CT::POD<TYPE, DST>) {
-               new (&result) Block {
+            if constexpr (CT::Similar<T, DST> or CT::POD<T, DST>) {
+               new (&result) Block<T> {
                   DataState::Constrained,
                   result.GetType(), count,
                   DesemCast(what), nullptr
@@ -279,19 +472,18 @@ namespace Langulus::Anyness
             }
             else {
                LANGULUS_ERROR(
-                  "Can't wrap a unbounded array inside incompatible TMany<T>:"
-                  " types are not binary compatible"
-               );
+                  "Can't wrap a unbounded array inside incompatible block:"
+                  " types are not binary compatible");
             }
          }
          else {
             // ... from a value                                         
-            static_assert(0 == (sizeof(ST) % sizeof(TYPE)),
+            static_assert(0 == (sizeof(ST) % sizeof(T)),
                "Provided type is not a multiple of sizeof(T)");
-            count = sizeof(ST) / sizeof(TYPE);
+            count = sizeof(ST) / sizeof(T);
 
-            if constexpr (CT::Similar<TYPE, ST> or CT::POD<TYPE, ST>) {
-               new (&result) Block {
+            if constexpr (CT::Similar<T, ST> or CT::POD<T, ST>) {
+               new (&result) Block<T> {
                   DataState::Constrained,
                   result.GetType(), count,
                   &DesemCast(what), nullptr
@@ -299,52 +491,90 @@ namespace Langulus::Anyness
             }
             else {
                LANGULUS_ERROR(
-                  "Can't wrap a dense element inside incompatible TMany<T>:"
-                  " types are not binary compatible"
-               );
+                  "Can't wrap a dense element inside incompatible block:"
+                  " types are not binary compatible");
             }
          }
       }
-      else LANGULUS_ERROR("Can't manually interface a sparse block");
+      else {
+         if constexpr (CT::Array<ST>) {
+            // ... from a bounded array                                 
+            count *= ExtentOf<ST>;
+            new (&result) Block<Deext<ST>> {
+               DataState::Constrained,
+               MetaDataOf<Deext<ST>>(), count,
+               DesemCast(what), nullptr
+            };
+         }
+         else if constexpr (CT::Sparse<ST>) {
+            // ... from an unbounded array/pointer                      
+            new (&result) Block<Deptr<ST>> {
+               DataState::Constrained,
+               MetaDataOf<Deptr<ST>>(), count,
+               DesemCast(what), nullptr
+            };
+         }
+         else {
+            // ... from a value                                         
+            if constexpr (CT::Resolvable<ST>) {
+               // Resolve a runtime-resolvable value                    
+               new (&result) Block<> {DesemCast(what).GetBlock()};
+            }
+            else if constexpr (CT::Deep<ST>) {
+               // Static cast to Block if CT::Deep                      
+               new (&result) Block<> {DesemCast(what)};
+            }
+            else {
+               // Any other value gets wrapped inside a temporary Block 
+               new (&result) Block<ST> {
+                  DataState::Constrained,
+                  MetaDataOf<ST>(), 1,
+                  &DesemCast(what), nullptr
+               };
+            }
+         }
+      }
 
-      if constexpr (not S::Move and S::Keep)
+      if constexpr (not S::Move and S::Keep and B::Ownership)
          result.TakeAuthority();
       return result;
-   }
+   }*/
 
    /// Semantically transfer the members of one block onto another with the   
    /// smallest number of instructions possible                               
    ///   @attention will not set mType if TO is type-constrained              
    ///   @attention will not set mRaw, mReserved, mEntry, if 'from' is empty  
    ///   @param from - the block and semantic to transfer from                
-   template<class TYPE> template<template<class> class S, CT::Block FROM>
-   requires CT::Semantic<S<FROM>> LANGULUS(INLINED)
-   void Block<TYPE>::BlockTransfer(S<FROM>&& from) {
-      using SS = S<FROM>;
+   template<class TYPE> template<class FROM> requires CT::Block<Desem<FROM>>
+   LANGULUS(INLINED) void Block<TYPE>::BlockTransfer(FROM&& block) {
+      using S = SemanticOf<decltype(block)>;
+      using T = TypeOf<S>;
+      using B = Conditional<T::TypeErased, Block, T>;
+      auto& from = DesemCast(block);
 
       if constexpr (TypeErased) {
          // We can safely overwrite type and state                      
-         mType  = from->mType;
-         mState = from->mState;
+         mType  = from.mType;
+         mState = from.mState;
       }
       else {
          // Block is typed, so we never touch mType, and we make sure   
          // that we don't affect Typed state                            
-         mState = from->mState + DataState::Typed;
+         mState = from.mState + DataState::Typed;
       }
 
-      if constexpr (SS::Shallow) {
+      if constexpr (S::Shallow) {
          // Move/Copy/Refer/Abandon/Disown other                        
-         if constexpr (SS::Keep) {
+         if constexpr (S::Keep) {
             // Move/Copy/Refer other                                    
-            if constexpr (SS::Move) {
+            if constexpr (S::Move) {
                // Move                                                  
-               mEntry = from->mEntry;
-               mRaw = from->mRaw;
-               mReserved = from->mReserved;
-               mCount = from->mCount;
+               mEntry    = from.mEntry;
+               mRaw      = from.mRaw;
+               mReserved = from.mReserved;
+               mCount    = from.mCount;
 
-               if constexpr (not FROM::Ownership) {
+               if constexpr (not T::Ownership) {
                   // Since we are not aware if that block is referenced 
                   // or not we reference it just in case, and we also   
                   // do not reset 'other' to avoid leaks. When using    
@@ -353,18 +583,18 @@ namespace Langulus::Anyness
                   Keep();
                }
                else {
-                  from->ResetMemory();
-                  from->ResetState();
+                  from.ResetMemory();
+                  from.ResetState();
                }
             }
             else {
                // Copy/Refer other                                      
-               if constexpr (CT::Referred<SS>) {
+               if constexpr (CT::Referred<S>) {
                   // Just reference                                     
-                  mRaw = from->mRaw;
-                  mReserved = from->mReserved;
-                  mEntry = from->mEntry;
-                  mCount = from->mCount;
+                  mRaw      = from.mRaw;
+                  mReserved = from.mReserved;
+                  mEntry    = from.mEntry;
+                  mCount    = from.mCount;
                   Keep();
                }
                else {
@@ -373,12 +603,11 @@ namespace Langulus::Anyness
                   // data is no longer static and constant (unless      
                   // mType is constant)                                 
                   mState -= DataState::Static | DataState::Constant;
-                  if (0 == from->mCount)
+                  if (0 == from.mCount)
                      return;
 
                   // Pick a preferably typed block to optimize          
-                  using B = Conditional<CT::Typed<FROM>, FROM, Block<TYPE>>;
-                  if constexpr (CT::Untyped<B>) {
+                  if constexpr (B::TypeErased) {
                      // A runtime check is required before allocating            
                      LANGULUS_ASSERT(mType->mReferConstructor, Construct,
                         "Can't refer-construct elements"
@@ -390,39 +619,38 @@ namespace Langulus::Anyness
                   }
 
                   auto& thisb = reinterpret_cast<B&>(*this);
-                  thisb.AllocateFresh(thisb.RequestSize(from->mCount));
-                  thisb.CreateSemantic(Refer(from));
+                  thisb.AllocateFresh(thisb.RequestSize(from.mCount));
+                  thisb.CreateSemantic(Refer(block));
                   // This validates elements, do it last in case        
                   // something throws along the way                     
-                  mCount = from->mCount;
+                  mCount = from.mCount;
                }
             }
          }
-         else if constexpr (SS::Move) {
+         else if constexpr (S::Move) {
             // Abandon                                                  
-            mRaw = from->mRaw;
-            mReserved = from->mReserved;
-            mEntry = from->mEntry;
-            mCount = from->mCount;
-            from->mEntry = nullptr;
+            mRaw      = from.mRaw;
+            mReserved = from.mReserved;
+            mEntry    = from.mEntry;
+            mCount    = from.mCount;
+            from.mEntry = nullptr;
          }
          else {
             // Disown                                                   
-            mRaw = from->mRaw;
-            mReserved = from->mReserved;
-            mCount = from->mCount;
+            mRaw      = from.mRaw;
+            mReserved = from.mReserved;
+            mCount    = from.mCount;
          }
       }
       else {
          // We're cloning, so we guarantee, that data is no longer      
          // static and constant (unless mType is constant)              
          mState -= DataState::Static | DataState::Constant;
-         if (0 == from->mCount)
+         if (0 == from.mCount)
             return;
          
          // Pick a preferably typed block to optimize the construction  
-         using B = Conditional<CT::Typed<FROM>, FROM, Block<TYPE>>;
-         if constexpr (CT::Untyped<B>) {
+         if constexpr (B::TypeErased) {
             // A runtime check is required before allocating            
             LANGULUS_ASSERT(mType->mCloneConstructor, Construct,
                "Can't clone-construct elements"
@@ -434,31 +662,36 @@ namespace Langulus::Anyness
          }
 
          auto& thisb = reinterpret_cast<B&>(*this);
-         thisb.AllocateFresh(thisb.RequestSize(from->mCount));
-         thisb.CreateSemantic(from.Forward());
+         thisb.AllocateFresh(thisb.RequestSize(from.mCount));
+         thisb.CreateSemantic(Forward<FROM>(block));
 
          // This validates elements, do it last in case something throw 
-         mCount = from->mCount;
+         mCount = from.mCount;
       }
    }
 
-   template<class TYPE> template<class T1>
-   void Block<TYPE>::BlockAssign(T1&& rhs)
-   requires (CT::Block<Desem<T1>> and CT::DeepAssignable<TYPE, T1>) {
+   /// Semantically assign one block onto another with the smallest number of 
+   /// instructions possible.                                                 
+   ///   @param rhs - the block/value and semantic to assign                  
+   ///   @return a reference to this block                                    
+   template<class TYPE> template<CT::Block THIS, class T1>
+   THIS& Block<TYPE>::BlockAssign(T1&& rhs) requires CT::DeepAssignable<TYPE, T1> {
       using S = SemanticOf<decltype(rhs)>;
       using T = TypeOf<S>;
 
-      if (static_cast<const A::Block*>(this)
-       == static_cast<const A::Block*>(&DesemCast(rhs)))
-         return;
+      if constexpr (CT::Block<T>) {
+         if (static_cast<const A::Block*>(this)
+          == static_cast<const A::Block*>(&DesemCast(rhs)))
+            return reinterpret_cast<THIS&>(*this);
+      }
 
       if constexpr (TypeErased) {
          if constexpr (CT::Deep<T>) {
             // Potentially absorb a container                           
             Free();
-            new (this) Block {S::Nest(rhs)};
+            new (this) THIS {S::Nest(rhs)};
          }
-         else if (IsSimilar<Unfold<T>>()) {
+         else if (IsSimilar<CT::Unfold<T>>()) {
             // Unfold-insert by reusing memory                          
             Clear();
             UnfoldInsert<void, true>(IndexBack, S::Nest(rhs));
@@ -466,14 +699,14 @@ namespace Langulus::Anyness
          else {
             // Allocate anew and unfold-insert                          
             Free();
-            new (this) Block {S::Nest(rhs)};
+            new (this) THIS {S::Nest(rhs)};
          }
       }
       else {
          if constexpr (CT::Block<T>) {
             // Potentially absorb a container                           
             Free();
-            new (this) Block {S::Nest(rhs)};
+            new (this) THIS {S::Nest(rhs)};
          }
          else {
             // Unfold-insert                                            
@@ -481,6 +714,147 @@ namespace Langulus::Anyness
             UnfoldInsert<void, true>(IndexBack, S::Nest(rhs));
          }
       }
+
+      return reinterpret_cast<THIS&>(*this);
+   }
+   
+   /// Construct a block, that best represents a contiguous piece of memory   
+   /// If BLOCK is a container with ownership, then data will be copied if    
+   /// not in jurisdiction, which involves a slow authority check. If you     
+   /// want to avoid checking and copying at all - use the Disown semantics.  
+   /// By default, data will be wrapped in an automatically detected Block    
+   /// without ownership.                                                     
+   ///   @tparam BLOCK - the type of block to use, use void to auto-detect    
+   ///      When auto-detected, the block will never own the data, unless     
+   ///      a semantic that isn't Disown is given.                            
+   ///   @param what - start of data to semantically interface                
+   ///   @param count - number of items, in case 'what' is sparse             
+   ///   @attention if 'what' is a bounded array, then count is multiplied by 
+   ///      the array's extent, for the final number of elements              
+   ///   @return the memory wrapped inside a block                            
+   template<class BLOCK>
+   auto MakeBlock(auto&& what, Count count) {
+      using A  = Deref<decltype(what)>;
+      using S  = SemanticOf<A>;
+      using ST = TypeOf<S>;
+
+      // Auto-detect block type                                         
+      using B = Conditional<CT::Void<BLOCK>
+         , Conditional<CT::NotSemantic<A> or CT::Disowned<A>
+            , Block<Decvq<CT::Unfold<A>>>
+            , TMany<Decvq<CT::Unfold<A>>>>
+         , BLOCK
+      >;
+
+      B result;
+      if constexpr (not B::TypeErased) {
+         using T = TypeOf<B>;
+
+         // We're creating a dense block...                             
+         if constexpr (CT::Array<ST>) {
+            // ... from a bounded array                                 
+            using DST = Deext<ST>;
+            const auto count2 = count * ExtentOf<ST> * sizeof(DST);
+            LANGULUS_ASSERT(0 == (count2 % sizeof(T)),
+               Meta, "Provided array type is not a multiple of sizeof(T)");
+            count = count2 / sizeof(T);
+
+            if constexpr (CT::Similar<T, DST> or CT::POD<T, DST>) {
+               new (&result) Block<T> {
+                  DataState::Constrained,
+                  result.GetType(), count,
+                  DesemCast(what), nullptr
+               };
+            }
+            else {
+               LANGULUS_ERROR(
+                  "Can't wrap a bounded array inside incompatible block:"
+                  " types are not binary compatible");
+            }
+         }
+         else if constexpr (CT::Sparse<ST>) {
+            // ... from a pointer                                       
+            using DST = Deptr<ST>;
+            const auto count2 = count * sizeof(DST);
+            LANGULUS_ASSERT(0 == (count2 % sizeof(T)),
+               Meta, "Provided pointer type is not a multiple of sizeof(T)");
+            count = count2 / sizeof(T);
+
+            if constexpr (CT::Similar<T, DST> or CT::POD<T, DST>) {
+               new (&result) Block<T> {
+                  DataState::Constrained,
+                  result.GetType(), count,
+                  DesemCast(what), nullptr
+               };
+            }
+            else {
+               LANGULUS_ERROR(
+                  "Can't wrap a unbounded array inside incompatible block:"
+                  " types are not binary compatible");
+            }
+         }
+         else {
+            // ... from a value                                         
+            static_assert(0 == (sizeof(ST) % sizeof(T)),
+               "Provided type is not a multiple of sizeof(T)");
+            count = sizeof(ST) / sizeof(T);
+
+            if constexpr (CT::Similar<T, ST> or CT::POD<T, ST>) {
+               new (&result) Block<T> {
+                  DataState::Constrained,
+                  result.GetType(), count,
+                  &DesemCast(what), nullptr
+               };
+            }
+            else {
+               LANGULUS_ERROR(
+                  "Can't wrap a dense element inside incompatible block:"
+                  " types are not binary compatible");
+            }
+         }
+      }
+      else {
+         if constexpr (CT::Array<ST>) {
+            // ... from a bounded array                                 
+            count *= ExtentOf<ST>;
+            new (&result) Block<Deext<ST>> {
+               DataState::Constrained,
+               MetaDataOf<Deext<ST>>(), count,
+               DesemCast(what), nullptr
+            };
+         }
+         else if constexpr (CT::Sparse<ST>) {
+            // ... from an unbounded array/pointer                      
+            new (&result) Block<Deptr<ST>> {
+               DataState::Constrained,
+               MetaDataOf<Deptr<ST>>(), count,
+               DesemCast(what), nullptr
+            };
+         }
+         else {
+            // ... from a value                                         
+            if constexpr (CT::Resolvable<ST>) {
+               // Resolve a runtime-resolvable value                    
+               new (&result) Block<> {DesemCast(what).GetBlock()};
+            }
+            else if constexpr (CT::Deep<ST>) {
+               // Static cast to Block if CT::Deep                      
+               new (&result) Block<> {DesemCast(what)};
+            }
+            else {
+               // Any other value gets wrapped inside a temporary Block 
+               new (&result) Block<ST> {
+                  DataState::Constrained,
+                  MetaDataOf<ST>(), 1,
+                  &DesemCast(what), nullptr
+               };
+            }
+         }
+      }
+
+      if constexpr (not S::Move and S::Keep and B::Ownership)
+         result.TakeAuthority();
+      return result;
    }
 
 } // namespace Langulus::Anyness

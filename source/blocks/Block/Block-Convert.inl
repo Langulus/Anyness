@@ -119,12 +119,12 @@ namespace Langulus::Anyness
                coalesced.AllocateFresh(coalesced.RequestSize(mCount));
                coalesced.mCount = mCount;
                auto temp = coalesced.GetElementInner();
-               auto to = out.GetHandle(0);
+               auto to = out.template GetHandle<void*>(0);
 
                for (Count i = 0; i < mCount; ++i) {
                   auto from = GetElementDense<CountMax>(i);
                   converter(from.mRaw, temp.mRaw);
-                  to.Create(temp.mRaw, coalesced.mEntry);
+                  to.Assign(temp.mRaw, coalesced.mEntry);
                   ++to;
                   ++temp;
                }
@@ -179,136 +179,273 @@ namespace Langulus::Anyness
          return to.GetCount() - initial;
       }
 
-      if (IsDeep()) {
-         // Nested serialization, wrap it in content scope              
-         for (Offset i = 0; i < GetCount(); ++i) {
-            auto& subblock = As<Block<>>(i);
-            OUT::SerializationRules::BeginScope(subblock, to);
-            subblock.SerializeToText<void>(to);
-            OUT::SerializationRules::EndScope(subblock, to);
-
-            if (i < GetCount() - 1)
-               OUT::SerializationRules::Separate(*this, to);
-         }
-      }
-      else if (CastsTo<Trait, false>()) {
-         // Nest inside traits                                          
-         for (Offset i = 0; i < GetCount(); ++i) {
-            As<Trait>(i).Serialize(to);
-
-            if (i < GetCount() - 1)
-               OUT::SerializationRules::Separate(*this, to);
-         }
-      }
-      else if (CastsTo<BlockMap, false>()) {
-         // Nest inside maps                                            
-         for (Offset i = 0; i < GetCount(); ++i) {
-            //auto& map = As<BlockMap>(i);
-            TODO();
-         }
-      }
-      else if (CastsTo<BlockSet, false>()) {
-         // Nest inside sets                                            
-         for (Offset i = 0; i < GetCount(); ++i) {
-            //auto& set = As<BlockSet>(i);
-            TODO();
-         }
-      }
-      else if (CastsTo<Construct, false>()) {
-         // Nest inside sets                                            
-         for (Offset i = 0; i < GetCount(); ++i) {
-            As<Construct>(i).Serialize(to);
-
-            if (i < GetCount() - 1)
-               OUT::SerializationRules::Separate(*this, to);
-         }
-      }
-      else if (CastsTo<Neat, false>()) {
-         // Nest inside sets                                            
-         for (Offset i = 0; i < GetCount(); ++i) {
-            As<Neat>(i).Serialize(to);
-
-            if (i < GetCount() - 1)
-               OUT::SerializationRules::Separate(*this, to);
-         }
-      }
-      else {
-         // If reached, then contents are no longer nested              
-         if constexpr (requires { typename OUT::SerializationRules::Rules; }) {
-            // Abide by serializer's rules and wrap things accordingly  
-            const auto satisfied = SerializeByRules<NEXT>(
-               to, typename OUT::SerializationRules::Rules {});
-            if (satisfied) {
-               // Early exit, if conversion was satisfied by rule       
-               //OUT::SerializationRules::EndScope(*this, to);
-               return to.GetCount() - initial;
-            }
-         }
-
-         if (mType->mNamedValues.size()) {
-            // Serialize as a named value                               
+      if constexpr (TypeErased) {
+         if (IsDeep()) {
+            // Nested serialization, wrap it in content scope           
             for (Offset i = 0; i < GetCount(); ++i) {
-               for (auto& named : mType->mNamedValues) {
-                  const Block<> constant {{}, named};
-                  if (GetElementDense(i) == constant) {
-                     to += named->mToken;
-                     break;
-                  }
-               }
+               auto& subblock = GetDeep(i);
+               OUT::SerializationRules::BeginScope(subblock, to);
+               subblock.template SerializeToText<void>(to);
+               OUT::SerializationRules::EndScope(subblock, to);
 
                if (i < GetCount() - 1)
                   OUT::SerializationRules::Separate(*this, to);
             }
-            return to.GetCount() - initial;
          }
-         
-         // No rules defined, or didn't apply to data, so time to rely  
-         // on the reflected converters instead                         
-         TMany<OUT> converted;
-         if (not Convert(converted)) {
-            if constexpr (OUT::SerializationRules::CriticalFailure) {
-               // Couldn't convert elements, and that is marked as      
-               // a critical falure                                     
-               LANGULUS_OOPS(Convert, "Couldn't serialize ", mCount,
-                  " item(s) of type `", GetToken(),
-                  "` as `", converted.GetToken(), '`');
-               return 0;
+         else if (CastsTo<Trait, false>()) {
+            // Nest inside traits                                       
+            for (Offset i = 0; i < GetCount(); ++i) {
+               As<Trait>(i).Serialize(to);
+
+               if (i < GetCount() - 1)
+                  OUT::SerializationRules::Separate(*this, to);
             }
-            else {
-               // Couldn't convert elements, but since that failure     
-               // isn't marked as critical, we can just inform about it 
-               to += OUT("/* Couldn't serialize ", mCount,
-                  " item(s) of type `", GetToken(),
-                  "` as `", converted.GetToken(), "` */");
+         }
+         else if (CastsTo<BlockMap, false>()) {
+            // Nest inside maps                                         
+            for (Offset i = 0; i < GetCount(); ++i) {
+               //auto& map = As<BlockMap>(i);
+               TODO();
+            }
+         }
+         else if (CastsTo<BlockSet, false>()) {
+            // Nest inside sets                                         
+            for (Offset i = 0; i < GetCount(); ++i) {
+               //auto& set = As<BlockSet>(i);
+               TODO();
+            }
+         }
+         else if (CastsTo<Construct, false>()) {
+            // Nest inside sets                                         
+            for (Offset i = 0; i < GetCount(); ++i) {
+               As<Construct>(i).Serialize(to);
+
+               if (i < GetCount() - 1)
+                  OUT::SerializationRules::Separate(*this, to);
+            }
+         }
+         else if (CastsTo<Neat, false>()) {
+            // Nest inside sets                                         
+            for (Offset i = 0; i < GetCount(); ++i) {
+               As<Neat>(i).Serialize(to);
+
+               if (i < GetCount() - 1)
+                  OUT::SerializationRules::Separate(*this, to);
+            }
+         }
+         else {
+            // If reached, then contents are no longer nested           
+            if constexpr (requires { typename OUT::SerializationRules::Rules; }) {
+               // Abide by serializer's rules - wrap things accordingly 
+               const auto satisfied = SerializeByRules<NEXT>(
+                  to, typename OUT::SerializationRules::Rules {});
+               if (satisfied) {
+                  // Early exit, if conversion was satisfied by rule    
+                  //OUT::SerializationRules::EndScope(*this, to);
+                  return to.GetCount() - initial;
+               }
+            }
+
+            if (mType->mNamedValues.size()) {
+               // Serialize as a named value                            
+               for (Offset i = 0; i < GetCount(); ++i) {
+                  for (auto& named : mType->mNamedValues) {
+                     const Block<> constant {{}, named};
+                     if (GetElementDense(i) == constant) {
+                        to += named->mToken;
+                        break;
+                     }
+                  }
+
+                  if (i < GetCount() - 1)
+                     OUT::SerializationRules::Separate(*this, to);
+               }
                return to.GetCount() - initial;
             }
-         }
-         else if constexpr (OUT::SerializationRules::CriticalFailure) {
-            // Make sure that all elements are converted to a non-empty 
-            // string, as it is disallowed on critical failure          
-            for (auto& item : converted) {
-               LANGULUS_ASSERT(item, Convert,
-                  "Item(s) of type `", GetToken(),
-                  "` were serialized to an empty `", converted.GetToken(), '`');
-            }
-         }
 
-         // Write all converted elements to the serialized container    
-         for (Offset i = 0; i < converted.GetCount(); ++i) {
-            if constexpr (LANGULUS(SAFE)) {
-               if (not converted[i]) {
-                  // This is reached only if non-critical failure       
-                  // Just insert a comment to notify of the error       
-                  to += OUT(
-                     "/* Item #", i, " of type `", GetToken(),
-                     "` was serialized to an empty `", converted.GetToken(), "` */");
+            // No rules defined, or didn't apply to data, so time to    
+            // rely on the reflected converters instead                 
+            TMany<OUT> converted;
+            if (not Convert(converted)) {
+               if constexpr (OUT::SerializationRules::CriticalFailure) {
+                  // Couldn't convert elements, and that is marked as   
+                  // a critical falure                                  
+                  LANGULUS_OOPS(Convert, "Couldn't serialize ", mCount,
+                     " item(s) of type `", GetToken(),
+                     "` as `", converted.GetToken(), '`');
+                  return 0;
+               }
+               else {
+                  // Couldn't convert elements, but since that failure  
+                  // isn't marked as critical, we can just inform about 
+                  to += OUT("/* Couldn't serialize ", mCount,
+                     " item(s) of type `", GetToken(),
+                     "` as `", converted.GetToken(), "` */");
+                  return to.GetCount() - initial;
+               }
+            }
+            else if constexpr (OUT::SerializationRules::CriticalFailure) {
+               // Make sure that all elements are converted to a non-empty 
+               // string, as it is disallowed on critical failure          
+               for (auto& item : converted) {
+                  LANGULUS_ASSERT(item, Convert,
+                     "Item(s) of type `", GetToken(),
+                     "` were serialized to an empty `", converted.GetToken(), '`');
+               }
+            }
+
+            // Write all converted elements to the serialized container 
+            for (Offset i = 0; i < converted.GetCount(); ++i) {
+               if constexpr (LANGULUS(SAFE)) {
+                  if (not converted[i]) {
+                     // This is reached only if non-critical failure    
+                     // Just insert a comment to notify of the error    
+                     to += OUT(
+                        "/* Item #", i, " of type `", GetToken(),
+                        "` was serialized to an empty `", converted.GetToken(), "` */");
+                  }
+                  else to += converted[i];
                }
                else to += converted[i];
-            }
-            else to += converted[i];
 
-            if (i < GetCount() - 1)
-               OUT::SerializationRules::Separate(*this, to);
+               if (i < GetCount() - 1)
+                  OUT::SerializationRules::Separate(*this, to);
+            }
+         }
+      }
+      else {
+         if constexpr (CT::Deep<Decay<TYPE>>) {
+            // Nested serialization, wrap it in content scope           
+            for (Offset i = 0; i < GetCount(); ++i) {
+               auto& subblock = GetDeep(i);
+               OUT::SerializationRules::BeginScope(subblock, to);
+               subblock.template SerializeToText<void>(to);
+               OUT::SerializationRules::EndScope(subblock, to);
+
+               if (i < GetCount() - 1)
+                  OUT::SerializationRules::Separate(*this, to);
+            }
+         }
+         else if constexpr (CT::DerivedFrom<TYPE, Trait>) {
+            // Nest inside traits                                       
+            for (Offset i = 0; i < GetCount(); ++i) {
+               As<Trait>(i).Serialize(to);
+
+               if (i < GetCount() - 1)
+                  OUT::SerializationRules::Separate(*this, to);
+            }
+         }
+         else if constexpr (CT::DerivedFrom<TYPE, BlockMap>) {
+            // Nest inside maps                                         
+            for (Offset i = 0; i < GetCount(); ++i) {
+               //auto& map = As<BlockMap>(i);
+               TODO();
+            }
+         }
+         else if constexpr (CT::DerivedFrom<TYPE, BlockSet>) {
+            // Nest inside sets                                         
+            for (Offset i = 0; i < GetCount(); ++i) {
+               //auto& set = As<BlockSet>(i);
+               TODO();
+            }
+         }
+         else if constexpr (CT::DerivedFrom<TYPE, Construct>) {
+            // Nest inside sets                                         
+            for (Offset i = 0; i < GetCount(); ++i) {
+               As<Construct>(i).Serialize(to);
+
+               if (i < GetCount() - 1)
+                  OUT::SerializationRules::Separate(*this, to);
+            }
+         }
+         else if constexpr (CT::DerivedFrom<TYPE, Neat>) {
+            // Nest inside sets                                         
+            for (Offset i = 0; i < GetCount(); ++i) {
+               As<Neat>(i).Serialize(to);
+
+               if (i < GetCount() - 1)
+                  OUT::SerializationRules::Separate(*this, to);
+            }
+         }
+         else {
+            // If reached, then contents are no longer nested           
+            if constexpr (requires { typename OUT::SerializationRules::Rules; }) {
+               // Abide by serializer's rules and wrap things accordingly
+               const auto satisfied = SerializeByRules<NEXT>(
+                  to, typename OUT::SerializationRules::Rules {});
+               if (satisfied) {
+                  // Early exit, if conversion was satisfied by rule    
+                  //OUT::SerializationRules::EndScope(*this, to);
+                  return to.GetCount() - initial;
+               }
+            }
+
+            //TODO optimize this further
+            if (mType->mNamedValues.size()) {
+               // Serialize as a named value                            
+               for (Offset i = 0; i < GetCount(); ++i) {
+                  for (auto& named : mType->mNamedValues) {
+                     const Block<> constant {{}, named};
+                     if (GetElementDense(i) == constant) {
+                        to += named->mToken;
+                        break;
+                     }
+                  }
+
+                  if (i < GetCount() - 1)
+                     OUT::SerializationRules::Separate(*this, to);
+               }
+               return to.GetCount() - initial;
+            }
+
+            // No rules defined, or didn't apply to data, so time to    
+            // rely on the reflected converters instead                 
+            TMany<OUT> converted;
+            if (not Convert(converted)) {
+               if constexpr (OUT::SerializationRules::CriticalFailure) {
+                  // Couldn't convert elements, and that is marked as   
+                  // a critical falure                                  
+                  LANGULUS_OOPS(Convert, "Couldn't serialize ", mCount,
+                     " item(s) of type `", GetToken(),
+                     "` as `", converted.GetToken(), '`');
+                  return 0;
+               }
+               else {
+                  // Couldn't convert elements, but since that failure  
+                  // isn't marked as critical, we can just inform about 
+                  to += OUT("/* Couldn't serialize ", mCount,
+                     " item(s) of type `", GetToken(),
+                     "` as `", converted.GetToken(), "` */");
+                  return to.GetCount() - initial;
+               }
+            }
+            else if constexpr (OUT::SerializationRules::CriticalFailure) {
+               // Make sure that all elements are converted to a non-empty 
+               // string, as it is disallowed on critical failure          
+               for (auto& item : converted) {
+                  LANGULUS_ASSERT(item, Convert,
+                     "Item(s) of type `", GetToken(),
+                     "` were serialized to an empty `", converted.GetToken(), '`');
+               }
+            }
+
+            // Write all converted elements to the serialized container 
+            for (Offset i = 0; i < converted.GetCount(); ++i) {
+               if constexpr (LANGULUS(SAFE)) {
+                  if (not converted[i]) {
+                     // This is reached only if non-critical failure    
+                     // Just insert a comment to notify of the error    
+                     to += OUT(
+                        "/* Item #", i, " of type `", GetToken(),
+                        "` was serialized to an empty `", converted.GetToken(), "` */");
+                  }
+                  else to += converted[i];
+               }
+               else to += converted[i];
+
+               if (i < GetCount() - 1)
+                  OUT::SerializationRules::Separate(*this, to);
+            }
          }
       }
 
@@ -338,32 +475,60 @@ namespace Langulus::Anyness
       const auto initial = to.GetCount();
       using Type = typename RULE::Type;
 
-      if constexpr (RULE::sMatch == Serial::Exact) {
-         if (not IsSimilar<Type>())
-            return 0;
-      }
-      else if constexpr (RULE::sMatch == Serial::BasedOn) {
-         if (not CastsTo<Type, false>())
-            return 0;
-      }
-      else LANGULUS_ERROR("Unimplemented matcher");
-
-      if constexpr (RULE::sRule == Serial::Skip)
-         return 0;
-      else if constexpr (RULE::sRule == Serial::Wrap) {
-         // If reached, then the rule is compatible with the type       
-         for (Offset i = 0; i < mCount; ++i) {
-            to += RULE::sStart;
-            to += static_cast<OUT>(As<Type>(i));
-            to += RULE::sEnd;
-
-            if (i < GetCount() - 1)
-               OUT::SerializationRules::Separate(*this, to);
+      if constexpr (TypeErased) {
+         if constexpr (RULE::sMatch == Serial::Exact) {
+            if (not IsSimilar<Type>())
+               return 0;
          }
+         else if constexpr (RULE::sMatch == Serial::BasedOn) {
+            if (not CastsTo<Type, false>())
+               return 0;
+         }
+         else LANGULUS_ERROR("Unimplemented matcher");
 
-         return to.GetCount() - initial;
+         if constexpr (RULE::sRule == Serial::Skip)
+            return 0;
+         else if constexpr (RULE::sRule == Serial::Wrap) {
+            // If reached, then the rule is compatible with the type    
+            for (Offset i = 0; i < mCount; ++i) {
+               to += RULE::sStart;
+               to += static_cast<OUT>(As<Type>(i));
+               to += RULE::sEnd;
+
+               if (i < GetCount() - 1)
+                  OUT::SerializationRules::Separate(*this, to);
+            }
+
+            return to.GetCount() - initial;
+         }
+         else LANGULUS_ERROR("Unimplemented rule");
       }
-      else LANGULUS_ERROR("Unimplemented rule");
+      else {
+         if constexpr (RULE::sMatch == Serial::Exact
+         and not CT::Similar<TYPE, Type>)
+            return 0;
+         else if constexpr (RULE::sMatch == Serial::BasedOn
+         and not CT::DerivedFrom<TYPE, Type>)
+            return 0;
+         else {
+            if constexpr (RULE::sRule == Serial::Skip)
+               return 0;
+            else if constexpr (RULE::sRule == Serial::Wrap) {
+               // If reached, then the rule is compatible with the type 
+               for (Offset i = 0; i < mCount; ++i) {
+                  to += RULE::sStart;
+                  to += static_cast<OUT>(As<Type>(i));
+                  to += RULE::sEnd;
+
+                  if (i < GetCount() - 1)
+                     OUT::SerializationRules::Separate(*this, to);
+               }
+
+               return to.GetCount() - initial;
+            }
+            else LANGULUS_ERROR("Unimplemented rule");
+         }
+      }
    }
 
    /// Serialize block to binary                                              
@@ -463,13 +628,13 @@ namespace Langulus::Anyness
                   continue;
 
                const auto baseBlock = element.GetBaseMemory(base);
-               baseBlock.SerializeToBinary<RTTI::Base>(to);
+               baseBlock.template SerializeToBinary<RTTI::Base>(to);
             }
 
             // Serialize all reflected members                          
             for (auto& member : element.GetType()->mMembers) {
                const auto memberBlock = element.GetMember(member, 0);
-               memberBlock.SerializeToBinary<RTTI::Member>(to);
+               memberBlock.template SerializeToBinary<RTTI::Member>(to);
             }
          }
 
@@ -593,18 +758,18 @@ namespace Langulus::Anyness
       CT::Block auto& to, const Header& header, Offset readOffset, Loader loader
    ) const {
       using OUT = Deref<decltype(to)>;
-      using T = Conditional<OUT::TypeErased, NEXT, TypeOf<OUT>>;
+      using T   = Conditional<OUT::TypeErased, NEXT, TypeOf<OUT>>;
 
-      static_assert(TypeErased or CT::Bytes<TYPE>,
+      static_assert(TypeErased or CT::Byte<TYPE>,
          "THIS isn't a byte container");
       static_assert(OUT::TypeErased or CT::TypeErased<NEXT>
          or CT::Similar<TypeOf<OUT>, NEXT>, "Type mismatch");
 
       LANGULUS_ASSUME(DevAssumes, IsSimilar<Byte>(),
          "THIS isn't a byte container");
-
       Count deserializedCount = 0;
       Offset read = readOffset;
+
       if constexpr (CT::TypeErased<T>) {
          // We have unpredictable data, so the deserializer expects     
          // that next bytes contain instructions of what kind of data   
@@ -627,13 +792,13 @@ namespace Langulus::Anyness
          // And mutate the resulting container apppropriately           
          // (this also acts as a runtime type-check, in case 'to'       
          // already contains stuff)                                     
-         to.template Mutate<OUT, void>(type);
+         to.template Mutate<void>(type);
       }
       else {
          // We have predictable data                                    
          // In this case, 'to' should already be allocated and known    
          if constexpr (not CT::SameAsOneOf<T, RTTI::Base, RTTI::Member>) {
-            LANGULUS_ASSUME(DevAssumes, to.IsSimilar<T>(),
+            LANGULUS_ASSUME(DevAssumes, to.template IsSimilar<T>(),
                "Bad binary deserializing block type: ",
                to.GetType(), " instead of ", MetaDataOf<T>()
             );
@@ -704,7 +869,7 @@ namespace Langulus::Anyness
             const auto pEnd = p + to.GetCount();
             const auto size = to.GetType()->mSize;
             while (p != pEnd) {
-               p.Create(start, temporary);
+               p.Assign(start, temporary);
                start += size;
             }
          }
@@ -763,14 +928,14 @@ namespace Langulus::Anyness
                   read = DeserializeMeta(ttype, read, header, loader);
                   trait.SetTrait(ttype);
 
-                  auto& block = static_cast<Block&>(trait);
+                  auto& block = static_cast<Block<>&>(trait);
                   read = DeserializeBinary<void>(block, header, read, loader);
                });
             }
             else {
                // All traits are the same                               
                to.ForEach([&](Trait& trait) {
-                  auto& block = static_cast<Block&>(trait);
+                  auto& block = static_cast<Block<>&>(trait);
                   read = DeserializeBinary<void>(block, header, read, loader);
                });
             }
@@ -822,7 +987,7 @@ namespace Langulus::Anyness
 
             if constexpr (CT::TypeErased<T>) {
                to.template InsertBlockInner<void, false>(
-                  IndexBack, Abandon(static_cast<Block&>(element)));
+                  IndexBack, Abandon(static_cast<Block<>&>(element)));
             }
          }
 

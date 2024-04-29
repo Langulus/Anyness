@@ -55,7 +55,7 @@ namespace Langulus::Anyness
    ///   @return a trait preconfigured with the provided types                
    template<CT::Trait T, CT::Data D> LANGULUS(INLINED)
    Trait Trait::From() {
-      Trait temp {Block::From<D>()};
+      Trait temp {Block<D> {}};
       temp.SetTrait<T>();
       return Abandon(temp);
    }
@@ -291,7 +291,7 @@ namespace Langulus::Anyness
       using OUT = Deref<decltype(to)>;
       to += GetTrait<THIS>();
       to += OUT::Operator::OpenScope;
-      Block::SerializeToText<Block, void>(to);
+      Base::SerializeToText<void>(to);
       to += OUT::Operator::CloseScope;
       return to.GetCount() - initial;
    }

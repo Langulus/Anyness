@@ -50,7 +50,7 @@ TEMPLATE_TEST_CASE("Dense TPair/Pair", "[pair]",
    }
 
    const auto lp = CreatePair<   T, K, V>("five hundred", 555);
-   const auto sp = CreatePair<stdT, K, V>("five hundred", 555);
+   UNUSED() const auto sp = CreatePair<stdT, K, V>("five hundred", 555);
 
 
    GIVEN("A default-initialized pair instance") {

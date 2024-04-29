@@ -70,7 +70,7 @@ namespace Langulus::Anyness
                for (auto& pair : DesemCast(item))
                   inserted += InsertPairInner<THIS, true>(mask, S::Nest(pair));
             }
-            else if constexpr (CT::MakableFrom<E, Unfold<Deext<T>>>) {
+            else if constexpr (CT::MakableFrom<E, CT::Unfold<Deext<T>>>) {
                // Construct from an array of things, which can't be used
                // to directly construct elements, so nest this insert   
                for (auto& pair : DesemCast(item))
@@ -117,7 +117,7 @@ namespace Langulus::Anyness
                   for (auto& pair : DesemCast(item))
                      inserted += InsertPairInner<THIS, true>(mask, S::Nest(pair));
                }
-               else if constexpr (CT::MakableFrom<E, Unfold<T2>>) {
+               else if constexpr (CT::MakableFrom<E, CT::Unfold<T2>>) {
                   // Map pairs need to be unfolded one by one           
                   for (auto& pair : DesemCast(item))
                      inserted += UnfoldInsert<THIS>(S::Nest(pair));
@@ -334,13 +334,13 @@ namespace Langulus::Anyness
                   );
                }
                else {
-                  Block keyswap {mKeys.GetState(), GetKeyType<THIS>(), 1};
-                  keyswap.AllocateFresh<Many>(keyswap.RequestSize<Many>(1));
+                  Block<> keyswap {mKeys.GetState(), GetKeyType<THIS>(), 1};
+                  keyswap.AllocateFresh(keyswap.RequestSize(1));
                   keyswap.CreateSemantic(Abandon(oldKey));
 
                   auto oldValue = GetValHandle<THIS>(oldIndex);
-                  Block valswap {mValues.GetState(), GetValueType<THIS>(), 1};
-                  valswap.AllocateFresh<Many>(valswap.RequestSize<Many>(1));
+                  Block<> valswap {mValues.GetState(), GetValueType<THIS>(), 1};
+                  valswap.AllocateFresh(valswap.RequestSize(1));
                   valswap.CreateSemantic(Abandon(oldValue));
 
                   // Destroy the pair and info at old index             
@@ -409,15 +409,14 @@ namespace Langulus::Anyness
                   --mKeys.mCount;
 
                   // Reinsert at the new bucket                         
-                  InsertInner<THIS, false>(
-                     newBucket,
+                  InsertInner<THIS, false>(newBucket,
                      Abandon(keyswap),
                      Abandon(old.GetValHandle<THIS>(oldIndex))
                   );
                }
                else {
-                  Block keyswap {mKeys.GetState(), GetKeyType<THIS>(), 1};
-                  keyswap.AllocateFresh<Many>(keyswap.RequestSize<Many>(1));
+                  Block<> keyswap {mKeys.GetState(), GetKeyType<THIS>(), 1};
+                  keyswap.AllocateFresh(keyswap.RequestSize(1));
                   keyswap.CreateSemantic(Abandon(oldKey));
 
                   // Destroy the pair and info at old index             
@@ -425,8 +424,7 @@ namespace Langulus::Anyness
                   *oldInfo = 0;
                   --mKeys.mCount;
 
-                  InsertBlockInner<THIS, false>(
-                     newBucket,
+                  InsertBlockInner<THIS, false>(newBucket,
                      Abandon(keyswap),
                      Abandon(old.GetValHandle<THIS>(oldIndex))
                   );
@@ -466,7 +464,7 @@ namespace Langulus::Anyness
       while (oldInfo != oldInfoEnd) {
          if (*oldInfo) {
             // Rehash and check if hashes match                         
-            const Offset oldIndex = oldInfo - GetInfo();
+            const Offset oldIndex  = oldInfo - GetInfo();
             const Offset oldBucket = (old.GetReserved() + oldIndex) - *oldInfo + 1;
             Offset newBucket = 0;
             if constexpr (CT::Typed<THIS>)
@@ -493,8 +491,8 @@ namespace Langulus::Anyness
                }
                else {
                   auto oldValue = old.GetValHandle<THIS>(oldIndex);
-                  Block valswap {mValues.GetState(), GetValueType<THIS>(), 1};
-                  valswap.AllocateFresh<Many>(valswap.RequestSize<Many>(1));
+                  Block<> valswap {mValues.GetState(), GetValueType<THIS>(), 1};
+                  valswap.AllocateFresh(valswap.RequestSize(1));
                   valswap.CreateSemantic(Abandon(oldValue));
 
                   // Destroy the pair and info at old index             
@@ -601,7 +599,7 @@ namespace Langulus::Anyness
          const auto index = psl - GetInfo();
 
          if constexpr (CHECK_FOR_MATCH) {
-            if (keyswapper == GetKeyRef<THIS>(index)) {
+            if (keyswapper.Compare(GetKeyRef<THIS>(index))) {
                // Neat, the key already exists - just set value and go  
                GetValHandle<THIS>(index).AssignSemantic(Abandon(valswapper));
                return index;
@@ -612,6 +610,7 @@ namespace Langulus::Anyness
             // The pair we're inserting is closer to bucket, so swap    
             GetKeyHandle<THIS>(index).Swap(keyswapper);
             GetValHandle<THIS>(index).Swap(valswapper);
+
             ::std::swap(attempts, *psl);
             if (insertedAt == mKeys.mReserved)
                insertedAt = index;

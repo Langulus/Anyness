@@ -19,13 +19,13 @@ namespace Langulus::Anyness
    ///   @attention assumes block is allocated                                
    ///   @param byteOffset - number of bytes to add                           
    ///   @return pointer to the selected raw data offset                      
-   template<class TYPE> LANGULUS(INLINED) IF_UNSAFE(constexpr)
+   template<class TYPE> LANGULUS(ALWAYS_INLINED) IF_UNSAFE(constexpr)
    Byte* Block<TYPE>::At(const Offset byteOffset) IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, mRaw, "Invalid memory");
       return mRaw + byteOffset;
    }
 
-   template<class TYPE> LANGULUS(INLINED) IF_UNSAFE(constexpr)
+   template<class TYPE> LANGULUS(ALWAYS_INLINED) IF_UNSAFE(constexpr)
    const Byte* Block<TYPE>::At(Offset byte_offset) const IF_UNSAFE(noexcept) {
       return const_cast<Block*>(this)->At(byte_offset);
    }
@@ -37,20 +37,16 @@ namespace Langulus::Anyness
    decltype(auto) Block<TYPE>::operator[] (CT::Index auto idx) {
       const auto index = SimplifyIndex(idx);
       LANGULUS_ASSERT(index < mCount, Access, "Index out of range");
-      if constexpr (TypeErased)
-         return GetElement(index);
-      else
-         return GetRaw()[index];
+      if constexpr (TypeErased)  return GetElement(index);
+      else                       return GetRaw()[index];
    }
 
    template<class TYPE> LANGULUS(INLINED)
    decltype(auto) Block<TYPE>::operator[] (CT::Index auto idx) const {
       const auto index = SimplifyIndex(idx);
       LANGULUS_ASSERT(index < mCount, Access, "Index out of range");
-      if constexpr (TypeErased)
-         return GetElement(index);
-      else
-         return GetRaw()[index];
+      if constexpr (TypeErased)  return GetElement(index);
+      else                       return GetRaw()[index];
    }
    
    /// Get an element pointer or reference with a given index                 
@@ -62,28 +58,66 @@ namespace Langulus::Anyness
    ///   @param baseOffset - byte offset from the element to apply            
    ///   @return either pointer or reference to the element (depends on T)    
    template<class TYPE> template<CT::Data T> LANGULUS(INLINED) IF_UNSAFE(constexpr)
-   decltype(auto) Block<TYPE>::Get(Offset idx, Offset baseOffset) IF_UNSAFE(noexcept) {
+   decltype(auto) Block<TYPE>::Get(Offset idx/*, Offset baseOffset*/) IF_UNSAFE(noexcept) {
       if constexpr (TypeErased) {
          LANGULUS_ASSUME(DevAssumes, mType, "Block is not typed");
          Byte* pointer;
          if (mType->mIsSparse)
-            pointer = GetRaw<Byte*>()[idx] + baseOffset;
+            pointer = GetRaw<Byte*>()[idx] /*+ baseOffset*/;
          else
-            pointer = At(mType->mSize * idx) + baseOffset;
+            pointer = At(mType->mSize * idx) /*+ baseOffset*/;
 
          if constexpr (CT::Dense<T>)
             return *reinterpret_cast<Deref<T>*>(pointer);
          else
-            return reinterpret_cast<Deref<T>>(pointer);
+            return  reinterpret_cast<Deptr<Deref<T>>*>(pointer);
       }
-      else LANGULUS_ERROR(
-         "Don't use for statically typed containers, "
-         "use conventional indexing instead");
+      else {
+         if constexpr (Sparse) {
+            if constexpr (CT::Dense<T>)
+               return static_cast<Deref<T>&>(*(*this)[idx]);
+            else
+               return static_cast<Deref<T> >( (*this)[idx]);
+         }
+         else {
+            if constexpr (CT::Dense<T>)
+               return static_cast<Deref<T>&>( (*this)[idx]);
+            else
+               return static_cast<Deref<T>*>(&(*this)[idx]);
+         }
+      }
    }
 
    template<class TYPE> template<CT::Data T> LANGULUS(INLINED) IF_UNSAFE(constexpr)
-   decltype(auto) Block<TYPE>::Get(Offset idx, Offset baseOffset) const IF_UNSAFE(noexcept) {
-      return const_cast<Block<TYPE>*>(this)->template Get<T>(idx, baseOffset);
+   decltype(auto) Block<TYPE>::Get(Offset idx/*, Offset baseOffset*/) const IF_UNSAFE(noexcept) {
+      //return const_cast<Block<TYPE>*>(this)->template Get<T>(idx/*, baseOffset*/);
+      if constexpr (TypeErased) {
+         LANGULUS_ASSUME(DevAssumes, mType, "Block is not typed");
+         const Byte* pointer;
+         if (mType->mIsSparse)
+            pointer = GetRaw<Byte*>()[idx] /*+ baseOffset*/;
+         else
+            pointer = At(mType->mSize * idx) /*+ baseOffset*/;
+
+         if constexpr (CT::Dense<T>)
+            return *reinterpret_cast<const Deref<T>*>(pointer);
+         else
+            return  reinterpret_cast<const Deptr<Deref<T>>*>(pointer);
+      }
+      else {
+         if constexpr (Sparse) {
+            if constexpr (CT::Dense<T>)
+               return static_cast<const Deref<T>&>(*(*this)[idx]);
+            else
+               return static_cast<const Deref<T> >( (*this)[idx]);
+         }
+         else {
+            if constexpr (CT::Dense<T>)
+               return static_cast<const Deref<T>&>( (*this)[idx]);
+            else
+               return static_cast<const Deref<T>*>(&(*this)[idx]);
+         }
+      }
    }
 
    /// A safe (only in safe-mode!) way to get Nth deep entry                  
@@ -102,7 +136,14 @@ namespace Langulus::Anyness
 
    template<class TYPE> LANGULUS(INLINED) IF_UNSAFE(constexpr)
    decltype(auto) Block<TYPE>::GetDeep(Offset idx) const IF_UNSAFE(noexcept) {
-      return const_cast<Block<TYPE>*>(this)->GetDeep(idx);
+      if constexpr (TypeErased) {
+         LANGULUS_ASSUME(DevAssumes, IsDeep(), "Block is not deep");
+         return Get<Block<>>(idx);
+      }
+      else {
+         static_assert(CT::Deep<Decay<TYPE>>, "Block is not deep");
+         return DenseCast(GetRaw(idx));
+      }
    }
 
    /// Get an element at an index, trying to interpret it as T                
@@ -120,7 +161,11 @@ namespace Langulus::Anyness
          if (mType->IsSimilar<T>()) {
             auto typed = reinterpret_cast<Block<T>*>(this);
             const auto idx = typed->SimplifyIndex(index);
-            return (*typed)[idx];
+            auto& result = (*typed)[idx];
+            if constexpr (CT::Sparse<T>)
+               return static_cast<Deref<decltype(result)>>(result);
+            else
+               return result;
          }
       
          // Optimize if we're interpreting as a container               
@@ -136,9 +181,9 @@ namespace Langulus::Anyness
             }
 
             if constexpr (CT::Sparse<T>)
-               return reinterpret_cast<T>(&result);
+               return reinterpret_cast<T >(&result);
             else
-               return reinterpret_cast<T&>(result);
+               return reinterpret_cast<T&>( result);
          }
 
          // Fallback stage for compatible bases and mappings            
@@ -187,9 +232,9 @@ namespace Langulus::Anyness
             }
 
             if constexpr (CT::Sparse<T>)
-               return reinterpret_cast<T>(&result);
+               return reinterpret_cast<T >(&result);
             else
-               return reinterpret_cast<T&>(result);
+               return reinterpret_cast<T&>( result);
          }
          else if constexpr (CT::Sparse<T>
          and requires (Decay<TYPE>* e) { dynamic_cast<T>(e); }) {
@@ -197,34 +242,34 @@ namespace Langulus::Anyness
             const auto idx = SimplifyIndex(index);
             Decvq<T> ptr;
             if constexpr (Sparse)
-               ptr = dynamic_cast<T>((*this)[idx]);
+               ptr = dynamic_cast<T>( (*this)[idx]);
             else
                ptr = dynamic_cast<T>(&(*this)[idx]);
             LANGULUS_ASSERT(ptr, Access, "Failed dynamic_cast");
             return ptr;
          }
-         else if constexpr (requires (Decay<TYPE>* e) { static_cast<Decay<T>*>(e); }) {
+         else { //if constexpr (requires (TYPE e) { static_cast<Decay<T>*>(e); }) {
             // Do a quick static_cast whenever possible                 
             const auto idx = SimplifyIndex(index);
 
             if constexpr (CT::Sparse<T>) {
                if constexpr (Sparse)
-                  return static_cast<T>((*this)[idx]);
+                  return static_cast<T >( (*this)[idx]);
                else
-                  return static_cast<T>(&(*this)[idx]);
+                  return static_cast<T >(&(*this)[idx]);
             }
             else {
                if constexpr (Sparse)
                   return static_cast<T&>(*(*this)[idx]);
                else
-                  return static_cast<T&>((*this)[idx]);
+                  return static_cast<T&>( (*this)[idx]);
             }
          }
-         else LANGULUS_ERROR("Type mismatch");
+         //else LANGULUS_ERROR("Type mismatch");
       }
    }
 
-   template<class TYPE> template<CT::Data T> LANGULUS(INLINED)
+   template<class TYPE> template<CT::Data T> LANGULUS(ALWAYS_INLINED)
    decltype(auto) Block<TYPE>::As(CT::Index auto index) const {
       return const_cast<Block&>(*this).As<T>(index);
    }
@@ -255,7 +300,7 @@ namespace Langulus::Anyness
    ///   @param count - number of elements                                    
    ///   @return the block representing the region                            
    template<class TYPE> template<CT::Block THIS>
-   LANGULUS(INLINED) IF_UNSAFE(constexpr)
+   LANGULUS(ALWAYS_INLINED) IF_UNSAFE(constexpr)
    THIS Block<TYPE>::Crop(Offset start, Count count) const IF_UNSAFE(noexcept) {
       auto result = const_cast<Block*>(this)->template Crop<THIS>(start, count);
       result.MakeConst();
@@ -267,12 +312,12 @@ namespace Langulus::Anyness
    ///   @tparam COUNT - number of indirections to remove                     
    ///   @param index - index of the element inside the block                 
    ///   @return the dense mutable memory block for the element               
-   template<class TYPE> template<Count COUNT> LANGULUS(INLINED)
+   template<class TYPE> template<Count COUNT> LANGULUS(ALWAYS_INLINED)
    Block<> Block<TYPE>::GetElementDense(Offset index) {
       return GetElement(index).template GetDense<COUNT>();
    }
 
-   template<class TYPE> template<Count COUNT> LANGULUS(INLINED)
+   template<class TYPE> template<Count COUNT> LANGULUS(ALWAYS_INLINED)
    Block<> Block<TYPE>::GetElementDense(Offset index) const {
       auto result = GetElement(index).template GetDense<COUNT>();
       result.MakeConst();
@@ -283,12 +328,12 @@ namespace Langulus::Anyness
    ///   @attention the element might be empty if resolved a sparse nullptr   
    ///   @param index - index of the element inside the block                 
    ///   @return the dense resolved memory block for the element              
-   template<class TYPE> LANGULUS(INLINED)
+   template<class TYPE> LANGULUS(ALWAYS_INLINED)
    Block<> Block<TYPE>::GetElementResolved(Offset index) {
       return GetElement(index).GetResolved();
    }
 
-   template<class TYPE> LANGULUS(INLINED)
+   template<class TYPE> LANGULUS(ALWAYS_INLINED)
    Block<> Block<TYPE>::GetElementResolved(Offset index) const {
       auto result = GetElement(index).GetResolved();
       result.MakeConst();
@@ -308,7 +353,7 @@ namespace Langulus::Anyness
       return result;
    }
 
-   template<class TYPE> LANGULUS(INLINED)
+   template<class TYPE> LANGULUS(ALWAYS_INLINED)
    Block<> Block<TYPE>::GetElement(Offset index) const IF_UNSAFE(noexcept) {
       auto result = const_cast<Block*>(this)->GetElement(index);
       result.MakeConst();
@@ -328,7 +373,7 @@ namespace Langulus::Anyness
       return result;
    }
 
-   template<class TYPE> LANGULUS(INLINED)
+   template<class TYPE> LANGULUS(ALWAYS_INLINED)
    Block<> Block<TYPE>::GetElementInner(Offset index) const IF_UNSAFE(noexcept) {
       return const_cast<Block*>(this)->GetElementInner(index);
    }
@@ -372,7 +417,7 @@ namespace Langulus::Anyness
       return nullptr;
    }
 
-   template<class TYPE> LANGULUS(INLINED)
+   template<class TYPE> LANGULUS(ALWAYS_INLINED)
    const Block<>* Block<TYPE>::GetBlockDeep(Count index) const noexcept {
       return const_cast<Block*>(this)->GetBlockDeep(index);
    }
@@ -399,7 +444,7 @@ namespace Langulus::Anyness
       return {};
    }
 
-   template<class TYPE> LANGULUS(INLINED)
+   template<class TYPE> LANGULUS(ALWAYS_INLINED)
    Block<> Block<TYPE>::GetElementDeep(Count index) const noexcept {
       auto result = const_cast<Block*>(this)->GetElementDeep(index);
       result.MakeConst();
@@ -420,7 +465,7 @@ namespace Langulus::Anyness
          return GetDense<CountMax>();
    }
 
-   template<class TYPE> LANGULUS(INLINED)
+   template<class TYPE> LANGULUS(ALWAYS_INLINED)
    Block<> Block<TYPE>::GetResolved() const {
       auto result = const_cast<Block*>(this)->GetResolved();
       result.MakeConst();
@@ -475,7 +520,7 @@ namespace Langulus::Anyness
       return copy;
    }
 
-   template<class TYPE> template<Count COUNT> LANGULUS(INLINED)
+   template<class TYPE> template<Count COUNT> LANGULUS(ALWAYS_INLINED)
    Block<> Block<TYPE>::GetDense() const {
       auto result = const_cast<Block*>(this)->template GetDense<COUNT>();
       result.MakeConst();
@@ -483,12 +528,12 @@ namespace Langulus::Anyness
    }
 
    /// Dereference first contained pointer once                               
-   template<class TYPE> LANGULUS(INLINED)
+   template<class TYPE> LANGULUS(ALWAYS_INLINED)
    Block<> Block<TYPE>::operator * () {
       return GetDense<1>();
    }
 
-   template<class TYPE> LANGULUS(INLINED)
+   template<class TYPE> LANGULUS(ALWAYS_INLINED)
    Block<> Block<TYPE>::operator * () const {
       return GetDense<1>();
    }
@@ -519,9 +564,10 @@ namespace Langulus::Anyness
    /// Swap contents of this block, with the contents of another, using       
    /// a temporary block                                                      
    ///   @param rhs - the block to swap with                                  
-   template<class TYPE> template<class T> requires CT::Block<Desem<T>>
-   void Block<TYPE>::Swap(T&& rhs) {
+   template<class TYPE> template<class T1> requires CT::Block<Desem<T1>>
+   void Block<TYPE>::Swap(T1&& rhs) {
       using S = SemanticOf<decltype(rhs)>;
+      using ST = Conditional<TypeErased, TypeOf<S>, Block>;
       LANGULUS_ASSUME(DevAssumes, mCount and DesemCast(rhs).mCount == mCount,
          "Invalid count");
 
@@ -529,10 +575,10 @@ namespace Langulus::Anyness
       //TODO add this check to IsSimilar(Block auto) directly?
       LANGULUS_ASSUME(DevAssumes, (
           DesemCast(rhs).IsSimilar(*this)
-      or (DesemCast(rhs).IsSimilar<void*>() and IsSparse())
+      or (DesemCast(rhs).template IsSimilar<void*>() and IsSparse())
       ), "Type mismatch on swap", ": ", DesemCast(rhs).GetType(), " != ", GetType());
 
-      using B = Conditional<TypeErased, TypeOf<S>, Block<TYPE>>;
+      using B = Block<TypeOf<ST>>;
       B temporary {mState, mType};
       temporary.AllocateFresh(temporary.RequestSize(mCount));
       temporary.mCount = mCount;
@@ -546,6 +592,25 @@ namespace Langulus::Anyness
       // Cleanup temporary                                              
       temporary.Destroy();
       Allocator::Deallocate(const_cast<Allocation*>(temporary.mEntry));
+   }
+
+   /// Gather items from source container, and fill this one                  
+   ///   @tparam REVERSE - iterate in reverse?                                
+   ///   @param source - container to gather from, type acts as filter        
+   ///   @return the number of gathered elements                              
+   template<class TYPE> template<bool REVERSE> LANGULUS(INLINED)
+   Count Block<TYPE>::GatherFrom(const CT::Block auto& source) {
+      return source.template GatherInner<REVERSE>(*this);
+   }
+
+   /// Gather items of specific state from source container, and fill this one
+   ///   @tparam REVERSE - iterate in reverse?                                
+   ///   @param source - container to gather from, type acts as filter        
+   ///   @param state - state filter                                          
+   ///   @return the number of gathered elements                              
+   template<class TYPE> template<bool REVERSE> LANGULUS(INLINED)
+   Count Block<TYPE>::GatherFrom(const CT::Block auto& source, DataState state) {
+      return source.template GatherPolarInner<REVERSE>(GetType(), *this, state);
    }
 
    /// Get the index of the biggest/smallest element                          
@@ -622,44 +687,42 @@ namespace Langulus::Anyness
    }
    
    /// Return a handle to an element                                          
+   ///   @attention when this block is type-erased, T1 is assumed to be of    
+   ///      the same sparseness                                               
    ///   @param index - the element index                                     
    ///   @return the handle                                                   
    template<class TYPE> template<class T1> LANGULUS(INLINED)
    auto Block<TYPE>::GetHandle(const Offset index) IF_UNSAFE(noexcept) {
-      if constexpr (Sparse or (not TypeErased and not CT::TypeErased<T1>)) {
+      using T = Conditional<CT::Handle<T1>, TypeOf<T1>, T1>;
+
+      if constexpr (not TypeErased) {
          // Either sparse or not type-erased                            
          if constexpr (Sparse) {
-            static_assert(CT::Sparse<T1>);
-            return Handle<T1> {GetRaw<T1>() + index, GetEntries() + index};
+            static_assert(CT::Sparse<T>, "Sparseness mismatch");
+            return Handle<T> {GetRaw<T>() + index, GetEntries() + index};
          }
          else {
-            static_assert(CT::Dense<T1>);
-            return Handle<T1> {GetRaw<T1>() + index, mEntry};
+            static_assert(CT::Dense<T1>, "Sparseness mismatch");
+            return Handle<T> {GetRaw<T>() + index, mEntry};
          }
       }
       else {
          // Type erased and dense                                       
-         return Handle<TYPE> {GetRaw<Byte>() + index, mEntry};
+         LANGULUS_ASSUME(DevAssumes, IsSparse() == CT::Sparse<T>,
+            "Sparseness mismatch");
+
+         if constexpr (CT::Sparse<T>)
+            return Handle<T> {GetRaw<T>() + index, GetEntries() + index};
+         else if constexpr (not CT::TypeErased<T>)
+            return Handle<T> {GetRaw<T>() + index, mEntry};
+         else
+            return Handle<T> {mRaw + index * GetStride(), mEntry};
       }
    }
 
-   template<class TYPE> template<class T1> LANGULUS(INLINED)
+   template<class TYPE> template<class T1> LANGULUS(ALWAYS_INLINED)
    auto Block<TYPE>::GetHandle(const Offset index) const IF_UNSAFE(noexcept) {
-      if constexpr (Sparse or (not TypeErased and not CT::TypeErased<T1>)) {
-         // Either sparse or not type-erased                            
-         if constexpr (Sparse) {
-            static_assert(CT::Sparse<T1>);
-            return Handle<const T1> {GetRaw<T1>() + index, GetEntries() + index};
-         }
-         else {
-            static_assert(CT::Dense<T1>);
-            return Handle<const T1> {GetRaw<T1>() + index, mEntry};
-         }
-      }
-      else {
-         // Type erased and dense                                       
-         return Handle<const TYPE> {GetRaw<Byte>() + index, mEntry};
-      }
+      return const_cast<Block*>(this)->template GetHandle<T1>(index).MakeConst();
    }
 
    /// Select region from the memory block - unsafe and may return memory     
@@ -739,12 +802,12 @@ namespace Langulus::Anyness
    
    /// Access last element                                                    
    ///   @return a mutable reference to the last element                      
-   template<class TYPE> LANGULUS(INLINED)
+   template<class TYPE> LANGULUS(ALWAYS_INLINED)
    decltype(auto) Block<TYPE>::Last() {
       return (*this)[mCount - 1];
    }
 
-   template<class TYPE> LANGULUS(INLINED)
+   template<class TYPE> LANGULUS(ALWAYS_INLINED)
    decltype(auto) Block<TYPE>::Last() const {
       return (*this)[mCount - 1];
    }
