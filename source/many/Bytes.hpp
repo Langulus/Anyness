@@ -94,6 +94,8 @@ namespace Langulus::Anyness
       requires CT::Inner::Binable<T1, T2, TN...>
       Bytes(T1&&, T2&&, TN&&...);
 
+      ~Bytes();
+
       template<class T> requires (CT::Sparse<Desem<T>> and CT::Byte<Decay<Desem<T>>>)
       static Bytes From(T&&, Count);
 
@@ -155,6 +157,12 @@ namespace Langulus::Anyness
       ///   Deserialization                                                   
       ///                                                                     
       NOD() Count Deserialize(CT::Data auto&) const;
+
+      ///                                                                     
+      ///   Conversion                                                        
+      ///                                                                     
+      operator       Many& ()       noexcept;
+      operator const Many& () const noexcept;
    };
 
 } // namespace Langulus::Anyness

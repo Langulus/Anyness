@@ -84,7 +84,12 @@ namespace Langulus::Anyness
         UnfoldInsert(Forward<T2>(t2));
       ((UnfoldInsert(Forward<TN>(tn))), ...);
    }
-   
+
+   /// Destructor                                                             
+   inline Bytes::~Bytes() {
+      Base::Free();
+   }
+
    /// Semantic construction from count-terminated array                      
    ///   @param text - text memory to wrap                                    
    ///   @param count - number of characters inside text                      
@@ -335,6 +340,22 @@ namespace Langulus::Anyness
    Count Bytes::Deserialize(CT::Data auto& result) const {
       Header header;
       return Base::DeserializeBinary<void>(result, header);
+   }
+   
+   /// Byte container can always be represented by a type-erased one          
+   LANGULUS(ALWAYS_INLINED)
+   Bytes::operator Many& () noexcept {
+      // Just make sure that type member has been populated             
+      (void) Base::GetType();
+      return reinterpret_cast<Many&>(*this);
+   }
+
+   /// Byte container can always be represented by a type-erased one          
+   LANGULUS(ALWAYS_INLINED)
+   Bytes::operator const Many& () const noexcept {
+      // Just make sure that type member has been populated             
+      (void) Base::GetType();
+      return reinterpret_cast<const Many&>(*this);
    }
 
 } // namespace Langulus::Anyness

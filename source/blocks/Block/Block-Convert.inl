@@ -81,16 +81,16 @@ namespace Langulus::Anyness
                static_assert(CT::Dense<Deptr<TO>>);
 
                // We're converting to sparse container                  
-               Block<> coalesced {mType->mOrigin};
+               Block<Decay<TO>> coalesced;
                coalesced.AllocateFresh(coalesced.RequestSize(mCount));
                coalesced.mCount = mCount;
-               auto temp = coalesced.GetElementInner();
+               auto temp = coalesced.GetRaw();
                auto to = out.GetHandle(0);
 
                for (Count i = 0; i < mCount; ++i) {
                   auto from = GetElementDense<CountMax>(i);
-                  converter(from.mRaw, temp.mRaw);
-                  to.Create(temp.mRaw, coalesced.mEntry);
+                  converter(from.mRaw, temp);
+                  to.Assign(temp, coalesced.mEntry);
                   ++to;
                   ++temp;
                }
@@ -539,8 +539,9 @@ namespace Langulus::Anyness
    ///   @param to - [out] the serialized data goes here                      
    ///   @return the number of written bytes                                  
    template<class TYPE> template<class NEXT>
-   Count Block<TYPE>::SerializeToBinary(CT::Serial auto& to) const {
-      using OUT = Deref<decltype(to)>;
+   Count Block<TYPE>::SerializeToBinary(CT::Serial auto& to1) const {
+      auto& to = to1; //Workaround: needed due to really weird clang error  
+      //using OUT = Deref<decltype(to)>;
       const auto initial = to.GetCount();
 
       if constexpr (CT::TypeErased<NEXT>) {
@@ -755,8 +756,10 @@ namespace Langulus::Anyness
    ///   @return the number of read/peek bytes from byte container            
    template<class TYPE> template<class NEXT>
    Offset Block<TYPE>::DeserializeBinary(
-      CT::Block auto& to, const Header& header, Offset readOffset, Loader loader
+      CT::Block auto& to, const Header& header1, Offset readOffset, Loader loader1
    ) const {
+      auto& header = header1; //Workaround: needed due to really weird clang error  
+      auto& loader = loader1; //Workaround: needed due to really weird clang error  
       using OUT = Deref<decltype(to)>;
       using T   = Conditional<OUT::TypeErased, NEXT, TypeOf<OUT>>;
 
@@ -764,9 +767,9 @@ namespace Langulus::Anyness
          "THIS isn't a byte container");
       static_assert(OUT::TypeErased or CT::TypeErased<NEXT>
          or CT::Similar<TypeOf<OUT>, NEXT>, "Type mismatch");
-
       LANGULUS_ASSUME(DevAssumes, IsSimilar<Byte>(),
          "THIS isn't a byte container");
+
       Count deserializedCount = 0;
       Offset read = readOffset;
 

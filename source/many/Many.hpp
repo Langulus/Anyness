@@ -95,12 +95,6 @@ namespace Langulus::Anyness
       ///                                                                     
       NOD() Many  operator +  (CT::UnfoldInsertable auto&&) const;
             Many& operator += (CT::UnfoldInsertable auto&&);
-
-      ///                                                                     
-      ///   Conversion                                                        
-      ///                                                                     
-   //protected:
-   //   using Base::SerializeToBinary;
    };
 
 } // namespace Langulus::Anyness

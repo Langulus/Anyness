@@ -7,4 +7,5 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #pragma once
+#include "Many.hpp"
 #include "../../source/sets/Set.inl"

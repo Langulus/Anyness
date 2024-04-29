@@ -342,10 +342,20 @@ namespace Langulus::Anyness
       Text Extend(Count);
       NOD() Text Terminate() const;
 
+      template<class T> requires CT::Stringifiable<Desem<T>>
+      Text& operator << (T&&);
+      template<class T> requires CT::Stringifiable<Desem<T>>
+      Text& operator >> (T&&);
+
+      template<class T> requires CT::Stringifiable<Desem<T>>
+      Text& operator <<= (T&&);
+      template<class T> requires CT::Stringifiable<Desem<T>>
+      Text& operator >>= (T&&);
+
       ///                                                                     
       ///   Removal                                                           
       ///                                                                     
-      NOD() Text Strip(const CT::Text auto&) const;
+      NOD() Text Strip  (const CT::Text auto&) const;
       NOD() Text Replace(const CT::Text auto& what, const CT::Text auto& with) const;
 
       ///                                                                     
@@ -356,6 +366,12 @@ namespace Langulus::Anyness
 
       template<class T> requires CT::Stringifiable<Desem<T>>
       Text& operator += (T&&);
+
+      ///                                                                     
+      ///   Conversion                                                        
+      ///                                                                     
+      operator       Many& ()       noexcept;
+      operator const Many& () const noexcept;
 
    protected:
       template<CT::TextBased THIS, class T>

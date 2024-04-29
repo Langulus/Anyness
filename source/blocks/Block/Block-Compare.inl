@@ -485,8 +485,8 @@ namespace Langulus::Anyness
    
    /// Find a matching sequence of one or more matching elements              
    ///   @tparam REVERSE - true to perform search in reverse                  
-   ///   @param item - block with a single item to search for                 
-   ///   @param cookie - continue search from a given offset                  
+   ///   @param item - a block containing a sequence of items to search for   
+   ///   @param index - continue search from a given offset                   
    ///   @return the index of the found item, or IndexNone if not found       
    template<class TYPE> template<bool REVERSE>
    Index Block<TYPE>::FindBlock(const CT::Block auto& item, CT::Index auto index) const noexcept {
@@ -494,46 +494,61 @@ namespace Langulus::Anyness
       if (cookie >= mCount or item.mCount > mCount - cookie)
          return IndexNone;
 
-      using B = Deref<decltype(item)>;
-      if constexpr (not TypeErased or not B::TypeErased) {
-         using TL = Conditional<   TypeErased, TypeOf<B>, TYPE>;
-         using TR = Conditional<B::TypeErased, TYPE, TypeOf<B>>;
+      using RHS = Deref<decltype(item)>;
+      using LB = Block<Conditional<     TypeErased, TypeOf<RHS>, TYPE>>;
+      using RB = Block<Conditional<RHS::TypeErased, TYPE, TypeOf<RHS>>>;
 
-         if constexpr (not TypeErased and not B::TypeErased) {
+      auto& lb = reinterpret_cast<const LB&>(*this);
+      auto& rb = reinterpret_cast<const RB&>( item);
+
+      if constexpr (not TypeErased or not RHS::TypeErased) {
+         // One of the participating blocks is statically typed         
+         // Let's check type compatibility first                        
+         if constexpr (not TypeErased and not RHS::TypeErased) {
             // Leverage the fact, that both participants are typed      
-            if constexpr (not CT::Comparable<TL, TR>)
+            if constexpr (not CT::Comparable<TypeOf<LB>, TypeOf<RB>>)
                return IndexNone;
          }
          else {
-            // One or none of the participants is typed, make sure types
-            // match at runtime                                         
+            // One or none of the participants is typed                 
             if (not IsSimilar(item))
                return IndexNone;
          }
 
-         // If reached, types are comparable                            
-         auto lhs = REVERSE ? GetRawEnd<TMany<TL>>() - cookie - item.GetCount()
-                            : GetRaw<TMany<TL>>() + cookie;
-         auto rhs = item.template GetRawAs<TR>();
-         const auto lhsEnd = REVERSE ? GetRaw<TMany<TL>>() - 1
-                                     : GetRawEnd<TMany<TL>>() - item.GetCount() + 1;
-         const auto rhsEnd = item.template GetRawEnd<TMany<TR>>();
-         UNUSED() const auto bytesize = item.Block::template GetBytesize<TMany<TL>>();
+         // If this is reached reached, then types are comparable       
+         auto rhs = rb.GetRaw();
+         auto lhs = REVERSE
+            ? lb.GetRawEnd() - cookie - item.GetCount()
+            : lb.GetRaw() + cookie;
+
+         const auto rhsEnd = rb.GetRawEnd();
+         const auto lhsEnd = REVERSE
+            ? lb.GetRaw() - 1
+            : lb.GetRawEnd() - item.GetCount() + 1;
+
+         // This byte size is used ONLY IF both types are binary        
+         // compatible. It is simply precomputed here, so that it isn't 
+         // recomputed in the loop.                                     
+         UNUSED() const auto bytesize = lb.GetBytesize();
+
          while (lhs != lhsEnd) {
             if (*lhs == *rhs) {
-               cookie = REVERSE ? GetRawEnd<TMany<TL>>() - lhs - 1
-                                : lhs - GetRaw<TMany<TL>>();
+               cookie = REVERSE
+                  ? lb.GetRawEnd() - lhs - 1
+                  : lhs - lb.GetRaw();
+
                ++lhs;
                ++rhs;
 
-               if constexpr (CT::BinaryCompatible<TL, TR>
-                        and  CT::POD<TL, TR>) {
+               if constexpr (CT::BinaryCompatible<TypeOf<LB>, TypeOf<RB>>
+               and CT::POD<TypeOf<LB>, TypeOf<RB>>) {
                   // We can use batch-compare                           
                   if (0 == memcmp(rhs, lhs, bytesize))
                      return cookie;
                }
                else {
-                  // Types are not batch-comparable                     
+                  // Types are not batch-comparable, so compare them    
+                  // one by one                                         
                   while (rhs != rhsEnd and *lhs == *rhs) {
                      ++lhs;
                      ++rhs;
@@ -543,21 +558,22 @@ namespace Langulus::Anyness
                      return cookie;
                }
 
-               lhs = REVERSE ? GetRawEnd<TMany<TL>>() - cookie - 1
-                             : GetRaw<TMany<TL>>() + cookie;
-               rhs = item.template GetRaw<TMany<TR>>();
+               lhs = REVERSE
+                  ? lb.GetRawEnd() - cookie - 1
+                  : lb.GetRaw() + cookie;
+               rhs = rb.GetRaw();
             }
 
-            if constexpr (REVERSE)
-               --lhs;
-            else 
-               ++lhs;
+            if constexpr (REVERSE) --lhs;
+            else                   ++lhs;
          }
 
          return IndexNone;
       }
       else {
-         // One of the participators is type-erased                     
+         // All of the participators are type-erased                    
+         // We do a slow and tedious RTTI-based compare                 
+
          // First check if element is contained inside this block's     
          // memory, because if so, we can easily find it, without       
          // calling a single compare function                           
@@ -582,10 +598,11 @@ namespace Langulus::Anyness
             }
          }*/
 
-         // Slow and tedious RTTI-based compare                         
          Offset i = REVERSE ? mCount - 1 - cookie : cookie;
-         const auto iend = REVERSE ? static_cast<Offset>(-1)
-                                   : mCount - item.GetCount() + 1;
+         const auto iend = REVERSE
+            ? static_cast<Offset>(-1)
+            : mCount - item.GetCount() + 1;
+
          while (i != iend) {
             if (CropInner(i, item.GetCount()) == item)
                return i;

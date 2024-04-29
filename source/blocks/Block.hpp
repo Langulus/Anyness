@@ -969,6 +969,23 @@ namespace Langulus::Anyness
    template<class BLOCK = void>
    NOD() auto MakeBlock(auto&&, Count = 1);
 
+   /// Cast between block types - does only reinterpret_cast, with some       
+   /// additional safety checks. Preserves qualifiers.                        
+   ///   @tparam AS - what block are we casting to?                           
+   ///   @param from - block we're casting from                               
+   ///   @return the reinterpreted block                                      
+   template<CT::Block AS>
+   NOD() decltype(auto) BlockCast(CT::Block auto&& from) {
+      //TODO move all kinds of checks here instead?
+      //TODO utilize cast operators to type-erased references here if available - they might set type
+      using DAS  = Decay<AS>;
+      using FROM = Deref<decltype(from)>;
+      if constexpr (CT::Mutable<FROM>)
+         return reinterpret_cast<DAS&>(from);
+      else
+         return reinterpret_cast<const DAS&>(from);
+   }
+
    namespace Inner
    {
 

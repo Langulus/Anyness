@@ -1083,7 +1083,7 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
             REQUIRE(pack.template As<DenseE>() == denseValue);
             REQUIRE(*pack.template As<DenseE*>() == denseValue);
             REQUIRE(pack.GetUses() == 1);
-            REQUIRE(*pack.GetRaw<const DenseE*>() == sparseValue);
+            REQUIRE(*pack.template GetRaw<const DenseE*>() == sparseValue);
             IF_LANGULUS_MANAGED_MEMORY(REQUIRE(*pack.GetEntries() == nullptr));
 
             if constexpr (not CT::Typed<T>) {
@@ -1127,7 +1127,7 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
             REQUIRE(pack.template As<DenseE>() == denseValue);
             REQUIRE(*pack.template As<DenseE*>() == denseValue);
             REQUIRE(pack.GetUses() == 1);
-            REQUIRE(*pack.GetRaw<const DenseE*>() == sparseValue);
+            REQUIRE(*pack.template GetRaw<const DenseE*>() == sparseValue);
             IF_LANGULUS_MANAGED_MEMORY(REQUIRE(*pack.GetEntries() == nullptr));
 
             if constexpr (not CT::Typed<T>) {
@@ -1170,7 +1170,7 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
             REQUIRE(pack.template As<DenseE>() == denseValue);
             REQUIRE(*pack.template As<DenseE*>() == denseValue);
             REQUIRE(pack.GetUses() == 1);
-            REQUIRE(*pack.GetRaw<const DenseE*>() == sparseValue);
+            REQUIRE(*pack.template GetRaw<const DenseE*>() == sparseValue);
             IF_LANGULUS_MANAGED_MEMORY(REQUIRE(*pack.GetEntries() == nullptr));
 
             if constexpr (not CT::Typed<T>) {
@@ -1214,7 +1214,7 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
             REQUIRE(pack.template As<DenseE>() == denseValue);
             REQUIRE(*pack.template As<DenseE*>() == denseValue);
             REQUIRE(pack.GetUses() == 1);
-            REQUIRE(*pack.GetRaw<const DenseE*>() == sparseValue);
+            REQUIRE(*pack.template GetRaw<const DenseE*>() == sparseValue);
             IF_LANGULUS_MANAGED_MEMORY(REQUIRE(*pack.GetEntries() == nullptr));
 
             if constexpr (not CT::Typed<T>) {
@@ -1332,7 +1332,7 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
          REQUIRE(pack.template As<DenseE>() == denseValue);
          REQUIRE(*pack.template As<DenseE*>() == denseValue);
          REQUIRE(pack.GetUses() == 1);
-         REQUIRE(*pack.GetRaw<const DenseE*>() == sparseValue);
+         REQUIRE(*pack.template GetRaw<const DenseE*>() == sparseValue);
          IF_LANGULUS_MANAGED_MEMORY(REQUIRE(*pack.GetEntries() == nullptr));
 
          if constexpr (not CT::Typed<T>) {
@@ -1379,7 +1379,7 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
          REQUIRE(pack.template As<DenseE>() == denseValue);
          REQUIRE(*pack.template As<DenseE*>() == denseValue);
          REQUIRE(pack.GetUses() == 1);
-         REQUIRE(*pack.GetRaw<const DenseE*>() == sparseValue);
+         REQUIRE(*pack.template GetRaw<const DenseE*>() == sparseValue);
          IF_LANGULUS_MANAGED_MEMORY(REQUIRE(*pack.GetEntries() == nullptr));
 
          if constexpr (not CT::Typed<T>) {
@@ -1429,7 +1429,7 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
          REQUIRE(pack.template As<DenseE>() == denseValue);
          REQUIRE(*pack.template As<DenseE*>() == denseValue);
          REQUIRE(pack.GetUses() == 1);
-         REQUIRE(*pack.GetRaw<const DenseE*>() == sparseValue);
+         REQUIRE(*pack.template GetRaw<const DenseE*>() == sparseValue);
          IF_LANGULUS_MANAGED_MEMORY(REQUIRE(*pack.GetEntries() == nullptr));
 
          if constexpr (not CT::Typed<T>) {
