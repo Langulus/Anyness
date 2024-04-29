@@ -12,6 +12,7 @@
 
 
 SCENARIO("Byte manipulation", "[bytes]") {
+   IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
    static Allocator::State memoryState;
 
    GIVEN("An empty byte container") {
@@ -38,8 +39,6 @@ SCENARIO("Byte manipulation", "[bytes]") {
    }
 
    GIVEN("A filled byte container") {
-      IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
-
       const int randomStuff[] = { 1, 2, 3, 4, 5 };
       Bytes data {randomStuff};
       auto memory = data.GetRaw();
@@ -49,6 +48,10 @@ SCENARIO("Byte manipulation", "[bytes]") {
       REQUIRE(data.template IsExact<Byte>());
       REQUIRE(data.GetRaw() != nullptr);
       REQUIRE(data.HasAuthority());
+
+      WHEN("Nothing happens") {
+         REQUIRE(true);
+      }
 
       WHEN("Add more bytes") {
          const int moreRandomStuff[] = { 1, 2, 3 };

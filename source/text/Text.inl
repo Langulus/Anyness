@@ -636,11 +636,47 @@ namespace Langulus::Anyness
    bool Text::operator == (::std::nullptr_t) const noexcept {
       return IsEmpty();
    }
+   
+   /// Insert an element at the back of the container                         
+   ///   @param rhs - the element to insert                                   
+   ///   @return a reference to this container for chaining                   
+   template<class T> requires CT::Stringifiable<Desem<T>> LANGULUS(ALWAYS_INLINED)
+   Text& Text::operator << (T&& rhs) {
+      Base::InsertBlockInner<void, true>(IndexBack, Text {Forward<T>(rhs)});
+      return *this;
+   }
+
+   /// Insert an element at the front of the container                        
+   ///   @param rhs - the element to insert                                   
+   ///   @return a reference to this container for chaining                   
+   template<class T> requires CT::Stringifiable<Desem<T>> LANGULUS(ALWAYS_INLINED)
+   Text& Text::operator >> (T&& rhs) {
+      Base::InsertBlockInner<void, true>(IndexFront, Text {Forward<T>(rhs)});
+      return *this;
+   }
+
+   /// Merge an element at the back of the container                          
+   ///   @param rhs - the element to insert                                   
+   ///   @return a reference to this container for chaining                   
+   template<class T> requires CT::Stringifiable<Desem<T>> LANGULUS(ALWAYS_INLINED)
+   Text& Text::operator <<= (T&& rhs) {
+      Base::MergeBlock<void>(IndexBack, Text {Forward<T>(rhs)});
+      return *this;
+   }
+
+   /// Merge an element at the front of the container                         
+   ///   @param rhs - the element to insert                                   
+   ///   @return a reference to this container for chaining                   
+   template<class T> requires CT::Stringifiable<Desem<T>> LANGULUS(ALWAYS_INLINED)
+   Text& Text::operator >>= (T&& rhs) {
+      Base::MergeBlock<void>(IndexFront, Text {Forward<T>(rhs)});
+      return *this;
+   }
 
    /// Concatenate two text containers                                        
    ///   @param rhs - right hand side                                         
    ///   @return the concatenated text container                              
-   template<class T> requires CT::Stringifiable<Desem<T>> LANGULUS(INLINED)
+   template<class T> requires CT::Stringifiable<Desem<T>> LANGULUS(ALWAYS_INLINED)
    Text Text::operator + (T&& rhs) const {
       return ConcatInner<Text>(Forward<T>(rhs));
    }
@@ -648,7 +684,7 @@ namespace Langulus::Anyness
    /// Concatenate (destructively) text containers                            
    ///   @param rhs - right hand side                                         
    ///   @return a reference to this container                                
-   template<class T> requires CT::Stringifiable<Desem<T>> LANGULUS(INLINED)
+   template<class T> requires CT::Stringifiable<Desem<T>> LANGULUS(ALWAYS_INLINED)
    Text& Text::operator += (T&& rhs) {
       return ConcatRelativeInner<Text>(Forward<T>(rhs));
    }
@@ -717,6 +753,22 @@ namespace Langulus::Anyness
       }
 
       return static_cast<THIS&>(*this);
+   }
+
+   /// Byte container can always be represented by a type-erased one          
+   LANGULUS(ALWAYS_INLINED)
+   Text::operator Many& () noexcept {
+      // Just make sure that type member has been populated             
+      (void) Base::GetType();
+      return reinterpret_cast<Many&>(*this);
+   }
+
+   /// Byte container can always be represented by a type-erased one          
+   LANGULUS(ALWAYS_INLINED)
+   Text::operator const Many& () const noexcept {
+      // Just make sure that type member has been populated             
+      (void) Base::GetType();
+      return reinterpret_cast<const Many&>(*this);
    }
 
    /// Generate hexadecimal string from a given value                         

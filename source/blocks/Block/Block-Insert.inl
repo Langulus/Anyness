@@ -88,7 +88,7 @@ namespace Langulus::Anyness
    template<class FORCE, bool MOVE_ASIDE, class T1> requires CT::Block<Desem<T1>>
    void Block<TYPE>::InsertBlockInner(CT::Index auto index, T1&& data) {
       // If both sids are void, then we have a type-erased insertion       
-      using S = SemanticOf<decltype(data)>;
+      //using S = SemanticOf<decltype(data)>;
       using T = Conditional<TypeErased, TypeOf<Desem<T1>>, TYPE>;
 
       if constexpr (CT::CanBeDeepened<FORCE, Block> and MOVE_ASIDE) {
@@ -354,23 +354,24 @@ namespace Langulus::Anyness
    requires CT::Block<Desem<T>> LANGULUS(INLINED)
    Count Block<TYPE>::InsertBlock(CT::Index auto index, T&& other) {
       using S = SemanticOf<decltype(other)>;
-      using ST = TypeOf<S>;
+      //using ST = TypeOf<S>;
       auto& rhs = DesemCast(other);
       const auto count = rhs.GetCount();
       if (not count)
          return 0;
 
       // Insert all elements                                            
-      if constexpr (CT::Typed<ST>) {
+      /*if constexpr (CT::Typed<ST>) {
          InsertBlockInner<FORCE, MOVE_ASIDE>(
             index, S::Nest(rhs).template Forward<Block<TypeOf<ST>>>());
       }
       else {
          InsertBlockInner<FORCE, MOVE_ASIDE>(
             index, S::Nest(rhs).template Forward<Block<>>());
-      }
+      }*/
+      InsertBlockInner<FORCE, MOVE_ASIDE>(index, Forward<T>(other));
 
-      if constexpr (S::Move and S::Keep and ST::Ownership) {
+      if constexpr (S::Move and S::Keep and TypeOf<S>::Ownership) {
          // All elements were moved, only empty husks remain            
          // so destroy them, and discard ownership of 'other'           
          rhs.Free();
@@ -523,12 +524,14 @@ namespace Langulus::Anyness
 
          const bool stateCompliant = CanFitState(DesemCast(value));
          if (IsEmpty() and not DesemCast(value).IsStatic() and stateCompliant) {
+            // We can directly absorb                                   
             Free();
             BlockTransfer(S::Nest(value));
             return 1;
          }
 
          if constexpr (ALLOW_CONCAT) {
+            // Let's try concatenating                                  
             const auto done = SmartConcat<FORCE>(
                index, stateCompliant, S::Nest(value), state);
 
@@ -537,6 +540,7 @@ namespace Langulus::Anyness
          }
       }
 
+      // If reached, then none of the above succeeded - just push       
       return SmartPushInner<FORCE>(index, S::Nest(value), state);
    }
 
@@ -986,7 +990,7 @@ namespace Langulus::Anyness
    template<bool REVERSE, class T1> requires CT::Block<Desem<T1>>
    void Block<TYPE>::CreateSemantic(T1&& source) {
       using S = SemanticOf<decltype(source)>;
-      using OTHER = TypeOf<S>;
+      //using OTHER = TypeOf<S>;
       const auto count = DesemCast(source).mCount;
       LANGULUS_ASSUME(DevAssumes, count and count <= mReserved,
          "Count outside limits", '(', count, " > ", mReserved);
@@ -998,10 +1002,10 @@ namespace Langulus::Anyness
          or (DesemCast(source).IsSparse() and IsSimilar<void*>())),
          "Type mismatch on creation", ": ", DesemCast(source).GetType(), " != ", GetType());
 
-      using B = Conditional<TypeErased, OTHER, Block>;
-      using T = Conditional<CT::Typed<B>, TypeOf<B>, void>;
-      const auto mthis = reinterpret_cast<B*>(const_cast<Block*>(this));
-      const auto other = reinterpret_cast<B*>(const_cast<OTHER*>(&DesemCast(source)));
+      using B = Conditional<TypeErased, TypeOf<S>, Block>;
+      using T = TypeOf<B>;
+      auto& mthis = BlockCast<B>(*this);
+      auto& other = BlockCast<B>(DesemCast(source));
 
       if constexpr (not CT::TypeErased<T>) {
          // Leverage the fact, that containers are statically typed     
@@ -1028,9 +1032,9 @@ namespace Langulus::Anyness
                clonedCoalescedSrc.mCount = count;
 
                // Clone each inner element                              
-               auto handle = GetHandle<T>(0);
+               auto handle = mthis.GetHandle();
                auto dst = clonedCoalescedSrc.GetRaw();
-               auto src = DesemCast(source).GetRaw();
+               auto src = other.GetRaw();
                const auto srcEnd = src + count;
                while (src != srcEnd) {
                   SemanticNew(dst, Clone(**src));
@@ -1055,8 +1059,8 @@ namespace Langulus::Anyness
             // Both RHS and LHS are dense and POD                       
             // This is a constructor, so we're allowed to cast away     
             // any qualifiers on the left side                          
-            auto lhs = DecvqCast(mthis->GetRaw());
-            auto rhs = other->GetRaw();
+            auto lhs = mthis.GetRaw();
+            auto rhs = other.GetRaw();
             if constexpr (REVERSE)
                MoveMemory(lhs, rhs, count);
             else
@@ -1067,8 +1071,8 @@ namespace Langulus::Anyness
             // Call constructor for each element (optionally in reverse)
             // This is a constructor, so we're allowed to cast away     
             // any qualifiers on the left side                          
-            auto lhs = DecvqCast(mthis->GetRaw());
-            auto rhs = other->GetRaw();
+            auto lhs = mthis.GetRaw();
+            auto rhs = other.GetRaw();
             if constexpr (REVERSE) {
                lhs += count - 1;
                rhs += count - 1;
@@ -1172,9 +1176,9 @@ namespace Langulus::Anyness
                clonedCoalescedSrc.mCount = count;
 
                // Clone each inner element by nesting this call         
-               auto lhs = mthis->template GetHandle<void*>();
+               auto lhs = mthis.template GetHandle<void*>();
                auto dst = clonedCoalescedSrc.GetElementInner();
-               auto src = DesemCast(source).GetElementInner();
+               auto src = other.GetElementInner();
                const auto lhsEnd = lhs + count;
                while (lhs.mValue != lhsEnd.mValue) {
                   dst.CreateSemantic(Clone(src.template GetDense<1>()));
@@ -1199,16 +1203,16 @@ namespace Langulus::Anyness
             // by memcpy all at once (batch optimization)               
             const auto bytesize = mType->mSize * count;
             if constexpr (REVERSE)
-               MoveMemory(mRaw, DesemCast(source).mRaw, bytesize);
+               MoveMemory(mRaw, other.mRaw, bytesize);
             else
-               CopyMemory(mRaw, DesemCast(source).mRaw, bytesize);
+               CopyMemory(mRaw, other.mRaw, bytesize);
          }
          else {
             // Both RHS and LHS are dense and non-POD                   
             // We invoke reflected constructors for each element        
             const auto stride = mType->mSize;
             auto lhs = mRaw + (REVERSE ? (count - 1) * stride : 0);
-            auto rhs = DesemCast(source).mRaw + (REVERSE ? (count - 1) * stride : 0);
+            auto rhs = other.mRaw + (REVERSE ? (count - 1) * stride : 0);
             const auto rhsEnd = REVERSE ? rhs - count * stride : rhs + count * stride;
 
             while (rhs != rhsEnd) {
@@ -1648,7 +1652,7 @@ namespace Langulus::Anyness
             "Type mismatch");
 
          // Wrap argument into a block, and assign it to each element   
-         auto rhs = Block<>::From(DesemCast(what));
+         auto rhs = MakeBlock(DesemCast(what));
          auto lhs = GetElement();
          const auto size = GetBytesize();
          const auto lhsEnd = mRaw + size;

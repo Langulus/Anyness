@@ -500,3 +500,16 @@ SCENARIO("Deep sequential containers", "[any]") {
 
    REQUIRE(memoryState.Assert());
 }
+
+SCENARIO("Test BlockCast", "[block]") {
+   Block<> from {};
+   const Block<> fromc {};
+
+   static_assert(CT::Exact<decltype(BlockCast<Text>(from)), Text&>);
+   static_assert(CT::Exact<decltype(BlockCast<Text>(fromc)), const Text&>);
+   static_assert(CT::Exact<decltype(BlockCast<Text>(Block<> {})), Text&>);
+
+   static_assert(CT::Exact<decltype(BlockCast<const Text>(from)), Text&>);
+   static_assert(CT::Exact<decltype(BlockCast<const Text>(fromc)), const Text&>);
+   static_assert(CT::Exact<decltype(BlockCast<const Text>(Block<> {})), Text&>);
+}

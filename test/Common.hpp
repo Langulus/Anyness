@@ -10,7 +10,7 @@
 /// INTENTIONALLY NOT GUARDED                                                 
 /// Include this file once in each cpp file, after all other headers          
 #ifdef TWOBLUECUBES_SINGLE_INCLUDE_CATCH_HPP_INCLUDED
-   #error Catch has been included prior to this header
+   #error Catch has already been included prior to this header
 #endif
 
 #include <catch2/catch.hpp>

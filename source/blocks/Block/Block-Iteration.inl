@@ -539,13 +539,26 @@ namespace Langulus::Anyness
    Block<TYPE>& Block<TYPE>::operator ++ () IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, mRaw,
          "Block is not allocated");
-      LANGULUS_ASSUME(DevAssumes, IsTyped(),
-         "Block is not typed");
-      LANGULUS_ASSUME(DevAssumes, mRaw + mType->mSize <= mEntry->GetBlockEnd(),
-         "Block limit breached");
 
-      mRaw += mType->mSize;
+      if constexpr (TypeErased) {
+         LANGULUS_ASSUME(DevAssumes, IsTyped(),
+            "Block is not typed");
+         LANGULUS_ASSUME(DevAssumes, mRaw + mType->mSize <= mEntry->GetBlockEnd(),
+            "Block limit breached");
+         mRaw += mType->mSize;
+      }
+      else {
+         LANGULUS_ASSUME(DevAssumes, mRaw + sizeof(TYPE) <= mEntry->GetBlockEnd(),
+            "Block limit breached");
+         mRaw += sizeof(TYPE);
+      }
+
       return *this;
+   }
+
+   template<class TYPE> LANGULUS(ALWAYS_INLINED)
+   Block<TYPE> const& Block<TYPE>::operator ++ () const IF_UNSAFE(noexcept) {
+      return const_cast<Block&>(*this).operator++();
    }
 
    /// Prefix decrement - get previous element by decrementing data pointer   
@@ -553,13 +566,26 @@ namespace Langulus::Anyness
    Block<TYPE>& Block<TYPE>::operator -- () IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, mRaw,
          "Block is not allocated");
-      LANGULUS_ASSUME(DevAssumes, IsTyped(),
-         "Block is not typed");
-      LANGULUS_ASSUME(DevAssumes, mRaw - mType->mSize >= mEntry->GetBlockStart(),
-         "Block limit breached");
 
-      mRaw -= mType->mSize;
+      if constexpr (TypeErased) {
+         LANGULUS_ASSUME(DevAssumes, IsTyped(),
+            "Block is not typed");
+         LANGULUS_ASSUME(DevAssumes, mRaw - mType->mSize >= mEntry->GetBlockStart(),
+            "Block limit breached");
+         mRaw -= mType->mSize;
+      }
+      else {
+         LANGULUS_ASSUME(DevAssumes, mRaw - sizeof(TYPE) >= mEntry->GetBlockStart(),
+            "Block limit breached");
+         mRaw -= sizeof(TYPE);
+      }
+
       return *this;
+   }
+
+   template<class TYPE> LANGULUS(ALWAYS_INLINED)
+   Block<TYPE> const& Block<TYPE>::operator -- () const IF_UNSAFE(noexcept) {
+      return const_cast<Block&>(*this).operator--();
    }
 
    /// Suffic increment - get next element by incrementing data pointer       
@@ -600,13 +626,26 @@ namespace Langulus::Anyness
    Block<TYPE>& Block<TYPE>::operator += (Offset offset) IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, mRaw,
          "Block is not allocated");
-      LANGULUS_ASSUME(DevAssumes, IsTyped(),
-         "Block is not typed");
-      LANGULUS_ASSUME(DevAssumes, mRaw + offset * mType->mSize <= mEntry->GetBlockEnd(),
-         "Block limit breached");
 
-      mRaw += offset * mType->mSize;
+      if constexpr (TypeErased) {
+         LANGULUS_ASSUME(DevAssumes, IsTyped(),
+            "Block is not typed");
+         LANGULUS_ASSUME(DevAssumes, mRaw + offset * mType->mSize <= mEntry->GetBlockEnd(),
+            "Block limit breached");
+         mRaw += offset * mType->mSize;
+      }
+      else {
+         LANGULUS_ASSUME(DevAssumes, mRaw + offset * sizeof(TYPE) <= mEntry->GetBlockEnd(),
+            "Block limit breached");
+         mRaw += offset * sizeof(TYPE);
+      }
+
       return *this;
+   }
+
+   template<class TYPE> LANGULUS(ALWAYS_INLINED)
+   Block<TYPE> const& Block<TYPE>::operator += (Offset offset) const IF_UNSAFE(noexcept) {
+      return const_cast<Block&>(*this).operator+=(offset);
    }
 
    /// Prefix decrement operator                                              
@@ -615,16 +654,27 @@ namespace Langulus::Anyness
    Block<TYPE>& Block<TYPE>::operator -= (Offset offset) IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, mRaw,
          "Block is not allocated");
-      LANGULUS_ASSUME(DevAssumes, IsTyped(),
-         "Block is not typed");
-      LANGULUS_ASSUME(DevAssumes, mRaw - offset * mType->mSize >= mEntry->GetBlockStart(),
-         "Block limit breached");
 
-      mRaw -= offset * mType->mSize;
+      if constexpr (TypeErased) {
+         LANGULUS_ASSUME(DevAssumes, IsTyped(),
+            "Block is not typed");
+         LANGULUS_ASSUME(DevAssumes, mRaw - offset * mType->mSize >= mEntry->GetBlockStart(),
+            "Block limit breached");
+         mRaw -= offset * mType->mSize;
+      }
+      else {
+         LANGULUS_ASSUME(DevAssumes, mRaw - offset * sizeof(TYPE) >= mEntry->GetBlockStart(),
+            "Block limit breached");
+         mRaw -= offset * sizeof(TYPE);
+      }
+
       return *this;
    }
 
-
+   template<class TYPE> LANGULUS(ALWAYS_INLINED)
+   Block<TYPE> const& Block<TYPE>::operator -= (Offset offset) const IF_UNSAFE(noexcept) {
+      return const_cast<Block&>(*this).operator-=(offset);
+   }
 
 
 

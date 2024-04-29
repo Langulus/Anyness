@@ -248,7 +248,7 @@ namespace Langulus::Anyness
             LANGULUS_ASSERT(ptr, Access, "Failed dynamic_cast");
             return ptr;
          }
-         else { //if constexpr (requires (TYPE e) { static_cast<Decay<T>*>(e); }) {
+         else {
             // Do a quick static_cast whenever possible                 
             const auto idx = SimplifyIndex(index);
 
@@ -265,7 +265,6 @@ namespace Langulus::Anyness
                   return static_cast<T&>( (*this)[idx]);
             }
          }
-         //else LANGULUS_ERROR("Type mismatch");
       }
    }
 

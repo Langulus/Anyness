@@ -8,6 +8,7 @@
 ///                                                                           
 #pragma once
 #include "../../source/many/Many.inl"
+#include "../../source/many/TMany.inl"
 #include "../../source/maps/TMap.inl"
 #include "../../source/text/Text.inl"
 #include "../../source/many/Neat.inl"

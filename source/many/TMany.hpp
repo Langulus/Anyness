@@ -154,6 +154,12 @@ namespace Langulus::Anyness
       template<class T1> requires CT::DeepMakable<T, T1>
       TMany& operator += (T1&&);
 
+      ///                                                                     
+      ///   Conversion                                                        
+      ///                                                                     
+      operator       Many& ()       noexcept;
+      operator const Many& () const noexcept;
+
    private:
       /// Services graveyard - disallowed interface for typed containers      
       using Base::MakeTypeConstrained;
