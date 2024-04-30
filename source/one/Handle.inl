@@ -664,7 +664,7 @@ namespace Langulus::Anyness
    ///      type-erased                                                       
    ///   @return true if contents are equal                                   
    TEMPLATE() LANGULUS(INLINED)
-   bool HAND()::Compare(const auto& rhs, DMeta type) const {
+   bool HAND()::Compare(const auto& rhs, DMeta) const {
       using RHS = Deref<decltype(rhs)>;
 
       if constexpr (CT::Handle<RHS>)

@@ -231,10 +231,18 @@ namespace Langulus::Anyness
                   LANGULUS_THROW(Access, "Deep type mismatch");
             }
 
-            if constexpr (CT::Sparse<T>)
-               return reinterpret_cast<T >(&result);
-            else
-               return reinterpret_cast<T&>( result);
+            if constexpr (CT::Sparse<T>) {
+               if constexpr (Sparse)
+                  return reinterpret_cast<T >( result);
+               else
+                  return reinterpret_cast<T >(&result);
+            }
+            else {
+               if constexpr (Sparse)
+                  return reinterpret_cast<T&>(*result);
+               else
+                  return reinterpret_cast<T&>( result);
+            }
          }
          else if constexpr (CT::Sparse<T>
          and requires (Decay<TYPE>* e) { dynamic_cast<T>(e); }) {
