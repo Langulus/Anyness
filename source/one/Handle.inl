@@ -405,15 +405,15 @@ namespace Langulus::Anyness
                      GetEntry() = nullptr;
 
                   if constexpr (S::Move) {
-                     // We're moving RHS, so we need to clear it up     
-                     if constexpr (S::Keep)
-                        rhs->Get() = nullptr;
+                     if constexpr (ST::Embedded) {
+                        // We're moving from an embedded RHS, so we need
+                        // to clear it up - we're transferring ownership
+                        if constexpr (S::Keep)
+                           rhs->Get() = nullptr;
+                        rhs->GetEntry() = nullptr;
+                     }
 
-                     // Clearing entry is mandatory, because we're      
-                     // transferring the ownership                      
-                     rhs->GetEntry() = nullptr;
-
-                     if constexpr (not ST::Embedded and Embedded) {
+                     /*if constexpr (not ST::Embedded and Embedded) {
                         // Moving from non-embedded pointer handle to an
                         // embedded one always references - it's like   
                         // pushing a raw pointer                        
@@ -422,10 +422,10 @@ namespace Langulus::Anyness
                            if (type->mReference)
                               type->mReference(Get(), 1);
                         }
-                     }
+                     }*/
                   }
                   else if constexpr (S::Keep and Embedded) {
-                     // Copying RHS, keep it only if not disowning it   
+                     // Copying RHS, but keep it only if not disowning  
                      if (GetEntry()) {
                         const_cast<Allocation*>(GetEntry())->Keep();
                         if (type->mReference)
@@ -508,13 +508,24 @@ namespace Langulus::Anyness
                   GetEntry() = nullptr;
 
                if constexpr (S::Move) {
-                  // We're moving RHS, so we need to clear it up        
-                  if constexpr (S::Keep)
-                     rhs->Get() = nullptr;
+                  if constexpr (ST::Embedded) {
+                     // We're moving from an embedded RHS, so we need   
+                     // to clear it up - we're transferring ownership   
+                     if constexpr (S::Keep)
+                        rhs->Get() = nullptr;
+                     rhs->GetEntry() = nullptr;
+                  }
 
-                  // Clearing entry is mandatory, because we're         
-                  // transferring the ownership                         
-                  rhs->GetEntry() = nullptr;
+                  /*if constexpr (not ST::Embedded and Embedded) {
+                     // Moving from non-embedded pointer handle to an
+                     // embedded one always references - it's like   
+                     // pushing a raw pointer                        
+                     if (GetEntry()) {
+                        const_cast<Allocation*>(GetEntry())->Keep();
+                        if constexpr (CT::Referencable<Deptr<T>>)
+                           Get()->Reference(1);
+                     }
+                  }*/
                }
                else if constexpr (S::Keep and Embedded) {
                   // Copying RHS, but keep it only if not disowning it  
@@ -675,8 +686,8 @@ namespace Langulus::Anyness
 
    /// Reset the handle, by dereferencing entry, and destroying value, if     
    /// entry has been fully dereferenced                                      
-   /// Does absolutely nothing for dense handles, they are destroyed when     
-   /// handle is destroyed                                                    
+   /// Does absolutely nothing for dense (unembedded???) handles, they are destroyed when     
+   /// handle is destroyed (TODO look at note in func body)                                                    
    ///   @tparam RESET - whether or not to reset pointers to null             
    ///   @tparam DEALLOCATE - are we allowed to deallocate the memory?        
    ///   @param meta - type of the contained data, used only if handle is     
@@ -687,7 +698,7 @@ namespace Langulus::Anyness
          LANGULUS_ASSUME(DevAssumes, meta,
             "Invalid type provided for type-erased handle");
 
-         if constexpr (CT::Sparse<T>) {
+         if constexpr (Sparse) {
             // Handle is sparse, we should handle each indirection layer
             LANGULUS_ASSUME(DevAssumes, meta->mIsSparse,
                "Provided meta must match T sparseness");
@@ -700,7 +711,7 @@ namespace Langulus::Anyness
                   if (meta->mDeptr->mIsSparse) {
                      // Pointer to pointer                              
                      // Release all nested indirection layers           
-                     HandleLocal<Deptr<T>> {Get()}.Destroy(meta->mDeptr);
+                     HandleLocal<void*> {Get()}.Destroy(meta->mDeptr);
                   }
                   else if (meta->mDestructor) {
                      // Pointer to a complete, destroyable dense        
@@ -740,14 +751,15 @@ namespace Langulus::Anyness
             if constexpr (RESET) {
                // Handle is dense and embedded, we should call remote   
                // destructor, but don't touch the entry, its irrelevant 
-               Get() = nullptr;
-               GetEntry() = nullptr;
+               const_cast<Type&>(Get()) = nullptr;
+               const_cast<AllocType&>(GetEntry()) = nullptr;
             }
          }
       }
       else {
          using DT = Decay<T>;
-         if constexpr (CT::Sparse<T>) {
+
+         if constexpr (Sparse) {
             // Handle is sparse, we should handle each indirection layer
             if (GetEntry()) {
                if (1 == GetEntry()->GetUses()) {
@@ -801,6 +813,8 @@ namespace Langulus::Anyness
          else if constexpr (EMBED and CT::Destroyable<DT>) {
             // Handle is dense and embedded, we should call the remote  
             // destructor, but don't touch the entry, its irrelevant    
+            //TODO the function above states that this does nothing if dense, but apparently that isn't true
+            // firgure it out!
             if constexpr (CT::Referencable<DT>)
                Get().Reference(-1);
             Get().~DT();

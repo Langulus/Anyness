@@ -58,19 +58,6 @@ namespace Langulus::Anyness
       Base::Free();
    }
 
-   /// Construct manually by interfacing memory directly                      
-   /// Data will be copied, if not in jurisdiction, which involves a slow     
-   /// authority check. If you want to avoid checking and copying, use the    
-   /// Disowned semantic                                                      
-   ///   @param what - data to semantically interface                         
-   ///   @param count - number of items, in case 'what' is sparse             
-   ///   @return the provided data, wrapped inside a TMany<T>                 
-   /*TEMPLATE() LANGULUS(ALWAYS_INLINED)
-   TMany<T> TMany<T>::From(auto&& what, Count count) {
-      using S = SemanticOf<decltype(what)>;
-      return Base::template From<TMany>(S::Nest(what), count);
-   }*/
-
    /// Refer assignment                                                       
    ///   @param rhs - the container to refer to                               
    ///   @return a reference to this container                                

@@ -31,6 +31,8 @@ namespace Langulus::Anyness
       Charge mCharge;
 
    public:
+      static constexpr bool Ownership = true;
+
       constexpr Construct() noexcept = default;
       Construct(const Construct&) noexcept;
       Construct(Construct&&) noexcept;

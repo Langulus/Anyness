@@ -73,8 +73,8 @@ namespace Langulus::Anyness
       Many& operator = (CT::UnfoldInsertable auto&&);
 
    public:
-      NOD() Many Crop(Offset, Count) const;
-      NOD() Many Crop(Offset, Count);
+      NOD() Many Crop(Offset, Count) const IF_UNSAFE(noexcept);
+      NOD() Many Crop(Offset, Count) IF_UNSAFE(noexcept);
 
       ///                                                                     
       ///   Comparison                                                        

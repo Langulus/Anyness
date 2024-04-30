@@ -83,7 +83,7 @@ namespace Langulus::Anyness
             if constexpr (CT::Dense<T>)
                return static_cast<Deref<T>&>( (*this)[idx]);
             else
-               return static_cast<Deref<T>*>(&(*this)[idx]);
+               return static_cast<Deref<T> >(&(*this)[idx]);
          }
       }
    }
@@ -115,7 +115,7 @@ namespace Langulus::Anyness
             if constexpr (CT::Dense<T>)
                return static_cast<const Deref<T>&>( (*this)[idx]);
             else
-               return static_cast<const Deref<T>*>(&(*this)[idx]);
+               return static_cast<const Deref<T> >(&(*this)[idx]);
          }
       }
    }
@@ -156,17 +156,11 @@ namespace Langulus::Anyness
    decltype(auto) Block<TYPE>::As(CT::Index auto index) {
       if constexpr (TypeErased) {
          // Type-erased As                                              
-         // First quick type stage for fast access                      
+         // First quick type stage for fast access - this will ignore   
+         // sparsity if possible                                        
          LANGULUS_ASSUME(DevAssumes, mType, "Block is not typed");
-         if (mType->IsSimilar<T>()) {
-            auto typed = reinterpret_cast<Block<T>*>(this);
-            const auto idx = typed->SimplifyIndex(index);
-            auto& result = (*typed)[idx];
-            if constexpr (CT::Sparse<T>)
-               return static_cast<Deref<decltype(result)>>(result);
-            else
-               return result;
-         }
+         if (mType->Is<T>())
+            return Get<T>(SimplifyIndex(index));
       
          // Optimize if we're interpreting as a container               
          if constexpr (CT::Deep<T>) {
@@ -219,7 +213,11 @@ namespace Langulus::Anyness
       }
       else {
          // Statically optimized As                                     
-         if constexpr (CT::Deep<T>) {
+         if constexpr (CT::Same<TYPE, T>) {
+            // Notice that this can ignore sparsity                     
+            return Get<T>(SimplifyIndex(index));
+         }
+         else if constexpr (CT::Deep<T>) {
             // Optimize if we're interpreting as a container            
             static_assert(CT::Deep<Decay<TYPE>>, "Type mismatch");
             const auto idx = SimplifyIndex(index);

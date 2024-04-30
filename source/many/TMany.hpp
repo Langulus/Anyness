@@ -85,10 +85,8 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Indexing                                                          
       ///                                                                     
-      NOD() IF_UNSAFE(constexpr)
-      TMany Crop(Offset, Count)       IF_UNSAFE(noexcept);
-      NOD() IF_UNSAFE(constexpr)
-      TMany Crop(Offset, Count) const IF_UNSAFE(noexcept);
+      NOD() TMany Crop(Offset, Count) IF_UNSAFE(noexcept);
+      NOD() TMany Crop(Offset, Count) const IF_UNSAFE(noexcept);
 
       ///                                                                     
       ///   RTTI                                                              

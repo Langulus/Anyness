@@ -185,6 +185,7 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    Text::Text(const CT::BuiltinNumber auto& number) {
       using T = Decay<decltype(number)>;
+      mType = MetaDataOf<Letter>();
 
       if constexpr (CT::Real<T>) {
          // Stringify a real number                                     
@@ -201,9 +202,10 @@ namespace Langulus::Anyness
             --lastChar;
          }
 
-         new (this) Text {
-            Text::From(temp, static_cast<Count>(lastChar - temp))
-         };
+         const auto c = static_cast<Count>(lastChar - temp);
+         AllocateFresh(RequestSize(c));
+         memcpy(mRaw, temp, c);
+         mCount = c;
       }
       else if constexpr (CT::Integer<T>) {
          // Stringify an integer                                        
@@ -213,9 +215,10 @@ namespace Langulus::Anyness
          LANGULUS_ASSERT(errorCode == ::std::errc(), Convert,
             "std::to_chars failure");
 
-         new (this) Text {
-            Text::From(temp, static_cast<Count>(lastChar - temp))
-         };
+         const auto c = static_cast<Count>(lastChar - temp);
+         AllocateFresh(RequestSize(c));
+         memcpy(mRaw, temp, c);
+         mCount = c;
       }
       else LANGULUS_ERROR("Unsupported number type");
    }
@@ -230,16 +233,41 @@ namespace Langulus::Anyness
       ((UnfoldInsert(Forward<TN>(tn))), ...);
    }
 
+   /// Destructor                                                             
+   inline Text::~Text() {
+      Base::Free();
+   }
+
    /// Construction from bounded or unbounded array/pointer of characters     
    ///   @attention semantic is ignored, this doesn't apply ownership, only   
    ///      interfaces the data - you can TakeAuthority() after this call.    
-   ///   @param text - text memory to wrap                                    
-   ///   @param count - number of characters inside text                      
+   ///   @attention assumes text pointer is valid                             
+   ///   @param text - text memory to wrap, assumed valid                     
+   ///   @param count - number of characters inside 'text' to use             
+   ///   @attention count will shrink if a terminating character was found,   
+   ///      or if 'text' is a bounded array of smaller size                   
    ///   @return the text wrapped inside a Text container                     
    template<class T> requires CT::String<Desem<T>> LANGULUS(INLINED)
    Text Text::From(T&& text, Count count) {
-      using S = SemanticOf<decltype(text)>;
-      return MakeBlock<Text>(S::Nest(text), count);
+      if (count == 0)
+         return {};
+
+      if constexpr (CT::Array<Desem<T>>) {
+         // In case of an array - represent array, and then edit count  
+         auto block = MakeBlock<Text>(Disown(text));
+         // Make sure string is properly terminated                     
+         block.mCount = strnlen(
+            block.GetRaw(), ::std::min(count, ExtentOf<Desem<T>>));
+         return block;
+      }
+      else {
+         LANGULUS_ASSUME(UserAssumes, text, "Invalid string pointer");
+         // Raw pointer                                                 
+         auto block = MakeBlock<Text>(Disown(text), count);
+         // Make sure string is properly terminated                     
+         block.mCount = strnlen(block.GetRaw(), count);
+         return block;
+      }
    }
 
    /// Refer assignment                                                       
@@ -410,12 +438,12 @@ namespace Langulus::Anyness
    ///   @param count - the number of characters after 'start'                
    ///   @return new text that references the original memory                 
    LANGULUS(INLINED)
-   Text Text::Crop(CT::Index auto start, Count count) const {
+   Text Text::Crop(CT::Index auto start, Count count) const IF_UNSAFE(noexcept) {
       return Block::Crop<Text>(start, count);
    }
 
    LANGULUS(INLINED)
-   Text Text::Crop(CT::Index auto start, Count count) {
+   Text Text::Crop(CT::Index auto start, Count count) IF_UNSAFE(noexcept) {
       return Block::Crop<Text>(start, count);
    }
 
@@ -423,13 +451,13 @@ namespace Langulus::Anyness
    ///   @param start - offset of the starting character                      
    ///   @return new text that references the original memory                 
    LANGULUS(INLINED)
-   Text Text::Crop(CT::Index auto start) const {
+   Text Text::Crop(CT::Index auto start) const IF_UNSAFE(noexcept) {
       const auto index = SimplifyIndex(start);
       return Crop(index, mCount - index);
    }
 
    LANGULUS(INLINED)
-   Text Text::Crop(CT::Index auto start) {
+   Text Text::Crop(CT::Index auto start) IF_UNSAFE(noexcept) {
       const auto index = SimplifyIndex(start);
       return Crop(index, mCount - index);
    }

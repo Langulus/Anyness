@@ -67,6 +67,7 @@ namespace Langulus::Anyness
    ///                                                                        
    struct Bytes : Block<Byte> {
       using Base = Block<Byte>;
+      static constexpr bool Ownership = true;
 
       LANGULUS(DEEP) false;
       LANGULUS_BASES(Base);
@@ -116,8 +117,8 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Indexing                                                          
       ///                                                                     
-      NOD() Bytes Crop(Offset, Count) const;
-      NOD() Bytes Crop(Offset, Count);
+      NOD() Bytes Crop(Offset, Count) const IF_UNSAFE(noexcept);
+      NOD() Bytes Crop(Offset, Count) IF_UNSAFE(noexcept);
 
       ///                                                                     
       ///   Comparison                                                        

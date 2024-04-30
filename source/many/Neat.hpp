@@ -74,6 +74,7 @@ namespace Langulus::Anyness
 
    public:
       LANGULUS(DEEP) true;
+      static constexpr bool Ownership = true;
 
       ///                                                                     
       ///   Construction                                                      

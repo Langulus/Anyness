@@ -174,12 +174,12 @@ namespace Langulus::Anyness
    ///   @param count - the number of bytes after 'start' to remain           
    ///   @return a new container that references the original memory          
    LANGULUS(ALWAYS_INLINED)
-   Bytes Bytes::Crop(Offset start, Count count) {
+   Bytes Bytes::Crop(Offset start, Count count) IF_UNSAFE(noexcept) {
       return Base::Crop<Bytes>(start, count);
    }
 
    LANGULUS(ALWAYS_INLINED)
-   Bytes Bytes::Crop(Offset start, Count count) const {
+   Bytes Bytes::Crop(Offset start, Count count) const IF_UNSAFE(noexcept) {
       return Base::Crop<Bytes>(start, count);
    }
 

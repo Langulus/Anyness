@@ -57,6 +57,7 @@ namespace Langulus::Anyness
       static_assert(not CT::Abstract<T>,  "T can't be abstract");
 
       static constexpr Count DefaultFrameSize = 8;
+      static constexpr bool Ownership = true;
 
    protected: IF_LANGULUS_TESTING(public:)
       class Cell;
