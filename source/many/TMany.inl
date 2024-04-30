@@ -143,12 +143,12 @@ namespace Langulus::Anyness
    ///   @param count - number of elements                                    
    ///   @return the container                                                
    TEMPLATE() LANGULUS(INLINED)
-   TMany<T> TMany<T>::Crop(Offset start, Count count) const {
+   TMany<T> TMany<T>::Crop(Offset start, Count count) const IF_UNSAFE(noexcept) {
       return Base::template Crop<TMany>(start, count);
    }
    
    TEMPLATE() LANGULUS(INLINED)
-   TMany<T> TMany<T>::Crop(Offset start, Count count) {
+   TMany<T> TMany<T>::Crop(Offset start, Count count) IF_UNSAFE(noexcept) {
       return Base::template Crop<TMany>(start, count);
    }
    

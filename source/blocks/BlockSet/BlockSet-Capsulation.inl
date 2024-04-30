@@ -146,7 +146,7 @@ namespace Langulus::Anyness
    template<CT::Set THIS> LANGULUS(INLINED)
    bool BlockSet::IsMissingDeep() const {
       bool missing = false;
-      ForEachDeep([&](const Block& value) {
+      ForEachDeep([&](const Block<>& value) {
          missing = value.IsMissing();
          return not missing;
       });

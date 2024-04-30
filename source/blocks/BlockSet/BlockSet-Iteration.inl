@@ -153,7 +153,7 @@ namespace Langulus::Anyness
    LoopControl BlockSet::ForEachDeepInner(auto&& call, Count& counter) const {
       using F = Deref<decltype(call)>;
       using A = ArgumentOf<F>;
-      using SubBlock = Conditional<CT::Mutable<THIS>, Block&, const Block&>;
+      using SubBlock = Conditional<CT::Mutable<THIS>, Block<>&, const Block<>&>;
 
       if (IsDeep<THIS>()) {
          // Iterate deep keys/values using non-block type               
