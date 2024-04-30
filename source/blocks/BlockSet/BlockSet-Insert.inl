@@ -15,6 +15,9 @@ namespace Langulus::Anyness
 {
 
    /// Wrap the argument semantically into a handle with value's type         
+   ///   @attention if value is a type-erased handle or void*, we assume that 
+   ///      the pointer always points to a valid instance of the current value
+   ///      type                                                              
    ///   @param val - the val to wrap                                         
    ///   @return the handle object                                            
    template<CT::Set THIS>
@@ -26,7 +29,13 @@ namespace Langulus::Anyness
          using V = Conditional<CT::Typed<THIS>, TypeOf<THIS>, TypeOf<T>>;
          return HandleLocal<V> {S::Nest(val)};
       }
-      else return Many::Wrap(S::Nest(val));
+      else {
+         // Make sure that value is always inserted, and never absorbed 
+         auto result = Many::Wrap(S::Nest(val));
+         // And make sure that type is set to the contained value type  
+         result.mType = mKeys.mType;
+         return result;
+      }
    }
 
    /// Insert an element, or an array of elements                             

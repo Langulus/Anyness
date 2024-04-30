@@ -35,21 +35,21 @@ struct StringifiableConst {
 /// Possible states:                                                          
 ///   - uninitialized                                                         
 ///   - default                                                               
-void CheckState_Default(const Text&);
+void Text_CheckState_Default(const Text&);
 ///   - invariant                                                             
-void CheckState_Invariant(const Text&);
+void Text_CheckState_Invariant(const Text&);
 ///   - owned-full                                                            
-void CheckState_OwnedFull(const Text&);
+void Text_CheckState_OwnedFull(const Text&);
 ///   - owned-full-const                                                      
-void CheckState_OwnedFullConst(const Text&);
+void Text_CheckState_OwnedFullConst(const Text&);
 ///   - owned-empty                                                           
-void CheckState_OwnedEmpty(const Text&);
+void Text_CheckState_OwnedEmpty(const Text&);
 ///   - disowned-full                                                         
-void CheckState_DisownedFull(const Text&);
+void Text_CheckState_DisownedFull(const Text&);
 ///   - disowned-full-const                                                   
-void CheckState_DisownedFullConst(const Text&);
+void Text_CheckState_DisownedFullConst(const Text&);
 ///   - abandoned                                                             
-void CheckState_Abandoned(const Text&);
+void Text_CheckState_Abandoned(const Text&);
 
 ///                                                                           
 /// Possible actions for each state:                                          
@@ -74,26 +74,30 @@ TEMPLATE_TEST_CASE("Testing text containers", "[text]",
    GIVEN("Default text container") {
       TestType text;
 
-      CheckState_Default(text);
+      Text_CheckState_Default(text);
+      REQUIRE_FALSE(text.IsConstant());
 
       WHEN("Capacity is reserved") {
          text.Reserve(500);
 
-         CheckState_OwnedEmpty(text);
+         Text_CheckState_OwnedEmpty(text);
+         REQUIRE_FALSE(text.IsConstant());
          REQUIRE(text.GetReserved() >= 500);
       }
 
       WHEN("Directly assigned to itself") {
          text = text;
 
-         CheckState_Default(text);
+         Text_CheckState_Default(text);
+         REQUIRE_FALSE(text.IsConstant());
       }
 
       WHEN("Indirectly assigned to itself") {
          const auto anothertext = text;
          text = anothertext;
 
-         CheckState_Default(text);
+         Text_CheckState_Default(text);
+         REQUIRE_FALSE(text.IsConstant());
       }
    }
 
@@ -103,7 +107,7 @@ TEMPLATE_TEST_CASE("Testing text containers", "[text]",
       WHEN("Constructed with a null-terminated literal") {
          text = new TestType {"test1"};
 
-         CheckState_OwnedFull(*text);
+         Text_CheckState_OwnedFull(*text);
          REQUIRE((*text).GetCount() == 5);
          REQUIRE((*text).GetReserved() >= 5);
          REQUIRE((*text) == "test1");
@@ -113,13 +117,12 @@ TEMPLATE_TEST_CASE("Testing text containers", "[text]",
          REQUIRE((*text)[3] == 't');
          REQUIRE((*text)[4] == '1');
          REQUIRE_THROWS((*text)[5] == '?');
-         delete text;
       }
 
       WHEN("Constructed with a count-terminated literal") {
          text = new TestType {Text::From("test2", 5)};
 
-         CheckState_OwnedFull(*text);
+         Text_CheckState_DisownedFullConst(*text);
          REQUIRE((*text).GetCount() == 5);
          REQUIRE((*text).GetReserved() >= 5);
          REQUIRE((*text) == "test2");
@@ -129,14 +132,13 @@ TEMPLATE_TEST_CASE("Testing text containers", "[text]",
          REQUIRE((*text)[3] == 't');
          REQUIRE((*text)[4] == '2');
          REQUIRE_THROWS((*text)[5] == '?');
-         delete text;
       }
 
-      WHEN("Constructed with a c-array") {
+      WHEN("Constructed with a bounded literal") {
          char test1[] = "test3";
          text = new TestType {test1};
 
-         CheckState_OwnedFull(*text);
+         Text_CheckState_OwnedFull(*text);
          REQUIRE((*text).GetCount() == 5);
          REQUIRE((*text).GetReserved() >= 5);
          REQUIRE((*text) == "test3");
@@ -146,40 +148,38 @@ TEMPLATE_TEST_CASE("Testing text containers", "[text]",
          REQUIRE((*text)[3] == 't');
          REQUIRE((*text)[4] == '3');
          REQUIRE_THROWS((*text)[5] == '?');
-         delete text;
       }
 
       WHEN("Constructed with a nullptr_t") {
          text = new TestType {nullptr};
 
-         CheckState_Default(*text);
-         delete text;
+         Text_CheckState_Default(*text);
       }
 
       WHEN("Constructed with a nullptr c-array") {
          text = new TestType {(char*)nullptr};
 
-         CheckState_Default(*text);
-         delete text;
+         Text_CheckState_Default(*text);
       }
 
       WHEN("Constructed with empty c-array") {
          text = new TestType {""};
 
-         CheckState_Default(*text);
-         delete text;
+         Text_CheckState_Default(*text);
       }
 
       WHEN("Constructed with a single character") {
          text = new TestType {'?'};
 
-         CheckState_OwnedFull(*text);
+         Text_CheckState_OwnedFull(*text);
          REQUIRE((*text).GetCount() == 1);
          REQUIRE((*text).GetReserved() >= 1);
          REQUIRE((*text)[0] == '?');
          REQUIRE_THROWS((*text)[1] == '?');
-         delete text;
       }
+
+      if (text)
+         delete text;
    }
 
    GIVEN("Reserved text container") {
@@ -534,7 +534,7 @@ TEMPLATE_TEST_CASE("Containing literals", "[text]",
    REQUIRE(memoryState.Assert());
 }
 
-void CheckState_Default(const Text& text) {
+void Text_CheckState_Default(const Text& text) {
    REQUIRE_FALSE(text.IsCompressed());
    REQUIRE_FALSE(text.IsConstant());
    REQUIRE_FALSE(text.IsDeep());
@@ -572,7 +572,7 @@ void CheckState_Default(const Text& text) {
    REQUIRE_FALSE(text == "no match");
 }
 
-void CheckState_OwnedEmpty(const Text& text) {
+void Text_CheckState_OwnedEmpty(const Text& text) {
    REQUIRE_FALSE(text.IsCompressed());
    REQUIRE_FALSE(text.IsConstant());
    REQUIRE_FALSE(text.IsDeep());
@@ -610,7 +610,7 @@ void CheckState_OwnedEmpty(const Text& text) {
    REQUIRE_FALSE(text == "no match");
 }
 
-void CheckState_OwnedFull(const Text& text) {
+void Text_CheckState_OwnedFull(const Text& text) {
    REQUIRE_FALSE(text.IsCompressed());
    REQUIRE_FALSE(text.IsConstant());
    REQUIRE_FALSE(text.IsDeep());
@@ -636,6 +636,44 @@ void CheckState_OwnedFull(const Text& text) {
    REQUIRE      (text.GetCount() > 0);
    REQUIRE      (text.GetReserved() > 0);
    REQUIRE      (text.GetUses() > 0);
+   REQUIRE      (text.GetRaw());
+   REQUIRE      (text != nullptr);
+   REQUIRE_FALSE(text == nullptr);
+   REQUIRE      (text != (char*)nullptr);
+   REQUIRE_FALSE(text == (char*)nullptr);
+   REQUIRE      (text);
+   REQUIRE_FALSE(not text);
+   REQUIRE      (text != "");
+   REQUIRE_FALSE(text == "");
+   REQUIRE_FALSE(text == "no match");
+}
+
+void Text_CheckState_DisownedFullConst(const Text& text) {
+   REQUIRE_FALSE(text.IsCompressed());
+   REQUIRE      (text.IsConstant());
+   REQUIRE_FALSE(text.IsDeep());
+   REQUIRE_FALSE(text.IsSparse());
+   REQUIRE_FALSE(text.IsEncrypted());
+   REQUIRE_FALSE(text.IsMissing());
+   REQUIRE_FALSE(text.IsOr());
+   REQUIRE      (text.IsTyped());
+   REQUIRE_FALSE(text.IsUntyped());
+   REQUIRE      (text.IsValid());
+   REQUIRE_FALSE(text.IsInvalid());
+   REQUIRE      (text.IsStatic());
+   REQUIRE      (text.IsAllocated());
+   REQUIRE_FALSE(text.IsEmpty());
+   REQUIRE_FALSE(text.HasAuthority());
+   REQUIRE      (text.IsTypeConstrained());
+   REQUIRE      (text.GetType() == MetaOf<Letter>());
+   REQUIRE      (text.template Is<Letter>());
+   REQUIRE      (text.IsNow());
+   REQUIRE_FALSE(text.IsFuture());
+   REQUIRE_FALSE(text.IsPast());
+   REQUIRE      (text.IsDense());
+   REQUIRE      (text.GetCount() > 0);
+   REQUIRE      (text.GetReserved() > 0);
+   REQUIRE      (text.GetUses() == 0);
    REQUIRE      (text.GetRaw());
    REQUIRE      (text != nullptr);
    REQUIRE_FALSE(text == nullptr);

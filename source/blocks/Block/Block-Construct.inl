@@ -724,6 +724,11 @@ namespace Langulus::Anyness
    /// want to avoid checking and copying at all - use the Disown semantics.  
    /// By default, data will be wrapped in an automatically detected Block    
    /// without ownership.                                                     
+   ///   @attention this function doesn't call any BLOCK constructor! For     
+   ///      some containers, like Text for example, it will not execute       
+   ///      null-terminator detection! It is designed as a low-level tool for 
+   ///      interfacing memory directly, so use it only if you know what      
+   ///      you're doing!!                                                    
    ///   @tparam BLOCK - the type of block to use, use void to auto-detect    
    ///      When auto-detected, the block will never own the data, unless     
    ///      a semantic that isn't Disown is given.                            

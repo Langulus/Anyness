@@ -220,6 +220,7 @@ namespace Langulus::Anyness
    struct Text : Block<Letter> {
       using Base = Block<Letter>;
       static constexpr bool CTTI_TextTrait = true;
+      static constexpr bool Ownership = true;
 
       LANGULUS(DEEP) false;
       LANGULUS(POD) false;
@@ -299,6 +300,8 @@ namespace Langulus::Anyness
       requires CT::Inner::Stringifiable<T1, T2, TN...>
       Text(T1&&, T2&&, TN&&...);
 
+      ~Text();
+
       template<class T> requires CT::String<Desem<T>>
       static Text From(T&&, Count);
 
@@ -322,10 +325,10 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Indexing                                                          
       ///                                                                     
-      NOD() Text Crop(CT::Index auto, Count) const;
-      NOD() Text Crop(CT::Index auto, Count);
-      NOD() Text Crop(CT::Index auto) const;
-      NOD() Text Crop(CT::Index auto);
+      NOD() Text Crop(CT::Index auto, Count) const IF_UNSAFE(noexcept);
+      NOD() Text Crop(CT::Index auto, Count) IF_UNSAFE(noexcept);
+      NOD() Text Crop(CT::Index auto) const IF_UNSAFE(noexcept);
+      NOD() Text Crop(CT::Index auto) IF_UNSAFE(noexcept);
 
       ///                                                                     
       ///   Comparison                                                        

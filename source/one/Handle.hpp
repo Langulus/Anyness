@@ -58,13 +58,14 @@ namespace Langulus::Anyness
    public:
       static_assert(CT::NotHandle<T>, "Handles can't be nested");
       static constexpr bool Embedded   = EMBED;
-      static constexpr bool TypeErased = CT::TypeErased<T>;
+      static constexpr bool TypeErased = CT::TypeErased<Decay<T>>;
       static constexpr bool Sparse     = CT::Sparse<T>;
+      static constexpr bool Dense      = not Sparse;
       static constexpr bool Mutable    = CT::Mutable<T>;
-      static_assert(Embedded or not TypeErased,
+      static_assert(Embedded or not TypeErased or Sparse,
          "Can't have a type-erased local handle, unless it is sparse");
 
-      using Type = Conditional<TypeErased, Byte, T>;
+      using Type = Conditional<TypeErased and Dense, Byte, T>;
       using AllocType = const Allocation*;
       using ValueType = Conditional<Embedded, Type*, Type>;
       using EntryType = Conditional<Embedded and Sparse,

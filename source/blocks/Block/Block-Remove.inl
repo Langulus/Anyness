@@ -461,7 +461,7 @@ namespace Langulus::Anyness
       const auto count = not MASKED ? mCount : mReserved;
       const auto mthis = const_cast<Block*>(this);
 
-      auto handle = mthis->GetHandle(0);
+      auto handle = mthis->template GetHandle<void*>(0);
       const auto begMarker = handle.mValue;
       const auto endMarker = handle.mValue + count;
 
