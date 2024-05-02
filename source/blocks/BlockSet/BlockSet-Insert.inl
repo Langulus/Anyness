@@ -16,8 +16,8 @@ namespace Langulus::Anyness
 
    /// Wrap the argument semantically into a handle with value's type         
    ///   @attention if value is a type-erased handle or void*, we assume that 
-   ///      the pointer always points to a valid instance of the current value
-   ///      type                                                              
+   ///      the pointer always points to a valid instance of the current      
+   ///      value type                                                        
    ///   @param val - the val to wrap                                         
    ///   @return the handle object                                            
    template<CT::Set THIS>

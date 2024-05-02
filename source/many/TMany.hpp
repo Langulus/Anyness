@@ -70,7 +70,6 @@ namespace Langulus::Anyness
 
       ~TMany();
 
-      //NOD() static TMany From(auto&&, Count = 1);
       NOD() static TMany Wrap(CT::Data auto&&...);
 
       ///                                                                     

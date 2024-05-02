@@ -88,7 +88,7 @@ namespace Langulus::Anyness
    template<class FORCE, bool MOVE_ASIDE, class T1> requires CT::Block<Desem<T1>>
    void Block<TYPE>::InsertBlockInner(CT::Index auto index, T1&& data) {
       // If both sids are void, then we have a type-erased insertion       
-      //using S = SemanticOf<decltype(data)>;
+      using S = SemanticOf<decltype(data)>;
       using T = Conditional<TypeErased, TypeOf<Desem<T1>>, TYPE>;
 
       if constexpr (CT::CanBeDeepened<FORCE, Block> and MOVE_ASIDE) {
@@ -102,8 +102,7 @@ namespace Langulus::Anyness
          // If reached, then type mutated to a deep type                
          if (depened) {
             FORCE temp;
-            temp.template InsertBlockInner<void, true>(
-               IndexBack, Forward<T1>(data));
+            temp.template InsertBlockInner<void, true>(IndexBack, S::Nest(data));
             Insert<void>(index, Abandon(temp));
             return;
          }
@@ -148,7 +147,7 @@ namespace Langulus::Anyness
       }
 
       // Construct data in place                                        
-      CropInner(idx, count).CreateSemantic(Forward<T1>(data));
+      CropInner(idx, count).CreateSemantic(S::Nest(data));
       mCount += count;
    }
 
@@ -162,6 +161,8 @@ namespace Langulus::Anyness
    template<class TYPE> template<class FORCE, bool MOVE_ASIDE>
    void Block<TYPE>::InsertInner(CT::Index auto index, auto&& item) {
       using S = SemanticOf<decltype(item)>;
+      using T = Conditional<TypeErased, TypeOf<S>, TYPE>;
+      static_assert(CT::Insertable<T>, "T is not insertable");
 
       if constexpr (CT::Similar<S, Describe>) {
          // We're using descriptor constructors                         
@@ -193,9 +194,6 @@ namespace Langulus::Anyness
          CropInner(idx, 1).CreateDescribe(*item);
       }
       else {
-         using T = Conditional<TypeErased, TypeOf<S>, TYPE>;
-         static_assert(CT::Insertable<T>, "T is not insertable");
-
          if constexpr (CT::CanBeDeepened<FORCE, Block> and MOVE_ASIDE) {
             // Type may mutate                                          
             if (Mutate<T, FORCE>()) {
@@ -257,7 +255,8 @@ namespace Langulus::Anyness
          }
          else {
             // Insert the array                                         
-            InsertBlockInner<FORCE, MOVE_ASIDE>(index, MakeBlock(S::Nest(item)));
+            InsertBlockInner<FORCE, MOVE_ASIDE>(index,
+               S::Nest(MakeBlock(S::Nest(item))));
             return ExtentOf<T>;
          }
       }
@@ -891,23 +890,22 @@ namespace Langulus::Anyness
    /// region by forwarding A... as constructor arguments                     
    /// If this container is type-erased, exact constructor signatures aren't  
    /// reflected, and the following stock constructors will be attempted:     
-   ///   1. If A is a single argument of exactly the same type, the reflected 
-   ///      move constructor will be used, if available                       
-   ///   2. If A is empty, the reflected default constructor is used          
+   ///   1. If A is empty, the reflected default constructor is used, if such 
+   ///      has been reflected.                                               
+   ///   2. If A is a single argument of exactly the same type, then the      
+   ///      appropriate reflected semantic constructor will be used.          
    ///   3. If A is not empty, not exactly same as the contained type, or     
    ///      is more than a single argument, then all arguments will be        
    ///      wrapped in a Neat, and then forwarded to the descriptor-          
-   ///      constructor, if such is reflected for the type                    
+   ///      constructor, if such is reflected for the type.                   
    ///   If none of these constructors are available, this function throws    
    ///   Except::Construct                                                    
    ///   @attention this is assumed to have no initialized elements, despite  
    ///      having its mCount set                                             
-   ///   @attention be mindful when initializing multiple elements with       
-   ///      move/abandon semantics, since those might move data away          
-   ///      from arguments, thus ruining initialization of all elements,      
-   ///      except the first one                                              
+   ///   @attention be mindful when initializing multiple elements with move  
+   ///      or abandon semantics - the arguments will be lost after the first 
+   ///      element is initialized.                                           
    ///   @param arguments... - the arguments to forward to constructor        
-   ///   @return the number of emplaced elements                              
    template<class TYPE> template<class...A>
    void Block<TYPE>::Create(A&&...arguments) {
       LANGULUS_ASSUME(DevAssumes, mCount and mCount <= mReserved,
@@ -929,7 +927,7 @@ namespace Langulus::Anyness
             while (lhs != lhsEnd)
                new (lhs++) TYPE (Forward<A>(arguments)...);
 
-            if constexpr (sizeof...(A) == 1 and Sparse) {
+            if constexpr (sizeof...(A) == 1 and Sparse and not CT::Disowned<A...>) {
                // We just copied a pointer multiple times, make sure    
                // we reference the memory behind it, if we own it       
                auto ent = GetEntries();
@@ -957,22 +955,74 @@ namespace Langulus::Anyness
             if constexpr (CT::Similar<F, Describe>) {
                // We have a descriptor for argument, forward it to the  
                // reflected descriptor constructor, if any              
+               // Initialize only the first element, and then refer it  
+               // for the rest of the elements.                         
                CreateDescribe(Forward<A>(arguments)...);
             }
-            else if constexpr (CT::Semantic<F>) {
-               // We have a semantic for argument - extract inner type, 
-               // check if compatible, and if so - forward it to the    
-               // appropriate reflected semantic constructor, if any    
-               using FT = TypeOf<F>;
-               if (IsSimilar<FT>())
-                  Create(Forward<A>(arguments)...);
-               else
-                  CreateDescribe(Forward<A>(arguments)...);
+            else if (IsSimilar<Desem<F>>()) {
+               // One argument, that is the same as the contained type, 
+               // so just invoke the refer-construction for each newly  
+               // allocated item                                        
+               if constexpr (CT::Sparse<Desem<F>>) {
+                  // Initialize sparse elemets                          
+                  auto lhs = GetRaw<void*>();
+                  const auto lhsEnd = lhs + mCount;
+                  while (lhs != lhsEnd) {
+                     ((*lhs) = ... = DesemCast(arguments));
+                     ++lhs;
+                  }
+
+                  if constexpr (not CT::Disowned<F>) {
+                     // We just copied a pointer multiple times, make   
+                     // sure we reference the memory behind it, if we   
+                     // own it                                          
+                     auto ent = GetEntries();
+                     auto allocation = Allocator::Find(mType->mDeptr, *(--lhs));
+                     if (allocation) {
+                        const auto entEnd = ent + mCount;
+                        while (ent != entEnd)
+                           *(ent++) = allocation;
+                        const_cast<Allocation*>(allocation)->Keep(mCount);
+                     }
+                     else memset(ent, 0, mCount * sizeof(void*));
+                  }
+               }
+               else {
+                  // Initialize dense elements                          
+                  RTTI::FCopyConstruct copier;
+
+                  if constexpr (CT::Moved<F>)
+                     copier = mType->mMoveConstructor;
+                  else if constexpr (CT::Abandoned<F>)
+                     copier = mType->mAbandonConstructor;
+                  else if constexpr (CT::Disowned<F>)
+                     copier = mType->mDisownConstructor;
+                  else if constexpr (CT::Referred<F>)
+                     copier = mType->mReferConstructor;
+                  else if constexpr (CT::Copied<F>)
+                     copier = mType->mCopyConstructor;
+                  else if constexpr (CT::Cloned<F>)
+                     copier = mType->mCloneConstructor;
+                  else {
+                     copier = mType->mReferConstructor;
+                     if (not copier)
+                        copier = mType->mCopyConstructor;
+                     if (not copier)
+                        copier = mType->mCloneConstructor;
+                  }
+
+                  if (copier) {
+                     auto lhs = mRaw;
+                     const auto lhsEnd = lhs + GetBytesize();
+                     while (lhs != lhsEnd) {
+                        (copier(&DesemCast(arguments), lhs), ...);
+                        lhs += mType->mSize;
+                     }
+                  }
+                  else CreateDescribe(Forward<A>(arguments)...);
+               }
             }
-            else if (IsSimilar<F>())
-               Create(Forward<A>(arguments)...);
-            else
-               CreateDescribe(Forward<A>(arguments)...);
+            else CreateDescribe(Forward<A>(arguments)...);
          }
          else CreateDescribe(Forward<A>(arguments)...);
       }
@@ -990,7 +1040,6 @@ namespace Langulus::Anyness
    template<bool REVERSE, class T1> requires CT::Block<Desem<T1>>
    void Block<TYPE>::CreateSemantic(T1&& source) {
       using S = SemanticOf<decltype(source)>;
-      //using OTHER = TypeOf<S>;
       const auto count = DesemCast(source).mCount;
       LANGULUS_ASSUME(DevAssumes, count and count <= mReserved,
          "Count outside limits", '(', count, " > ", mReserved);
@@ -1273,7 +1322,7 @@ namespace Langulus::Anyness
          " instead of ", MetaDataOf<T>());
 
       using LOSSLESS = Conditional<TypeErased, T, TYPE>;
-      GetHandle<LOSSLESS>().CreateSemantic(S::Nest(source));
+      GetHandle<LOSSLESS>().CreateSemantic(S::Nest(source), GetType());
    }
    
    /// Batch-optimized semantic pointer constructions                         

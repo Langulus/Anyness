@@ -172,7 +172,7 @@ namespace Langulus::Anyness
    typename Block<TYPE>::Iterator Block<TYPE>::RemoveIt(
       const Iterator& index, const Count count
    ) {
-      if (index.mValue >= GetRaw())
+      if (index.mValue >= GetRawEnd())
          return end();
 
       const auto rawstart = GetRaw();
@@ -264,12 +264,13 @@ namespace Langulus::Anyness
          // Don't call destructors, just clear it up                    
          mRaw   = nullptr;
          mCount = mReserved = 0;
+         ResetType();
          return;
       }
 
       if (mEntry->GetUses() == 1) {
          // Entry is used only in this block, so it's safe to           
-         // destroy all elements. We can reuse the entry                
+         // destroy all elements. We will reuse the entry and type      
          Destroy();
          mCount = 0;
       }
@@ -280,6 +281,7 @@ namespace Langulus::Anyness
          mRaw   = nullptr;
          mEntry = nullptr;
          mCount = mReserved = 0;
+         ResetType();
       }
    }
 
@@ -296,8 +298,7 @@ namespace Langulus::Anyness
    template<class TYPE> LANGULUS(INLINED)
    constexpr void Block<TYPE>::ResetState() noexcept {
       mState &= DataState::Typed;
-      if constexpr (TypeErased)
-         ResetType();
+      ResetType();
    }
 
    /// Call destructors of all initialized items                              

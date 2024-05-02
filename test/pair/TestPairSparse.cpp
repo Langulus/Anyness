@@ -10,12 +10,13 @@
 
 
 #define PAIR_TESTS(MANAGED) \
+   (MapTest<Pair, Trait*, RT*, MANAGED>), \
+ \
    (MapTest<TPair<Trait*, RT*>, Trait*, RT*, MANAGED>), \
    (MapTest<TPair<Traits::Count*, RT*>, Traits::Count*, RT*, MANAGED>), \
    (MapTest<TPair<Many*, RT*>, Many*, RT*, MANAGED>), \
    (MapTest<TPair<RT*, RT*>, RT*, RT*, MANAGED>), \
  \
-   (MapTest<Pair, Trait*, RT*, MANAGED>), \
    (MapTest<Pair, Traits::Count*, RT*, MANAGED>), \
    (MapTest<Pair, Many*, RT*, MANAGED>), \
    (MapTest<Pair, RT*, RT*, MANAGED>)
@@ -93,10 +94,7 @@ TEMPLATE_TEST_CASE("Sparse TPair/Pair", "[pair]",
          pair = ::std::move(movablePair);
 
          Pair_CheckState_Default<K, V>(movablePair);
-         Any_CheckState_OwnedFull<K>(pair.GetKey());
-         Any_CheckState_OwnedFull<V>(pair.GetValue());
-         Any_CheckState_ContainsOne(pair.GetKey(),   lp.mKey);
-         Any_CheckState_ContainsOne(pair.GetValue(), lp.mValue);
+         Pair_CheckState_OwnedFull<K, V>(pair);
 
          REQUIRE(pair.mKey == lp.mKey);
          REQUIRE(pair.mValue == lp.mValue);
@@ -131,10 +129,7 @@ TEMPLATE_TEST_CASE("Sparse TPair/Pair", "[pair]",
    GIVEN("A copy-initialized pair instance") {
       T pair {lp};
 
-      Any_CheckState_OwnedFull<K>(pair.GetKey());
-      Any_CheckState_OwnedFull<V>(pair.GetValue());
-      Any_CheckState_ContainsOne(pair.GetKey(), lp.mKey);
-      Any_CheckState_ContainsOne(pair.GetValue(), lp.mValue);
+      Pair_CheckState_OwnedFull<K, V>(pair);
 
       REQUIRE(pair.mKey == lp.mKey);
       REQUIRE(pair.mValue == lp.mValue);
@@ -144,11 +139,6 @@ TEMPLATE_TEST_CASE("Sparse TPair/Pair", "[pair]",
    
    GIVEN("Map with some items") {
       T pair {lp};
-
-      Any_CheckState_OwnedFull<K>(pair.GetKey());
-      Any_CheckState_OwnedFull<V>(pair.GetValue());
-      Any_CheckState_ContainsOne(pair.GetKey(), lp.mKey);
-      Any_CheckState_ContainsOne(pair.GetValue(), lp.mValue);
 
       WHEN("Pair is cleared") {
          pair.Clear();
@@ -165,10 +155,8 @@ TEMPLATE_TEST_CASE("Sparse TPair/Pair", "[pair]",
       WHEN("Pair is shallow-copied") {
          auto copy = pair;
 
-         Any_CheckState_OwnedFull<K>(copy.GetKey());
-         Any_CheckState_OwnedFull<V>(copy.GetValue());
-         Any_CheckState_ContainsOne(copy.GetKey(), pair.mKey);
-         Any_CheckState_ContainsOne(copy.GetValue(), pair.mValue);
+         Pair_CheckState_OwnedFull<K, V>(pair);
+         Pair_CheckState_OwnedFull<K, V>(copy);
 
          REQUIRE(copy.mKey == pair.mKey);
          REQUIRE(copy.mValue == pair.mValue);
@@ -181,10 +169,8 @@ TEMPLATE_TEST_CASE("Sparse TPair/Pair", "[pair]",
          if constexpr (CT::CloneMakable<K, V>) {
             T clone = Clone(pair);
 
-            Any_CheckState_OwnedFull<K>(clone.GetKey());
-            Any_CheckState_OwnedFull<V>(clone.GetValue());
-            Any_CheckState_ContainsOne(clone.GetKey(), pair.mKey);
-            Any_CheckState_ContainsOne(clone.GetValue(), pair.mValue);
+            Pair_CheckState_OwnedFull<K, V>(pair);
+            Pair_CheckState_OwnedFull<K, V>(clone);
 
             REQUIRE(clone.mKey != pair.mKey);
             REQUIRE(clone.mValue != pair.mValue);
@@ -201,10 +187,7 @@ TEMPLATE_TEST_CASE("Sparse TPair/Pair", "[pair]",
          T moved = ::std::move(movable);
 
          Pair_CheckState_Default<K, V>(movable);
-         Any_CheckState_OwnedFull<K>(moved.GetKey());
-         Any_CheckState_OwnedFull<V>(moved.GetValue());
-         Any_CheckState_ContainsOne(moved.GetKey(), pair.mKey);
-         Any_CheckState_ContainsOne(moved.GetValue(), pair.mValue);
+         Pair_CheckState_OwnedFull<K, V>(moved);
 
          REQUIRE(moved.mKey == pair.mKey);
          REQUIRE(moved.mValue == pair.mValue);
@@ -221,6 +204,8 @@ TEMPLATE_TEST_CASE("Sparse TPair/Pair", "[pair]",
          REQUIRE(pair == samePair);
          REQUIRE(pair == copiedPair);
          REQUIRE(pair != differentPair);
+
+         DestroyPair<MANAGED>(differentPair);
       }
    }
 

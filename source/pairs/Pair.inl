@@ -26,16 +26,16 @@ namespace Langulus::Anyness
    template<class K, class V>
    requires CT::UnfoldInsertable<K, V> LANGULUS(INLINED)
    Pair::Pair(K&& key, V&& val)
-      : mKey   {Forward<K>(key)}
-      , mValue {Forward<V>(val)} {}
+      : mKey   {Many::Wrap(Forward<K>(key))}
+      , mValue {Many::Wrap(Forward<V>(val))} {}
 
    /// Assign any kind of pair                                                
    ///   @param rhs - the pair to assign                                      
    template<class P> requires CT::Pair<Desem<P>> LANGULUS(INLINED)
    Pair& Pair::operator = (P&& rhs) {
       using S = SemanticOf<decltype(rhs)>;
-      mKey   = S::Nest(DesemCast(rhs).mKey);
-      mValue = S::Nest(DesemCast(rhs).mValue);
+      mKey   = Many::Wrap(S::Nest(DesemCast(rhs).mKey));
+      mValue = Many::Wrap(S::Nest(DesemCast(rhs).mValue));
       return *this;
    }
 
@@ -50,24 +50,24 @@ namespace Langulus::Anyness
    /// Get the contained key                                                  
    ///   @return a reference to the contained key                             
    LANGULUS(INLINED)
-   Many const& Pair::GetKey() const noexcept {
+   Many const& Pair::GetKeyBlock() const noexcept {
       return mKey;
    }
 
    LANGULUS(INLINED)
-   Many& Pair::GetKey() noexcept {
+   Many& Pair::GetKeyBlock() noexcept {
       return mKey;
    }
 
    /// Get the contained value                                                
    ///   @return a reference to the contained key                             
    LANGULUS(INLINED)
-   Many const& Pair::GetValue() const noexcept {
+   Many const& Pair::GetValueBlock() const noexcept {
       return mValue;
    }
 
    LANGULUS(INLINED)
-   Many& Pair::GetValue() noexcept {
+   Many& Pair::GetValueBlock() noexcept {
       return mValue;
    }
 

@@ -90,10 +90,10 @@ namespace Langulus::Anyness
       ///                                                                     
       NOD() Hash GetHash() const requires CT::Hashable<K, V>;
 
-      Block<K> GetKey() const noexcept;
-      Block<K> GetKey() noexcept;
-      Block<V> GetValue() const noexcept;
-      Block<V> GetValue() noexcept;
+      Block<K> GetKeyBlock() const noexcept;
+      Block<K> GetKeyBlock() noexcept;
+      Block<V> GetValueBlock() const noexcept;
+      Block<V> GetValueBlock() noexcept;
 
       Handle<K> GetKeyHandle();
       Handle<V> GetValueHandle();

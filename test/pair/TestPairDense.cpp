@@ -12,12 +12,13 @@
 /// The main test for TPair/Pair containers, with all kinds of items, from    
 /// sparse to dense, from trivial to complex, from flat to deep               
 TEMPLATE_TEST_CASE("Dense TPair/Pair", "[pair]",
+   (MapTest<Pair, Text, int>),
+
    (MapTest<TPair<Text, int>, Text, int>),
    (MapTest<TPair<Text, Trait>, Text, Trait>),
    (MapTest<TPair<Text, Traits::Count>, Text, Traits::Count>),
    (MapTest<TPair<Text, Many>, Text, Many>),
 
-   (MapTest<Pair, Text, int>),
    (MapTest<Pair, Text, Trait>),
    (MapTest<Pair, Text, Traits::Count>),
    (MapTest<Pair, Text, Many>)
@@ -49,7 +50,10 @@ TEMPLATE_TEST_CASE("Dense TPair/Pair", "[pair]",
       static_assert(CT::DisownAssignable<T>);
    }
 
-   const auto lp = CreatePair<   T, K, V>("five hundred", 555);
+   const auto lp = CreatePair<T, K, V>("five hundred", 555);
+   Any_Helper_TestType<K>(lp.GetKeyBlock());
+   Any_Helper_TestType<V>(lp.GetValueBlock());
+
    UNUSED() const auto sp = CreatePair<stdT, K, V>("five hundred", 555);
 
 
@@ -80,8 +84,8 @@ TEMPLATE_TEST_CASE("Dense TPair/Pair", "[pair]",
          auto movablePair = lp;
          pair = ::std::move(movablePair);
 
-         Any_Helper_TestType<K>(pair.GetKey());
-         Any_Helper_TestType<V>(pair.GetValue());
+         Pair_CheckState_Default<K, V>(movablePair);
+         Pair_CheckState_OwnedFull<K, V>(pair);
 
          REQUIRE(movablePair != lp);
          REQUIRE(pair == lp);
@@ -117,8 +121,7 @@ TEMPLATE_TEST_CASE("Dense TPair/Pair", "[pair]",
    GIVEN("A copy-initialized pair instance") {
       T pair {lp};
 
-      Any_Helper_TestType<K>(pair.GetKey());
-      Any_Helper_TestType<V>(pair.GetValue());
+      Pair_CheckState_OwnedFull<K, V>(pair);
 
       REQUIRE(pair == lp);
       REQUIRE(pair.mKey == lp.mKey);
@@ -131,12 +134,10 @@ TEMPLATE_TEST_CASE("Dense TPair/Pair", "[pair]",
       WHEN("Pair is cleared") {
          pair.Clear();
 
-         Any_Helper_TestType<K>(pair.GetKey());
-         Any_Helper_TestType<V>(pair.GetValue());
+         Pair_CheckState_Default<K, V>(pair);
 
          REQUIRE(pair != lp);
-         REQUIRE(pair.mKey != lp.mKey);
-         REQUIRE(pair.mValue != lp.mValue);
+         REQUIRE(((pair.mKey != lp.mKey) or (pair.mValue != lp.mValue)));
       }
 
       WHEN("Pair is reset") {
@@ -148,8 +149,8 @@ TEMPLATE_TEST_CASE("Dense TPair/Pair", "[pair]",
       WHEN("Pair is shallow-copied") {
          auto copy = pair;
 
-         Any_Helper_TestType<K>(copy.GetKey());
-         Any_Helper_TestType<V>(copy.GetValue());
+         Pair_CheckState_OwnedFull<K, V>(pair);
+         Pair_CheckState_OwnedFull<K, V>(copy);
 
          REQUIRE(copy == pair);
          REQUIRE(copy.mKey == pair.mKey);
@@ -159,8 +160,8 @@ TEMPLATE_TEST_CASE("Dense TPair/Pair", "[pair]",
       WHEN("Pair is cloned") {
          T clone = Clone(pair);
 
-         Any_Helper_TestType<K>(clone.GetKey());
-         Any_Helper_TestType<V>(clone.GetValue());
+         Pair_CheckState_OwnedFull<K, V>(pair);
+         Pair_CheckState_OwnedFull<K, V>(clone);
 
          REQUIRE((clone != pair) == (CT::Sparse<K> or CT::Sparse<V>));
          REQUIRE(clone.mKey == pair.mKey);
@@ -172,9 +173,7 @@ TEMPLATE_TEST_CASE("Dense TPair/Pair", "[pair]",
          T moved = ::std::move(movable);
 
          Pair_CheckState_Default<K, V>(movable);
-
-         Any_Helper_TestType<K>(moved.GetKey());
-         Any_Helper_TestType<V>(moved.GetValue());
+         Pair_CheckState_OwnedFull<K, V>(moved);
 
          REQUIRE(moved == pair);
          REQUIRE(moved != movable);

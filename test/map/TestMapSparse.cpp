@@ -15,6 +15,8 @@
 
 
 #define MAP_TESTS(MANAGED) \
+   (MapTest<UnorderedMap, Text, int*, MANAGED>), \
+ \
    (MapTest<TUnorderedMap<Text, Trait*>, Text, Trait*, MANAGED>), \
    (MapTest<TUnorderedMap<Text, int*>, Text, int*, MANAGED>), \
    (MapTest<TUnorderedMap<Text, Traits::Count*>, Text, Traits::Count*, MANAGED>), \
@@ -37,7 +39,6 @@
    (MapTest<TOrderedMap<Many*, RT*>, Many*, RT*, MANAGED>), \
    (MapTest<TOrderedMap<RT*, RT*>, RT*, RT*, MANAGED>), \
  \
-   (MapTest<UnorderedMap, Text, int*, MANAGED>), \
    (MapTest<UnorderedMap, Text, Trait*, MANAGED>), \
    (MapTest<UnorderedMap, Text, Traits::Count*, MANAGED>), \
    (MapTest<UnorderedMap, Text, Many*, MANAGED>), \
@@ -181,7 +182,7 @@ TEMPLATE_TEST_CASE(
 
       WHEN("Assigned a pair by move") {
          auto movablePair = pair;
-         /*map = ::std::move(movablePair);
+         map = ::std::move(movablePair);
 
          REQUIRE(movablePair != pair);
          REQUIRE(map.IsKeyTypeConstrained() == CT::Typed<T>);
@@ -203,7 +204,7 @@ TEMPLATE_TEST_CASE(
          else {
             REQUIRE(map[pair.mKey] == pair.mValue);
             REQUIRE_THROWS(map[pairMissing.mKey] != pair.mValue);
-         }*/
+         }
 
          #ifdef LANGULUS_STD_BENCHMARK
             BENCHMARK_ADVANCED("Anyness::TUnorderedMap::operator = (single pair copy)") (timer meter) {

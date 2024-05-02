@@ -80,40 +80,40 @@ namespace Langulus::Anyness
 
    /// Get contained key                                                      
    TEMPLATE() LANGULUS(INLINED)
-   Block<K> PAIR()::GetKey() noexcept {
-      if constexpr (CT::Reference<K> or CT::Dense<K>) {
+   Block<K> PAIR()::GetKeyBlock() noexcept {
+      //if constexpr (CT::Reference<K> or CT::Dense<K>) {
          return Block<K> {
             DataState::Member,
             MetaDataOf<Deref<K>>(), 1,
             &mKey
          };
-      }
-      else return mKey.GetBlock();
+      //}
+      //else return mKey.GetBlock();
    }
    
    TEMPLATE() LANGULUS(ALWAYS_INLINED)
-   Block<K> PAIR()::GetKey() const noexcept {
-      auto block = const_cast<PAIR()*>(this)->GetKey();
+   Block<K> PAIR()::GetKeyBlock() const noexcept {
+      auto block = const_cast<PAIR()*>(this)->GetKeyBlock();
       block.MakeConst();
       return block;
    }
 
    /// Get contained value                                                    
    TEMPLATE() LANGULUS(INLINED)
-   Block<V> PAIR()::GetValue() noexcept {
-      if constexpr (CT::Reference<V> or CT::Dense<K>) {
+   Block<V> PAIR()::GetValueBlock() noexcept {
+      //if constexpr (CT::Reference<V> or CT::Dense<K>) {
          return Block<V> {
             DataState::Member,
             MetaDataOf<Deref<V>>(), 1,
             &mValue
          };
-      }
-      else return mValue.GetBlock();
+      //}
+      //else return mValue.GetBlock();
    }
 
    TEMPLATE() LANGULUS(ALWAYS_INLINED)
-   Block<V> PAIR()::GetValue() const noexcept {
-      auto block = const_cast<PAIR()*>(this)->GetValue();
+   Block<V> PAIR()::GetValueBlock() const noexcept {
+      auto block = const_cast<PAIR()*>(this)->GetValueBlock();
       block.MakeConst();
       return block;
    }
@@ -147,16 +147,19 @@ namespace Langulus::Anyness
    /// Clear anything contained, but don't release memory                     
    TEMPLATE() LANGULUS(INLINED)
    void PAIR()::Clear() {
-      if constexpr (CT::Sparse<K> and not CT::Reference<K>)
-         mKey.Reset();
-      if constexpr (CT::Sparse<V> and not CT::Reference<V>)
-         mValue.Reset();
+      if constexpr (not CT::Reference<K> and requires { mKey.Clear(); })
+         mKey.Clear();
+      if constexpr (not CT::Reference<V> and requires { mValue.Clear(); })
+         mValue.Clear();
    }
 
    /// Clear and release memory                                               
    TEMPLATE() LANGULUS(ALWAYS_INLINED)
    void PAIR()::Reset() {
-      Clear();
+      if constexpr (not CT::Reference<K> and requires { mKey.Reset(); })
+         mKey.Reset();
+      if constexpr (not CT::Reference<V> and requires { mValue.Reset(); })
+         mValue.Reset();
    }
 
 } // namespace Langulus::Anyness

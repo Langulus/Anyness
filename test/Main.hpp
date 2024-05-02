@@ -161,6 +161,23 @@ void DestroyPair(auto& pair) {
                free(pair.mValue.Get());
             }
          }
+         else {
+            if (pair.mKey.IsSparse()) {
+               if (pair.mKey.mType->mReference)
+                  REQUIRE(pair.mKey.mType->mReference(*pair.mKey.GetRaw<void*>(), -1) == 0);
+               if (pair.mKey.mType->mDestructor)
+                  pair.mKey.mType->mDestructor(*pair.mKey.GetRaw<void*>());
+               free(*pair.mKey.GetRaw<void*>());
+            }
+
+            if (pair.mValue.IsSparse()) {
+               if (pair.mValue.mType->mReference)
+                  REQUIRE(pair.mValue.mType->mReference(*pair.mValue.GetRaw<void*>(), -1) == 0);
+               if (pair.mValue.mType->mDestructor)
+                  pair.mValue.mType->mDestructor(*pair.mValue.GetRaw<void*>());
+               free(*pair.mValue.GetRaw<void*>());
+            }
+         }
       }
       else if constexpr (requires { pair.first; }) {
          // It's an std::pair                                           

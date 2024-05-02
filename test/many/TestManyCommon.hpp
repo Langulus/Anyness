@@ -182,6 +182,53 @@ void Any_CheckState_OwnedFull(const auto& any) {
    REQUIRE_FALSE(not any);
 }
 
+template<class E>
+void Any_CheckState_DisownedFull(const auto& any) {
+   using T = Decay<decltype(any)>;
+
+   Any_Helper_TestType<E>(any);
+
+   REQUIRE      (any.IsTypeConstrained() == CT::Typed<T>);
+   REQUIRE_FALSE(any.IsCompressed());
+   REQUIRE      (any.IsConstant() == CT::Constant<E>);
+   REQUIRE_FALSE(any.IsEncrypted());
+   REQUIRE      (any.IsValid());
+   REQUIRE_FALSE(any.IsInvalid());
+   REQUIRE      (any.IsStatic());
+   REQUIRE      (any.IsAllocated());
+   REQUIRE_FALSE(any.HasAuthority());
+   REQUIRE_FALSE(any.IsEmpty());
+   REQUIRE      (any.GetCount() > 0);
+   REQUIRE      (any.GetReserved() > 0);
+   REQUIRE      (any.GetUses() == 0);
+   REQUIRE      (any.GetRaw());
+   REQUIRE      (any);
+   REQUIRE_FALSE(not any);
+}
+
+template<class E>
+void Any_CheckState_DisownedFullConst(const auto& any) {
+   using T = Decay<decltype(any)>;
+
+   Any_Helper_TestType<E>(any);
+
+   REQUIRE      (any.IsTypeConstrained() == CT::Typed<T>);
+   REQUIRE_FALSE(any.IsCompressed());
+   REQUIRE      (any.IsConstant());
+   REQUIRE_FALSE(any.IsEncrypted());
+   REQUIRE      (any.IsValid());
+   REQUIRE_FALSE(any.IsInvalid());
+   REQUIRE      (any.IsStatic());
+   REQUIRE      (any.IsAllocated());
+   REQUIRE_FALSE(any.HasAuthority());
+   REQUIRE_FALSE(any.IsEmpty());
+   REQUIRE      (any.GetCount() > 0);
+   REQUIRE      (any.GetReserved() > 0);
+   REQUIRE      (any.GetUses() == 0);
+   REQUIRE      (any.GetRaw());
+   REQUIRE      (any);
+   REQUIRE_FALSE(not any);
+}
 
 template<class E>
 void Any_CheckState_Abandoned(const auto& any) {
