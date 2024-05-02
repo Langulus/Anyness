@@ -549,34 +549,36 @@ namespace Langulus::Anyness
    }
    
    /// Insert the provided elements, making sure to insert and never absorb   
-   ///   @tparam AS - the type to wrap elements as, use void to auto-deduce   
+   ///   @tparam BLOCK - the block type to wrap elements in, use void to      
+   ///      auto-deduce                                                       
    ///   @param items... - items to insert                                    
    ///   @returns the new container containing the data                       
    template<class BLOCK, CT::Data...TN>
    auto WrapBlock(TN&&...items) {
-      static_assert(CT::Void<BLOCK> or CT::Block<BLOCK>,
-         "BLOCK can be eitehr void, or a Block type");
-
-      if constexpr (CT::TypeErased<BLOCK>) {
+      if constexpr (sizeof...(TN) == 0) {
+         if constexpr (CT::TypeErased<BLOCK>)
+            return Block<> {};
+         else
+            return BLOCK {};
+      }
+      else if constexpr (CT::TypeErased<BLOCK>) {
          // Auto-detect type, statically optimize as much as possible   
-         if constexpr (sizeof...(TN) > 0) {
-            using First = FirstOf<Decvq<CT::Unfold<TN>>...>;
-            if constexpr (CT::Similar<First, CT::Unfold<TN>...>) {
-               // All provided types are the same                       
-               TMany<First> result;
-               (result.template Insert<void>(IndexBack, Forward<TN>(items)), ...);
-               return result;
-            }
-            else {
-               // Different kinds of data, wrap them in Manies          
-               TMany<Many> result;
-               (result.template Insert<void>(IndexBack, Forward<TN>(items)), ...);
-               return result;
-            }
+         using First = FirstOf<Decvq<CT::Unfold<TN>>...>;
+         if constexpr (CT::Similar<First, CT::Unfold<TN>...>) {
+            // All provided types are the same                          
+            TMany<First> result;
+            (result.template Insert<void>(IndexBack, Forward<TN>(items)), ...);
+            return result;
          }
-         else return {};
+         else {
+            // Different kinds of data, wrap them in Manies             
+            TMany<Many> result;
+            (result.template Insert<void>(IndexBack, Forward<TN>(items)), ...);
+            return result;
+         }
       }
       else {
+         static_assert(CT::Block<BLOCK>, "BLOCK must be a Block type");
          BLOCK result;
          (result.template Insert<void>(IndexBack, Forward<TN>(items)), ...);
          return result;
