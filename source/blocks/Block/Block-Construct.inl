@@ -554,11 +554,11 @@ namespace Langulus::Anyness
 
       if constexpr (TypeErased) {
          // We can safely overwrite type and state                      
-         mType  = from.mType;
+         mType  = from.GetType();
          mState = from.mState;
       }
       else {
-         // Block is typed, so we never touch mType, and we make sure   
+         // Block is typed so we never touch mType, and we make sure    
          // that we don't affect Typed state                            
          mState = from.mState + DataState::Typed;
       }
@@ -739,6 +739,9 @@ namespace Langulus::Anyness
    ///   @return the memory wrapped inside a block                            
    template<class BLOCK>
    auto MakeBlock(auto&& what, Count count) {
+      static_assert(CT::Void<BLOCK> or CT::Block<BLOCK>,
+         "BLOCK can be eitehr void, or a Block type");
+
       using A  = Deref<decltype(what)>;
       using S  = SemanticOf<A>;
       using ST = TypeOf<S>;
@@ -746,8 +749,15 @@ namespace Langulus::Anyness
       // Auto-detect block type                                         
       using B = Conditional<CT::Void<BLOCK>
          , Conditional<CT::NotSemantic<A> or CT::Disowned<A>
-            , Block<Decvq<CT::Unfold<A>>>
-            , TMany<Decvq<CT::Unfold<A>>>>
+            , Conditional<CT::Array<Desem<A>>
+               , Block<Decvq<CT::Unfold<A>>>
+               , Block<Decvq<Deptr<CT::Unfold<A>>>>
+            >
+            , Conditional<CT::Array<Desem<A>>
+               , TMany<Decvq<CT::Unfold<A>>>
+               , TMany<Decvq<Deptr<CT::Unfold<A>>>>
+            >
+         >
          , BLOCK
       >;
 
@@ -860,6 +870,41 @@ namespace Langulus::Anyness
       if constexpr (not S::Move and S::Keep and B::Ownership)
          result.TakeAuthority();
       return result;
+   }
+   
+   /// Insert the provided elements, making sure to insert and never absorb   
+   ///   @tparam AS - the type to wrap elements as, use void to auto-deduce   
+   ///   @param items... - items to insert                                    
+   ///   @returns the new container containing the data                       
+   template<class BLOCK, CT::Data...TN>
+   auto WrapBlock(TN&&...items) {
+      static_assert(CT::Void<BLOCK> or CT::Block<BLOCK>,
+         "BLOCK can be eitehr void, or a Block type");
+
+      if constexpr (CT::TypeErased<BLOCK>) {
+         // Auto-detect type, statically optimize as much as possible   
+         if constexpr (sizeof...(TN) > 0) {
+            using First = FirstOf<Decvq<CT::Unfold<TN>>...>;
+            if constexpr (CT::Similar<First, CT::Unfold<TN>...>) {
+               // All provided types are the same                       
+               TMany<First> result;
+               (result.template Insert<void>(IndexBack, Forward<TN>(items)), ...);
+               return result;
+            }
+            else {
+               // Different kinds of data, wrap them in Manies          
+               TMany<Many> result;
+               (result.template Insert<void>(IndexBack, Forward<TN>(items)), ...);
+               return result;
+            }
+         }
+         else return {};
+      }
+      else {
+         BLOCK result;
+         (result.template Insert<void>(IndexBack, Forward<TN>(items)), ...);
+         return result;
+      }
    }
 
 } // namespace Langulus::Anyness

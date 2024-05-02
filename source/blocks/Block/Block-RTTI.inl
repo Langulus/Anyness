@@ -417,11 +417,13 @@ namespace Langulus::Anyness
    }
    
    /// Reset the type of the block, unless it's type-constrained              
-   /// Typed THIS makes sure, that this is a no-op                            
+   /// If this block isn't type-erased, this call is a no-op                  
    template<class TYPE> LANGULUS(INLINED)
-   constexpr void Block<TYPE>::ResetType() noexcept requires TypeErased {
-      if (not IsTypeConstrained())
-         mType = nullptr;
+   constexpr void Block<TYPE>::ResetType() noexcept {
+      if constexpr (TypeErased) {
+         if (not IsTypeConstrained())
+            mType = nullptr;
+      }
    }
 
 } // namespace Langulus::Anyness

@@ -40,12 +40,12 @@ namespace Langulus::Anyness
             out.template InsertBlockInner<void, false>(
                IndexBack, Refer(*this));
          }
-         else if constexpr (CT::Convertible<TYPE, TO>) {
+         else if constexpr (CT::Convertible<Decay<TYPE>, TO>) {
             // Types are statically convertible                         
             out.AllocateMore(out.mCount + mCount);
             for (auto& from : *this) {
                out.template InsertInner<void, false>(
-                  IndexBack, static_cast<TO>(from));
+                  IndexBack, static_cast<TO>(DenseCast(from)));
             }
          }         
       }

@@ -58,6 +58,14 @@ namespace Langulus::Anyness
       Base::Free();
    }
 
+   /// Insert the provided elements, making sure to insert and never absorb   
+   ///   @param items... - items to insert                                    
+   ///   @returns the new container containing the data                       
+   TEMPLATE() template<CT::Data...TN> LANGULUS(ALWAYS_INLINED)
+   TMany<T> TMany<T>::Wrap(TN&&...items) {
+      return WrapBlock<TMany>(Forward<TN>(items)...);
+   }
+
    /// Refer assignment                                                       
    ///   @param rhs - the container to refer to                               
    ///   @return a reference to this container                                

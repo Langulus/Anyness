@@ -96,28 +96,12 @@ namespace Langulus::Anyness
    ///   @returns the new container containing the data                       
    template<class AS, CT::Data...TN> LANGULUS(INLINED)
    Many Many::Wrap(TN&&...items) {
-      if constexpr (CT::TypeErased<AS>) {
-         // Auto-detect type, statically optimize as much as possible   
-         if constexpr (sizeof...(TN) > 0) {
-            using First = FirstOf<Decvq<CT::Unfold<TN>>...>;
-            if constexpr (CT::Similar<First, CT::Unfold<TN>...>) {
-               // All provided types are the same                       
-               TMany<First> result;
-               (result.template Insert<void>(IndexBack, Forward<TN>(items)), ...);
-               return result;
-            }
-            else {
-               // Different kinds of data, wrap them in Manies          
-               TMany<Many> result;
-               (result.template Insert<void>(IndexBack, Forward<TN>(items)), ...);
-               return result;
-            }
-         }
-         else return {};
-      }
+      if constexpr (CT::TypeErased<AS>)
+         return WrapBlock<Many>(Forward<TN>(items)...);
       else {
-         TMany<AS> result;
-         (result.template Insert<void>(IndexBack, Forward<TN>(items)), ...);
+         // Forcefully type-unlock after wrapping in a TMany block      
+         Many result = WrapBlock<TMany<AS>>(Forward<TN>(items)...);
+         result.mState -= DataState::Typed;
          return result;
       }
    }

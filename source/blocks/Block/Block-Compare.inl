@@ -20,7 +20,7 @@ namespace Langulus::Anyness
    /// Compare to any other kind of deep container                            
    ///   @param rhs - element to compare against                              
    ///   @return true if containers match                                     
-   template<class TYPE> LANGULUS(INLINED)
+   template<class TYPE>
    bool Block<TYPE>::operator == (const CT::Block auto& rhs) const {
       return Compare<true>(rhs) or CompareSingleValue(rhs);
    }
@@ -28,7 +28,7 @@ namespace Langulus::Anyness
    /// Compare to any other kind of deep container, or single custom element  
    ///   @param rhs - element to compare against                              
    ///   @return true if containers match                                     
-   template<class TYPE> template<CT::NotBlock T1> LANGULUS(INLINED)
+   template<class TYPE> template<CT::NotBlock T1>
    bool Block<TYPE>::operator == (const T1& rhs) const
    requires (TypeErased or CT::Comparable<TYPE, T1>) {
       return CompareSingleValue(rhs);
@@ -289,6 +289,9 @@ namespace Langulus::Anyness
          // Both sides are statically typed                             
          if constexpr (CT::Similar<TYPE, T> and CT::Comparable<TYPE, T>)
             return *GetRaw() == rhs;
+         else if constexpr (CT::Owned<T> and CT::Similar<TYPE, TypeOf<T>>
+         and CT::Comparable<TYPE, TypeOf<T>>)
+            return *GetRaw() == rhs.Get();
          else
             return false;
       }
@@ -316,9 +319,15 @@ namespace Langulus::Anyness
          }
          else if constexpr (CT::Comparable<T, T>) {
             // Non-deep element compare                                 
-            if (not mType->template IsSimilar<T>())
-               return false;
-            return *GetRaw<T>() == rhs;
+            if (mType->template IsSimilar<T>())
+               return *GetRaw<T>() == rhs;
+            else if constexpr (CT::Owned<T>) {
+               if (mType->template IsSimilar<TypeOf<T>>())
+                  return *GetRaw<T>() == rhs.Get();
+               else
+                  return false;
+            }
+            else return false;
          }
          else return false;
       }

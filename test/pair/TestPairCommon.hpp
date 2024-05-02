@@ -21,33 +21,63 @@
 /// Possible states:                                                          
 ///   - uninitialized                                                         
 ///   - default                                                               
-template<class E>
+template<class K, class V>
 void Pair_CheckState_Default(const auto&);
 ///   - invariant                                                             
-template<class E>
+template<class K, class V>
 void Pair_CheckState_Invariant(const auto&);
 ///   - owned-full                                                            
-template<class E>
+template<class K, class V>
 void Pair_CheckState_OwnedFull(const auto&);
 ///   - owned-full-const                                                      
-template<class E>
+template<class K, class V>
 void Pair_CheckState_OwnedFullConst(const auto&);
 ///   - owned-empty                                                           
-template<class E>
+template<class K, class V>
 void Pair_CheckState_OwnedEmpty(const auto&);
 ///   - disowned-full                                                         
-template<class E>
+template<class K, class V>
 void Pair_CheckState_DisownedFull(const auto&);
 ///   - disowned-full-const                                                   
-template<class E>
+template<class K, class V>
 void Pair_CheckState_DisownedFullConst(const auto&);
 ///   - abandoned                                                             
-template<class E>
+template<class K, class V>
 void Pair_CheckState_Abandoned(const auto&);
 
 
 template<class K, class V>
 void Pair_CheckState_Default(const auto& pair) {
-   Any_CheckState_Default<K>(pair.GetKey());
-   Any_CheckState_Default<V>(pair.GetValue());
+   if constexpr (CT::Typed<decltype(pair)>) {
+      Any_CheckState_DisownedFullConst<K>(pair.GetKeyBlock());
+      Any_CheckState_DisownedFullConst<V>(pair.GetValueBlock());
+   }
+   else {
+      Any_CheckState_Default<K>(pair.GetKeyBlock());
+      Any_CheckState_Default<V>(pair.GetValueBlock());
+   }
+}
+
+template<class K, class V>
+void Pair_CheckState_OwnedFull(const auto& pair) {
+   if constexpr (CT::Typed<decltype(pair)>) {
+      Any_CheckState_DisownedFullConst<K>(pair.GetKeyBlock());
+      Any_CheckState_DisownedFullConst<V>(pair.GetValueBlock());
+   }
+   else {
+      Any_CheckState_OwnedFull<K>(pair.GetKeyBlock());
+      Any_CheckState_OwnedFull<V>(pair.GetValueBlock());
+   }
+}
+
+template<class K, class V>
+void Pair_CheckState_OwnedEmpty(const auto& pair) {
+   if constexpr (CT::Typed<decltype(pair)>) {
+      Any_CheckState_DisownedFullConst<K>(pair.GetKeyBlock());
+      Any_CheckState_DisownedFullConst<V>(pair.GetValueBlock());
+   }
+   else {
+      Any_CheckState_OwnedEmpty<K>(pair.GetKeyBlock());
+      Any_CheckState_OwnedEmpty<V>(pair.GetValueBlock());
+   }
 }

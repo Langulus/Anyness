@@ -78,10 +78,10 @@ namespace Langulus
          ///                                                                  
          NOD() Hash GetHash() const;
 
-         Many const& GetKey() const noexcept;
-         Many&       GetKey() noexcept;
-         Many const& GetValue() const noexcept;
-         Many&       GetValue() noexcept;
+         Many const& GetKeyBlock() const noexcept;
+         Many&       GetKeyBlock() noexcept;
+         Many const& GetValueBlock() const noexcept;
+         Many&       GetValueBlock() noexcept;
 
          ///                                                                  
          ///   Comparison                                                     

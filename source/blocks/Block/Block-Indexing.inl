@@ -58,14 +58,14 @@ namespace Langulus::Anyness
    ///   @param baseOffset - byte offset from the element to apply            
    ///   @return either pointer or reference to the element (depends on T)    
    template<class TYPE> template<CT::Data T> LANGULUS(INLINED) IF_UNSAFE(constexpr)
-   decltype(auto) Block<TYPE>::Get(Offset idx/*, Offset baseOffset*/) IF_UNSAFE(noexcept) {
+   decltype(auto) Block<TYPE>::Get(Offset idx) IF_UNSAFE(noexcept) {
       if constexpr (TypeErased) {
          LANGULUS_ASSUME(DevAssumes, mType, "Block is not typed");
          Byte* pointer;
          if (mType->mIsSparse)
-            pointer = GetRaw<Byte*>()[idx] /*+ baseOffset*/;
+            pointer = GetRaw<Byte*>()[idx];
          else
-            pointer = At(mType->mSize * idx) /*+ baseOffset*/;
+            pointer = At(mType->mSize * idx);
 
          if constexpr (CT::Dense<T>)
             return *reinterpret_cast<Deref<T>*>(pointer);
@@ -75,29 +75,28 @@ namespace Langulus::Anyness
       else {
          if constexpr (Sparse) {
             if constexpr (CT::Dense<T>)
-               return static_cast<Deref<T>&>(*(*this)[idx]);
+               return static_cast<Deref<T>&>(*GetRaw()[idx]);
             else
-               return static_cast<Deref<T> >( (*this)[idx]);
+               return static_cast<Deref<T> >(*&GetRaw()[idx]);
          }
          else {
             if constexpr (CT::Dense<T>)
-               return static_cast<Deref<T>&>( (*this)[idx]);
+               return static_cast<Deref<T>&>( GetRaw()[idx]);
             else
-               return static_cast<Deref<T> >(&(*this)[idx]);
+               return static_cast<Deref<T> >(&GetRaw()[idx]);
          }
       }
    }
 
    template<class TYPE> template<CT::Data T> LANGULUS(INLINED) IF_UNSAFE(constexpr)
-   decltype(auto) Block<TYPE>::Get(Offset idx/*, Offset baseOffset*/) const IF_UNSAFE(noexcept) {
-      //return const_cast<Block<TYPE>*>(this)->template Get<T>(idx/*, baseOffset*/);
+   decltype(auto) Block<TYPE>::Get(Offset idx) const IF_UNSAFE(noexcept) {
       if constexpr (TypeErased) {
          LANGULUS_ASSUME(DevAssumes, mType, "Block is not typed");
          const Byte* pointer;
          if (mType->mIsSparse)
-            pointer = GetRaw<Byte*>()[idx] /*+ baseOffset*/;
+            pointer = GetRaw<Byte*>()[idx];
          else
-            pointer = At(mType->mSize * idx) /*+ baseOffset*/;
+            pointer = At(mType->mSize * idx);
 
          if constexpr (CT::Dense<T>)
             return *reinterpret_cast<const Deref<T>*>(pointer);
@@ -107,15 +106,15 @@ namespace Langulus::Anyness
       else {
          if constexpr (Sparse) {
             if constexpr (CT::Dense<T>)
-               return static_cast<const Deref<T>&>(*(*this)[idx]);
+               return static_cast<const Deref<T>&>(*GetRaw()[idx]);
             else
-               return static_cast<const Deref<T> >( (*this)[idx]);
+               return static_cast<const Deptr<Deref<T>>*>( GetRaw()[idx]);
          }
          else {
             if constexpr (CT::Dense<T>)
-               return static_cast<const Deref<T>&>( (*this)[idx]);
+               return static_cast<const Deref<T>&>( GetRaw()[idx]);
             else
-               return static_cast<const Deref<T> >(&(*this)[idx]);
+               return static_cast<const Deptr<Deref<T>>*>(&GetRaw()[idx]);
          }
       }
    }
@@ -698,7 +697,7 @@ namespace Langulus::Anyness
    ///   @return the handle                                                   
    template<class TYPE> template<class T1> LANGULUS(INLINED)
    auto Block<TYPE>::GetHandle(const Offset index) IF_UNSAFE(noexcept) {
-      using T = Conditional<CT::Handle<T1>, TypeOf<T1>, T1>;
+      using T = Decvq<Conditional<CT::Handle<T1>, TypeOf<T1>, T1>>;
 
       if constexpr (not TypeErased) {
          // Either sparse or not type-erased                            

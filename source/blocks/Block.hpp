@@ -602,9 +602,9 @@ namespace Langulus::Anyness
       auto GetHandle(Offset = 0) const IF_UNSAFE(noexcept);
 
       template<CT::Data = TYPE> NOD() IF_UNSAFE(constexpr)
-      decltype(auto) Get(Offset = 0/*, Offset = 0*/)       IF_UNSAFE(noexcept);
+      decltype(auto) Get(Offset = 0)       IF_UNSAFE(noexcept);
       template<CT::Data = TYPE> NOD() IF_UNSAFE(constexpr)
-      decltype(auto) Get(Offset = 0/*, Offset = 0*/) const IF_UNSAFE(noexcept);
+      decltype(auto) Get(Offset = 0) const IF_UNSAFE(noexcept);
    
       NOD() IF_UNSAFE(constexpr)
       decltype(auto) GetDeep(Offset = 0)       IF_UNSAFE(noexcept);
@@ -733,7 +733,7 @@ namespace Langulus::Anyness
       template<class FORCE = Many>
       bool Mutate(DMeta);
 
-      constexpr void ResetType() noexcept requires TypeErased;
+      constexpr void ResetType() noexcept;
 
    IF_LANGULUS_TESTING(public:)
       NOD() Block<> GetBaseMemory(DMeta, const RTTI::Base&);
@@ -835,7 +835,7 @@ namespace Langulus::Anyness
       Count New(Count, A&&...)
       requires (TypeErased or ::std::constructible_from<TYPE, A...>);
 
-      Count New(Count) requires (TypeErased or CT::Defaultable<TYPE>);
+      Count New(Count = 1) requires (TypeErased or CT::Defaultable<TYPE>);
 
       template<bool CONCAT = true, class FORCE = Many>
       Count SmartPush(CT::Index auto, auto&&, DataState = {});
@@ -968,6 +968,9 @@ namespace Langulus::Anyness
 
    template<class BLOCK = void>
    NOD() auto MakeBlock(auto&&, Count = 1);
+
+   template<class BLOCK = void, CT::Data...TN>
+   NOD() auto WrapBlock(TN&&...);
 
    /// Cast between block types - does only reinterpret_cast, with some       
    /// additional safety checks. Preserves qualifiers.                        

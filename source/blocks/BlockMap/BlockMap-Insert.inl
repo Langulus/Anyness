@@ -15,6 +15,9 @@ namespace Langulus::Anyness
 {
 
    /// Wrap the argument semantically into a handle with key's type           
+   ///   @attention if key is a type-erased handle or void*, we assume that   
+   ///      the pointer always points to a valid instance of the current      
+   ///      key type                                                          
    ///   @param key - the key to wrap                                         
    ///   @return the handle object                                            
    template<CT::Map THIS>
@@ -24,13 +27,22 @@ namespace Langulus::Anyness
 
       if constexpr (CT::Typed<THIS>) {
          using K = Conditional<CT::Typed<THIS>, typename THIS::Key, TypeOf<T>>;
-         return HandleLocal<Decvq<K>> {S::Nest(key)};
+         return HandleLocal<K> {S::Nest(key)};
       }
-      else return Many::Wrap(S::Nest(key));
+      else {
+         // Make sure that value is always inserted, and never absorbed 
+         auto result = Many::Wrap(S::Nest(key));
+         // And make sure that type is set to the contained value type  
+         result.mType = mKeys.mType;
+         return result;
+      }
    }
 
    /// Wrap the argument semantically into a handle with value's type         
-   ///   @param val - the val to wrap                                         
+   ///   @attention if value is a type-erased handle or void*, we assume that 
+   ///      the pointer always points to a valid instance of the current      
+   ///      value type                                                        
+   ///   @param val - the value to wrap                                       
    ///   @return the handle object                                            
    template<CT::Map THIS>
    auto BlockMap::CreateValHandle(auto&& val) {
@@ -39,9 +51,15 @@ namespace Langulus::Anyness
 
       if constexpr (CT::Typed<THIS>) {
          using V = Conditional<CT::Typed<THIS>, typename THIS::Value, TypeOf<T>>;
-         return HandleLocal<Decvq<V>> {S::Nest(val)};
+         return HandleLocal<V> {S::Nest(val)};
       }
-      else return Many::Wrap(S::Nest(val));
+      else {
+         // Make sure that value is always inserted, and never absorbed 
+         auto result = Many::Wrap(S::Nest(val));
+         // And make sure that type is set to the contained value type  
+         result.mType = mValues.mType;
+         return result;
+      }
    }
 
    /// Insert a pair, or an array of pairs                                    
@@ -82,15 +100,15 @@ namespace Langulus::Anyness
             // Insert the array                                         
             const auto& firstPair = DesemCast(item)[0];
             Mutate<THIS>(
-               firstPair.GetKey().GetType(),
-               firstPair.GetValue().GetType()
+               firstPair.GetKeyBlock().GetType(),
+               firstPair.GetValueBlock().GetType()
             );
             Reserve<THIS>(GetCount() + ExtentOf<T>);
             const auto mask = GetReserved() - 1;
             for (auto& pair : DesemCast(item)) {
                Mutate<THIS>(
-                  pair.GetKey().GetType(),
-                  pair.GetValue().GetType()
+                  pair.GetKeyBlock().GetType(),
+                  pair.GetValueBlock().GetType()
                );
                inserted += InsertPairInner<THIS, true>(mask, S::Nest(pair));
             }
@@ -143,8 +161,8 @@ namespace Langulus::Anyness
          // Some of the arguments might still be used directly to       
          // make pairs, forward these to standard insertion here        
          Mutate<THIS>(
-            DesemCast(item).GetKey().GetType(),
-            DesemCast(item).GetValue().GetType()
+            DesemCast(item).GetKeyBlock().GetType(),
+            DesemCast(item).GetValueBlock().GetType()
          );
          Reserve<THIS>(GetCount() + 1);
          const auto mask = GetReserved() - 1;

@@ -2162,19 +2162,13 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
       WHEN("Pack is cleared") {
          pack.Clear();
 
-         REQUIRE(pack.GetCount() == 0);
-         REQUIRE(pack.GetReserved() == previousReserved);
-         REQUIRE(pack.GetRaw() == memory);
-         REQUIRE(pack.template IsExact<E>());
+         Any_CheckState_OwnedEmpty<E>(pack);
       }
 
       WHEN("Pack is reset") {
          pack.Reset();
 
-         REQUIRE(pack.GetCount() == 0);
-         REQUIRE(pack.GetReserved() == 0);
-         REQUIRE(pack.GetRaw() == nullptr);
-         REQUIRE(pack.template IsExact<E>() == CT::Typed<T>);
+         Any_CheckState_Default<E>(pack);
       }
 
       #if LANGULUS_FEATURE(MANAGED_MEMORY)
