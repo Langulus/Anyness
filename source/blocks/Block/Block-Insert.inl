@@ -359,15 +359,6 @@ namespace Langulus::Anyness
       if (not count)
          return 0;
 
-      // Insert all elements                                            
-      /*if constexpr (CT::Typed<ST>) {
-         InsertBlockInner<FORCE, MOVE_ASIDE>(
-            index, S::Nest(rhs).template Forward<Block<TypeOf<ST>>>());
-      }
-      else {
-         InsertBlockInner<FORCE, MOVE_ASIDE>(
-            index, S::Nest(rhs).template Forward<Block<>>());
-      }*/
       InsertBlockInner<FORCE, MOVE_ASIDE>(index, Forward<T>(other));
 
       if constexpr (S::Move and S::Keep and TypeOf<S>::Ownership) {

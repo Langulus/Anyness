@@ -317,7 +317,6 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Capsulation                                                       
       ///                                                                     
-      //NOD() Hash GetHash() const;
       NOD() Count GetLineCount() const noexcept;
 
       NOD() operator Token () const noexcept;

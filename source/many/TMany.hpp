@@ -70,7 +70,8 @@ namespace Langulus::Anyness
 
       ~TMany();
 
-      NOD() static TMany Wrap(CT::Data auto&&...);
+      template<CT::Data...TN>
+      NOD() static TMany<T> Wrap(TN&&...);
 
       ///                                                                     
       ///   Assignment                                                        
@@ -102,30 +103,6 @@ namespace Langulus::Anyness
       ///   Comparison                                                        
       ///                                                                     
       using Base::operator ==;
-
-      /*template<CT::NotSemantic T1> requires CT::Comparable<T, T1>
-      NOD() Iterator FindIt(const T1&);
-
-      template<CT::NotSemantic T1> requires CT::Comparable<T, T1>
-      NOD() ConstIterator FindIt(const T1&) const;
-
-      template<bool REVERSE = false>
-      NOD() Index FindBlock(const CT::Block auto&, CT::Index auto) const noexcept;
-
-      NOD() bool  CompareLoose(const CT::Block auto&) const noexcept;
-      NOD() Count Matches(const CT::Block auto&) const noexcept;
-      NOD() Count MatchesLoose(const CT::Block auto&) const noexcept;*/
-
-      /*template<bool ASCEND = false> requires CT::Sortable<T>
-      void Sort();
-
-      void Swap(CT::Index auto, CT::Index auto);*/
-
-      ///                                                                     
-      ///   Memory management                                                 
-      ///                                                                     
-      /*template<bool SETSIZE = false>
-      void Reserve(Count);*/
 
       ///                                                                     
       ///   Insertion                                                         
