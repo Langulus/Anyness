@@ -978,15 +978,30 @@ namespace Langulus::Anyness
                      else memset(ent, 0, mCount * sizeof(void*));
                   }
                }
+               else if constexpr (CT::Moved<F> or CT::Abandoned<F>) {
+                  // Initialize dense elements                          
+                  RTTI::FMoveConstruct mover;
+
+                  if constexpr (CT::Moved<F>)
+                     mover = mType->mMoveConstructor;
+                  else
+                     mover = mType->mAbandonConstructor;
+
+                  if (mover) {
+                     auto lhs = mRaw;
+                     const auto lhsEnd = lhs + GetBytesize();
+                     while (lhs != lhsEnd) {
+                        (mover(&DesemCast(arguments), lhs), ...);
+                        lhs += mType->mSize;
+                     }
+                  }
+                  else CreateDescribe(Forward<A>(arguments)...);
+               }
                else {
                   // Initialize dense elements                          
                   RTTI::FCopyConstruct copier;
 
-                  if constexpr (CT::Moved<F>)
-                     copier = mType->mMoveConstructor;
-                  else if constexpr (CT::Abandoned<F>)
-                     copier = mType->mAbandonConstructor;
-                  else if constexpr (CT::Disowned<F>)
+                  if constexpr (CT::Disowned<F>)
                      copier = mType->mDisownConstructor;
                   else if constexpr (CT::Referred<F>)
                      copier = mType->mReferConstructor;
