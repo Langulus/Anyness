@@ -183,10 +183,17 @@ namespace Langulus
       /// Check if T is constructible with each of the provided arguments,    
       /// either directly, or by unfolding that argument                      
       template<class T, class...A>
-      concept UnfoldMakableFrom = ((
+      concept UnfoldMakableFrom = ((not Same<A, Describe> and (
                ::std::constructible_from<T, A>
             or ::std::constructible_from<T, Unfold<A>>
-         ) and ...);
+         )) and ...) or DescriptorMakable<T>;
+
+      /// Check if T is assignable with the provided argument,                
+      /// either directly, or by unfolding that argument                      
+      template<class T, class A>
+      concept UnfoldAssignableFrom = not Same<A, Describe> and (
+              ::std::assignable_from<T&, A>
+           or ::std::assignable_from<T&, Unfold<A>>);
 
       /// Check if T is insertable to containers, either directly, or while   
       /// wrapped in a semantic                                               
@@ -202,41 +209,33 @@ namespace Langulus
          ///   @return true if TMany<T> is constructible using {A...}         
          template<class T, class...A>
          consteval bool DeepMakable() noexcept {
+            using FA = FirstOf<A...>;
+            using SA = SemanticOf<FA>;
+
             if constexpr (TypeErased<T>) {
                // Type-erased containers accept almost any type - they  
                // will report errors at runtime instead, if any         
                return UnfoldInsertable<A...>;
             }
-            else if constexpr (UnfoldMakableFrom<T, A...>) {
-               // If we can directly forward, always prefer it          
-               return true;
-            }
-            else if constexpr (sizeof...(A) == 1) {
+            else if constexpr (sizeof...(A) == 1 and CT::Block<Desem<FA>>) {
                // If only one A provided, it HAS to be a CT::Block      
-               using FA = FirstOf<A...>;
-               using SA = SemanticOf<FA>;
-
-               if constexpr (CT::Block<Desem<FA>>) {
-                  if constexpr (SA::Shallow) {
-                     // Generally, shallow semantics are always         
-                     // supported,  but copying will call element       
-                     // constructors, so we have to check if the        
-                     // contained type supports it                      
-                     if constexpr (CT::Copied<SA>)
-                        return ReferMakable<T>;
-                     else
-                        return true;
-                  }
-                  else {
-                     // Cloning always calls element constructors, and  
-                     // we have to check whether contained elements can 
-                     // do it                                           
-                     return SemanticMakableAlt<typename SA::template As<T>>;
-                  }
+               if constexpr (SA::Shallow) {
+                  // Generally, shallow semantics are always supported, 
+                  // but copying will call element constructors, so we  
+                  // have to check if the contained type supports it    
+                  if constexpr (CT::Copied<SA>)
+                     return ReferMakable<T>;
+                  else
+                     return true;
                }
-               else return false;
+               else {
+                  // Cloning always calls element constructors, and     
+                  // we have to check whether contained elements can    
+                  // do it                                              
+                  return SemanticMakable<Langulus::Cloned, T>;
+               }
             }
-            else return false;
+            else return UnfoldMakableFrom<T, A...>;
          };
 
          /// Test whether a TMany is assignable with the given argument       
@@ -245,19 +244,14 @@ namespace Langulus
          ///   @return true if TMany<T> is assignable using = A               
          template<class T, class A>
          consteval bool DeepAssignable() noexcept {
+            using SA = SemanticOf<A>;
+
             if constexpr (TypeErased<T>) {
                // Type-erased containers accept almost any type - they  
                // will report errors at runtime instead, if any         
                return UnfoldInsertable<A>;
             }
-            else if constexpr (UnfoldMakableFrom<T, A>) {
-               // If we can directly forward A..., then always prefer   
-               // that. Othewise, it has to be a CT::Block type         
-               return true;
-            }
             else if constexpr (CT::Block<Desem<A>>) {
-               using SA = SemanticOf<A>;
-
                if constexpr (SA::Shallow) {
                   // Generally, shallow semantics are always supported, 
                   // but copying will call element assigners, so we     
@@ -270,10 +264,10 @@ namespace Langulus
                else {
                   // Cloning always calls element assigners, and we     
                   // have to check whether contained elements can do it 
-                  return SemanticAssignableAlt<typename SA::template As<T>>;
+                  return SemanticAssignable<Langulus::Cloned, T>;
                }
             }
-            else return false;
+            else return UnfoldAssignableFrom<T, A>;
          };
 
       } // namespace Langulus::CT::Inner
