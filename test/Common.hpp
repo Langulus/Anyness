@@ -14,7 +14,7 @@
 #endif
 
 #include <catch2/catch.hpp>
-#include "Main.hpp"
+#include "TestTypes.hpp"
 
 /// See https://github.com/catchorg/Catch2/blob/devel/docs/tostring.md        
 CATCH_TRANSLATE_EXCEPTION(::Langulus::Exception const& ex) {
