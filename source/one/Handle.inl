@@ -35,68 +35,6 @@ namespace Langulus::Anyness
       : mValue {v}
       , mEntry {e} {}
 
-   /// Create an embedded handle                                              
-   ///   @param v - a reference to the element                                
-   ///   @param e - a reference to the element's entry                        
-   /*TEMPLATE() LANGULUS(INLINED)
-   constexpr HAND()::Handle(T& v, AllocType& e) IF_UNSAFE(noexcept)
-   requires (EMBED and CT::Sparse<T> and CT::Mutable<T>)
-      : mValue {&v}
-      , mEntry {&e} {
-      static_assert(CT::NotHandle<T>, "Handles can't be nested");
-   }
-      
-   TEMPLATE() LANGULUS(INLINED)
-   constexpr HAND()::Handle(const T& v, const AllocType& e) IF_UNSAFE(noexcept)
-   requires (EMBED and CT::Sparse<T> and not CT::Mutable<T>)
-      : mValue {&v}
-      , mEntry {&e} {
-      static_assert(CT::NotHandle<T>, "Handles can't be nested");
-   }
-      
-   /// Create an embedded handle                                              
-   ///   @param v - a reference to the element                                
-   ///   @param e - the entry (optional)                                      
-   TEMPLATE() LANGULUS(INLINED)
-   constexpr HAND()::Handle(T& v, AllocType e) IF_UNSAFE(noexcept)
-   requires (EMBED and CT::Dense<T> and CT::Mutable<T>)
-      : mValue {&v}
-      , mEntry { e} {
-      static_assert(CT::NotHandle<T>, "Handles can't be nested");
-   }
-
-   TEMPLATE() LANGULUS(INLINED)
-   constexpr HAND()::Handle(const T& v, AllocType e) IF_UNSAFE(noexcept)
-   requires (EMBED and CT::Dense<T> and not CT::Mutable<T>)
-      : mValue {&v}
-      , mEntry { e} {
-      static_assert(CT::NotHandle<T>, "Handles can't be nested");
-   }
-
-   /// Create an embedded handle (automatically find allocation)              
-   ///   @param v - a reference to the element                                
-   TEMPLATE() LANGULUS(INLINED)
-   constexpr HAND()::Handle(T& v) IF_UNSAFE(noexcept)
-   requires (EMBED and CT::Dense<T> and CT::Mutable<T>)
-      : mValue {&v} {
-      static_assert(CT::NotHandle<T>, "Handles can't be nested");
-      if constexpr (CT::Allocatable<T>)
-         mEntry = Allocator::Find(MetaDataOf<T>(), &mValue);
-      else
-         mEntry = nullptr;
-   }
-
-   TEMPLATE() LANGULUS(INLINED)
-   constexpr HAND()::Handle(const T& v) IF_UNSAFE(noexcept)
-   requires (EMBED and CT::Dense<T> and not CT::Mutable<T>)
-      : mValue {&v} {
-      static_assert(CT::NotHandle<T>, "Handles can't be nested");
-      if constexpr (CT::Allocatable<T>)
-         mEntry = Allocator::Find(MetaDataOf<T>(), &mValue);
-      else
-         mEntry = nullptr;
-   }*/
-
    /// Semantically construct using handle of any compatible type             
    ///   @param other - the handle and semantic to construct with             
    TEMPLATE() template<template<class> class S, CT::Handle H>
@@ -135,48 +73,6 @@ namespace Langulus::Anyness
       : mValue (Forward<A>(argument))
       , mEntry {nullptr} {}
 
-   /// Semantically construct using compatible non-handle type                
-   ///   @param other - the handle and semantic to construct with             
-   /*TEMPLATE() template<class T1>
-   requires (not EMBED and CT::MakableFrom<T, T1>) LANGULUS(INLINED)
-   constexpr HAND()::Handle(T1&& other, AllocType e)
-      : mValue (Forward<T1>(other))
-      , mEntry {e} {
-      using S = SemanticOf<T1>;
-
-      if constexpr (CT::Sparse<T>) {
-         // A pointer on the stack can still contain an entry           
-         if constexpr (S::Shallow) {
-            // Copy/Refer/Disown/Move/Abandon a pointer                 
-            // Since pointers don't have ownership, it's just a copy    
-            // with an optional entry search, if not disowned, and if   
-            // managed memory is enabled                                
-            using DT = Deptr<T>;
-
-            if constexpr (CT::Allocatable<DT> and (S::Keep or S::Move))
-               mEntry = Allocator::Find(MetaDataOf<DT>(), mValue);
-         }
-         else {
-            // Clone a pointer                                          
-            TODO();
-         }
-      }
-   }
-
-   /// Semantically construct using compatible non-handle Ref type            
-   ///   @param other - the handle and semantic to construct with             
-   TEMPLATE() template<template<class> class S>
-   requires (CT::Sparse<T> and CT::Semantic<S<Ref<Deptr<T>>>>)
-   constexpr HAND()::Handle(S<Ref<Deptr<T>>>&& other)
-      : Handle(S<Handle>::Nest(other->GetHandle())) {}
-   
-   /// Semantically construct using compatible non-handle Own type            
-   ///   @param other - the handle and semantic to construct with             
-   TEMPLATE() template<template<class> class S>
-   requires (CT::Dense<T> and CT::Semantic<S<Own<T>>>)
-   constexpr HAND()::Handle(S<Own<T>>&& other)
-      : Handle(S<Handle>::Nest(other->GetHandle())) {}*/
-
    /// Handle destructor                                                      
    TEMPLATE()
    HAND()::~Handle() {
@@ -211,37 +107,7 @@ namespace Langulus::Anyness
       }
       else LANGULUS_ERROR("Can't compare");
    }
-
-   /// Compare a handle with a comparable value                               
-   ///   @attention this compares contents and isn't suitable for iteration   
-   /*TEMPLATE() template<CT::NotHandle T1>
-   requires CT::Comparable<T, T1> LANGULUS(INLINED)
-   constexpr bool HAND()::operator == (const T1& rhs) const noexcept {
-      if constexpr (Embedded)
-         return *mValue == rhs;
-      else
-         return mValue == rhs;
-   }
-      
-   /// Compare handles                                                        
-   ///   @attention this compares contents and isn't suitable for iteration   
-   TEMPLATE() template<class T1, bool EMBED1>
-   requires CT::Comparable<T, T1> LANGULUS(INLINED)
-   constexpr bool HAND()::operator == (const Handle<T1, EMBED1>& rhs) const noexcept {
-      if constexpr (Embedded) {
-         if constexpr (EMBED1)
-            return *mValue == *rhs.mValue;
-         else
-            return *mValue == rhs.mValue;
-      }
-      else {
-         if constexpr (EMBED1)
-            return mValue == *rhs.mValue;
-         else
-            return mValue == rhs.mValue;
-      }
-   }*/
-      
+         
    /// Prefix increment operator                                              
    ///   @return the next handle                                              
    TEMPLATE() LANGULUS(INLINED)
@@ -342,39 +208,6 @@ namespace Langulus::Anyness
       else                                return  mEntry;
    }
 
-   /// Assign a new pointer and entry at the handle                           
-   ///   @attention this overwrites previous handle without dereferencing it, 
-   ///      and without destroying anything                                   
-   ///   @param pointer - the new pointer to assign                           
-   ///   @param entry - the allocation that the pointer is part of            
-   /*TEMPLATE() LANGULUS(INLINED)
-   void HAND()::Create(T pointer, AllocType entry) noexcept requires CT::Sparse<T> {
-      Get() = pointer;
-      GetEntry() = entry;
-   }
-   
-   /// Move-assign a new value and entry at the handle                        
-   ///   @attention this overwrites previous handle without dereferencing it, 
-   ///      and without destroying anything                                   
-   ///   @param value - the new value to assign                               
-   ///   @param entry - the allocation that the value is part of              
-   TEMPLATE() LANGULUS(INLINED)
-   void HAND()::Create(T&& value, AllocType entry) noexcept requires CT::Dense<T> {
-      SemanticNew(&Get(), Move(value));
-      GetEntry() = entry;
-   }
-
-   /// Refer-assign a new value and entry at the handle                       
-   ///   @attention this overwrites previous handle without dereferencing it, 
-   ///      and without destroying anything                                   
-   ///   @param value - the new value to assign                               
-   ///   @param entry - the allocation that the value is part of              
-   TEMPLATE() LANGULUS(INLINED)
-   void HAND()::Create(const T& value, AllocType entry) noexcept requires CT::Dense<T> {
-      SemanticNew(&Get(), Refer(value));
-      GetEntry() = entry;
-   }*/
-
    /// Semantically instantiate anything at the handle                        
    ///   @attention this overwrites previous handle without dereferencing it, 
    ///      and without destroying anything - that's your responsibility      
@@ -412,17 +245,6 @@ namespace Langulus::Anyness
                            rhs->Get() = nullptr;
                         rhs->GetEntry() = nullptr;
                      }
-
-                     /*if constexpr (not ST::Embedded and Embedded) {
-                        // Moving from non-embedded pointer handle to an
-                        // embedded one always references - it's like   
-                        // pushing a raw pointer                        
-                        if (GetEntry()) {
-                           const_cast<Allocation*>(GetEntry())->Keep();
-                           if (type->mReference)
-                              type->mReference(Get(), 1);
-                        }
-                     }*/
                   }
                   else if constexpr (S::Keep and Embedded) {
                      // Copying RHS, but keep it only if not disowning  
@@ -515,17 +337,6 @@ namespace Langulus::Anyness
                         rhs->Get() = nullptr;
                      rhs->GetEntry() = nullptr;
                   }
-
-                  /*if constexpr (not ST::Embedded and Embedded) {
-                     // Moving from non-embedded pointer handle to an
-                     // embedded one always references - it's like   
-                     // pushing a raw pointer                        
-                     if (GetEntry()) {
-                        const_cast<Allocation*>(GetEntry())->Keep();
-                        if constexpr (CT::Referencable<Deptr<T>>)
-                           Get()->Reference(1);
-                     }
-                  }*/
                }
                else if constexpr (S::Keep and Embedded) {
                   // Copying RHS, but keep it only if not disowning it  
@@ -646,20 +457,6 @@ namespace Langulus::Anyness
                   rhs.Get()->Reference(1);
             }
          }
-
-         /*if (GetEntry() != rhs.GetEntry()) {
-            if (GetEntry()) {
-               const_cast<Allocation*>(GetEntry())->Keep();
-               if constexpr (CT::Referencable<Deptr<T>>)
-                  Get()->Reference(1);
-            }
-
-            if (rhs.GetEntry()) {
-               const_cast<Allocation*>(rhs.GetEntry())->Keep();
-               if constexpr (CT::Referencable<Deptr<T>>)
-                  rhs.Get()->Reference(1);
-            }
-         }*/
       }
       else {
          HandleLocal<T> tmp {Abandon(*this)};

@@ -63,7 +63,7 @@ namespace Langulus::Anyness
    ///   @returns the new container containing the data                       
    TEMPLATE() template<CT::Data...TN> LANGULUS(ALWAYS_INLINED)
    TMany<T> TMany<T>::Wrap(TN&&...items) {
-      return WrapBlock<TMany>(Forward<TN>(items)...);
+      return WrapBlock<TMany<T>>(Forward<TN>(items)...);
    }
 
    /// Refer assignment                                                       

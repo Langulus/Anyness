@@ -81,14 +81,11 @@ namespace Langulus::Anyness
    /// Get contained key                                                      
    TEMPLATE() LANGULUS(INLINED)
    Block<K> PAIR()::GetKeyBlock() noexcept {
-      //if constexpr (CT::Reference<K> or CT::Dense<K>) {
-         return Block<K> {
-            DataState::Member,
-            MetaDataOf<Deref<K>>(), 1,
-            &mKey
-         };
-      //}
-      //else return mKey.GetBlock();
+      return Block<K> {
+         DataState::Member,
+         MetaDataOf<Deref<K>>(), 1,
+         &mKey
+      };
    }
    
    TEMPLATE() LANGULUS(ALWAYS_INLINED)
@@ -101,14 +98,11 @@ namespace Langulus::Anyness
    /// Get contained value                                                    
    TEMPLATE() LANGULUS(INLINED)
    Block<V> PAIR()::GetValueBlock() noexcept {
-      //if constexpr (CT::Reference<V> or CT::Dense<K>) {
-         return Block<V> {
-            DataState::Member,
-            MetaDataOf<Deref<V>>(), 1,
-            &mValue
-         };
-      //}
-      //else return mValue.GetBlock();
+      return Block<V> {
+         DataState::Member,
+         MetaDataOf<Deref<V>>(), 1,
+         &mValue
+      };
    }
 
    TEMPLATE() LANGULUS(ALWAYS_INLINED)

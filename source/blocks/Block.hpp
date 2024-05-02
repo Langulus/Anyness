@@ -385,26 +385,7 @@ namespace Langulus::Anyness
 
       constexpr Block(const A::Block&) noexcept;
       constexpr Block& operator = (const A::Block&) noexcept;
-
-      // Type-erased utilities                                          
-      /*template<bool CONSTRAIN_TYPE = false>
-      NOD() static Block From(auto&&, Count = 1) requires TypeErased;
-
-      template<CT::Data, bool CONSTRAIN_TYPE = false>
-      NOD() static Block From() requires TypeErased;
-
-      template<class AS = void, CT::Data T1, CT::Data...TN>
-      NOD() static auto Wrap(T1&&, TN&&...) requires TypeErased;
-
-      // Statically optimized utilities                                 
-      template<CT::Block B>
-      NOD() static B From(auto&&, Count = 1) requires (not TypeErased);
-      template<CT::Block B>
-      NOD() static B Wrap(CT::Data auto&&...) requires (not TypeErased);*/
-         
-      //template<CT::Block B>
-      //NOD() static B From(auto&&, Count = 1);
-         
+               
    protected:
       template<class T1, class...TN> requires CT::DeepMakable<TYPE, T1, TN...>
       void BlockCreate(T1&&, TN&&...);
