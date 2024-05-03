@@ -87,7 +87,7 @@ namespace Langulus::Anyness
    template<class TYPE>
    template<class FORCE, bool MOVE_ASIDE, class T1> requires CT::Block<Desem<T1>>
    void Block<TYPE>::InsertBlockInner(CT::Index auto index, T1&& data) {
-      // If both sids are void, then we have a type-erased insertion       
+      // If both sides are void, then we have a type-erased insertion   
       using S = SemanticOf<decltype(data)>;
       using T = Conditional<TypeErased, TypeOf<Desem<T1>>, TYPE>;
 
@@ -95,9 +95,9 @@ namespace Langulus::Anyness
          // Type may mutate                                             
          bool depened;
          if constexpr (CT::TypeErased<T>)
-            depened = Mutate<FORCE>(DesemCast(data).GetType());
+            depened = Mutate<FORCE>(DesemCast(data).GetType()->mDecvq);
          else
-            depened = Mutate<T, FORCE>();
+            depened = Mutate<Decvq<T>, FORCE>();
 
          // If reached, then type mutated to a deep type                
          if (depened) {
@@ -109,21 +109,10 @@ namespace Langulus::Anyness
       }
       else {
          // Type can't mutate, but we still have to check if compatible 
-         if constexpr (CT::TypeErased<T>) {
-            // This branch will always do a slower run-time type check  
-            LANGULUS_ASSERT(IsSimilar(*data), Meta,
-               "Inserting incompatible type `", DesemCast(data).GetType(),
-               "` to container of type `", GetType(), '`'
-            );
-         }
-         else {
-            // This branch can potentially happen at compile-time       
-            // It's the happy path                                      
-            LANGULUS_ASSERT(IsSimilar<T>(), Meta,
-               "Inserting incompatible type `", MetaDataOf<T>(),
-               "` to container of type `", GetType(), '`'
-            );
-         }
+         LANGULUS_ASSERT(IsSimilar(DesemCast(data)), Meta,
+            "Inserting incompatible type `", DesemCast(data).GetType(),
+            "` to container of type `", GetType(), '`'
+         );
       }
 
       // If reached, then we have binary compatible type, so allocate   
@@ -256,7 +245,7 @@ namespace Langulus::Anyness
          else {
             // Insert the array                                         
             InsertBlockInner<FORCE, MOVE_ASIDE>(index,
-               S::Nest(MakeBlock(S::Nest(item))));
+               S::Nest(MakeBlock<Block>(S::Nest(item))));
             return ExtentOf<T>;
          }
       }

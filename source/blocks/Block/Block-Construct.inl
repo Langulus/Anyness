@@ -416,7 +416,7 @@ namespace Langulus::Anyness
    template<class BLOCK>
    auto MakeBlock(auto&& what, Count count) {
       static_assert(CT::Void<BLOCK> or CT::Block<BLOCK>,
-         "BLOCK can be eitehr void, or a Block type");
+         "BLOCK can be either void, or a Block type");
 
       using A  = Deref<decltype(what)>;
       using S  = SemanticOf<A>;
