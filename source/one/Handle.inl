@@ -516,14 +516,8 @@ namespace Langulus::Anyness
                      if (meta->mReference) {
                         if (meta->mReference(Get(), -1) == 0)
                            meta->mDestructor(Get());
-                        else {
-                           LANGULUS_OOPS(Destruct,
-                              "Destroying a referenced element, "
-                              "that's still in use");
-                        }
                      }
-
-                     meta->mDestructor(Get());
+                     else meta->mDestructor(Get());
                   }
 
                   if constexpr (DEALLOCATE)
@@ -574,11 +568,6 @@ namespace Langulus::Anyness
                      if constexpr (CT::Referencable<DT>) {
                         if (Get()->Reference(-1) == 0)
                            Get()->~DT();
-                        else {
-                           LANGULUS_OOPS(Destruct,
-                              "Destroying a referenced element, "
-                              "that's still in use");
-                        }
                      }
                      else Get()->~DT();
                   }

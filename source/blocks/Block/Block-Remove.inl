@@ -465,10 +465,31 @@ namespace Langulus::Anyness
       auto handle = mthis->template GetHandle<void*>(0);
       const auto begMarker = handle.mValue;
       const auto endMarker = handle.mValue + count;
-
       UNUSED() Count remaining;
       if constexpr (MASKED)
          remaining = GetCount();
+
+      // Execute a call for each handle that matches current entry      
+      const auto for_each_match = [&](auto&& call) {
+         auto handle2 = handle + 1;
+         UNUSED() Count remaining2;
+         if constexpr (MASKED)
+            remaining2 = remaining;
+         while (handle2.mValue != endMarker) {
+            if constexpr (MASKED) {
+               if (not remaining2)
+                  break;
+               if (not mask[handle2.mValue - begMarker]) {
+                  ++handle2;
+                  continue;
+               }
+               --remaining2;
+            }
+            if (handle.GetEntry() == handle2.GetEntry())
+               call(handle2);
+            ++handle2;
+         }
+      };
 
       //                                                                
       while (handle.mValue != endMarker) {
@@ -491,89 +512,26 @@ namespace Langulus::Anyness
 
          // Count all handles that match the current entry              
          auto matches = 0;
-         auto handle2 = handle + 1;
+         for_each_match([&matches](const Handle<void*>&) {
+            ++matches;
+         });
 
-         UNUSED() Count remaining2;
-         if constexpr (MASKED)
-            remaining2 = remaining;
+         if (matches) {
+            const_cast<Allocation*>(handle.GetEntry())->Free(matches);
 
-         while (handle2.mValue != endMarker) {
-            if constexpr (MASKED) {
-               if (not remaining2)
-                  break;
-
-               if (not mask[handle2.mValue - begMarker]) {
-                  ++handle2;
-                  continue;
-               }
-
-               --remaining2;
+            if (1 == handle.GetEntry()->GetUses()) {
+               // Destroy all matching handles, but deallocate only     
+               // once after that                                       
+               for_each_match([=](Handle<void*>& h) {
+                  h.template Destroy<true, false>(mType);
+               });
             }
-
-            if (handle.GetEntry() == handle2.GetEntry())
-               ++matches;
-
-            ++handle2;
-         }
-
-         const_cast<Allocation*>(handle.GetEntry())->Free(matches);
-
-         if (1 == handle.GetEntry()->GetUses()) {
-            // Destroy all matching handles, but deallocate only        
-            // once after that                                          
-            if (matches) {
-               handle2 = handle + 1;
-
-               if constexpr (MASKED)
-                  remaining2 = remaining;
-
-               while (handle2.mValue != endMarker) {
-                  if constexpr (MASKED) {
-                     if (not remaining2)
-                        break;
-
-                     if (not mask[handle2.mValue - begMarker]) {
-                        ++handle2;
-                        continue;
-                     }
-
-                     --remaining2;
-                  }
-
-                  if (handle.GetEntry() == handle2.GetEntry())
-                     handle2.template Destroy<true, false>(mType);
-
-                  ++handle2;
-               }
-            }
-         }
-         else {
-            // Just dereference once more, but also reset               
-            // the matching handle entries                              
-            if (matches) {
-               handle2 = handle + 1;
-
-               if constexpr (MASKED)
-                  remaining2 = remaining;
-
-               while (handle2.mValue != endMarker) {
-                  if constexpr (MASKED) {
-                     if (not remaining2)
-                        break;
-
-                     if (not mask[handle2.mValue - begMarker]) {
-                        ++handle2;
-                        continue;
-                     }
-
-                     --remaining2;
-                  }
-
-                  if (handle.GetEntry() == handle2.GetEntry())
-                     handle2.GetEntry() = nullptr;
-
-                  ++handle2;
-               }
+            else {
+               // Just dereference once more, but also reset            
+               // the matching handle entries                           
+               for_each_match([](Handle<void*>& h) {
+                  h.GetEntry() = nullptr;
+               });
             }
          }
 

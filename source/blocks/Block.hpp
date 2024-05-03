@@ -157,10 +157,15 @@ namespace Langulus
          /// ranges containing other ranges, or arrays containing ranges.     
          /// Removes semantics and handles, too.                              
          ///   @tparam T - type to unfold                                     
+         ///   @tparam UNLESS - stop unfolding if the type is similar         
+         ///      useful in cases when you actually want to insert a std::map 
+         ///      for example, and not unfold it down to pairs                
          ///   @return a pointer of the most inner type                       
-         template<class T>
+         template<class T, class UNLESS = void>
          consteval auto Unfold() {
-            if constexpr (CT::Sparse<Desem<T>>) {
+            if constexpr (CT::Similar<T, UNLESS>)
+               return (Deref<Desem<T>>*) nullptr;
+            else if constexpr (CT::Sparse<Desem<T>>) {
                if constexpr (CT::Array<Desem<T>>)
                   return Unfold<Deext<Desem<T>>>();
                else
@@ -177,8 +182,12 @@ namespace Langulus
       } // namespace Langulus::CT::Inner
       
       /// Nest-unfold any bounded array or std::range, and get most inner type
-      template<class T>
-      using Unfold = Deptr<decltype(Inner::Unfold<T>())>;
+      ///   @tparam T - type to unfold                                        
+      ///   @tparam UNLESS - stop unfolding if the type is similar            
+      ///      useful in cases when you actually want to insert a std::map    
+      ///      for example, and not unfold it down to pairs                   
+      template<class T, class UNLESS = void>
+      using Unfold = Deptr<decltype(Inner::Unfold<T, UNLESS>())>;
 
       /// Check if T is constructible with each of the provided arguments,    
       /// either directly, or by unfolding that argument                      
