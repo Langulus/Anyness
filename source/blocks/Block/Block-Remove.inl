@@ -522,7 +522,7 @@ namespace Langulus::Anyness
             if (1 == handle.GetEntry()->GetUses()) {
                // Destroy all matching handles, but deallocate only     
                // once after that                                       
-               for_each_match([=](Handle<void*>& h) {
+               for_each_match([&](Handle<void*>& h) {
                   h.template Destroy<true, false>(mType);
                });
             }
