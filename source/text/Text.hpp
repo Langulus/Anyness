@@ -324,10 +324,10 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Indexing                                                          
       ///                                                                     
-      NOD() Text Crop(CT::Index auto, Count) const IF_UNSAFE(noexcept);
-      NOD() Text Crop(CT::Index auto, Count) IF_UNSAFE(noexcept);
-      NOD() Text Crop(CT::Index auto) const IF_UNSAFE(noexcept);
-      NOD() Text Crop(CT::Index auto) IF_UNSAFE(noexcept);
+      NOD() Text Select(CT::Index auto, Count) const IF_UNSAFE(noexcept);
+      NOD() Text Select(CT::Index auto, Count) IF_UNSAFE(noexcept);
+      NOD() Text Select(CT::Index auto) const IF_UNSAFE(noexcept);
+      NOD() Text Select(CT::Index auto) IF_UNSAFE(noexcept);
 
       ///                                                                     
       ///   Comparison                                                        

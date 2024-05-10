@@ -182,6 +182,8 @@ namespace Langulus::Anyness
    B Block<TYPE>::ReinterpretAs(const B& pattern) const {
       if (IsEmpty() or IsSparse() or IsUntyped() or pattern.IsUntyped())
          return B {};
+      else if (IsSimilar(pattern))
+         return reinterpret_cast<const B&>(*this);
 
       if constexpr (not TypeErased and not B::TypeErased) {
          // Both containers are statically typed                        
@@ -228,7 +230,7 @@ namespace Langulus::Anyness
             return B {};
 
          // Find how elements fit from one to another                   
-         const Offset baseBytes = (common.mType->mSize * common.mCount)
+         const Offset baseBytes = (common.mType->mSize * common.mCount * mCount)
             / pattern.GetStride();
          const Offset resultSize = pattern.IsEmpty()
             ? baseBytes : (baseBytes / pattern.mCount) * pattern.mCount;

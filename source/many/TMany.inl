@@ -138,13 +138,13 @@ namespace Langulus::Anyness
    ///   @param count - number of elements                                    
    ///   @return the container                                                
    TEMPLATE() LANGULUS(INLINED)
-   TMany<T> TMany<T>::Crop(Offset start, Count count) const IF_UNSAFE(noexcept) {
-      return Base::template Crop<TMany>(start, count);
+   TMany<T> TMany<T>::Select(Offset start, Count count) const IF_UNSAFE(noexcept) {
+      return Base::template Select<TMany>(start, count);
    }
    
    TEMPLATE() LANGULUS(INLINED)
-   TMany<T> TMany<T>::Crop(Offset start, Count count) IF_UNSAFE(noexcept) {
-      return Base::template Crop<TMany>(start, count);
+   TMany<T> TMany<T>::Select(Offset start, Count count) IF_UNSAFE(noexcept) {
+      return Base::template Select<TMany>(start, count);
    }
    
    /// Extend the container via default construction, and return the new part 

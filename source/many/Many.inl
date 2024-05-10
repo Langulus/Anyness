@@ -173,13 +173,13 @@ namespace Langulus::Anyness
    ///   @param count - number of elements                                    
    ///   @return the container                                                
    LANGULUS(INLINED)
-   Many Many::Crop(const Offset start, const Count count) IF_UNSAFE(noexcept) {
-      return Base::Crop<Many>(start, count);
+   Many Many::Select(const Offset start, const Count count) IF_UNSAFE(noexcept) {
+      return Base::Select<Many>(start, count);
    }
 
    LANGULUS(INLINED)
-   Many Many::Crop(const Offset start, const Count count) const IF_UNSAFE(noexcept) {
-      return Base::Crop<Many>(start, count);
+   Many Many::Select(const Offset start, const Count count) const IF_UNSAFE(noexcept) {
+      return Base::Select<Many>(start, count);
    }
 
    /// Concatenate with any deep type, semantically or not                    

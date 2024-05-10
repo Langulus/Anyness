@@ -117,8 +117,8 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Indexing                                                          
       ///                                                                     
-      NOD() Bytes Crop(Offset, Count) const IF_UNSAFE(noexcept);
-      NOD() Bytes Crop(Offset, Count) IF_UNSAFE(noexcept);
+      NOD() Bytes Select(Offset, Count) const IF_UNSAFE(noexcept);
+      NOD() Bytes Select(Offset, Count) IF_UNSAFE(noexcept);
 
       ///                                                                     
       ///   Comparison                                                        

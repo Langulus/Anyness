@@ -65,15 +65,15 @@ namespace Langulus::Anyness
       if constexpr (CT::Trait<T>) {
          if constexpr (not CT::Same<typename T::TraitType, TRAIT>) {
             // Never absorb different CT::Trait, insert it instead      
-            Block::Reset();
-            *this << SemanticOf<decltype(rhs)>::Nest(rhs);
+            Base::Reset();
+            *this << S::Nest(rhs);
          }
-         else Many::operator = (S::Nest(rhs).template Forward<Many>());
+         else Base::operator = (S::Nest(rhs).template Forward<Base>());
       }
-      else if constexpr (CT::TraitBased<T> or CT::Deep<T>)
-         Many::operator = (S::Nest(rhs).template Forward<Many>());
+      else if constexpr (CT::TraitBased<T>)
+         Base::operator = (S::Nest(rhs).template Forward<Base>());
       else
-         Many::operator = (S::Nest(rhs));
+         Base::operator = (S::Nest(rhs));
       return static_cast<TRAIT&>(*this);
    }
 
@@ -133,7 +133,21 @@ namespace Langulus::Anyness
    constexpr bool TME()::HasCorrectData() const {
       return Trait::HasCorrectData<TRAIT>();
    }
+
+   /// Pick a constant region and reference it from another container         
+   ///   @param start - starting element index                                
+   ///   @param count - number of elements                                    
+   ///   @return the container                                                
+   /*TEMPLATE() LANGULUS(INLINED)
+   TME() TME()::Select(Offset start, Count count) const IF_UNSAFE(noexcept) {
+      return {Base::Select(start, count)};
+   }
    
+   TEMPLATE() LANGULUS(INLINED)
+   TME() TME()::Select(Offset start, Count count) IF_UNSAFE(noexcept) {
+      return {Base::Select(start, count)};
+   }*/
+
    /// Compare traits with anything                                           
    ///   @attention function signature must match Block::operator ==          
    ///      otherwise function resolution doesn't work properly on MSVC       
