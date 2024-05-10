@@ -518,9 +518,9 @@ namespace Langulus::Anyness
       }
    
       template<CT::Block THIS> NOD() IF_UNSAFE(constexpr)
-      THIS Crop(Offset, Count) IF_UNSAFE(noexcept);
+      THIS Select(Offset, Count) IF_UNSAFE(noexcept);
       template<CT::Block THIS> NOD() IF_UNSAFE(constexpr)
-      THIS Crop(Offset, Count) const IF_UNSAFE(noexcept);
+      THIS Select(Offset, Count) const IF_UNSAFE(noexcept);
 
       template<Count = CountMax>
       NOD() Block<> GetElementDense(Offset = 0);

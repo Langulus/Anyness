@@ -74,7 +74,13 @@ namespace Langulus::Anyness
       if (not count)
          return;
 
-      if constexpr (S::Move or S::Keep) {
+      if constexpr (CT::Copied<S> or CT::Cloned<S>) {
+         // Copy/Clone                                                  
+         AllocateFresh(RequestSize(count));
+         mCount = count;
+         memcpy(mRaw, DesemCast(other), count);
+      }
+      else if constexpr (S::Move or S::Keep) {
          // Will perform search and take authority if not owned by us   
          new (this) Base {
             DataState::Constrained, GetType(), count, DesemCast(other)
@@ -106,7 +112,16 @@ namespace Langulus::Anyness
       else
          count = DesemCast(other).size();
 
-      if constexpr (S::Move or S::Keep) {
+      if (not count)
+         return;
+
+      if constexpr (CT::Copied<S> or CT::Cloned<S>) {
+         // Copy/Clone                                                  
+         AllocateFresh(RequestSize(count));
+         mCount = count;
+         memcpy(mRaw, DesemCast(other).data(), count);
+      }
+      else if constexpr (S::Move or S::Keep) {
          // Will perform search and take authority if not owned by us   
          new (this) Base {
             DataState::Constrained, GetType(), count, DesemCast(other).data()
@@ -438,28 +453,28 @@ namespace Langulus::Anyness
    ///   @param count - the number of characters after 'start'                
    ///   @return new text that references the original memory                 
    LANGULUS(INLINED)
-   Text Text::Crop(CT::Index auto start, Count count) const IF_UNSAFE(noexcept) {
-      return Block::Crop<Text>(start, count);
+   Text Text::Select(CT::Index auto start, Count count) const IF_UNSAFE(noexcept) {
+      return Block::Select<Text>(start, count);
    }
 
    LANGULUS(INLINED)
-   Text Text::Crop(CT::Index auto start, Count count) IF_UNSAFE(noexcept) {
-      return Block::Crop<Text>(start, count);
+   Text Text::Select(CT::Index auto start, Count count) IF_UNSAFE(noexcept) {
+      return Block::Select<Text>(start, count);
    }
 
    /// Select a substring on the right of the index                           
    ///   @param start - offset of the starting character                      
    ///   @return new text that references the original memory                 
    LANGULUS(INLINED)
-   Text Text::Crop(CT::Index auto start) const IF_UNSAFE(noexcept) {
+   Text Text::Select(CT::Index auto start) const IF_UNSAFE(noexcept) {
       const auto index = SimplifyIndex(start);
-      return Crop(index, mCount - index);
+      return Select(index, mCount - index);
    }
 
    LANGULUS(INLINED)
-   Text Text::Crop(CT::Index auto start) IF_UNSAFE(noexcept) {
+   Text Text::Select(CT::Index auto start) IF_UNSAFE(noexcept) {
       const auto index = SimplifyIndex(start);
-      return Crop(index, mCount - index);
+      return Select(index, mCount - index);
    }
 
    /// Remove all instances of 'what' from the text container                 

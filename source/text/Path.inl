@@ -31,7 +31,7 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    Text Path::GetExtension() const {
       const auto found = Find<true>('.');
-      return found ? Text::Crop(found.GetOffsetUnsafe() + 1) : Text {};
+      return found ? Text::Select(found.GetOffsetUnsafe() + 1) : Text {};
    }
 
    /// Return the directory part of the path                                  
@@ -39,7 +39,7 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    Path Path::GetDirectory() const {
       const auto found = Find<true>(Separator);
-      return found ? Text::Crop(0, found.GetOffsetUnsafe() + 1) : Path {};
+      return found ? Text::Select(0, found.GetOffsetUnsafe() + 1) : Path {};
    }
 
    /// Return the filename part of the path                                   
@@ -47,7 +47,7 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    Path Path::GetFilename() const {
       const auto found = Find<true>(Separator);
-      return found ? Text::Crop(found + 1) : Path {*this};
+      return found ? Text::Select(found + 1) : Path {*this};
    }
 
    /// Append a subdirectory or filename                                      
@@ -59,7 +59,7 @@ namespace Langulus::Anyness
 
       if (*last() == Separator) {
          if (*rhs.last() == Separator)
-            return *this + rhs.Crop(1);
+            return *this + rhs.Select(1);
          else
             return *this + rhs;
       }
@@ -83,7 +83,7 @@ namespace Langulus::Anyness
 
       if (*last() == Separator) {
          if (*rhs.last() == Separator)
-            *this += rhs.Crop(1);
+            *this += rhs.Select(1);
          else
             *this += rhs;
       }

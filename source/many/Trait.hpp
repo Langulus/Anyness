@@ -120,6 +120,12 @@ namespace Langulus::Anyness
       NOD() bool HasCorrectData() const;
 
       ///                                                                     
+      ///   Indexing                                                          
+      ///                                                                     
+      NOD() Trait Select(Offset, Count) IF_UNSAFE(noexcept);
+      NOD() Trait Select(Offset, Count) const IF_UNSAFE(noexcept);
+
+      ///                                                                     
       ///   Compare                                                           
       ///                                                                     
       template<CT::TraitBased = Trait, CT::NotSemantic T> requires CT::NotOwned<T>

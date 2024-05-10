@@ -284,7 +284,7 @@ namespace Langulus::Anyness
    ///   @return the block representing the region                            
    template<class TYPE> template<CT::Block THIS>
    LANGULUS(INLINED) IF_UNSAFE(constexpr)
-   THIS Block<TYPE>::Crop(Offset start, Count count) IF_UNSAFE(noexcept) {
+   THIS Block<TYPE>::Select(Offset start, Count count) IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, start + count <= mCount, "Out of limits");
 
       if (count == 0) {
@@ -305,8 +305,8 @@ namespace Langulus::Anyness
    ///   @return the block representing the region                            
    template<class TYPE> template<CT::Block THIS>
    LANGULUS(ALWAYS_INLINED) IF_UNSAFE(constexpr)
-   THIS Block<TYPE>::Crop(Offset start, Count count) const IF_UNSAFE(noexcept) {
-      auto result = const_cast<Block*>(this)->template Crop<THIS>(start, count);
+   THIS Block<TYPE>::Select(Offset start, Count count) const IF_UNSAFE(noexcept) {
+      auto result = const_cast<Block*>(this)->template Select<THIS>(start, count);
       result.MakeConst();
       return result;
    }

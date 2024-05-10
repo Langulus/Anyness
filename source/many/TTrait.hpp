@@ -56,6 +56,12 @@ namespace Langulus::Anyness
       NOD() constexpr bool HasCorrectData() const;
 
       ///                                                                     
+      ///   Indexing                                                          
+      ///                                                                     
+      //NOD() TTrait Select(Offset, Count) IF_UNSAFE(noexcept);
+      //NOD() TTrait Select(Offset, Count) const IF_UNSAFE(noexcept);
+
+      ///                                                                     
       ///   Compare                                                           
       ///                                                                     
       template<CT::NotSemantic T> requires CT::NotOwned<T>
@@ -91,6 +97,8 @@ namespace Langulus::Anyness
          using TTrait<T>::operator ==; \
          using TTrait<T>::operator +; \
          using TTrait<T>::operator +=; \
+         NOD() T Select(Offset s, Langulus::Count c) IF_UNSAFE(noexcept) { return {Many::Select(s, c)}; } \
+         NOD() T Select(Offset s, Langulus::Count c) const IF_UNSAFE(noexcept) { return {Many::Select(s, c)}; } \
       }; \
    }
 
@@ -104,6 +112,8 @@ namespace Langulus::Anyness
          using TTrait<T>::operator ==; \
          using TTrait<T>::operator +; \
          using TTrait<T>::operator +=; \
+         NOD() T Select(Offset s, Langulus::Count c) IF_UNSAFE(noexcept) { return {Many::Select(s, c)}; } \
+         NOD() T Select(Offset s, Langulus::Count c) const IF_UNSAFE(noexcept) { return {Many::Select(s, c)}; } \
          PROPERTIES; \
       }; \
    }

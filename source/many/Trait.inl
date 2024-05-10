@@ -178,6 +178,20 @@ namespace Langulus::Anyness
       return CastsToMeta(mTraitType->mDataType);
    }
 
+   /// Pick a constant region and reference it from another container         
+   ///   @param start - starting element index                                
+   ///   @param count - number of elements                                    
+   ///   @return the container                                                
+   LANGULUS(INLINED)
+   Trait Trait::Select(Offset start, Count count) const IF_UNSAFE(noexcept) {
+      return {Base::Select(start, count)};
+   }
+   
+   LANGULUS(INLINED)
+   Trait Trait::Select(Offset start, Count count) IF_UNSAFE(noexcept) {
+      return {Base::Select(start, count)};
+   }
+
    /// Compare traits with other traits, or by contents                       
    ///   @attention function signature must match Block::operator ==          
    ///      otherwise function resolution doesn't work properly on MSVC       
