@@ -114,7 +114,7 @@ namespace Langulus::CT
    /// that's filled with dense characters                                    
    template<class...T>
    concept StdString = StdContiguousContainer<T...>
-       and DenseCharacter<TypeOf<T>...>;
+       and Character<TypeOf<T>...>;
 
    /// Concept for differentiating managed text types, based on Anyness::Text 
    /// Text containers are always binary compatible to Block                  
@@ -124,10 +124,7 @@ namespace Langulus::CT
    /// Concept for differentiating built-in text types, that are provided by  
    /// C++ itself (including standard library ones)                           
    template<class...T>
-   concept BuiltinText = ((String<T>
-        or DenseCharacter<T>
-        or StdString<T>
-      ) and ...);
+   concept BuiltinText = ((String<T> or Character<T> or StdString<T>) and ...);
 
    /// Concept for differentiating any form of text                           
    /// This includes: Text containers; any contiguous standard containers,    
@@ -280,7 +277,7 @@ namespace Langulus::Anyness
       template<class T> requires CT::String<Desem<T>>
       Text(T&&);
 
-      template<class T> requires CT::DenseCharacter<Desem<T>>
+      template<class T> requires CT::Character<Desem<T>>
       Text(T&&);
 
       template<class T> requires CT::StdString<Desem<T>>
@@ -333,7 +330,7 @@ namespace Langulus::Anyness
       ///   Comparison                                                        
       ///                                                                     
       bool operator == (const CT::Block auto&) const noexcept;
-      bool operator == (const CT::DenseCharacter auto&) const noexcept;
+      bool operator == (const CT::Character auto&) const noexcept;
       bool operator == (const CT::String auto&) const noexcept;
       bool operator == (const CT::StdString auto&) const noexcept;
       bool operator == (::std::nullptr_t) const noexcept;

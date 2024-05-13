@@ -64,6 +64,8 @@ namespace Langulus::Anyness
       NOD() static Many From(DataState = {}) noexcept;
       template<class AS = void, CT::Data...TN>
       NOD() static Many Wrap(TN&&...);
+      NOD() static Many Past() noexcept;
+      NOD() static Many Future() noexcept;
 
       ///                                                                     
       ///   Assignment                                                        

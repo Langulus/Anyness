@@ -16,8 +16,7 @@ namespace Langulus::Anyness
 
    /// Constructor from signed integer                                        
    ///   @param value - integer to set                                        
-   template<CT::SignedInteger T>
-   LANGULUS(INLINED)
+   template<CT::BuiltinSignedInteger T> LANGULUS(INLINED)
    constexpr Index::Index(const T& value) noexcept (sizeof(T) < sizeof(Type))
       : mIndex {value} {
       if constexpr (sizeof(T) >= sizeof(Type))
@@ -30,11 +29,10 @@ namespace Langulus::Anyness
    
    /// Constructor from unsigned integer                                      
    ///   @param value - integer to set                                        
-   template<CT::UnsignedInteger T>
-   LANGULUS(INLINED)
+   template<CT::BuiltinUnsignedInteger T> LANGULUS(INLINED)
    constexpr Index::Index(const T& value) noexcept (sizeof(T) <= sizeof(Type) / 2)
       : mIndex {static_cast<Type>(value)} {
-      if constexpr (sizeof(T) > sizeof(Type)/2) {
+      if constexpr (sizeof(T) > sizeof(Type) / 2) {
          constexpr T limit = static_cast<T>(MaxIndex);
          LANGULUS_ASSERT(value <= limit, Access, "Index overflow");
       }
@@ -59,9 +57,7 @@ namespace Langulus::Anyness
       case All: case Back:
          return {count};
       case Last:
-         return count 
-            ? Index {count - 1} 
-            : Index {None};
+         return count ? Index {count - 1} : Index {None};
       case Middle:
          return count / 2;
       case None:
@@ -217,7 +213,7 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    constexpr Index Index::operator - (const Index& v) const noexcept {
       if (not IsArithmetic() or not v.IsArithmetic()
-         or mIndex - v.mIndex < Counter)
+      or mIndex - v.mIndex < Counter)
          return *this; 
       return mIndex - v.mIndex; 
    }
