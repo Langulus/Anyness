@@ -196,10 +196,10 @@ namespace Langulus::Anyness
    }
 
    /// Convert a number type to text                                          
+   /// Notice that this constructor explicitly avoids character types         
    ///   @param number - the number to stringify                              
-   LANGULUS(INLINED)
-   Text::Text(const CT::BuiltinNumber auto& number) {
-      using T = Decay<decltype(number)>;
+   template<CT::BuiltinNumber T> requires (not CT::Character<T>)
+   LANGULUS(INLINED) Text::Text(const T& number) {
       mType = MetaDataOf<Letter>();
 
       if constexpr (CT::Real<T>) {
