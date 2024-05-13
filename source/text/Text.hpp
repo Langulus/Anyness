@@ -291,7 +291,9 @@ namespace Langulus::Anyness
       explicit Text(Operator);
 
       explicit Text(const CT::HasNamedValues auto&);
-      explicit Text(const CT::BuiltinNumber auto&);
+
+      template<CT::BuiltinNumber T> requires (not CT::Character<T>)
+      explicit Text(const T&);
 
       template<class T1, class T2, class...TN>
       requires CT::Inner::Stringifiable<T1, T2, TN...>
