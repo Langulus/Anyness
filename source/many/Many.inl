@@ -106,6 +106,22 @@ namespace Langulus::Anyness
       }
    }
 
+   /// Make an empty container with a missing past state                      
+   LANGULUS(INLINED)
+   Many Many::Past() noexcept {
+      Many result;
+      result.MakePast();
+      return result;
+   }
+
+   /// Make an empty container with a missing future state                    
+   LANGULUS(INLINED)
+   Many Many::Future() noexcept {
+      Many result;
+      result.MakeFuture();
+      return result;
+   }
+
    /// Refer assignment                                                       
    ///   @param rhs - the container to refer to                               
    ///   @return a reference to this container                                

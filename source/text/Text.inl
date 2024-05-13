@@ -43,7 +43,7 @@ namespace Langulus::Anyness
 
    /// Construct from single character                                        
    ///   @param other - the character to copy                                 
-   template<class T> requires CT::DenseCharacter<Desem<T>> LANGULUS(INLINED)
+   template<class T> requires CT::Character<Desem<T>> LANGULUS(INLINED)
    Text::Text(T&& other) {
       AllocateFresh(RequestSize(1));
       mCount = 1;
@@ -620,13 +620,14 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    bool Text::operator == (const CT::Block auto& rhs) const noexcept {
       using B = Deref<decltype(rhs)>;
-      if constexpr (CT::Typed<B>) {
+
+      if constexpr (not B::TypeErased) {
          if constexpr (CT::Similar<Letter, TypeOf<B>>) {
             // Comparing with another Text or TMany<Letter> - we can    
             // compare directly                                         
             return Base::operator == (static_cast<const Base&>(rhs));
          }
-         else if constexpr (CT::DenseCharacter<TypeOf<B>>) {
+         else if constexpr (CT::Character<TypeOf<B>>) {
             // We're comparing with a different type of characters -    
             // do UTF conversions here                                  
             TODO();
@@ -643,7 +644,7 @@ namespace Langulus::Anyness
    ///   @param rhs - the character to compare with                           
    ///   @return true if this container contains this exact character         
    LANGULUS(INLINED)
-   bool Text::operator == (const CT::DenseCharacter auto& rhs) const noexcept {
+   bool Text::operator == (const CT::Character auto& rhs) const noexcept {
       return operator == (Text::From(Disown(&rhs), 1));
    }
 
@@ -741,12 +742,12 @@ namespace Langulus::Anyness
       using B = TypeOf<S>;
 
       if constexpr (CT::Block<B>) {
-         if constexpr (CT::Typed<B>) {
+         if constexpr (not B::TypeErased) {
             if constexpr (CT::Similar<Letter, TypeOf<B>>) {
                // We can concat directly                                
                return Block::ConcatBlock<THIS>(S::Nest(rhs));
             }
-            else if constexpr (CT::DenseCharacter<TypeOf<B>>) {
+            else if constexpr (CT::Character<TypeOf<B>>) {
                // We're concatenating with different type of characters 
                // - do UTF conversions here                             
                TODO();
@@ -773,12 +774,12 @@ namespace Langulus::Anyness
       using B = TypeOf<S>;
 
       if constexpr (CT::Block<B>) {
-         if constexpr (CT::Typed<B>) {
+         if constexpr (not B::TypeErased) {
             if constexpr (CT::Similar<Letter, TypeOf<B>>) {
                // We can concat directly                                
                Base::InsertBlock<void>(IndexBack, S::Nest(rhs));
             }
-            else if constexpr (CT::DenseCharacter<TypeOf<B>>) {
+            else if constexpr (CT::Character<TypeOf<B>>) {
                // We're concatenating with different type of characters 
                // - do UTF conversions here                             
                TODO();

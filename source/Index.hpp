@@ -84,12 +84,12 @@ namespace Langulus::Anyness
       #if LANGULUS_DEBUG()
          union {
             // Named index (useful for debugging)                       
-            SpecialIndices mNamedIndex {SpecialIndices::None};
+            SpecialIndices mNamedIndex = SpecialIndices::None;
             // Raw index                                                
             Type mIndex;
          };
       #else
-         Type mIndex {SpecialIndices::None};
+         Type mIndex = SpecialIndices::None;
       #endif
 
    public:
@@ -97,9 +97,9 @@ namespace Langulus::Anyness
       constexpr Index(const Index&) noexcept = default;
       constexpr Index(const SpecialIndices& value) noexcept
          : mIndex {value} { }
-      template<CT::SignedInteger T>
+      template<CT::BuiltinSignedInteger T>
       constexpr Index(const T&) noexcept (sizeof(T) < sizeof(Type));
-      template<CT::UnsignedInteger T>
+      template<CT::BuiltinUnsignedInteger T>
       constexpr Index(const T&) noexcept (sizeof(T) <= sizeof(Type)/2);
       constexpr Index(const CT::Real auto&);
 
@@ -136,8 +136,8 @@ namespace Langulus::Anyness
       NOD() constexpr Index operator - () const noexcept;
 
       NOD() constexpr bool operator == (const Index&) const noexcept;
-      NOD() constexpr bool operator < (const Index&) const noexcept;
-      NOD() constexpr bool operator > (const Index&) const noexcept;
+      NOD() constexpr bool operator <  (const Index&) const noexcept;
+      NOD() constexpr bool operator >  (const Index&) const noexcept;
       NOD() constexpr bool operator <= (const Index&) const noexcept;
       NOD() constexpr bool operator >= (const Index&) const noexcept;
    };
