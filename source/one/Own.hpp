@@ -14,21 +14,24 @@ namespace Langulus
 {
    namespace A
    {
+
       /// An abstract owned value                                             
       struct Owned {
          LANGULUS(ABSTRACT) true;
       };
-   }
+
+   } // namespace Langulus::A
 
    namespace CT
    {
+
       /// Anything derived from A::Owned                                      
       template<class...T>
-      concept Owned = (DerivedFrom<T, A::Owned> and ...);
+      concept Owned = ((CT::Dense<T> and DerivedFrom<T, A::Owned>) and ...);
 
       /// Anything not derived from A::Owned                                  
       template<class...T>
-      concept NotOwned = CT::Data<T...> and ((not Owned<T>) and ...);
+      concept NotOwned = ((not Owned<T> and not Block<T>) and ...);
 
       /// Any owned pointer                                                   
       template<class...T>
@@ -37,6 +40,25 @@ namespace Langulus
       /// Anything usable to initialize a shared pointer                      
       template<class...T>
       concept PointerRelated = ((Pointer<T> or Sparse<T> or Nullptr<T>) and ...);
+
+   } // namespace Langulus::CT
+   
+   template<CT::Owned T1, CT::Owned T2>
+   requires CT::Comparable<TypeOf<T1>, TypeOf<T2>> LANGULUS(INLINED)
+   constexpr bool operator == (const T1& lhs, const T2& rhs) noexcept {
+      return lhs.Get() == rhs.Get();
+   }
+
+   template<CT::Owned T1, CT::NotOwned T2>
+   requires CT::Comparable<TypeOf<T1>, T2> LANGULUS(INLINED)
+   constexpr bool operator == (const T1& lhs, const T2& rhs) noexcept {
+      return lhs.Get() == rhs;
+   }
+
+   template<CT::Owned T1, CT::NotOwned T2>
+   requires CT::Comparable<T2, TypeOf<T1>> LANGULUS(INLINED)
+   constexpr bool operator == (const T2& lhs, const T1& rhs) noexcept {
+      return lhs == rhs.Get();
    }
 
 } // namespace Langulus
@@ -130,34 +152,6 @@ namespace Langulus::Anyness
       NOD() constexpr operator const T&() const noexcept;
       NOD() constexpr operator T&() noexcept;
    };
-
-   template<CT::Data T1, CT::Data T2>
-   requires CT::Comparable<T1, T2> LANGULUS(INLINED)
-   constexpr bool operator == (const Own<T1>& lhs, const Own<T2>& rhs) noexcept {
-      return lhs.Get() == rhs.Get();
-   }
-
-   template<CT::Data T1, CT::NotOwned T2>
-   requires CT::Comparable<T1, T2> LANGULUS(INLINED)
-   constexpr bool operator == (const Own<T1>& lhs, const T2& rhs) noexcept {
-      return lhs.Get() == rhs;
-   }
-
-   template<CT::Data T1, CT::NotOwned T2>
-   requires CT::Comparable<T2, T1> LANGULUS(INLINED)
-   constexpr bool operator == (const T2& lhs, const Own<T1>& rhs) noexcept {
-      return lhs == rhs.Get();
-   }
-
-   template<CT::Sparse T> LANGULUS(INLINED)
-   constexpr bool operator == (const Own<T>& lhs, ::std::nullptr_t) noexcept {
-      return lhs.Get() == nullptr;
-   }
-
-   template<CT::Sparse T> LANGULUS(INLINED)
-   constexpr bool operator == (::std::nullptr_t, const Own<T>& rhs) noexcept {
-      return rhs.Get() == nullptr;
-   }
 
 } // namespace Langulus::Anyness
 
