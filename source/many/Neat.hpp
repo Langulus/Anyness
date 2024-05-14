@@ -75,6 +75,7 @@ namespace Langulus::Anyness
    public:
       LANGULUS(DEEP) true;
       static constexpr bool Ownership = true;
+      static constexpr bool CTTI_Container = true;
 
       ///                                                                     
       ///   Construction                                                      

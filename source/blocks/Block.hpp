@@ -28,8 +28,14 @@ namespace Langulus
          LANGULUS(ABSTRACT) true;
          LANGULUS(DEEP) true;
          LANGULUS(POD) true;
+         static constexpr bool CTTI_Container = true;
 
       protected:
+         using DMeta = Anyness::DMeta;
+         using CMeta = Anyness::CMeta;
+         using Allocation = Anyness::Allocation;
+         using Allocator  = Anyness::Allocator;
+
          union {
             DEBUGGERY(char* mRawChar);
             // Raw pointer to first element inside the memory block     

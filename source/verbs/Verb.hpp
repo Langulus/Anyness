@@ -26,8 +26,11 @@ namespace Langulus::A
       LANGULUS(DEEP) false;
       LANGULUS_BASES(Anyness::Many, Anyness::Charge);
       LANGULUS_CONVERTS_TO(Anyness::Text);
+      static constexpr bool CTTI_Container = true;
 
    protected:
+      using VMeta = Anyness::VMeta;
+
       // Verb meta, mass, rate, time and priority                       
       mutable VMeta mVerb {};
       // The number of successful executions                            

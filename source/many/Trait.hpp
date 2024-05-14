@@ -26,7 +26,8 @@ namespace Langulus
          LANGULUS_BASES(Anyness::Many);
 
       protected:
-         using Base = Anyness::Many;
+         using Base  = Anyness::Many;
+         using TMeta = Anyness::TMeta;
 
          // The trait tag                                               
          mutable TMeta mTraitType {};

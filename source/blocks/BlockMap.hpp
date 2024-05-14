@@ -27,6 +27,7 @@ namespace Langulus
          using InfoType = ::std::uint8_t;
          using OrderType = Offset;
 
+         static constexpr bool CTTI_Container = true;
          static constexpr bool Sequential = false;
          static constexpr Offset InvalidOffset = -1;
          static constexpr Count MinimalAllocation = 8;
