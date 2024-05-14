@@ -533,6 +533,13 @@ TEMPLATE_TEST_CASE(
 
       for (int iii = 0; iii < 10; ++iii) {
       WHEN(std::string("Removing elements by value #") + std::to_string(iii)) {
+         static_assert(CT::Owned<Own<Trait*>>);
+         static_assert(CT::Owned<Ref<Trait>>);
+         static_assert(CT::NotOwned<Trait*>);
+         static_assert(CT::NotOwned<Trait>);
+         static_assert(CT::Comparable<Trait*, Own<Trait*>>);
+         static_assert(CT::Comparable<Trait*, Ref<Trait>>);
+
          const auto removed2 = map.RemoveValue(darray1[1].mValue);
          const auto removed4 = map.RemoveValue(darray1[3].mValue);
 
