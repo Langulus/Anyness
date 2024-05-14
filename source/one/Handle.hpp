@@ -62,6 +62,8 @@ namespace Langulus::Anyness
       static constexpr bool Sparse     = CT::Sparse<T>;
       static constexpr bool Dense      = not Sparse;
       static constexpr bool Mutable    = CT::Mutable<T>;
+      static constexpr bool CTTI_Container = true;
+
       static_assert(Embedded or not TypeErased or Sparse,
          "Can't have a type-erased local handle, unless it is sparse");
 

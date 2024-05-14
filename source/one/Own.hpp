@@ -15,9 +15,12 @@ namespace Langulus
    namespace A
    {
 
+      ///                                                                     
       /// An abstract owned value                                             
+      ///                                                                     
       struct Owned {
          LANGULUS(ABSTRACT) true;
+         static constexpr bool CTTI_Container = true;
       };
 
    } // namespace Langulus::A
@@ -31,7 +34,7 @@ namespace Langulus
 
       /// Anything not derived from A::Owned                                  
       template<class...T>
-      concept NotOwned = ((not Owned<T> and not Block<T>) and ...);
+      concept NotOwned = ((not Owned<T>) and ...);
 
       /// Any owned pointer                                                   
       template<class...T>
@@ -43,19 +46,23 @@ namespace Langulus
 
    } // namespace Langulus::CT
    
+
+   /// Owned == Owned                                                         
    template<CT::Owned T1, CT::Owned T2>
    requires CT::Comparable<TypeOf<T1>, TypeOf<T2>> LANGULUS(INLINED)
    constexpr bool operator == (const T1& lhs, const T2& rhs) noexcept {
       return lhs.Get() == rhs.Get();
    }
 
-   template<CT::Owned T1, CT::NotOwned T2>
+   /// Owned == Non-container type                                            
+   template<CT::Owned T1, CT::NotContainer T2>
    requires CT::Comparable<TypeOf<T1>, T2> LANGULUS(INLINED)
    constexpr bool operator == (const T1& lhs, const T2& rhs) noexcept {
       return lhs.Get() == rhs;
    }
 
-   template<CT::Owned T1, CT::NotOwned T2>
+   /// Non-container type == Owned                                            
+   template<CT::Owned T1, CT::NotContainer T2>
    requires CT::Comparable<T2, TypeOf<T1>> LANGULUS(INLINED)
    constexpr bool operator == (const T2& lhs, const T1& rhs) noexcept {
       return lhs == rhs.Get();

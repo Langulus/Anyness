@@ -20,6 +20,7 @@ namespace Langulus
       ///                                                                     
       struct Pair {
          LANGULUS_ABSTRACT() true;
+         static constexpr bool CTTI_Container = true;
       };
 
    } // namespace Langulus::A

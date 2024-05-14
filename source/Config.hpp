@@ -20,14 +20,8 @@
 /// Enable memory manager                                                     
 #if LANGULUS_FEATURE(MANAGED_MEMORY)
    #include <Fractalloc/Allocator.hpp>
-
-   using Allocator = ::Langulus::Fractalloc::Allocator;
-   using Allocation = ::Langulus::Fractalloc::Allocation;
 #else
    #include "memory/NoAllocator.hpp"
-
-   using Allocator = ::Langulus::Anyness::Allocator;
-   using Allocation = ::Langulus::Anyness::Allocation;
 #endif
 
 /// Make the rest of the code aware, that Langulus::Anyness has been included 
@@ -40,10 +34,10 @@ namespace Langulus
    /// Loop controls from inside ForEach lambdas when iterating containers    
    struct LoopControl {
       enum Command : int {
-         Break = 0,     // Break the loop                                  
-         Continue = 1,  // Continue the loop                               
-         Discard = 2,   // Remove the current element                      
-         NextLoop = 3   // Skip to next function in the visitor pattern    
+         Break = 0,     // Break the loop                               
+         Continue = 1,  // Continue the loop                            
+         Discard = 2,   // Remove the current element                   
+         NextLoop = 3   // Skip to next function in the visitor pattern 
       } mControl;
 
       LoopControl() = delete;
@@ -64,26 +58,50 @@ namespace Langulus
 
    namespace Loop
    {
+
       constexpr LoopControl Break      = LoopControl::Break;
       constexpr LoopControl Continue   = LoopControl::Continue;
       constexpr LoopControl Discard    = LoopControl::Discard;
       constexpr LoopControl NextLoop   = LoopControl::NextLoop;
-   }
 
-   using RTTI::DMeta;
-   using RTTI::CMeta;
-   using RTTI::TMeta;
-   using RTTI::VMeta;
-   using RTTI::AMeta;
+   } // namespace Langulus::Loop
+
+   namespace CT
+   {
+
+      /// The ultimate Anyness container tag                                  
+      /// Checks if all T are marked as Anyness containers                    
+      template<class...T>
+      concept Container = (requires { Decay<T>::CTTI_Container; } and ...);
+
+      /// Checks if none of the Ts are marked as Anyness containers           
+      template<class...T>
+      concept NotContainer = ((not Container<T>) and ...);
+
+   } // namespace Langulus::CT
 
    namespace Anyness
    {
+      #if LANGULUS_FEATURE(MANAGED_MEMORY)
+         using Allocator  = ::Langulus::Fractalloc::Allocator;
+         using Allocation = ::Langulus::Fractalloc::Allocation;
+      #else
+         using Allocator  = ::Langulus::Anyness::Allocator;
+         using Allocation = ::Langulus::Anyness::Allocation;
+      #endif
+
+      using RTTI::DMeta;
+      using RTTI::CMeta;
+      using RTTI::TMeta;
+      using RTTI::VMeta;
+      using RTTI::AMeta;
       using RTTI::AllocationRequest;
 
       template<class, bool EMBED = true>
       struct Handle;
 
       class Many;
+      using Messy = Many;
       template<CT::Data>
       class TMany;
 
@@ -125,7 +143,6 @@ namespace Langulus
       class Ref;
 
       class Construct;
-      using Messy = Many;
       class Neat;
 
    } // namespace Langulus::Anyness
