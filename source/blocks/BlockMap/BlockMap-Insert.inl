@@ -594,17 +594,9 @@ namespace Langulus::Anyness
    ///   @return the offset at which pair was inserted                        
    template<CT::Map THIS, bool CHECK_FOR_MATCH>
    Offset BlockMap::InsertInner(const Offset start, auto&& key, auto&& val) {
+      BranchOut<THIS>();
       using SK = SemanticOf<decltype(key)>;
       using SV = SemanticOf<decltype(val)>;
-
-      if (GetUses() > 1) {
-         // Map is used from multiple locations, and we must branch out 
-         // before changing it - only this copy will be affected        
-         const BlockMap backup = *this;
-         const_cast<Allocation*>(mKeys.mEntry)->Free();
-         new (this) THIS {Copy(reinterpret_cast<const THIS&>(backup))};
-      }
-
       auto keyswapper = CreateKeyHandle<THIS>(SK::Nest(key));
       auto valswapper = CreateValHandle<THIS>(SV::Nest(val));
 
@@ -666,11 +658,7 @@ namespace Langulus::Anyness
    template<CT::Map THIS, bool CHECK_FOR_MATCH, template<class> class S1, template<class> class S2, CT::Block T>
    requires CT::Semantic<S1<T>, S2<T>>
    Offset BlockMap::InsertBlockInner(const Offset start, S1<T>&& key, S2<T>&& val) {
-      if (GetUses() > 1) {
-         // Map is used from multiple locations, and we mush branch out 
-         // before changing it                                          
-         TODO();
-      }
+      BranchOut<THIS>();
 
       // Get the starting index based on the key hash                   
       auto psl = GetInfo() + start;

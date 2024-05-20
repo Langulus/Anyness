@@ -134,6 +134,9 @@ namespace Langulus::Anyness
       requires CT::Semantic<S<FROM>>
       void CloneValuesReinsertInner(CT::Block auto&, S<FROM>&&);
 
+      template<CT::Map>
+      void BranchOut();
+
    public:
       ///                                                                     
       ///   Capsulation                                                       

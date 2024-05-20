@@ -100,6 +100,9 @@ namespace Langulus::Anyness
       requires CT::Semantic<S<FROM>>
       void BlockTransfer(S<FROM>&&);
 
+      template<CT::Set>
+      void BranchOut();
+
    public:
       ///                                                                     
       ///   Capsulation                                                       

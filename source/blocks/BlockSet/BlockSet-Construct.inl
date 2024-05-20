@@ -328,5 +328,21 @@ namespace Langulus::Anyness
          }
       }
    }
+   
+   /// Branch the set, by doing a shallow copy                                
+   template<CT::Set THIS>
+   void BlockSet::BranchOut() {
+      if (GetUses() > 1) {
+         // Set is used from multiple locations, and we must branch out 
+         // before changing it - only this copy will be affected        
+         if constexpr (CT::Typed<THIS> and CT::ReferMakable<TypeOf<THIS>>) {
+            const BlockSet backup = *this;
+            const_cast<Allocation*>(mKeys.mEntry)->Free();
+            new (this) THIS {Copy(reinterpret_cast<const THIS&>(backup))};
+         }
+         else LANGULUS_THROW(Construct,
+            "Set needs to branch out, but type doesn't support it");
+      }
+   }
 
 } // namespace Langulus::Anyness

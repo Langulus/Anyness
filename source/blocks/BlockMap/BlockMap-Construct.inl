@@ -594,4 +594,22 @@ namespace Langulus::Anyness
       }
    }
 
+   /// Branch the map, by doing a shallow copy                                
+   template<CT::Map THIS>
+   void BlockMap::BranchOut() {
+      if (GetUses() > 1) {
+         // Map is used from multiple locations, and we must branch out 
+         // before changing it - only this copy will be affected        
+         if constexpr (CT::Typed<THIS>
+            and CT::ReferMakable<typename THIS::Key>
+            and CT::ReferMakable<typename THIS::Value>) {
+            const BlockMap backup = *this;
+            const_cast<Allocation*>(mKeys.mEntry)->Free();
+            new (this) THIS {Copy(reinterpret_cast<const THIS&>(backup))};
+         }
+         else LANGULUS_THROW(Construct,
+            "Map needs to branch out, but key/value type doesn't support it");
+      }
+   }
+
 } // namespace Langulus::Anyness
