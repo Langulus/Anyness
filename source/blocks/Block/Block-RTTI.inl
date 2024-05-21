@@ -352,7 +352,7 @@ namespace Langulus::Anyness
          // No need to mutate - types are compatible                    
          return false;
       }
-      else if (not IsInsertable(meta)) {
+      else /*if (not IsInsertable(meta))*/ {
          // Not insertable because of reasons                           
          if constexpr (not CT::Void<FORCE>) {
             LANGULUS_ASSERT(not IsTypeConstrained(), Mutate,
@@ -367,6 +367,7 @@ namespace Langulus::Anyness
          }
          else LANGULUS_OOPS(Mutate, "Can't mutate to incompatible type");
       }
+      //else LANGULUS_OOPS(Mutate, "Can't mutate to incompatible type");
 
       // Block may have mutated, but it didn't happen                   
       return false;
