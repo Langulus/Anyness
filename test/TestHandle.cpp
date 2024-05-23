@@ -14,6 +14,7 @@
 template<class T, class...FROM>
 TMany<T> CreateManagedElements(FROM&&...from) {
    static_assert(CT::MakableFrom<Decay<T>, Decay<FROM>...>);
+#if LANGULUS_FEATURE(MANAGED_MEMORY)
    TMany<Decay<T>> base {DecayCast(from)...};
    if constexpr (CT::Similar<T, Decay<T>>)
       return base;
@@ -26,6 +27,14 @@ TMany<T> CreateManagedElements(FROM&&...from) {
       }
       else LANGULUS_ERROR("TODO sparser T");
    }
+#else
+   if constexpr (CT::Dense<T>)
+      return {Forward<FROM>(from)...};
+   else if constexpr (CT::Sparse<T> and CT::Dense<Deptr<T>>)
+      return {new Decay<T> {Forward<FROM>(from)}...};
+   else
+      LANGULUS_ERROR("TODO sparser T");
+#endif
 }
 
 /// Create a dense or sparse local handle by providing simple arguments       
@@ -45,7 +54,7 @@ HandleLocal<T> CreateHandle(FROM&& from) {
 
 ///                                                                           
 TEMPLATE_TEST_CASE("Handles from sequential containers", "[handle]",
-   RT, RT*, int, int*
+   RT*, RT, int, int*
 ) {
    static Allocator::State memoryState;
 
@@ -72,6 +81,7 @@ TEMPLATE_TEST_CASE("Handles from sequential containers", "[handle]",
       Handle<T> h1 = data.GetHandle(1);
       Handle<T> h2 = data.GetHandle(2);
 
+   #if LANGULUS_FEATURE(MANAGED_MEMORY)
       REQUIRE(h0.GetEntry());
       REQUIRE(h0.GetEntry() == h1.GetEntry());
       REQUIRE(h0.GetEntry() == h2.GetEntry());
@@ -81,6 +91,7 @@ TEMPLATE_TEST_CASE("Handles from sequential containers", "[handle]",
          REQUIRE(h0.GetEntry()->GetUses() == 3);
       else
          REQUIRE(h0.GetEntry()->GetUses() == 1);
+   #endif
 
       if constexpr (REFERENCABLE) {
          REQUIRE(DenseCast(h0.Get()).Reference(0) == 1);
@@ -99,7 +110,7 @@ TEMPLATE_TEST_CASE("Handles from sequential containers", "[handle]",
          TMany<T> next = CreateManagedElements<T>(0);
          Handle<T> n = next.GetHandle(0);
          const Allocation* const n0e = n.GetEntry();
-         REQUIRE(n0e->GetUses() == 1);
+         IF_LANGULUS_MANAGED_MEMORY(REQUIRE(n0e->GetUses() == 1));
 
          n.AssignSemantic(Move(h0));
 
@@ -111,7 +122,7 @@ TEMPLATE_TEST_CASE("Handles from sequential containers", "[handle]",
                REQUIRE(n.Get() == h0p);
                REQUIRE(n.GetEntry() == h0e);
                REQUIRE(n.Get()->Reference(0) == 1);
-               REQUIRE(n.GetEntry()->GetUses() == 3);
+               IF_LANGULUS_MANAGED_MEMORY(REQUIRE(n.GetEntry()->GetUses() == 3));
                REQUIRE(n.Get()->data == h0p->data);
                REQUIRE(n.Get()->destroyed == false);
                REQUIRE(n.Get()->moved_in == false);
@@ -138,7 +149,7 @@ TEMPLATE_TEST_CASE("Handles from sequential containers", "[handle]",
 
                REQUIRE(n.Get() == h0p);
                REQUIRE(n.GetEntry() == h0e);
-               REQUIRE(n.GetEntry()->GetUses() == 3);
+               IF_LANGULUS_MANAGED_MEMORY(REQUIRE(n.GetEntry()->GetUses() == 3));
             }
             else {
                REQUIRE(n.Get() == h0p);
@@ -153,7 +164,7 @@ TEMPLATE_TEST_CASE("Handles from sequential containers", "[handle]",
          Handle<T> n = next.GetHandle(0);
          T const n0p = n.Get();
          const Allocation* const n0e = n.GetEntry();
-         REQUIRE(n0e->GetUses() == 1);
+         IF_LANGULUS_MANAGED_MEMORY(REQUIRE(n0e->GetUses() == 1));
 
          n.Swap(h0);
 
@@ -162,7 +173,7 @@ TEMPLATE_TEST_CASE("Handles from sequential containers", "[handle]",
                REQUIRE(h0.Get() == n0p);
                REQUIRE(h0.GetEntry() == n0e);
                REQUIRE(h0.Get()->Reference(0) == 1);
-               REQUIRE(h0.GetEntry()->GetUses() == 1);
+               IF_LANGULUS_MANAGED_MEMORY(REQUIRE(h0.GetEntry()->GetUses() == 1));
                REQUIRE(h0.Get()->data == n0p->data);
                REQUIRE(h0.Get()->destroyed == false);
                REQUIRE(h0.Get()->moved_in == false);
@@ -171,7 +182,7 @@ TEMPLATE_TEST_CASE("Handles from sequential containers", "[handle]",
                REQUIRE(n.Get() == h0p);
                REQUIRE(n.GetEntry() == h0e);
                REQUIRE(n.Get()->Reference(0) == 1);
-               REQUIRE(n.GetEntry()->GetUses() == 3);
+               IF_LANGULUS_MANAGED_MEMORY(REQUIRE(n.GetEntry()->GetUses() == 3));
                REQUIRE(n.Get()->data == h0p->data);
                REQUIRE(n.Get()->destroyed == false);
                REQUIRE(n.Get()->moved_in == false);
@@ -197,11 +208,11 @@ TEMPLATE_TEST_CASE("Handles from sequential containers", "[handle]",
             if constexpr (SPARSE) {
                REQUIRE(h0.Get() == n0p);
                REQUIRE(h0.GetEntry() == n0e);
-               REQUIRE(h0.GetEntry()->GetUses() == 1);
+               IF_LANGULUS_MANAGED_MEMORY(REQUIRE(h0.GetEntry()->GetUses() == 1));
 
                REQUIRE(n.Get() == h0p);
                REQUIRE(n.GetEntry() == h0e);
-               REQUIRE(n.GetEntry()->GetUses() == 3);
+               IF_LANGULUS_MANAGED_MEMORY(REQUIRE(n.GetEntry()->GetUses() == 3));
             }
             else {
                REQUIRE(h0.Get() == n0p);
@@ -223,7 +234,7 @@ TEMPLATE_TEST_CASE("Handles from sequential containers", "[handle]",
          const Allocation* const n0e = n.GetEntry();
 
          if constexpr (SPARSE)
-            REQUIRE(n0e->GetUses() == 1);
+            IF_LANGULUS_MANAGED_MEMORY(REQUIRE(n0e->GetUses() == 1));
          else
             REQUIRE(n0e == nullptr);
 
@@ -233,8 +244,12 @@ TEMPLATE_TEST_CASE("Handles from sequential containers", "[handle]",
             if constexpr (SPARSE) {
                REQUIRE(h0.Get() == n0p);
                REQUIRE(h0.GetEntry() == n0e);
-               REQUIRE(h0.Get()->Reference(0) == 2);
-               REQUIRE(h0.GetEntry()->GetUses() == 2);
+               #if LANGULUS_FEATURE(MANAGED_MEMORY)
+                  REQUIRE(h0.Get()->Reference(0) == 2);
+               #else
+                  REQUIRE(h0.Get()->Reference(0) == 1);
+               #endif
+               IF_LANGULUS_MANAGED_MEMORY(REQUIRE(h0.GetEntry()->GetUses() == 2));
                REQUIRE(h0.Get()->data == n0p->data);
                REQUIRE(h0.Get()->destroyed == false);
                REQUIRE(h0.Get()->moved_in == false);
@@ -243,7 +258,7 @@ TEMPLATE_TEST_CASE("Handles from sequential containers", "[handle]",
                REQUIRE(n.Get() == h0p);
                REQUIRE(n.GetEntry() == h0e);
                REQUIRE(n.Get()->Reference(0) == 1);
-               REQUIRE(n.GetEntry()->GetUses() == 3);
+               IF_LANGULUS_MANAGED_MEMORY(REQUIRE(n.GetEntry()->GetUses() == 3));
                REQUIRE(n.Get()->data == h0p->data);
                REQUIRE(n.Get()->destroyed == false);
                REQUIRE(n.Get()->moved_in == false);
@@ -269,11 +284,11 @@ TEMPLATE_TEST_CASE("Handles from sequential containers", "[handle]",
             if constexpr (SPARSE) {
                REQUIRE(h0.Get() == n0p);
                REQUIRE(h0.GetEntry() == n0e);
-               REQUIRE(h0.GetEntry()->GetUses() == 2);
+               IF_LANGULUS_MANAGED_MEMORY(REQUIRE(h0.GetEntry()->GetUses() == 2));
 
                REQUIRE(n.Get() == h0p);
                REQUIRE(n.GetEntry() == h0e);
-               REQUIRE(n.GetEntry()->GetUses() == 3);
+               IF_LANGULUS_MANAGED_MEMORY(REQUIRE(n.GetEntry()->GetUses() == 3));
             }
             else {
                REQUIRE(h0.Get() == n0p);
@@ -313,7 +328,7 @@ TEMPLATE_TEST_CASE("Handles from sequential containers", "[handle]",
                REQUIRE(n.Get() == h0p);
                REQUIRE(n.GetEntry() == h0e);
                REQUIRE(n.Get()->Reference(0) == 1);
-               REQUIRE(n.GetEntry()->GetUses() == 3);
+               IF_LANGULUS_MANAGED_MEMORY(REQUIRE(n.GetEntry()->GetUses() == 3));
                REQUIRE(n.Get()->data == h0p->data);
                REQUIRE(n.Get()->destroyed == false);
                REQUIRE(n.Get()->moved_in == false);
@@ -342,7 +357,7 @@ TEMPLATE_TEST_CASE("Handles from sequential containers", "[handle]",
 
                REQUIRE(n.Get() == h0p);
                REQUIRE(n.GetEntry() == h0e);
-               REQUIRE(n.GetEntry()->GetUses() == 3);
+               IF_LANGULUS_MANAGED_MEMORY(REQUIRE(n.GetEntry()->GetUses() == 3));
             }
             else {
                REQUIRE(h0.Get() == n0p);
@@ -378,7 +393,7 @@ TEMPLATE_TEST_CASE("Handles from sequential containers", "[handle]",
                REQUIRE(local.Get() == h0p);
                REQUIRE(local.GetEntry() == h0e);
                REQUIRE(local.Get()->Reference(0) == 1);
-               REQUIRE(local.GetEntry()->GetUses() == 3);
+               IF_LANGULUS_MANAGED_MEMORY(REQUIRE(local.GetEntry()->GetUses() == 3));
                REQUIRE(local.Get()->data == h0p->data);
                REQUIRE(local.Get()->destroyed == false);
                REQUIRE(local.Get()->moved_in == false);
@@ -405,7 +420,7 @@ TEMPLATE_TEST_CASE("Handles from sequential containers", "[handle]",
 
                REQUIRE(local.Get() == h0p);
                REQUIRE(local.GetEntry() == h0e);
-               REQUIRE(local.GetEntry()->GetUses() == 3);
+               IF_LANGULUS_MANAGED_MEMORY(REQUIRE(local.GetEntry()->GetUses() == 3));
             }
             else {
                REQUIRE(local.Get() == h0p);

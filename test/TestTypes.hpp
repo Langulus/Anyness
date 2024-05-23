@@ -356,11 +356,23 @@ struct RT : Referenced {
    bool moved_in = false;
    bool moved_out = false;
 
-   RT() : data {0}, t {nullptr} {}
-   RT(int a) : data {a}, t {nullptr} {}
-   RT(const char* tt) : data(0), t {tt} {}
-   RT(const RT& rhs) : data(rhs.data), t {rhs.t}, copied_in {true} {}
-   RT(RT&& rhs) : data(rhs.data), t {rhs.t}, moved_in {true} { rhs.moved_out = true; }
+   RT()
+      : data {0}, t {nullptr} {}
+
+   RT(int a)
+      : data {a}, t {nullptr} {}
+
+   RT(const char* tt)
+      : data(0), t {tt} {}
+
+   RT(const RT& rhs)
+      : data(rhs.data), t {rhs.t}, copied_in {true} {}
+
+   RT(RT&& rhs)
+      : data(rhs.data), t {rhs.t}, moved_in {true} {
+      rhs.moved_in = false;
+      rhs.moved_out = true;
+   }
    ~RT() {
       destroyed = true;
    }
