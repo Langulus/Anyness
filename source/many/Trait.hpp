@@ -38,8 +38,7 @@ namespace Langulus
    namespace CT
    {
 
-      /// A TraitBased type is any type that inherits A::Trait, and is binary 
-      /// compatible to it                                                    
+      /// A TraitBased type is any type that inherits A::Trait                
       template<class...T>
       concept TraitBased = (DerivedFrom<T, A::Trait> and ...);
 
