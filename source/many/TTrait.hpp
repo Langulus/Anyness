@@ -56,12 +56,6 @@ namespace Langulus::Anyness
       NOD() constexpr bool HasCorrectData() const;
 
       ///                                                                     
-      ///   Indexing                                                          
-      ///                                                                     
-      //NOD() TTrait Select(Offset, Count) IF_UNSAFE(noexcept);
-      //NOD() TTrait Select(Offset, Count) const IF_UNSAFE(noexcept);
-
-      ///                                                                     
       ///   Compare                                                           
       ///                                                                     
       template<CT::NotSemantic T> requires CT::NotOwned<T>
