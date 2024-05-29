@@ -221,7 +221,7 @@ namespace Langulus::Anyness
       void InsertInner(auto&&);
 
       void AddTrait(CT::Semantic auto&&);
-      void AddData(CT::Semantic auto&&);
+      //void AddData(CT::Semantic auto&&);
       void AddConstruct(CT::Semantic auto&&);
       void AddVerb(CT::Semantic auto&&);
 
