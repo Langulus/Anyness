@@ -467,14 +467,14 @@ namespace Langulus::Anyness
          // Insert trait to its bucket                                  
          AddTrait(S::Nest(item));
       }
-      else if constexpr (CT::Same<T, DMeta>) {
+      /*else if constexpr (CT::Same<T, DMeta>) {
          // Insert an empty data to signify solo type ID                
          AddData(S::Nest(item));
       }
       else if constexpr (CT::Same<T, TMeta>) {
          // Insert empty Many to signify trait without content          
          AddTrait(S::Nest(item));
-      }
+      }*/
       else if constexpr (CT::Same<T, CMeta>) {
          // Expand the constant, and push it                            
          operator << (Clone(Block<> {{}, DesemCast(item)}));
@@ -737,7 +737,7 @@ namespace Langulus::Anyness
    /// Push data to the appropriate bucket                                    
    ///   @attention this is an inner function that doesn't affect the hash    
    ///   @param messy - the data (and semantic) to insert                     
-   LANGULUS(INLINED)
+   /*LANGULUS(INLINED)
    void Neat::AddData(CT::Semantic auto&& messy) {
       using S = SemanticOf<decltype(messy)>;
       using T = TypeOf<S>;
@@ -763,7 +763,7 @@ namespace Langulus::Anyness
             mAnythingElse.Insert(dmeta, Many {});
       }
       else LANGULUS_ERROR("Can't insert data");
-   }
+   }*/
    
    /// Push verbs to the appropriate bucket                                   
    ///   @attention this is an inner function that doesn't affect the hash    
