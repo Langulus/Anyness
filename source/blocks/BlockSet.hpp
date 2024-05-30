@@ -151,7 +151,9 @@ namespace Langulus::Anyness
 
       NOD() constexpr explicit operator bool() const noexcept;
 
-      DEBUGGERY(template<CT::Set> void Dump() const);
+      #if LANGULUS(DEBUG)
+         template<CT::Set> void Dump() const;
+      #endif
 
    protected:
       template<CT::Set>

@@ -37,7 +37,9 @@ namespace Langulus
          using Allocator  = Anyness::Allocator;
 
          union {
-            DEBUGGERY(char* mRawChar);
+         #if LANGULUS(DEBUG)
+            char* mRawChar;
+         #endif
             // Raw pointer to first element inside the memory block     
             Byte*  mRaw {};
             Byte** mRawSparse;
