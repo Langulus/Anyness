@@ -9,8 +9,8 @@
 #pragma once
 #include "Handle.hpp"
 
-#define TEMPLATE() template<class T, bool EMBED>
-#define HAND() Handle<T, EMBED>
+#define TEMPLATE()   template<class T, bool EMBED>
+#define HAND()       Handle<T, EMBED>
 
 
 namespace Langulus::Anyness

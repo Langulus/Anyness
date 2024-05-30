@@ -19,8 +19,8 @@
 #include "../blocks/BlockMap/BlockMap-Insert.inl"
 #include "../blocks/BlockMap/BlockMap-Indexing.inl"
 
-#define TEMPLATE() template<bool ORDERED>
-#define TABLE() Map<ORDERED>
+#define TEMPLATE()   template<bool ORDERED>
+#define TABLE()      Map<ORDERED>
 
 
 namespace Langulus::Anyness

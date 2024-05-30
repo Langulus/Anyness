@@ -9,8 +9,8 @@
 #pragma once
 #include "Own.hpp"
 
-#define TEMPLATE() template<CT::Data T>
-#define TME() Own<T>
+#define TEMPLATE()   template<CT::Data T>
+#define TME()        Own<T>
 
 
 namespace Langulus::Anyness
