@@ -18,8 +18,8 @@
 #include "../blocks/BlockSet/BlockSet-Insert.inl"
 #include "../blocks/BlockSet/BlockSet-Compare.inl"
 
-#define TEMPLATE() template<bool ORDERED>
-#define TABLE() Set<ORDERED>
+#define TEMPLATE()   template<bool ORDERED>
+#define TABLE()      Set<ORDERED>
 
 
 namespace Langulus::Anyness

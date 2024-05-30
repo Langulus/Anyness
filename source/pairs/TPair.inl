@@ -9,8 +9,8 @@
 #pragma once
 #include "TPair.hpp"
 
-#define TEMPLATE() template<class K, class V>
-#define PAIR() TPair<K, V>
+#define TEMPLATE()   template<class K, class V>
+#define PAIR()       TPair<K, V>
 
 
 namespace Langulus::Anyness

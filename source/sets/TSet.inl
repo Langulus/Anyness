@@ -10,8 +10,8 @@
 #include "TSet.hpp"
 #include "Set.inl"
 
-#define TEMPLATE() template<CT::Data T, bool ORDERED>
-#define TABLE() TSet<T, ORDERED>
+#define TEMPLATE()   template<CT::Data T, bool ORDERED>
+#define TABLE()      TSet<T, ORDERED>
 
 
 namespace Langulus::Anyness

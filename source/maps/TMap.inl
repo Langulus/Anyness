@@ -11,7 +11,6 @@
 #include "Map.inl"
 #include "../pairs/TPair.inl"
 
-
 #define TEMPLATE()   template<CT::Data K, CT::Data V, bool ORDERED>
 #define TABLE()      TMap<K, V, ORDERED>
 

@@ -9,8 +9,8 @@
 #pragma once
 #include "TEdit.hpp"
 
-#define TEMPLATE() template<DenseTypedBlock T>
-#define TME() Edit<T>
+#define TEMPLATE()   template<DenseTypedBlock T>
+#define TME()        Edit<T>
 
 
 namespace Langulus::Anyness

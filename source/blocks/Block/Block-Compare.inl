@@ -10,9 +10,13 @@
 #include "../Block.hpp"
 #include "../../text/Text.hpp"
 
-#define VERBOSE(...)     //Logger::Verbose(__VA_ARGS__)
-#define VERBOSE_TAB(...) //auto tab = Logger::Section(__VA_ARGS__)
-
+#if 0
+   #define VERBOSE(...)     Logger::Verbose(__VA_ARGS__)
+   #define VERBOSE_TAB(...) auto tab = Logger::Section(__VA_ARGS__)
+#else
+   #define VERBOSE(...)     LANGULUS(NOOP)
+   #define VERBOSE_TAB(...) LANGULUS(NOOP)
+#endif
 
 namespace Langulus::Anyness
 {

@@ -10,8 +10,8 @@
 #include "Ref.hpp"
 #include "Own.inl"
 
-#define TEMPLATE() template<class T>
-#define TME() Ref<T>
+#define TEMPLATE()   template<class T>
+#define TME()        Ref<T>
 
 
 namespace Langulus::Anyness
