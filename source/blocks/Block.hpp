@@ -474,15 +474,15 @@ namespace Langulus::Anyness
       constexpr void MakeFuture() noexcept;
       constexpr void MakeNow() noexcept;
       constexpr void ResetState() noexcept;
-      
-   protected: IF_LANGULUS_TESTING(public:)
+	  
       template<class T = TYPE>
       NOD() T*       GetRaw()          IF_UNSAFE(noexcept);
       template<class T = TYPE>
       NOD() T const* GetRaw()    const IF_UNSAFE(noexcept);
       template<class T = TYPE>
       NOD() T const* GetRawEnd() const IF_UNSAFE(noexcept);
-
+      
+   protected: IF_LANGULUS_TESTING(public:)
       NOD() Allocation const* const* GetEntries() const IF_UNSAFE(noexcept);
       NOD() Allocation const**       GetEntries()       IF_UNSAFE(noexcept);
 
@@ -568,6 +568,16 @@ namespace Langulus::Anyness
       template<Index>
       NOD() Index GetIndex() const IF_UNSAFE(noexcept);
       NOD() Index GetIndexMode(Count&) const IF_UNSAFE(noexcept);
+	  
+      template<CT::Data = TYPE> NOD() IF_UNSAFE(constexpr)
+      decltype(auto) Get(Offset = 0)       IF_UNSAFE(noexcept);
+      template<CT::Data = TYPE> NOD() IF_UNSAFE(constexpr)
+      decltype(auto) Get(Offset = 0) const IF_UNSAFE(noexcept);
+   
+      NOD() IF_UNSAFE(constexpr)
+      decltype(auto) GetDeep(Offset = 0)       IF_UNSAFE(noexcept);
+      NOD() IF_UNSAFE(constexpr)
+      decltype(auto) GetDeep(Offset = 0) const IF_UNSAFE(noexcept);
 
    protected: 
       NOD() Block<> GetElementInner(Offset = 0)       IF_UNSAFE(noexcept);
@@ -590,16 +600,6 @@ namespace Langulus::Anyness
       auto GetHandle(Offset = 0)       IF_UNSAFE(noexcept);
       template<class = TYPE> NOD()
       auto GetHandle(Offset = 0) const IF_UNSAFE(noexcept);
-
-      template<CT::Data = TYPE> NOD() IF_UNSAFE(constexpr)
-      decltype(auto) Get(Offset = 0)       IF_UNSAFE(noexcept);
-      template<CT::Data = TYPE> NOD() IF_UNSAFE(constexpr)
-      decltype(auto) Get(Offset = 0) const IF_UNSAFE(noexcept);
-   
-      NOD() IF_UNSAFE(constexpr)
-      decltype(auto) GetDeep(Offset = 0)       IF_UNSAFE(noexcept);
-      NOD() IF_UNSAFE(constexpr)
-      decltype(auto) GetDeep(Offset = 0) const IF_UNSAFE(noexcept);
    
    public:
       ///                                                                     
