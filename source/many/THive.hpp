@@ -163,7 +163,6 @@ namespace Langulus::Anyness
       // Data reserved for T's instance                                 
       T mData;
 
-   protected:
       /// Only THive is capable of creating and destroying these cells        
       Cell() = delete;
 
