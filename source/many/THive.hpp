@@ -150,7 +150,7 @@ namespace Langulus::Anyness
    ///                                                                        
    template<CT::Data T>
    class THive<T>::Cell {
-   IF_LANGULUS_TESTING(public:)
+   protected: IF_LANGULUS_TESTING(public:)
       friend class THive<T>;
 
       // If zero, then this cell is in use, and mData is valid          
@@ -159,9 +159,11 @@ namespace Langulus::Anyness
       // cell is the last one                                           
       Cell* mNextFreeCell {};
 
+   public:
       // Data reserved for T's instance                                 
       T mData;
 
+   protected:
       /// Only THive is capable of creating and destroying these cells        
       Cell() = delete;
 
