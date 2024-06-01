@@ -484,11 +484,9 @@ namespace Langulus::Anyness
       template<class T = TYPE>
       NOD() T const* GetRawEnd() const IF_UNSAFE(noexcept);
       
-   protected: IF_LANGULUS_TESTING(public:)
       NOD() Allocation const* const* GetEntries() const IF_UNSAFE(noexcept);
       NOD() Allocation const**       GetEntries()       IF_UNSAFE(noexcept);
 
-   public:
       ///                                                                     
       ///   Indexing                                                          
       ///                                                                     
@@ -597,13 +595,12 @@ namespace Langulus::Anyness
       Offset SimplifyIndex(INDEX) const
       noexcept(not LANGULUS_SAFE() and CT::BuiltinInteger<INDEX>);
 
-   IF_LANGULUS_TESTING(public:)
+   public:
       template<class = TYPE> NOD()
       auto GetHandle(Offset = 0)       IF_UNSAFE(noexcept);
       template<class = TYPE> NOD()
       auto GetHandle(Offset = 0) const IF_UNSAFE(noexcept);
    
-   public:
       ///                                                                     
       ///   Iteration                                                         
       ///                                                                     
@@ -727,13 +724,12 @@ namespace Langulus::Anyness
 
       constexpr void ResetType() noexcept;
 
-   IF_LANGULUS_TESTING(public:)
+   public:
       NOD() Block<> GetBaseMemory(DMeta, const RTTI::Base&);
       NOD() Block<> GetBaseMemory(DMeta, const RTTI::Base&) const;
       NOD() Block<> GetBaseMemory(const RTTI::Base&);
       NOD() Block<> GetBaseMemory(const RTTI::Base&) const;
 
-   public:
       ///                                                                     
       ///   Comparison                                                        
       ///                                                                     
