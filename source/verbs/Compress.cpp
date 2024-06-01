@@ -6,7 +6,7 @@
 /// Distributed under GNU General Public License v3+                          
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
-#include "../Many.hpp"
+/*#include "../Many.hpp"
 #include <zlib.h>
 
 
@@ -151,4 +151,4 @@ namespace Langulus::Anyness
       return written;
    }
 
-} // namespace Langulus::Anyness
+} // namespace Langulus::Anyness*/

@@ -8,9 +8,10 @@
 ///                                                                           
 #pragma once
 #include "Neat.hpp"
-#include "../many/TMany.inl"
+#include "TMany.inl"
+#include "TTrait.inl"
+#include "Construct.hpp"
 #include "../maps/TMap.inl"
-#include "../many/TTrait.inl"
 #include "../one/Ref.inl"
 #include "../verbs/Verb.hpp"
 
