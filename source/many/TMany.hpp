@@ -35,14 +35,14 @@ namespace Langulus::Anyness
       LANGULUS(POD) false;
       LANGULUS_BASES(Base);
 
-   protected: IF_LANGULUS_TESTING(public:)
-   	  template<class>
-	  friend struct Block;
- 	  friend struct BlockSet;
-	  friend struct BlockMap;
- 	  template<CT::Data>
-	  friend class THive;
-
+   protected:
+   	template<class>
+	   friend struct Block;
+ 	   friend struct BlockSet;
+	   friend struct BlockMap;
+ 	   template<CT::Data>
+	   friend class THive;
+      
       #if LANGULUS_DEBUG()
          using Base::mRawChar;
       #endif
