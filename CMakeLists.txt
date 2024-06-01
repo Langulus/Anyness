@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.24)
+cmake_minimum_required(VERSION 3.28)
 project(LangulusAnyness
     VERSION         1.0.0
     DESCRIPTION     "Langulus container library"
@@ -22,13 +22,18 @@ if(PROJECT_IS_TOP_LEVEL OR NOT LANGULUS)
     fetch_langulus_module(SIMD   GIT_TAG cbd2d0002243c0fd0fbb24705435e0ebd93385d7)
 endif()
 
+file(GLOB_RECURSE
+	LANGULUS_ANYNESS_SOURCES 
+	LIST_DIRECTORIES FALSE CONFIGURE_DEPENDS
+	source/*.cpp
+)
+
 # Build and install Anyness library                                         
 add_library(LangulusAnyness ${LANGULUS_LIBRARY_TYPE}
     $<TARGET_OBJECTS:LangulusLogger>
     $<TARGET_OBJECTS:LangulusRTTI>
     $<$<BOOL:${LANGULUS_FEATURE_MANAGED_MEMORY}>:$<TARGET_OBJECTS:LangulusFractalloc>>
-    $<$<BOOL:${LANGULUS_FEATURE_COMPRESSION}>:source/verbs/Compress.cpp>
-    $<$<BOOL:${LANGULUS_FEATURE_ENCRYPTION}>:source/verbs/Encrypt.cpp>
+    ${LANGULUS_ANYNESS_SOURCES}
 )
 
 target_include_directories(LangulusAnyness PUBLIC include

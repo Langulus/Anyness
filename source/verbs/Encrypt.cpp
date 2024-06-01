@@ -6,7 +6,7 @@
 /// Distributed under GNU General Public License v3+                          
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
-#include "../Many.hpp"
+//#include "../Many.hpp"
 
 
 namespace Langulus::Anyness
