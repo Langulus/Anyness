@@ -59,7 +59,7 @@ namespace Langulus::Anyness
       static constexpr Count DefaultFrameSize = 8;
       static constexpr bool Ownership = true;
 
-   protected: IF_LANGULUS_TESTING(public:)
+   protected:
       class Cell;
       using Frame = TMany<Cell>;
 
@@ -150,7 +150,7 @@ namespace Langulus::Anyness
    ///                                                                        
    template<CT::Data T>
    class THive<T>::Cell {
-   protected: IF_LANGULUS_TESTING(public:)
+   protected:
       friend class THive<T>;
 
       // If zero, then this cell is in use, and mData is valid          
