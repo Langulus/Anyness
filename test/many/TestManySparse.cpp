@@ -2721,7 +2721,7 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
          REQUIRE(pack1 == pack2);
          REQUIRE(pack2 == memory1);
          REQUIRE(pack2 != memory2);
-         REQUIRE(pack2.mEntry == nullptr);
+         REQUIRE(pack2.GetAllocation() == nullptr);
          for (int i = 0; i < 5; ++i)
             REQUIRE(pack2[i] == darray1[i]);
       }
@@ -2734,14 +2734,14 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
          REQUIRE(pack2.GetUses() == 3);
          REQUIRE(memory2.GetUses() == 1);
          REQUIRE(pack1 == pack2);
-         REQUIRE(movable.mEntry == nullptr);
+         REQUIRE(movable.GetAllocation() == nullptr);
       }
 
       WHEN("Copy-assign pack1 in pack2, then reset pack1") {
          pack2 = Copy(pack1);
          pack1.Reset();
 
-         REQUIRE_FALSE(pack1.HasAuthority());
+         REQUIRE_FALSE(pack1.GetAllocation());
          REQUIRE(pack2.GetUses() == 1);
          REQUIRE_FALSE(pack1.GetRaw());
          REQUIRE(pack1.GetReserved() == 0);
@@ -2752,7 +2752,7 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
          pack2 = pack1;
          pack1.Reset();
 
-         REQUIRE_FALSE(pack1.HasAuthority());
+         REQUIRE_FALSE(pack1.GetAllocation());
          REQUIRE(pack2.GetUses() == 2);
          REQUIRE_FALSE(pack1.GetRaw());
          REQUIRE(pack1.GetReserved() == 0);
@@ -2775,7 +2775,7 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
             const T memory3 = pack2;
             pack1.Reset();
 
-            REQUIRE_FALSE(pack1.HasAuthority());
+            REQUIRE_FALSE(pack1.GetAllocation());
             REQUIRE(pack2.GetUses() == 2);
             REQUIRE(memory3.GetUses() == 2);
          }

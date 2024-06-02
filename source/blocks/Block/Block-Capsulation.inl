@@ -58,8 +58,8 @@ namespace Langulus::Anyness
    /// Check if we have jurisdiction over the contained memory                
    ///   @return true if memory is under our authority                        
    template<class TYPE> LANGULUS(ALWAYS_INLINED)
-   constexpr bool Block<TYPE>::HasAuthority() const noexcept {
-      return mEntry != nullptr;
+   constexpr const Allocation* Block<TYPE>::GetAllocation() const noexcept {
+      return mEntry;
    }
 
    /// Get the number of references for the allocated memory block            

@@ -30,7 +30,7 @@ SCENARIO("Test hives", "[hive]") {
 		THive<Producible> hive;
 
 		WHEN("Default-constructed") {
-			REQUIRE(hive.mReusable == nullptr);
+			REQUIRE(hive.GetReusable() == nullptr);
 			REQUIRE(hive.IsEmpty());
 			REQUIRE(hive.GetType() == MetaOf<Producible>());
 			REQUIRE(hive.GetCount() == 0);
@@ -44,11 +44,11 @@ SCENARIO("Test hives", "[hive]") {
          REQUIRE(p2);
 
 			REQUIRE(hive.GetCount() == 2);
-			REQUIRE(hive.mFrames.GetCount() == 1);
-         REQUIRE(hive.mReusable == hive.mFrames[0].GetRaw() + 2);
+			REQUIRE(hive.GetFrames().GetCount() == 1);
+         REQUIRE(hive.GetReusable() == hive.GetFrames()[0].GetRaw() + 2);
          REQUIRE(hive.GetType() == MetaOf<Producible>());
-			REQUIRE(hive.mFrames[0].GetRaw()[0].mData == one);
-			REQUIRE(hive.mFrames[0].GetRaw()[1].mData == two);
+			REQUIRE(hive.GetFrames()[0].GetRaw()[0].mData == one);
+			REQUIRE(hive.GetFrames()[0].GetRaw()[1].mData == two);
 		}
    }
 

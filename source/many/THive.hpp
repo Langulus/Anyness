@@ -105,6 +105,11 @@ namespace Langulus::Anyness
       NOD() bool IsEmpty() const noexcept;
       NOD() constexpr explicit operator bool() const noexcept;
 
+   #if LANGULUS(TESTING)
+      auto  GetReusable() const { return mReusable; }
+      auto& GetFrames() const { return mFrames; }
+   #endif
+
       ///                                                                     
       ///   Iteration                                                         
       ///                                                                     

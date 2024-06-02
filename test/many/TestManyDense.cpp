@@ -115,7 +115,7 @@ TEMPLATE_TEST_CASE("Dense Many/TMany", "[many]",
             REQUIRE(pack.GetUses() == element.GetUses());
             REQUIRE(pack.GetUses() == 2);
             REQUIRE(pack.IsStatic() == element.IsStatic());
-            REQUIRE(pack.HasAuthority() == element.HasAuthority());
+            REQUIRE(pack.GetAllocation() == element.GetAllocation());
          }
 
          if constexpr (not CT::Typed<T>) {
@@ -170,7 +170,7 @@ TEMPLATE_TEST_CASE("Dense Many/TMany", "[many]",
             REQUIRE(pack.GetUses() == element.GetUses());
             REQUIRE(pack.GetUses() == 2);
             REQUIRE(pack.IsStatic() == element.IsStatic());
-            REQUIRE(pack.HasAuthority() == element.HasAuthority());
+            REQUIRE(pack.GetAllocation() == element.GetAllocation());
          }
 
          if constexpr (not CT::Typed<T>) {
@@ -220,7 +220,7 @@ TEMPLATE_TEST_CASE("Dense Many/TMany", "[many]",
 
             REQUIRE(pack.GetUses() == 0);
             REQUIRE(pack.IsStatic());
-            REQUIRE_FALSE(pack.HasAuthority());
+            REQUIRE_FALSE(pack.GetAllocation());
          }
 
          if constexpr (not CT::Typed<T>) {
@@ -274,7 +274,7 @@ TEMPLATE_TEST_CASE("Dense Many/TMany", "[many]",
 
             REQUIRE(pack.GetUses() == 2);
             REQUIRE(pack.IsStatic() == element.IsStatic());
-            REQUIRE(pack.HasAuthority() == element.HasAuthority());
+            REQUIRE(pack.GetAllocation() == element.GetAllocation());
          }
 
          if constexpr (not CT::Typed<T>) {
@@ -1101,7 +1101,7 @@ TEMPLATE_TEST_CASE("Dense Many/TMany", "[many]",
             REQUIRE(pack.GetUses() == element.GetUses());
             REQUIRE(pack.GetUses() == 2);
             REQUIRE(pack.IsStatic() == element.IsStatic());
-            REQUIRE(pack.HasAuthority() == element.HasAuthority());
+            REQUIRE(pack.GetAllocation() == element.GetAllocation());
          }
 
          if constexpr (not CT::Typed<T>) {
@@ -1153,7 +1153,7 @@ TEMPLATE_TEST_CASE("Dense Many/TMany", "[many]",
             Any_Helper_TestSame(pack, element);
             REQUIRE(pack.GetUses() == 2);
             REQUIRE(pack.IsStatic() == element.IsStatic());
-            REQUIRE(pack.HasAuthority() == element.HasAuthority());
+            REQUIRE(pack.GetAllocation() == element.GetAllocation());
          }
 
          if constexpr (not CT::Typed<T>) {
@@ -1201,7 +1201,7 @@ TEMPLATE_TEST_CASE("Dense Many/TMany", "[many]",
             Any_Helper_TestSame(pack, element);
             REQUIRE(pack.GetUses() == 0);
             REQUIRE(pack.IsStatic());
-            REQUIRE_FALSE(pack.HasAuthority());
+            REQUIRE_FALSE(pack.GetAllocation());
          }
 
          if constexpr (not CT::Typed<T>) {
@@ -1253,7 +1253,7 @@ TEMPLATE_TEST_CASE("Dense Many/TMany", "[many]",
             Any_Helper_TestSame(pack, element);
             REQUIRE(pack.GetUses() == 2);
             REQUIRE(pack.IsStatic() == element.IsStatic());
-            REQUIRE(pack.HasAuthority() == element.HasAuthority());
+            REQUIRE(pack.GetAllocation() == element.GetAllocation());
          }
 
          if constexpr (not CT::Typed<T>) {
@@ -1377,7 +1377,7 @@ TEMPLATE_TEST_CASE("Dense Many/TMany", "[many]",
          Any_Helper_TestSame(pack, element);
          REQUIRE(pack.GetUses() == 2);
          REQUIRE(pack.IsStatic() == element.IsStatic());
-         REQUIRE(pack.HasAuthority() == element.HasAuthority());
+         REQUIRE(pack.GetAllocation() == element.GetAllocation());
       }
       else {
          REQUIRE(pack.template As<DenseE>().GetRaw() == sparseValue->GetRaw());
@@ -1387,7 +1387,7 @@ TEMPLATE_TEST_CASE("Dense Many/TMany", "[many]",
          REQUIRE(*pack.template As<DenseE*>() == denseValue);
          REQUIRE_FALSE(pack.template As<DenseE>().IsStatic());
          REQUIRE_FALSE(pack.template As<DenseE>().IsConstant());
-         REQUIRE(pack.template As<DenseE>().HasAuthority());
+         REQUIRE(pack.template As<DenseE>().GetAllocation());
          REQUIRE(pack.template As<DenseE>().GetUses() == 2);
          REQUIRE(pack.template As<DenseE>() == element);
          //REQUIRE(pack != element);
@@ -1396,7 +1396,7 @@ TEMPLATE_TEST_CASE("Dense Many/TMany", "[many]",
          REQUIRE(pack.IsDeep());
          REQUIRE_FALSE(pack.IsStatic());
          REQUIRE_FALSE(pack.IsConstant());
-         REQUIRE(pack.HasAuthority());
+         REQUIRE(pack.GetAllocation());
       }
 
       if constexpr (not CT::Typed<T>) {
@@ -1444,7 +1444,7 @@ TEMPLATE_TEST_CASE("Dense Many/TMany", "[many]",
          Any_Helper_TestSame(pack, element);
          REQUIRE(pack.GetUses() == 0);
          REQUIRE(pack.IsStatic());
-         REQUIRE_FALSE(pack.HasAuthority());
+         REQUIRE_FALSE(pack.GetAllocation());
       }
       else {
          REQUIRE(pack.template As<DenseE>().GetRaw() == sparseValue->GetRaw());
@@ -1454,7 +1454,7 @@ TEMPLATE_TEST_CASE("Dense Many/TMany", "[many]",
          REQUIRE(*pack.template As<DenseE*>() == denseValue);
          REQUIRE(pack.template As<DenseE>().IsStatic());
          REQUIRE_FALSE(pack.template As<DenseE>().IsConstant());
-         REQUIRE_FALSE(pack.template As<DenseE>().HasAuthority());
+         REQUIRE_FALSE(pack.template As<DenseE>().GetAllocation());
          REQUIRE(pack.template As<DenseE>().GetUses() == 0);
          REQUIRE(pack.template As<DenseE>() == element);
          REQUIRE(pack == element);
@@ -1462,7 +1462,7 @@ TEMPLATE_TEST_CASE("Dense Many/TMany", "[many]",
          REQUIRE(pack.GetUses() == 1);
          REQUIRE_FALSE(pack.IsStatic());
          REQUIRE_FALSE(pack.IsConstant());
-         REQUIRE(pack.HasAuthority());
+         REQUIRE(pack.GetAllocation());
          REQUIRE(pack.IsDeep());
       }
 
@@ -1516,7 +1516,7 @@ TEMPLATE_TEST_CASE("Dense Many/TMany", "[many]",
 
          REQUIRE(pack.GetUses() == 2);
          REQUIRE(pack.IsStatic() == element.IsStatic());
-         REQUIRE(pack.HasAuthority() == element.HasAuthority());
+         REQUIRE(pack.GetAllocation() == element.GetAllocation());
       }
       else {
          REQUIRE(pack.template As<DenseE>().GetRaw() == sparseValue->GetRaw());
@@ -1526,7 +1526,7 @@ TEMPLATE_TEST_CASE("Dense Many/TMany", "[many]",
          REQUIRE(*pack.template As<DenseE*>() == denseValue);
          REQUIRE_FALSE(pack.template As<DenseE>().IsStatic());
          REQUIRE_FALSE(pack.template As<DenseE>().IsConstant());
-         REQUIRE(pack.template As<DenseE>().HasAuthority());
+         REQUIRE(pack.template As<DenseE>().GetAllocation());
          REQUIRE(pack.template As<DenseE>().GetUses() == 2);
          REQUIRE(pack.template As<DenseE>() == element);
          //REQUIRE(pack != element);
@@ -1535,7 +1535,7 @@ TEMPLATE_TEST_CASE("Dense Many/TMany", "[many]",
          REQUIRE(pack.IsDeep());
          REQUIRE_FALSE(pack.IsStatic());
          REQUIRE_FALSE(pack.IsConstant());
-         REQUIRE(pack.HasAuthority());
+         REQUIRE(pack.GetAllocation());
       }
 
       if constexpr (not CT::Typed<T>) {
@@ -2663,7 +2663,7 @@ TEMPLATE_TEST_CASE("Dense Many/TMany", "[many]",
          REQUIRE(pack1 == pack2);
          REQUIRE(pack2 == memory1);
          REQUIRE(pack2 != memory2);
-         REQUIRE(pack2.mEntry == nullptr);
+         REQUIRE(pack2.GetAllocation() == nullptr);
          for (int i = 0; i < 5; ++i)
             REQUIRE(pack2[i] == darray1[i]);
       }
@@ -2676,14 +2676,14 @@ TEMPLATE_TEST_CASE("Dense Many/TMany", "[many]",
          REQUIRE(pack2.GetUses() == 3);
          REQUIRE(memory2.GetUses() == 1);
          REQUIRE(pack1 == pack2);
-         REQUIRE(movable.mEntry == nullptr);
+         REQUIRE(movable.GetAllocation() == nullptr);
       }
 
       WHEN("Copy-assign pack1 in pack2, then reset pack1") {
          pack2 = Copy(pack1);
          pack1.Reset();
 
-         REQUIRE_FALSE(pack1.HasAuthority());
+         REQUIRE_FALSE(pack1.GetAllocation());
          REQUIRE(pack2.GetUses() == 1);
          REQUIRE_FALSE(pack1.GetRaw());
          REQUIRE(pack1.GetReserved() == 0);
@@ -2694,7 +2694,7 @@ TEMPLATE_TEST_CASE("Dense Many/TMany", "[many]",
          pack2 = pack1;
          pack1.Reset();
 
-         REQUIRE_FALSE(pack1.HasAuthority());
+         REQUIRE_FALSE(pack1.GetAllocation());
          REQUIRE(pack2.GetUses() == 2);
          REQUIRE_FALSE(pack1.GetRaw());
          REQUIRE(pack1.GetReserved() == 0);
@@ -2716,7 +2716,7 @@ TEMPLATE_TEST_CASE("Dense Many/TMany", "[many]",
          const T memory3 = pack2;
          pack1.Reset();
 
-         REQUIRE_FALSE(pack1.HasAuthority());
+         REQUIRE_FALSE(pack1.GetAllocation());
          REQUIRE(pack2.GetUses() == 2);
          REQUIRE(memory3.GetUses() == 2);
       }

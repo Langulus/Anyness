@@ -32,7 +32,7 @@ SCENARIO("Byte manipulation", "[bytes]") {
          REQUIRE(data.GetCount() == 10);
          REQUIRE(data.GetReserved() >= 500);
          REQUIRE(data.GetRaw() == memory);
-         REQUIRE(data.HasAuthority());
+         REQUIRE(data.GetAllocation());
          REQUIRE(region.GetCount() == 10);
          REQUIRE(region.GetRaw() == memory);
       }
@@ -47,7 +47,7 @@ SCENARIO("Byte manipulation", "[bytes]") {
       REQUIRE(data.GetReserved() >= 5 * sizeof(int));
       REQUIRE(data.template IsExact<Byte>());
       REQUIRE(data.GetRaw() != nullptr);
-      REQUIRE(data.HasAuthority());
+      REQUIRE(data.GetAllocation());
 
       WHEN("Nothing happens") {
          REQUIRE(true);
@@ -60,7 +60,7 @@ SCENARIO("Byte manipulation", "[bytes]") {
          REQUIRE(data.GetCount() == 8 * sizeof(int));
          REQUIRE(data.GetReserved() >= 8 * sizeof(int));
          IF_LANGULUS_MANAGED_MEMORY(REQUIRE(data.GetRaw() == memory));
-         REQUIRE(data.HasAuthority());
+         REQUIRE(data.GetAllocation());
          REQUIRE(data.Is<Byte>());
       }
 
@@ -70,7 +70,7 @@ SCENARIO("Byte manipulation", "[bytes]") {
          REQUIRE(data.GetCount() == 5 * sizeof(int));
          REQUIRE(data.GetReserved() >= 40);
          IF_LANGULUS_MANAGED_MEMORY(REQUIRE(data.GetRaw() == memory));
-         REQUIRE(data.HasAuthority());
+         REQUIRE(data.GetAllocation());
       }
 
       WHEN("More byte capacity is reserved, via Extend()") {
@@ -79,7 +79,7 @@ SCENARIO("Byte manipulation", "[bytes]") {
          REQUIRE(data.GetCount() == 5 * sizeof(int) + 10);
          REQUIRE(data.GetReserved() >= 5 * sizeof(int) + 10);
          IF_LANGULUS_MANAGED_MEMORY(REQUIRE(data.GetRaw() == memory));
-         REQUIRE(data.HasAuthority());
+         REQUIRE(data.GetAllocation());
          REQUIRE(region.GetCount() == 10);
          REQUIRE(region.GetRaw() == data.GetRaw() + 5 * sizeof(int));
       }
@@ -90,7 +90,7 @@ SCENARIO("Byte manipulation", "[bytes]") {
          REQUIRE(data.GetCount() == 2);
          REQUIRE(data.GetReserved() >= 5);
          REQUIRE(data.GetRaw() == memory);
-         REQUIRE(data.HasAuthority());
+         REQUIRE(data.GetAllocation());
       }
 
       WHEN("Bytes are cleared") {
@@ -99,7 +99,7 @@ SCENARIO("Byte manipulation", "[bytes]") {
          REQUIRE(data.GetCount() == 0);
          REQUIRE(data.GetReserved() >= 5);
          REQUIRE(data.GetRaw() == memory);
-         REQUIRE(data.HasAuthority());
+         REQUIRE(data.GetAllocation());
          REQUIRE(data.Is<Byte>());
       }
 
@@ -119,8 +119,8 @@ SCENARIO("Byte manipulation", "[bytes]") {
          REQUIRE(data.GetReserved() == copy.GetReserved());
          REQUIRE(data.GetRaw() == copy.GetRaw());
          REQUIRE(data.GetType() == copy.GetType());
-         REQUIRE(data.HasAuthority());
-         REQUIRE(copy.HasAuthority());
+         REQUIRE(data.GetAllocation());
+         REQUIRE(copy.GetAllocation());
          REQUIRE(copy.GetUses() == 2);
          REQUIRE(data.GetUses() == 2);
       }
@@ -132,8 +132,8 @@ SCENARIO("Byte manipulation", "[bytes]") {
          REQUIRE(data.GetReserved() == copy.GetReserved());
          REQUIRE(data.GetRaw() != copy.GetRaw());
          REQUIRE(data.GetType() == copy.GetType());
-         REQUIRE(data.HasAuthority());
-         REQUIRE(copy.HasAuthority());
+         REQUIRE(data.GetAllocation());
+         REQUIRE(copy.GetAllocation());
          REQUIRE(copy.GetUses() == 1);
          REQUIRE(data.GetUses() == 1);
       }
@@ -145,7 +145,7 @@ SCENARIO("Byte manipulation", "[bytes]") {
 
          REQUIRE(data.GetCount() == sizeof(int) * 6);
          REQUIRE(data.GetReserved() >= sizeof(int) * 6);
-         REQUIRE(data.HasAuthority());
+         REQUIRE(data.GetAllocation());
          REQUIRE(data.Is<Byte>());
       }
 

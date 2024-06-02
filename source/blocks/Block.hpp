@@ -418,7 +418,7 @@ namespace Langulus::Anyness
       NOD() constexpr explicit operator bool() const noexcept;
 
       NOD() bool Owns(const void*) const noexcept;
-      NOD() constexpr bool HasAuthority() const noexcept;
+      NOD() constexpr auto GetAllocation() const noexcept -> const Allocation*;
       NOD() constexpr Count GetUses() const noexcept;
       NOD() constexpr DMeta GetType() const noexcept;
       NOD() constexpr Count GetCount() const noexcept;
