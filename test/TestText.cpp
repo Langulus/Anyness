@@ -193,7 +193,7 @@ TEMPLATE_TEST_CASE("Testing text containers", "[text]",
          REQUIRE(text.GetCount() == 10);
          REQUIRE(text.GetReserved() >= 500);
          REQUIRE(text.GetRaw() == memory);
-         REQUIRE(text.HasAuthority());
+         REQUIRE(text.GetAllocation());
          REQUIRE(region.GetCount() == 10);
          REQUIRE(region.GetRaw() == memory);
       }
@@ -204,7 +204,7 @@ TEMPLATE_TEST_CASE("Testing text containers", "[text]",
          REQUIRE(text.GetCount() == 4);
          REQUIRE(text.GetReserved() >= 500);
          REQUIRE(text.GetRaw() == memory);
-         REQUIRE(text.HasAuthority());
+         REQUIRE(text.GetAllocation());
          REQUIRE(text == "test");
       }
 
@@ -215,7 +215,7 @@ TEMPLATE_TEST_CASE("Testing text containers", "[text]",
          REQUIRE(text.GetCount() == 0);
          REQUIRE(text.GetReserved() >= 500);
          REQUIRE(text.GetRaw() == memory);
-         REQUIRE(text.HasAuthority());
+         REQUIRE(text.GetAllocation());
          REQUIRE(text != "test");
       }
 
@@ -227,7 +227,7 @@ TEMPLATE_TEST_CASE("Testing text containers", "[text]",
          REQUIRE(text.GetReserved() == 0);
          REQUIRE(text.GetRaw() == nullptr);
          REQUIRE(text.GetType() == MetaOf<Letter>());
-         REQUIRE_FALSE(text.HasAuthority());
+         REQUIRE_FALSE(text.GetAllocation());
          REQUIRE(text != "test");
       }
    }
@@ -245,7 +245,7 @@ TEMPLATE_TEST_CASE("Testing text containers", "[text]",
          #if LANGULUS_FEATURE(MANAGED_MEMORY)
             REQUIRE(text.GetRaw() == memory);
          #endif
-         REQUIRE(text.HasAuthority());
+         REQUIRE(text.GetAllocation());
          REQUIRE(text.template Is<Letter>());
       }
 
@@ -257,7 +257,7 @@ TEMPLATE_TEST_CASE("Testing text containers", "[text]",
          #if LANGULUS_FEATURE(MANAGED_MEMORY)
             REQUIRE(text.GetRaw() == memory);
          #endif
-         REQUIRE(text.HasAuthority());
+         REQUIRE(text.GetAllocation());
       }
 
       WHEN("More capacity is reserved, via Extend()") {
@@ -268,7 +268,7 @@ TEMPLATE_TEST_CASE("Testing text containers", "[text]",
          #if LANGULUS_FEATURE(MANAGED_MEMORY)
             REQUIRE(text.GetRaw() == memory);
          #endif
-         REQUIRE(text.HasAuthority());
+         REQUIRE(text.GetAllocation());
          REQUIRE(region.GetCount() == 10);
          REQUIRE(region.GetRaw() == text.GetRaw() + 5);
       }
@@ -279,7 +279,7 @@ TEMPLATE_TEST_CASE("Testing text containers", "[text]",
          REQUIRE(text.GetCount() == 2);
          REQUIRE(text.GetReserved() >= 5);
          REQUIRE(text.GetRaw() == memory);
-         REQUIRE(text.HasAuthority());
+         REQUIRE(text.GetAllocation());
       }
 
       WHEN("Text is cleared") {
@@ -288,7 +288,7 @@ TEMPLATE_TEST_CASE("Testing text containers", "[text]",
          REQUIRE(text.GetCount() == 0);
          REQUIRE(text.GetReserved() >= 5);
          REQUIRE(text.GetRaw() == memory);
-         REQUIRE(text.HasAuthority());
+         REQUIRE(text.GetAllocation());
          REQUIRE(text.template Is<Letter>());
       }
 
@@ -308,8 +308,8 @@ TEMPLATE_TEST_CASE("Testing text containers", "[text]",
          REQUIRE(text.GetReserved() == copy.GetReserved());
          REQUIRE(text.GetRaw() == copy.GetRaw());
          REQUIRE(text.GetType() == copy.GetType());
-         REQUIRE(text.HasAuthority());
-         REQUIRE(copy.HasAuthority());
+         REQUIRE(text.GetAllocation());
+         REQUIRE(copy.GetAllocation());
          REQUIRE(copy.GetUses() == 2);
          REQUIRE(text.GetUses() == 2);
       }
@@ -321,8 +321,8 @@ TEMPLATE_TEST_CASE("Testing text containers", "[text]",
          REQUIRE(text.GetReserved() >= copy.GetReserved());
          REQUIRE(text.GetRaw() != copy.GetRaw());
          REQUIRE(text.GetType() == copy.GetType());
-         REQUIRE(text.HasAuthority());
-         REQUIRE(copy.HasAuthority());
+         REQUIRE(text.GetAllocation());
+         REQUIRE(copy.GetAllocation());
          REQUIRE(copy.GetUses() == 1);
          REQUIRE(text.GetUses() == 1);
       }
@@ -333,7 +333,7 @@ TEMPLATE_TEST_CASE("Testing text containers", "[text]",
 
          REQUIRE(text.GetCount() == 5);
          REQUIRE(text.GetReserved() >= 5);
-         REQUIRE(text.HasAuthority());
+         REQUIRE(text.GetAllocation());
          REQUIRE(text.template Is<Letter>());
       }
 
@@ -358,7 +358,7 @@ TEMPLATE_TEST_CASE("Unsigned number stringification", "[text]",
       REQUIRE((*text).GetReserved() >= 2);
       REQUIRE((*text).template Is<Letter>());
       REQUIRE((*text).GetRaw());
-      REQUIRE((*text).HasAuthority());
+      REQUIRE((*text).GetAllocation());
       REQUIRE((*text) == "66");
 
       delete text;
@@ -371,7 +371,7 @@ TEMPLATE_TEST_CASE("Unsigned number stringification", "[text]",
       REQUIRE((*text).GetReserved() >= 2);
       REQUIRE((*text).template Is<Letter>());
       REQUIRE((*text).GetRaw());
-      REQUIRE((*text).HasAuthority());
+      REQUIRE((*text).GetAllocation());
       REQUIRE((*text) == "66");
 
       delete text;
@@ -390,7 +390,7 @@ TEMPLATE_TEST_CASE("Signed number stringification", "[text]", int8_t, int16_t, i
       REQUIRE((*text).GetReserved() >= 3);
       REQUIRE((*text).template Is<Letter>());
       REQUIRE((*text).GetRaw());
-      REQUIRE((*text).HasAuthority());
+      REQUIRE((*text).GetAllocation());
       REQUIRE((*text) == "-66");
 
       delete text;
@@ -403,7 +403,7 @@ TEMPLATE_TEST_CASE("Signed number stringification", "[text]", int8_t, int16_t, i
       REQUIRE((*text).GetReserved() >= 3);
       REQUIRE((*text).template Is<Letter>());
       REQUIRE((*text).GetRaw());
-      REQUIRE((*text).HasAuthority());
+      REQUIRE((*text).GetAllocation());
       REQUIRE((*text) == "-66");
 
       delete text;
@@ -549,7 +549,7 @@ void Text_CheckState_Default(const Text& text) {
    REQUIRE      (text.IsInvalid());
    REQUIRE_FALSE(text.IsAllocated());
    REQUIRE      (text.IsEmpty());
-   REQUIRE_FALSE(text.HasAuthority());
+   REQUIRE_FALSE(text.GetAllocation());
    REQUIRE      (text.IsTypeConstrained());
    REQUIRE      (text.GetType() == MetaOf<Letter>());
    REQUIRE      (text.template Is<Letter>());
@@ -587,7 +587,7 @@ void Text_CheckState_OwnedEmpty(const Text& text) {
    REQUIRE      (text.IsInvalid());
    REQUIRE      (text.IsAllocated());
    REQUIRE      (text.IsEmpty());
-   REQUIRE      (text.HasAuthority());
+   REQUIRE      (text.GetAllocation());
    REQUIRE      (text.IsTypeConstrained());
    REQUIRE      (text.GetType() == MetaOf<Letter>());
    REQUIRE      (text.template Is<Letter>());
@@ -625,7 +625,7 @@ void Text_CheckState_OwnedFull(const Text& text) {
    REQUIRE_FALSE(text.IsStatic());
    REQUIRE      (text.IsAllocated());
    REQUIRE_FALSE(text.IsEmpty());
-   REQUIRE      (text.HasAuthority());
+   REQUIRE      (text.GetAllocation());
    REQUIRE      (text.IsTypeConstrained());
    REQUIRE      (text.GetType() == MetaOf<Letter>());
    REQUIRE      (text.template Is<Letter>());
@@ -663,7 +663,7 @@ void Text_CheckState_DisownedFullConst(const Text& text) {
    REQUIRE      (text.IsStatic());
    REQUIRE      (text.IsAllocated());
    REQUIRE_FALSE(text.IsEmpty());
-   REQUIRE_FALSE(text.HasAuthority());
+   REQUIRE_FALSE(text.GetAllocation());
    REQUIRE      (text.IsTypeConstrained());
    REQUIRE      (text.GetType() == MetaOf<Letter>());
    REQUIRE      (text.template Is<Letter>());

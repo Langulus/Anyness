@@ -121,7 +121,7 @@ void Any_CheckState_Default(const auto& any) {
    REQUIRE_FALSE(any.IsValid());
    REQUIRE      (any.IsInvalid());
    REQUIRE_FALSE(any.IsAllocated());
-   REQUIRE_FALSE(any.HasAuthority());
+   REQUIRE_FALSE(any.GetAllocation());
    REQUIRE      (any.IsNow());
    REQUIRE_FALSE(any.IsFuture());
    REQUIRE_FALSE(any.IsPast());
@@ -148,7 +148,7 @@ void Any_CheckState_OwnedEmpty(const auto& any) {
    REQUIRE_FALSE(any.IsValid());
    REQUIRE      (any.IsInvalid());
    REQUIRE      (any.IsAllocated());
-   REQUIRE      (any.HasAuthority());
+   REQUIRE      (any.GetAllocation());
    REQUIRE      (any.IsEmpty());
    REQUIRE      (any.GetCount() == 0);
    REQUIRE      (any.GetReserved() > 0);
@@ -172,7 +172,7 @@ void Any_CheckState_OwnedFull(const auto& any) {
    REQUIRE_FALSE(any.IsInvalid());
    REQUIRE_FALSE(any.IsStatic());
    REQUIRE      (any.IsAllocated());
-   REQUIRE      (any.HasAuthority());
+   REQUIRE      (any.GetAllocation());
    REQUIRE_FALSE(any.IsEmpty());
    REQUIRE      (any.GetCount() > 0);
    REQUIRE      (any.GetReserved() > 0);
@@ -196,7 +196,7 @@ void Any_CheckState_DisownedFull(const auto& any) {
    REQUIRE_FALSE(any.IsInvalid());
    REQUIRE      (any.IsStatic());
    REQUIRE      (any.IsAllocated());
-   REQUIRE_FALSE(any.HasAuthority());
+   REQUIRE_FALSE(any.GetAllocation());
    REQUIRE_FALSE(any.IsEmpty());
    REQUIRE      (any.GetCount() > 0);
    REQUIRE      (any.GetReserved() > 0);
@@ -220,7 +220,7 @@ void Any_CheckState_DisownedFullConst(const auto& any) {
    REQUIRE_FALSE(any.IsInvalid());
    REQUIRE      (any.IsStatic());
    REQUIRE      (any.IsAllocated());
-   REQUIRE_FALSE(any.HasAuthority());
+   REQUIRE_FALSE(any.GetAllocation());
    REQUIRE_FALSE(any.IsEmpty());
    REQUIRE      (any.GetCount() > 0);
    REQUIRE      (any.GetReserved() > 0);
@@ -232,7 +232,7 @@ void Any_CheckState_DisownedFullConst(const auto& any) {
 
 template<class E>
 void Any_CheckState_Abandoned(const auto& any) {
-   REQUIRE_FALSE(any.HasAuthority());
+   REQUIRE_FALSE(any.GetAllocation());
 }
 
 

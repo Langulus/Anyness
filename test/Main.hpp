@@ -163,18 +163,18 @@ void DestroyPair(auto& pair) {
          }
          else {
             if (pair.mKey.IsSparse()) {
-               if (pair.mKey.mType->mReference)
-                  REQUIRE(pair.mKey.mType->mReference(*pair.mKey.template GetRaw<void*>(), -1) == 0);
-               if (pair.mKey.mType->mDestructor)
-                  pair.mKey.mType->mDestructor(*pair.mKey.template GetRaw<void*>());
+               if (pair.mKey.GetType()->mReference)
+                  REQUIRE(pair.mKey.GetType()->mReference(*pair.mKey.template GetRaw<void*>(), -1) == 0);
+               if (pair.mKey.GetType()->mDestructor)
+                  pair.mKey.GetType()->mDestructor(*pair.mKey.template GetRaw<void*>());
                free(*pair.mKey.template GetRaw<void*>());
             }
 
             if (pair.mValue.IsSparse()) {
-               if (pair.mValue.mType->mReference)
-                  REQUIRE(pair.mValue.mType->mReference(*pair.mValue.template GetRaw<void*>(), -1) == 0);
-               if (pair.mValue.mType->mDestructor)
-                  pair.mValue.mType->mDestructor(*pair.mValue.template GetRaw<void*>());
+               if (pair.mValue.GetType()->mReference)
+                  REQUIRE(pair.mValue.GetType()->mReference(*pair.mValue.template GetRaw<void*>(), -1) == 0);
+               if (pair.mValue.GetType()->mDestructor)
+                  pair.mValue.GetType()->mDestructor(*pair.mValue.template GetRaw<void*>());
                free(*pair.mValue.template GetRaw<void*>());
             }
          }
