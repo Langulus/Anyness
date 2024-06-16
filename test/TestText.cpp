@@ -13,13 +13,12 @@
 
 
 /// A type that is reflected, as convertible to Text                          
-struct Stringifiable {
+/*struct Stringifiable {
    LANGULUS_CONVERTS_TO(Text);
-   
-   explicit operator Text() {
-      return "Stringifiable converted to Text";
-   }
-};
+   explicit operator Text() { return "Stringifiable converted to Text"; }
+};*/
+// TODO: this causes MSVC to ICE since 19.40.33811.0 :(
+// Cast operators must ALWAYS be const!
 
 /// A type that is reflected, as convertible to Text                          
 struct StringifiableConst {
@@ -419,7 +418,7 @@ TEMPLATE_TEST_CASE("Logging text containers", "[text]", Text, Path) {
    Logger::Info("You should also see ", text);
 }
 
-TEMPLATE_TEST_CASE("Reflected coverters to text", "[text]", Stringifiable, StringifiableConst) {
+TEMPLATE_TEST_CASE("Reflected coverters to text", "[text]", /*Stringifiable,*/ StringifiableConst) {
    static Allocator::State memoryState;
 
    GIVEN("A stringifiable type") {

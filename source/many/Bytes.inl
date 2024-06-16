@@ -341,21 +341,13 @@ namespace Langulus::Anyness
       Header header;
       return Base::DeserializeBinary<void>(result, header);
    }
-   
-   /// Byte container can always be represented by a type-erased one          
-   LANGULUS(ALWAYS_INLINED)
-   Bytes::operator Many& () noexcept {
-      // Just make sure that type member has been populated             
-      (void) Base::GetType();
-      return reinterpret_cast<Many&>(*this);
-   }
 
    /// Byte container can always be represented by a type-erased one          
    LANGULUS(ALWAYS_INLINED)
-   Bytes::operator const Many& () const noexcept {
+   Bytes::operator Many& () const noexcept {
       // Just make sure that type member has been populated             
       (void) Base::GetType();
-      return reinterpret_cast<const Many&>(*this);
+      return const_cast<Many&>(reinterpret_cast<const Many&>(*this));
    }
 
 } // namespace Langulus::Anyness

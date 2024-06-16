@@ -138,8 +138,7 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Conversion                                                        
       ///                                                                     
-      operator       Many& ()       noexcept;
-      operator const Many& () const noexcept;
+      operator Many& () const noexcept;
 
    private:
       /// Services graveyard - disallowed interface for typed containers      
