@@ -22,14 +22,23 @@ namespace Langulus::CT
    namespace Inner
    {
    
+      /// Workaround, because of MSVC ICEs introduced in 19.40.33811.0        
+      /// Hopefully it will be resolved by them one day                       
+      template<class T>
+      consteval bool BinableByOperator_AvoidMSVC_ICE() {
+         return std::is_object_v<T> and requires (const T& a) {
+            a.operator ::Langulus::Anyness::Bytes();
+         };
+      }
+
       /// Do types have an explicit or implicit cast operator to Bytes        
       template<class...T>
-      concept BinableByOperator = requires (T&...a) {
-         ((a.operator ::Langulus::Anyness::Bytes()), ...); };
+      concept BinableByOperator =
+         (BinableByOperator_AvoidMSVC_ICE<T>() and ...);
 
       /// Does Bytes has an explicit/implicit constructor that accepts T      
       template<class...T>
-      concept BinableByConstructor = requires (T&...a) {
+      concept BinableByConstructor = requires (const T&...a) {
          ((::Langulus::Anyness::Bytes {a}), ...); };
 
       /// Used internally in Bytes, to sum up all types a variadic Bytes      
@@ -162,8 +171,7 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Conversion                                                        
       ///                                                                     
-      operator       Many& ()       noexcept;
-      operator const Many& () const noexcept;
+      operator Many& () const noexcept;
    };
 
 } // namespace Langulus::Anyness

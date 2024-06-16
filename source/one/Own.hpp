@@ -156,8 +156,7 @@ namespace Langulus::Anyness
       void Reset();
 
       NOD() explicit constexpr operator bool() const noexcept;
-      NOD() constexpr operator const T&() const noexcept;
-      NOD() constexpr operator T&() noexcept;
+      NOD() constexpr operator T&() const noexcept;
    };
 
 } // namespace Langulus::Anyness

@@ -188,18 +188,11 @@ namespace Langulus::Anyness
       return mValue != T {};
    }
 
-   /// Cast to a constant pointer, if mutable                                 
-   ///   @return the constant equivalent to this pointer                      
+   /// Cast to a pointer, if mutable                                          
+   ///   @return the pointer                                                  
    TEMPLATE() LANGULUS(INLINED)
-   constexpr TME()::operator const T&() const noexcept {
-      return mValue;
-   }
-
-   /// Cast to a mutable pointer, if mutable                                  
-   ///   @return the mutable equivalent to this pointer                       
-   TEMPLATE() LANGULUS(INLINED)
-   constexpr TME()::operator T&() noexcept {
-      return mValue;
+   constexpr TME()::operator T&() const noexcept {
+      return const_cast<T&>(mValue);
    }
 
    /// Reset the value                                                        

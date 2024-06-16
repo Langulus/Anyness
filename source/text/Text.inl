@@ -801,18 +801,10 @@ namespace Langulus::Anyness
 
    /// Byte container can always be represented by a type-erased one          
    LANGULUS(ALWAYS_INLINED)
-   Text::operator Many& () noexcept {
+   Text::operator Many& () const noexcept {
       // Just make sure that type member has been populated             
       (void) Base::GetType();
-      return reinterpret_cast<Many&>(*this);
-   }
-
-   /// Byte container can always be represented by a type-erased one          
-   LANGULUS(ALWAYS_INLINED)
-   Text::operator const Many& () const noexcept {
-      // Just make sure that type member has been populated             
-      (void) Base::GetType();
-      return reinterpret_cast<const Many&>(*this);
+      return const_cast<Many&>(reinterpret_cast<const Many&>(*this));
    }
 
    /// Generate hexadecimal string from a given value                         

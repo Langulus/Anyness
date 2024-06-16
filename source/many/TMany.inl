@@ -178,18 +178,10 @@ namespace Langulus::Anyness
 
    /// Statically typed container can always be represented by a type-erased  
    TEMPLATE()
-   TMany<T>::operator Many& () noexcept {
+   TMany<T>::operator Many& () const noexcept {
       // Just make sure that type member has been populated             
       (void) Base::GetType();
-      return reinterpret_cast<Many&>(*this);
-   }
-
-   /// Statically typed container can always be represented by a type-erased  
-   TEMPLATE()
-   TMany<T>::operator const Many& () const noexcept {
-      // Just make sure that type member has been populated             
-      (void) Base::GetType();
-      return reinterpret_cast<const Many&>(*this);
+      return const_cast<Many&>(reinterpret_cast<const Many&>(*this));
    }
 
 } // namespace Langulus::Anyness
