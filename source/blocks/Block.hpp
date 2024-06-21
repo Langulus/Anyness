@@ -335,6 +335,7 @@ namespace Langulus::Anyness
    struct Block : A::Block {
       LANGULUS(TYPED)    TYPE;
       LANGULUS(ABSTRACT) false;
+      LANGULUS_BASES(A::Block);
 
       static constexpr bool Ownership  = false;
       static constexpr bool Sequential = true;
@@ -693,12 +694,12 @@ namespace Langulus::Anyness
       NOD() bool IsExact(DMeta) const noexcept;
       NOD() bool IsExact(const CT::Block auto&) const noexcept;
 
-      template<bool BINARY_COMPATIBLE = false>
+      template<bool BINARY_COMPATIBLE = false, bool ADVANCED = false>
       NOD() bool CastsToMeta(DMeta) const;
       template<bool BINARY_COMPATIBLE = false>
       NOD() bool CastsToMeta(DMeta, Count) const;
 
-      template<CT::Data, bool BINARY_COMPATIBLE = false>
+      template<CT::Data, bool BINARY_COMPATIBLE = false, bool ADVANCED = false>
       NOD() bool CastsTo() const;
       template<CT::Data, bool BINARY_COMPATIBLE = false>
       NOD() bool CastsTo(Count) const;

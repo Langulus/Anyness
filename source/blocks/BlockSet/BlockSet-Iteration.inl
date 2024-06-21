@@ -32,7 +32,7 @@ namespace Langulus::Anyness
       constexpr bool MUTABLE = CT::Mutable<THIS>;
 
       if (   (CT::Deep<A> and keys.IsDeep())
-      or (not CT::Deep<A> and keys.template CastsTo<A>())) {
+      or (not CT::Deep<A> and keys.template CastsTo<A, true>())) {
          Count index = 0;
          if (mKeys.mType->mIsSparse) {
             // Iterate using pointers of A                              

@@ -65,8 +65,8 @@ namespace Langulus::A
    Verb& Verb::operator = (S<Verb>&& rhs) {
       Many::operator = (rhs.template Forward<Many>());
       Charge::operator = (*rhs);
-      mVerb = rhs->mVerb;
-      mState = rhs->mState;
+      mVerb   = rhs->mVerb;
+      mState  = rhs->mState;
       mSource = S<Many> {rhs->mSource};
       mOutput = S<Many> {rhs->mOutput};
       return *this;
@@ -130,7 +130,7 @@ namespace Langulus::A
    /// Get the verb state                                                     
    ///   @return the verb state                                               
    LANGULUS(INLINED)
-   Anyness::VerbState Verb::GetVerbState() const noexcept {
+   auto Verb::GetVerbState() const noexcept -> VerbState {
       return mState;
    }
    
@@ -210,101 +210,109 @@ namespace Langulus::A
       return mPriority <= rhs.mPriority;
    }
    
+   /// Get the verb type                                                      
+   ///   @attention verb might not be set yet, if taken from A::Verb          
+   ///   @return the hash of the content                                      
+   LANGULUS(INLINED)
+   auto Verb::GetVerb() const noexcept -> VMeta {
+      return mVerb;
+   }
+
    /// Hash the verb                                                          
    ///   @return the hash of the content                                      
    LANGULUS(INLINED)
-   Hash Verb::GetHash() const {
+   auto Verb::GetHash() const -> Hash {
       return HashOf(mVerb, mSource, GetArgument(), mOutput);
    }
 
    /// Get the verb id and charge                                             
    ///   @return verb charge                                                  
    LANGULUS(INLINED)
-   const Anyness::Charge& Verb::GetCharge() const noexcept {
+   auto Verb::GetCharge() const noexcept -> const Charge& {
       return static_cast<const Anyness::Charge&>(*this);
    }
 
    /// Get the verb mass (a.k.a. magnitude)                                   
    ///   @return the current mass                                             
    LANGULUS(INLINED)
-   Langulus::Real Verb::GetMass() const noexcept {
+   auto Verb::GetMass() const noexcept -> Real {
       return Charge::mMass;
    }
 
    /// Get the verb frequency                                                 
    ///   @return the current frequency                                        
    LANGULUS(INLINED)
-   Langulus::Real Verb::GetRate() const noexcept {
+   auto Verb::GetRate() const noexcept -> Real {
       return Charge::mRate;
    }
 
    /// Get the verb time                                                      
    ///   @return the current time                                             
    LANGULUS(INLINED)
-   Langulus::Real Verb::GetTime() const noexcept {
+   auto Verb::GetTime() const noexcept -> Real {
       return Charge::mTime;
    }
 
    /// Get the verb priority                                                  
    ///   @return the current priority                                         
    LANGULUS(INLINED)
-   Langulus::Real Verb::GetPriority() const noexcept {
+   auto Verb::GetPriority() const noexcept -> Real {
       return Charge::mPriority;
    }
 
    /// Get verb source                                                        
    ///   @return the verb source                                              
    LANGULUS(INLINED)
-   Anyness::Many& Verb::GetSource() noexcept {
+   auto Verb::GetSource() noexcept -> Many& {
       return mSource;
    }
 
    /// Get verb source (constant)                                             
    ///   @return the verb source                                              
    LANGULUS(INLINED)
-   const Anyness::Many& Verb::GetSource() const noexcept {
+   auto Verb::GetSource() const noexcept -> const Many& {
       return mSource;
    }
 
    /// Get verb argument                                                      
    ///   @return the verb argument                                            
    LANGULUS(INLINED)
-   Anyness::Many& Verb::GetArgument() noexcept {
+   auto Verb::GetArgument() noexcept -> Many& {
       return static_cast<Many&>(*this);
    }
 
    /// Get verb argument (constant)                                           
    ///   @return the verb argument                                            
    LANGULUS(INLINED)
-   const Anyness::Many& Verb::GetArgument() const noexcept {
+   auto Verb::GetArgument() const noexcept -> const Many& {
       return static_cast<const Many&>(*this);
    }
 
    /// Get verb output                                                        
    ///   @return the verb output                                              
    LANGULUS(INLINED)
-   Anyness::Many& Verb::GetOutput() noexcept {
+   auto Verb::GetOutput() noexcept -> Many& {
       return mOutput;
    }
 
    /// Get verb output (constant)                                             
    ///   @return the verb output                                              
    LANGULUS(INLINED)
-   const Anyness::Many& Verb::GetOutput() const noexcept {
+   auto Verb::GetOutput() const noexcept -> const Many& {
       return mOutput;
    }
 
    /// Convenience operator for accessing the output container inside verb    
    ///   @return the verb output                                              
    LANGULUS(INLINED)
-   const Anyness::Many* Verb::operator -> () const noexcept {
+   auto Verb::operator -> () const noexcept -> const Many* {
       return &mOutput;
    }
 
    /// Convenience operator for accessing the output container inside verb    
    ///   @return the verb output                                              
    LANGULUS(INLINED)
-   Anyness::Many* Verb::operator -> () noexcept {
+   auto Verb::operator -> () noexcept -> Many* {
       return &mOutput;
    }
    

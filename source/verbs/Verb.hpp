@@ -29,18 +29,22 @@ namespace Langulus::A
       static constexpr bool CTTI_Container = true;
 
    protected:
-      using VMeta = Anyness::VMeta;
+      using Real      = Langulus::Real;
+      using Charge    = Anyness::Charge;
+      using VMeta     = Anyness::VMeta;
+      using VerbState = Anyness::VerbState;
+      using Many      = Anyness::Many;
 
       // Verb meta, mass, rate, time and priority                       
       mutable VMeta mVerb {};
       // The number of successful executions                            
       Count mSuccesses {};
       // Verb short-circuiting                                          
-      Anyness::VerbState mState {};
+      VerbState mState {};
       // Verb context                                                   
-      Anyness::Many mSource;
+      Many mSource;
       // The container where output goes after execution                
-      Anyness::Many mOutput;
+      Many mOutput;
 
       LANGULUS_MEMBERS(
          &Verb::mVerb,
@@ -72,27 +76,28 @@ namespace Langulus::A
       ///                                                                     
       ///   Capsulation                                                       
       ///                                                                     
-      NOD() Hash GetHash() const;
-      NOD() const Anyness::Charge& GetCharge() const noexcept;
-      NOD() Langulus::Real GetMass() const noexcept;
-      NOD() Langulus::Real GetRate() const noexcept;
-      NOD() Langulus::Real GetTime() const noexcept;
-      NOD() Langulus::Real GetPriority() const noexcept;
+      NOD() auto GetVerb() const noexcept -> VMeta;
+      NOD() auto GetHash() const -> Hash;
+      NOD() auto GetCharge() const noexcept -> const Charge&;
+      NOD() auto GetMass() const noexcept -> Real;
+      NOD() auto GetRate() const noexcept -> Real;
+      NOD() auto GetTime() const noexcept -> Real;
+      NOD() auto GetPriority() const noexcept -> Real;
 
-      NOD() Anyness::Many&       GetSource() noexcept;
-      NOD() Anyness::Many const& GetSource() const noexcept;
+      NOD() auto GetSource() noexcept -> Many&;
+      NOD() auto GetSource() const noexcept -> Many const&;
 
-      NOD() Anyness::Many&       GetArgument() noexcept;
-      NOD() Anyness::Many const& GetArgument() const noexcept;
+      NOD() auto GetArgument() noexcept -> Many&;
+      NOD() auto GetArgument() const noexcept -> Many const&;
 
-      NOD() Anyness::Many&       GetOutput() noexcept;
-      NOD() Anyness::Many const& GetOutput() const noexcept;
+      NOD() auto GetOutput() noexcept -> Many&;
+      NOD() auto GetOutput() const noexcept -> Many const&;
 
-      NOD() Anyness::Many*       operator -> () noexcept;
-      NOD() Anyness::Many const* operator -> () const noexcept;
+      NOD() auto operator -> () noexcept -> Many*;
+      NOD() auto operator -> () const noexcept -> Many const*;
       
       NOD() Count GetSuccesses() const noexcept;
-      NOD() Anyness::VerbState GetVerbState() const noexcept;
+      NOD() auto GetVerbState() const noexcept -> VerbState;
       NOD() bool IsDone() const noexcept;
 
       NOD() constexpr bool IsMulticast() const noexcept;
