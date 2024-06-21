@@ -216,7 +216,7 @@ namespace Langulus::Anyness
          else return Loop::NextLoop;
       }
       else if ((CT::Deep<Decay<A>> and IsDeep())
-      or   (not CT::Deep<Decay<A>> and CastsTo<A>())
+      or   (not CT::Deep<Decay<A>> and CastsTo<A, true>())
       ) {
          // Container is type-erased                                    
          if (mType->mIsSparse) {

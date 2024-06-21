@@ -319,11 +319,10 @@ namespace Langulus::Anyness
    ///   @return true if the memory block contains deep memory blocks         
    template<class TYPE> LANGULUS(INLINED)
    constexpr bool Block<TYPE>::IsDeep() const noexcept {
-      if constexpr (TypeErased) {
-         return mType and mType->mIsDeep
-            and mType->template CastsTo<Block, true>();
-      }
-      else return CT::Deep<Decay<TYPE>>;
+      if constexpr (TypeErased)
+         return mType and mType->mIsDeep and mType->template CastsTo<A::Block, true>();
+      else
+         return CT::Deep<Decay<TYPE>>;
    }
 
    /// Check if the memory block contains memory blocks                       
@@ -331,7 +330,7 @@ namespace Langulus::Anyness
    template<class TYPE> LANGULUS(INLINED)
    constexpr bool Block<TYPE>::IsBlock() const noexcept {
       if constexpr (TypeErased)
-         return mType and mType->template CastsTo<Block, true>();
+         return mType and mType->template CastsTo<A::Block, true>();
       else
          return CT::Block<Decay<TYPE>>;
    }

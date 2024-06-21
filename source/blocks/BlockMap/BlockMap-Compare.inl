@@ -249,7 +249,12 @@ namespace Langulus::Anyness
          else return InvalidOffset;
       }
       else {
-         if (not IsKeySimilar<THIS, K>()) {
+         if constexpr (CT::Typed<THIS>) {
+            // Types known at compile-time                              
+            static_assert(CT::Comparable<typename THIS::Key, K>,
+               "Types not comparable");
+         }
+         else if (not IsKeySimilar<THIS, K>()) {
             // K might be wrapped inside Own                            
             if constexpr (CT::Owned<K>) {
                if (not IsKeySimilar<THIS, TypeOf<K>>())

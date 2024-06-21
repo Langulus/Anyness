@@ -118,16 +118,16 @@ namespace Langulus::Anyness
    ///      binary compatible with this container's type                      
    ///   @param type - the type check if current type interprets to           
    ///   @return true if able to interpret current type to 'type'             
-   template<class TYPE> template<bool BINARY_COMPATIBLE> LANGULUS(INLINED)
-   bool Block<TYPE>::CastsToMeta(DMeta type) const {
+   template<class TYPE> template<bool BINARY_COMPATIBLE, bool ADVANCED>
+   LANGULUS(INLINED) bool Block<TYPE>::CastsToMeta(DMeta type) const {
       if constexpr (TypeErased) {
-         return mType and (BINARY_COMPATIBLE or mType->mIsSparse
-            ? mType->CastsTo<true>(type)
-            : mType->CastsTo(type));
+         return mType and (ADVANCED or mType->mIsSparse
+            ? mType->CastsTo<BINARY_COMPATIBLE, true >(type)
+            : mType->CastsTo<BINARY_COMPATIBLE, false>(type));
       }
       else {
          return GetType()->template
-            CastsTo<BINARY_COMPATIBLE or CT::Sparse<TYPE>>(type);
+            CastsTo<BINARY_COMPATIBLE, ADVANCED or CT::Sparse<TYPE>>(type);
       }
    }
 
@@ -139,12 +139,16 @@ namespace Langulus::Anyness
    ///   @param type - the type check if current type interprets to           
    ///   @param count - the number of elements to interpret as                
    ///   @return true if able to interpret current type to 'type'             
-   template<class TYPE> template<bool BINARY_COMPATIBLE> LANGULUS(INLINED)
-   bool Block<TYPE>::CastsToMeta(DMeta type, Count count) const {
-      if constexpr (TypeErased)
-         return not mType or not type or mType->CastsTo(type, count);
-      else
-         return not type or GetType()->CastsTo(type, count);
+   template<class TYPE> template<bool BINARY_COMPATIBLE>
+   LANGULUS(INLINED) bool Block<TYPE>::CastsToMeta(DMeta type, Count count) const {
+      if constexpr (TypeErased) {
+         return not mType or not type
+             or mType->CastsTo<BINARY_COMPATIBLE>(type, count);
+      }
+      else {
+         return not type
+             or GetType()->CastsTo<BINARY_COMPATIBLE>(type, count);
+      }
    }
 
    /// Check if this container's data can be represented as type T            
@@ -153,10 +157,10 @@ namespace Langulus::Anyness
    ///   @tparam BINARY_COMPATIBLE - do we require for the type to be         
    ///      binary compatible with this container's type                      
    ///   @return true if contained data is reinterpretable as T               
-   template<class TYPE> template<CT::Data T, bool BINARY_COMPATIBLE>
+   template<class TYPE> template<CT::Data T, bool BINARY_COMPATIBLE, bool ADVANCED>
    LANGULUS(INLINED) bool Block<TYPE>::CastsTo() const {
       //TODO can be further optimized
-      return CastsToMeta<BINARY_COMPATIBLE>(MetaDataOf<T>());
+      return CastsToMeta<BINARY_COMPATIBLE, ADVANCED>(MetaDataOf<Decay<T>>());
    }
 
    /// Check if this container's data can be represented as a specific number 
@@ -169,7 +173,7 @@ namespace Langulus::Anyness
    template<class TYPE> template<CT::Data T, bool BINARY_COMPATIBLE>
    LANGULUS(INLINED) bool Block<TYPE>::CastsTo(const Count count) const {
       //TODO can be further optimized
-      return CastsToMeta<BINARY_COMPATIBLE>(MetaDataOf<T>(), count);
+      return CastsToMeta<BINARY_COMPATIBLE>(MetaDataOf<Decay<T>>(), count);
    }
    
    /// Reinterpret contents of this Block as the type and state of another    
@@ -352,22 +356,21 @@ namespace Langulus::Anyness
          // No need to mutate - types are compatible                    
          return false;
       }
-      else /*if (not IsInsertable(meta))*/ {
-         // Not insertable because of reasons                           
+      else {
          if constexpr (not CT::Void<FORCE>) {
             LANGULUS_ASSERT(not IsTypeConstrained(), Mutate,
                "Attempting to mutate type-locked container");
 
             // Container is not type-constrained, so we can safely      
             // deepen it, to incorporate the new data, unless it is     
-            // already deep, that is                                    
-            if (not IsDeep())
+            // already deep, that is. We also make sure to deepen if    
+            // block is deep, but sparse.                               
+            if (not IsDeep() or IsSparse())
                Deepen<FORCE, true>();
             return true;
          }
          else LANGULUS_OOPS(Mutate, "Can't mutate to incompatible type");
       }
-      //else LANGULUS_OOPS(Mutate, "Can't mutate to incompatible type");
 
       // Block may have mutated, but it didn't happen                   
       return false;

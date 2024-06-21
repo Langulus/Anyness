@@ -192,7 +192,7 @@ namespace Langulus::Anyness
                   OUT::SerializationRules::Separate(*this, to);
             }
          }
-         else if (CastsTo<Trait, false>()) {
+         else if (CastsTo<Trait>()) {
             // Nest inside traits                                       
             for (Offset i = 0; i < GetCount(); ++i) {
                As<Trait>(i).Serialize(to);
@@ -201,21 +201,21 @@ namespace Langulus::Anyness
                   OUT::SerializationRules::Separate(*this, to);
             }
          }
-         else if (CastsTo<BlockMap, false>()) {
+         else if (CastsTo<BlockMap>()) {
             // Nest inside maps                                         
             for (Offset i = 0; i < GetCount(); ++i) {
                //auto& map = As<BlockMap>(i);
                TODO();
             }
          }
-         else if (CastsTo<BlockSet, false>()) {
+         else if (CastsTo<BlockSet>()) {
             // Nest inside sets                                         
             for (Offset i = 0; i < GetCount(); ++i) {
                //auto& set = As<BlockSet>(i);
                TODO();
             }
          }
-         else if (CastsTo<Construct, false>()) {
+         else if (CastsTo<Construct>()) {
             // Nest inside sets                                         
             for (Offset i = 0; i < GetCount(); ++i) {
                As<Construct>(i).Serialize(to);
@@ -224,7 +224,7 @@ namespace Langulus::Anyness
                   OUT::SerializationRules::Separate(*this, to);
             }
          }
-         else if (CastsTo<Neat, false>()) {
+         else if (CastsTo<Neat>()) {
             // Nest inside sets                                         
             for (Offset i = 0; i < GetCount(); ++i) {
                As<Neat>(i).Serialize(to);
@@ -481,7 +481,7 @@ namespace Langulus::Anyness
                return 0;
          }
          else if constexpr (RULE::sMatch == Serial::BasedOn) {
-            if (not CastsTo<Type, false>())
+            if (not CastsTo<Type>())
                return 0;
          }
          else LANGULUS_ERROR("Unimplemented matcher");

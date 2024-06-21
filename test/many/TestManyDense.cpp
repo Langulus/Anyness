@@ -10,6 +10,7 @@
 
 
 TEMPLATE_TEST_CASE("Dense Many/TMany", "[many]",
+   (TypePair<Many, Traits::Count>),
    (TypePair<Trait, Text>),
    (TypePair<Traits::Name, Text>),
 
@@ -21,7 +22,6 @@ TEMPLATE_TEST_CASE("Dense Many/TMany", "[many]",
 
    (TypePair<Many, int>),
    (TypePair<Many, Trait>),
-   (TypePair<Many, Traits::Count>),
    (TypePair<Many, Many>),
    (TypePair<Many, Text>)
 ) {
