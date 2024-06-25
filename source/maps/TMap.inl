@@ -140,6 +140,14 @@ namespace Langulus::Anyness
       return *this;
    }
 
+   /// Branch the map, by doing a shallow copy                                
+   ///   @return a reference to this instance                                 
+   TEMPLATE() LANGULUS(INLINED)
+   TABLE()& TABLE()::BranchOut() {
+      BlockMap::BranchOut<TMap>();
+      return *this;
+   }
+
    /// Get the key meta data                                                  
    /// Also implicitly initializes the internal key type                      
    ///   @attention this shouldn't be called on static initialization time    

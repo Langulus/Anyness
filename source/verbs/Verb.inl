@@ -320,8 +320,8 @@ namespace Langulus::A
    ///   @return the serialized verb                                          
    void Verb::SerializeVerb(CT::Serial auto& out) const {
       using OUT = Deref<decltype(out)>;
-      if (mSuccesses) {
-         // If verb has been executed, just dump the output             
+      if (mSuccesses and mOutput) {
+         // If verb has been executed with output, just dump the output 
          mOutput.Serialize(out);
          return;
       }
@@ -335,7 +335,7 @@ namespace Langulus::A
       }
 
       // Write any special qualifiers before the verb token             
-      if (IsLongCircuited()) {
+      /*if (IsLongCircuited()) {
          if (mSource.IsValid())
             out += ' ';
          out += OUT::Operator::Long;
@@ -345,7 +345,7 @@ namespace Langulus::A
          if (mSource.IsValid() or IsLongCircuited())
             out += ' ';
          out += OUT::Operator::Mono;
-      }
+      }*/
 
       // After the source, we decide whether to write verb token or     
       // verb operator, depending on the verb definition, state and     
@@ -353,7 +353,7 @@ namespace Langulus::A
       bool writtenAsToken = false;
       if (not mVerb) {
          // An invalid verb is always written as token                  
-         if (mSource.IsValid() or IsLongCircuited() or IsMonocast())
+         if (mSource.IsValid() /*or IsLongCircuited() or IsMonocast()*/)
             out += ' ';
          out += NameOf<Verb>();
          writtenAsToken = true;
@@ -367,7 +367,7 @@ namespace Langulus::A
             }
             else {
                // Write as token                                        
-               if (mSource.IsValid() or IsLongCircuited() or IsMonocast())
+               if (mSource.IsValid() /*or IsLongCircuited() or IsMonocast()*/)
                   out += ' ';
                out += mVerb->mTokenReverse;
                out += static_cast<OUT>(GetCharge() * -1);
@@ -381,7 +381,7 @@ namespace Langulus::A
             }
             else {
                // Write as token                                        
-               if (mSource.IsValid() or IsLongCircuited() or IsMonocast())
+               if (mSource.IsValid() /*or IsLongCircuited() or IsMonocast()*/)
                   out += ' ';
                out += mVerb->mToken;
                out += static_cast<OUT>(GetCharge());
@@ -396,6 +396,7 @@ namespace Langulus::A
       if (not OUT::SerializationRules::BeginScope(GetArgument(), out)
       and writtenAsToken)
          out += ' ';
+
       GetArgument().Serialize(out);
       OUT::SerializationRules::EndScope(GetArgument(), out);
    }

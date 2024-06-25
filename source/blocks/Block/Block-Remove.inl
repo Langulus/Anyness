@@ -73,13 +73,8 @@ namespace Langulus::Anyness
                }
             }
 
-            if (GetUses() > 1) {
-               // Block is used from multiple locations, and we mush    
-               // branch out before changing it                         
-               TODO();
-            }
-
             // First call the destructors on the correct region         
+            BranchOut();
             CropInner(idx, removed).Destroy();
 
             if (ender < mCount) {
@@ -100,16 +95,11 @@ namespace Langulus::Anyness
                return count;
             }
 
-            if (GetUses() > 1) {
-               // Block is used from multiple locations, and we mush    
-               // branch out before changing it                         
-               TODO();
-            }
-
             LANGULUS_ASSERT(IsMutable(), Access,
                "Attempting to remove from constant container");
             LANGULUS_ASSERT(not IsStatic(), Access,
                "Attempting to remove from static container");
+            BranchOut();
 
             if constexpr (CT::Sparse<TYPE> or CT::POD<TYPE>) {
                // Batch move                                            
@@ -210,13 +200,8 @@ namespace Langulus::Anyness
          return;
       }
 
-      if (GetUses() > 1) {
-         // Block is used from multiple locations, and we mush          
-         // branch out before changing it                               
-         TODO();
-      }
-
       // Call destructors and change count                              
+      BranchOut();
       CropInner(count, mCount - count).Destroy();
       mCount = count;
    }
@@ -226,9 +211,6 @@ namespace Langulus::Anyness
    /// Discards ORness if container has only one element                      
    template<class TYPE>
    void Block<TYPE>::Optimize() {
-      if (IsOr() and GetCount() == 1)
-         MakeAnd();
-
       while (GetCount() == 1 and IsDeep()) {
          auto& subPack = GetDeep();
          if (not CanFitState(subPack)) {

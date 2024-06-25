@@ -85,6 +85,8 @@ namespace Langulus::Anyness
       requires CT::DeepMapAssignable<K, V, T1>
       TMap& operator = (T1&&);
 
+      TMap& BranchOut();
+
       ///                                                                     
       ///   Capsulation                                                       
       ///                                                                     

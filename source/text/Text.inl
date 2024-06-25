@@ -211,7 +211,7 @@ namespace Langulus::Anyness
          LANGULUS_ASSERT(errorCode == ::std::errc(), Convert,
             "std::to_chars failure");
 
-         while ((*lastChar == '0' || *lastChar == '.') and lastChar > temp) {
+         while ((*lastChar == '0' or *lastChar == '.') and lastChar > temp) {
             if (*lastChar == '.')
                break;
             --lastChar;
@@ -887,7 +887,7 @@ namespace Langulus::Anyness
    ///   @param from - the data to serialize                                  
    ///   @param to - the serialized data                                      
    ///   @return the number of written characters                             
-   inline bool Text::SerializationRules::BeginScope(const CT::Block auto& from, Text& to) {
+   bool Text::SerializationRules::BeginScope(const CT::Block auto& from, Text& to) {
       const bool scoped = from.GetCount() > 1 or from.IsInvalid() or from.IsExecutable(); //TODO could check verb precedence to avoid scoping in some cases
       if (scoped) {
          if (from.IsPast())
@@ -905,7 +905,7 @@ namespace Langulus::Anyness
    ///   @param from - the data to serialize                                  
    ///   @param to - the serialized data                                      
    ///   @return the number of written characters                             
-   inline bool Text::SerializationRules::EndScope(const CT::Block auto& from, Text& to) {
+   bool Text::SerializationRules::EndScope(const CT::Block auto& from, Text& to) {
       const bool scoped = from.GetCount() > 1 or from.IsInvalid() or from.IsExecutable(); //TODO could check verb precedence to avoid scoping in some cases
       if (scoped)
          to += Operator::CloseScope;
@@ -917,7 +917,7 @@ namespace Langulus::Anyness
    ///   @param from - the data to serialize                                  
    ///   @param to - the serialized data                                      
    ///   @return the number of written characters                             
-   inline bool Text::SerializationRules::Separate(const CT::Block auto& from, Text& to) {
+   bool Text::SerializationRules::Separate(const CT::Block auto& from, Text& to) {
       const auto initial = to.GetCount();
       to += (from.IsOr() ? " or " : ", ");
       return to.GetCount() - initial;

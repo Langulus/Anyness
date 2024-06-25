@@ -245,7 +245,7 @@ namespace Langulus::Anyness
    ///   @return true if this is an inhibitory container                      
    template<class TYPE> LANGULUS(INLINED)
    constexpr bool Block<TYPE>::IsOr() const noexcept {
-      return mState.IsOr();
+      return mState.IsOr() and mCount > 1;
    }
 
    /// Check if block contains no initialized elements                        
@@ -334,14 +334,6 @@ namespace Langulus::Anyness
       else
          return CT::Block<Decay<TYPE>>;
    }
-   
-   /// Check phase compatibility                                              
-   ///   @param other - the block to check                                    
-   ///   @return true if phase is compatible                                  
-   template<class TYPE> LANGULUS(INLINED)
-   constexpr bool Block<TYPE>::CanFitPhase(const CT::Block auto& other) const noexcept {
-      return IsNow() or other.IsNow() or IsFuture() == other.IsFuture();
-   }
 
    /// Check state compatibility                                              
    ///   @param other - the block to check                                    
@@ -351,17 +343,9 @@ namespace Langulus::Anyness
       return IsInvalid() or (
              IsMissing() == other.IsMissing()
          and (not IsTypeConstrained() or other.IsExact(mType))
-         and CanFitOrAnd(other)
-         and CanFitPhase(other)
+         and (mCount <= 1 or other.mCount <= 1 or IsOr() == other.IsOr())
+         and (IsNow() or other.IsNow() or IsFuture() == other.IsFuture())
       );
-   }
-
-   /// Check state compatibility regarding orness                             
-   ///   @param other - the block to check                                    
-   ///   @return true if state is compatible                                  
-   template<class TYPE> LANGULUS(INLINED)
-   constexpr bool Block<TYPE>::CanFitOrAnd(const CT::Block auto& other) const noexcept {
-      return mCount <= 1 or other.mCount <= 1 or IsOr() == other.IsOr();
    }
 
    /// Get the size of the contained data, in bytes                           

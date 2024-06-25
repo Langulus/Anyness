@@ -341,7 +341,7 @@ namespace Langulus::Anyness
             new (this) THIS {Copy(reinterpret_cast<const THIS&>(backup))};
          }
          else LANGULUS_THROW(Construct,
-            "Set needs to branch out, but type doesn't support it");
+            "Set needs to branch out, but type doesn't support Intent::Copy");
       }
    }
 

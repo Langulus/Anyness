@@ -319,22 +319,27 @@ namespace Langulus::Anyness
          if (not c.CastsTo(type))
             return;
 
-         if (not primitive) primitive = c.GetType();
-         else ambiguous = true;
+         if (not primitive)
+            primitive = c.GetType();
+         else
+            ambiguous = true;
       });
 
       ForEachTail([&](const Block<>& c) noexcept {
          if (not c.CastsToMeta(type))
             return;
 
-         if (not primitive) primitive = c.GetType();
-         else ambiguous = true;
+         if (not primitive)
+            primitive = c.GetType();
+         else
+            ambiguous = true;
       });
 
       if (ambiguous) {
          Logger::Warning(
             "Multiple primitives defined in a single Neat on FindData - "
-            "all except the first `", primitive, "` will be ignored");
+            "all except the first `", primitive, "` will be ignored"
+         );
       }
 
       return primitive;
@@ -468,14 +473,6 @@ namespace Langulus::Anyness
          // Insert trait to its bucket                                  
          AddTrait(S::Nest(item));
       }
-      /*else if constexpr (CT::Same<T, DMeta>) {
-         // Insert an empty data to signify solo type ID                
-         AddData(S::Nest(item));
-      }
-      else if constexpr (CT::Same<T, TMeta>) {
-         // Insert empty Many to signify trait without content          
-         AddTrait(S::Nest(item));
-      }*/
       else if constexpr (CT::Same<T, CMeta>) {
          // Expand the constant, and push it                            
          operator << (Clone(Block<> {{}, DesemCast(item)}));
@@ -681,7 +678,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this construct for chaining                   
    inline Neat& Neat::Set(CT::TraitBased auto&& trait, Offset index) {
       const auto meta = trait.GetTrait();
-      auto found = mTraits.FindIt(meta);
+      auto found = mTraits.BranchOut().FindIt(meta);
 
       if (found) {
          // A group of similar traits was found                         
@@ -717,7 +714,7 @@ namespace Langulus::Anyness
             wrapper = messy.template Forward<Many>();
 
          const auto meta = messy->GetTrait();
-         auto found = mTraits.FindIt(meta);
+         auto found = mTraits.BranchOut().FindIt(meta);
          if (found)
             *found.mValue << Abandon(wrapper);
          else
@@ -726,7 +723,7 @@ namespace Langulus::Anyness
       else if constexpr (CT::Exact<T, TMeta>) {
          // Insert trait without contents                               
          auto trait = DesemCast(messy);
-         auto found = mTraits.FindIt(trait);
+         auto found = mTraits.BranchOut().FindIt(trait);
          if (found)
             *found.mValue << Many {};
          else
@@ -734,37 +731,6 @@ namespace Langulus::Anyness
       }
       else LANGULUS_ERROR("Can't insert trait");
    }
-   
-   /// Push data to the appropriate bucket                                    
-   ///   @attention this is an inner function that doesn't affect the hash    
-   ///   @param messy - the data (and semantic) to insert                     
-   /*LANGULUS(INLINED)
-   void Neat::AddData(CT::Semantic auto&& messy) {
-      using S = SemanticOf<decltype(messy)>;
-      using T = TypeOf<S>;
-
-      if constexpr (CT::Deep<T>) {
-         // Insert deep data - we have to flatten it                    
-         const auto meta = messy->GetType()
-            ? messy->GetType()->mOrigin : nullptr;
-         auto found = mAnythingElse.FindIt(meta);
-         if (found)
-            *found.mValue << messy.Forward();
-         else
-            mAnythingElse.Insert(meta, messy.Forward());
-      }
-      else if constexpr (CT::Exact<T, DMeta>) {
-         // Insert data without contents                                
-         auto meta = DesemCast(messy);
-         auto dmeta = meta ? meta->mOrigin : nullptr;
-         auto found = mAnythingElse.FindIt(dmeta);
-         if (found)
-            *found.mValue << Many {};
-         else
-            mAnythingElse.Insert(dmeta, Many {});
-      }
-      else LANGULUS_ERROR("Can't insert data");
-   }*/
    
    /// Push verbs to the appropriate bucket                                   
    ///   @attention this is an inner function that doesn't affect the hash    
@@ -778,7 +744,7 @@ namespace Langulus::Anyness
 
       // Insert deep data - we have to flatten it                       
       static const auto meta = MetaDataOf<A::Verb>();
-      auto found = mAnythingElse.FindIt(meta);
+      auto found = mAnythingElse.BranchOut().FindIt(meta);
       if (found)
          *found.mValue << verb.template Forward<A::Verb>();
       else
@@ -796,7 +762,7 @@ namespace Langulus::Anyness
       if constexpr (CT::Construct<T>) {
          const auto meta = messy->GetType()
             ? messy->GetType()->mOrigin : nullptr;
-         const auto found = mConstructs.FindIt(meta);
+         const auto found = mConstructs.BranchOut().FindIt(meta);
          if (found) {
             *found.mValue << Inner::DeConstruct {
                messy->GetHash(),
@@ -1227,7 +1193,7 @@ namespace Langulus::Anyness
    template<CT::Data T, bool EMPTY_TOO>
    Count Neat::RemoveData() {
       const auto filter = MetaDataOf<Decay<T>>();
-      const auto found = mAnythingElse.FindIt(filter);
+      auto found = mAnythingElse.FindIt(filter);
       if (not found)
          return 0;
 
@@ -1236,6 +1202,12 @@ namespace Langulus::Anyness
          const auto count = found.mValue->GetCount();
          mAnythingElse.RemoveIt(found);
          return count;
+      }
+
+      if (mAnythingElse.GetUses() > 1) {
+         // mAnythingElse is used from multiple locations, and we must  
+         // branch out this particular instance before modifying it     
+         found = mAnythingElse.BranchOut().FindIt(filter);
       }
 
       Count count = 0;
@@ -1259,9 +1231,15 @@ namespace Langulus::Anyness
    template<CT::Data T>
    Count Neat::RemoveConstructs() {
       const auto filter = MetaDataOf<Decay<T>>();
-      const auto found = mConstructs.FindIt(filter);
+      auto found = mConstructs.FindIt(filter);
       if (not found)
          return 0;
+
+      if (mConstructs.GetUses() > 1) {
+         // mConstructs is used from multiple locations, and we must    
+         // branch out this particular instance before modifying it     
+         found = mConstructs.BranchOut().FindIt(filter);
+      }
 
       Count count = 0;
       for (auto data : KeepIterator(*found.mValue)) {
@@ -1294,6 +1272,12 @@ namespace Langulus::Anyness
          const auto count = found.mValue->GetCount();
          mTraits.RemoveIt(found);
          return count;
+      }
+
+      if (mTraits.GetUses() > 1) {
+         // mTraits is used from multiple locations, and we must        
+         // branch out this particular instance before modifying it     
+         found = mTraits.BranchOut().FindIt(filter);
       }
 
       Count count = 0;

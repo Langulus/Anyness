@@ -393,6 +393,24 @@ namespace Langulus::Anyness
 
       return reinterpret_cast<THIS&>(*this);
    }
+
+   /// Branch the block, by doing a shallow copy                              
+   template<class TYPE>
+   void Block<TYPE>::BranchOut() {
+      if (GetUses() <= 1)
+         return;
+      
+      // Block is used from multiple locations, and we must branch out  
+      // before changing it - only this copy will be affected           
+      if constexpr (not TypeErased and CT::ReferMakable<TYPE>) {
+         const auto backup = *this;
+         const_cast<Allocation*>(mEntry)->Free();
+         new (this) TMany<TYPE> {Copy(reinterpret_cast<const TMany<TYPE>&>(backup))};
+      }
+      else LANGULUS_THROW(Construct,
+         "Block needs to branch out, but type don't support Intent::Copy");
+   }
+
    
    /// Construct a block, that best represents a contiguous piece of memory   
    /// If BLOCK is a container with ownership, then data will be copied if    
