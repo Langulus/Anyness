@@ -195,14 +195,7 @@ namespace Langulus::Anyness
    ///   @param index - the index to remove                                   
    template<CT::Map THIS>
    void BlockMap::RemoveInner(const Offset index) {
-      if (GetUses() > 1) {
-         // Map is used from multiple locations, and we must branch out 
-         // before changing it - only this copy will be affected        
-         const BlockMap backup = *this;
-         const_cast<Allocation*>(mKeys.mEntry)->Free();
-         new (this) THIS {Copy(reinterpret_cast<const THIS&>(backup))};
-      }
-
+      BranchOut<THIS>();
       auto psl = GetInfo() + index;
       LANGULUS_ASSUME(DevAssumes, *psl, "Removing an invalid pair");
 

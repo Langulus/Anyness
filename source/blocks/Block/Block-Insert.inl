@@ -342,7 +342,6 @@ namespace Langulus::Anyness
    requires CT::Block<Desem<T>> LANGULUS(INLINED)
    Count Block<TYPE>::InsertBlock(CT::Index auto index, T&& other) {
       using S = SemanticOf<decltype(other)>;
-      //using ST = TypeOf<S>;
       auto& rhs = DesemCast(other);
       const auto count = rhs.GetCount();
       if (not count)
@@ -546,7 +545,7 @@ namespace Langulus::Anyness
             or IsSimilar(DesemCast(value));
 
          if (not IsConstant() and not IsStatic() and typeCompliant and sc
-         and not (GetCount() > 1 and not IsOr() and state.IsOr())) {
+         and not (GetCount() > 1 and not mState.IsOr() and state.IsOr())) {
             if (IsUntyped()) {
                // Block insert never mutates, so make sure type         
                // is valid before insertion                             
@@ -569,7 +568,7 @@ namespace Langulus::Anyness
             (not CT::Void<FORCE> and DesemCast(value).IsDeep());
 
          if (not IsConstant() and not IsStatic() and typeCompliant and sc
-         and not (GetCount() > 1 and not IsOr() and state.IsOr())) {
+         and not (GetCount() > 1 and not mState.IsOr() and state.IsOr())) {
             if constexpr (CT::CanBeDeepened<FORCE, Block>) {
                if (not IsDeep() and DesemCast(value).IsDeep())
                   Deepen<FORCE, false>();
@@ -619,7 +618,7 @@ namespace Langulus::Anyness
          else if (IsDeep()) {
             // Already deep, push value wrapped in a container          
             //TODO hmm, what if this is deep but of specific Block<type>, that doesn't correspond to Many? should be checked inside Deepen!
-            if (mCount > 1 and not IsOr() and state.IsOr()) {
+            if (mCount > 1 and not mState.IsOr() and state.IsOr()) {
                // If container is not or-compliant after insertion, we  
                // need to add another layer                             
                Deepen<Many>();
@@ -647,7 +646,7 @@ namespace Langulus::Anyness
          else if constexpr (CT::Deep<Decay<TYPE>>) {
             // Already deep, push value wrapped in a container          
             //TODO hmm, what if this is deep but of specific Block<type>, that doesn't correspond to Many? should be checked inside Deepen!
-            if (mCount > 1 and not IsOr() and state.IsOr()) {
+            if (mCount > 1 and not mState.IsOr() and state.IsOr()) {
                // If container is not or-compliant after insertion, we  
                // need to add another layer                             
                Deepen<Many>();

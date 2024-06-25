@@ -408,6 +408,8 @@ namespace Langulus::Anyness
       template<CT::Block THIS, class T1>
       THIS& BlockAssign(T1&&) requires CT::DeepAssignable<TYPE, T1>;
 
+      void BranchOut();
+
    public:
       ///                                                                     
       ///   Capsulation                                                       
@@ -450,9 +452,7 @@ namespace Langulus::Anyness
       NOD() constexpr bool IsResolvable() const noexcept;
       NOD() constexpr bool IsDeep() const noexcept;
       NOD() constexpr bool IsBlock() const noexcept;
-      NOD() constexpr bool CanFitPhase(const CT::Block auto&) const noexcept;
       NOD() constexpr bool CanFitState(const CT::Block auto&) const noexcept;
-      NOD() constexpr bool CanFitOrAnd(const CT::Block auto&) const noexcept;
       NOD() constexpr Size GetBytesize() const noexcept;
       NOD() constexpr Token GetToken() const noexcept;
       NOD() constexpr Size GetStride() const noexcept;

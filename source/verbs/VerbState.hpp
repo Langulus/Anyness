@@ -25,14 +25,14 @@ namespace Langulus::Anyness
          // Default state is short-circuited multicast                  
          Default = 0,
 
-         // When verb is long-circuited (as oposed to short-circuited), 
+         // When verb is long-circuited (as opposed to short-circuited) 
          // it will not cease executing on success, and be executed for 
          // each element in the context if multicasted. Used usually in 
          // interpretation, when you want to guarantee all elements are 
          // converted                                                   
          LongCircuited = 1,
 
-         // When verb is monocast (as opposite to multicast), it will   
+         // When verb is monocast (as opposite to multicast) it will    
          // not iterate deep items, but be executed on the context once 
          // as a whole. Used extensively when executing at compile-time 
          Monocast = 2
