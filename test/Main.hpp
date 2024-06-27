@@ -115,6 +115,21 @@ T CreateElement(const auto& e) {
    return static_cast<T>(element);
 }
 
+template<bool MANAGED = false>
+void DestroyElement(auto e) {
+   using E = decltype(e);
+   if constexpr (CT::Sparse<E>) {
+      if constexpr (CT::Referencable<Deptr<E>>)
+         e->Reference(-1);
+
+      if constexpr (CT::Destroyable<Decay<E>>)
+         e->~Decay<E>();
+
+      if constexpr (not MANAGED)
+         free(e);
+   }
+}
+
 /// Create a test pair                                                        
 ///   @tparam P - the pair type                                               
 ///   @tparam K - the pair key type                                           

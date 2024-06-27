@@ -525,11 +525,8 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
             };
          #endif
 
-         for (auto i : darray3) {
-            if constexpr (CT::Referencable<Deptr<E>>)
-               i->Reference(-1);
-            delete i;
-         }
+         for (auto i : darray3)
+            DestroyElement(i);
       }
 
       WHEN("Move more of the same stuff to the front (>>)") {
@@ -587,11 +584,8 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
             };
          #endif
 
-         for (auto i : darray3) {
-            if constexpr (CT::Referencable<Deptr<E>>)
-               i->Reference(-1);
-            delete i;
-         }
+         for (auto i : darray3)
+            DestroyElement(i);
       }
 
       WHEN("Emplace item at the front") {
@@ -633,9 +627,7 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
             Any_CheckState_Default<E>(pack);
          }
 
-         if constexpr (CT::Referencable<Deptr<E>>)
-            i666->Reference(-1);
-         delete i666;
+         DestroyElement(i666);
       }
       
       WHEN("Emplace item at the back") {
@@ -677,9 +669,7 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
             Any_CheckState_Default<E>(pack);
          }
 
-         if constexpr (CT::Referencable<Deptr<E>>)
-            i666->Reference(-1);
-         delete i666;
+         DestroyElement(i666);
       }
 
       WHEN("Removing non-available elements") {
@@ -1730,11 +1720,8 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
             };
          #endif
 
-         for (auto i : darray3) {
-            if constexpr (CT::Referencable<Deptr<E>>)
-               i->Reference(-1);
-            delete i;
-         }
+         for (auto i : darray3)
+            DestroyElement(i);
       }
 
       WHEN("Move more of the same stuff to the front (>>)") {
@@ -1803,11 +1790,8 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
             };
          #endif
 
-         for (auto i : darray3) {
-            if constexpr (CT::Referencable<Deptr<E>>)
-               i->Reference(-1);
-            delete i;
-         }
+         for (auto i : darray3)
+            DestroyElement(i);
       }
       
       WHEN("Insert single item at a specific place by shallow-copy") {
@@ -1849,9 +1833,7 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
             };
          #endif
 
-         if constexpr (CT::Referencable<Deptr<E>>)
-            i666->Reference(-1);
-         delete i666;
+         DestroyElement(i666);
       }
 
       WHEN("Insert multiple items at a specific place by shallow-copy") {
@@ -1937,9 +1919,7 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
             };
          #endif
 
-         if constexpr (CT::Referencable<Deptr<E>>)
-            i666->Reference(-1);
-         delete i666;
+         DestroyElement(i666);
       }
 
       WHEN("Emplace item at a specific place") {
@@ -1982,9 +1962,7 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
             };
          #endif
 
-         if constexpr (CT::Referencable<Deptr<E>>)
-            i666->Reference(-1);
-         delete i666;
+         DestroyElement(i666);
       }
 
       WHEN("Emplace item at the front") {
@@ -2027,9 +2005,7 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
             };
          #endif
 
-         if constexpr (CT::Referencable<Deptr<E>>)
-            i666->Reference(-1);
-         delete i666;
+         DestroyElement(i666);
       }
       
       WHEN("Emplace item at the back") {
@@ -2072,9 +2048,7 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
             };
          #endif
 
-         if constexpr (CT::Referencable<Deptr<E>>)
-            i666->Reference(-1);
-         delete i666;
+         DestroyElement(i666);
       }
 
       WHEN("The size is reduced by finding and removing elements") {
@@ -2115,9 +2089,7 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
             };
          #endif
 
-         if constexpr (CT::Referencable<Deptr<E>>)
-            temp->Reference(-1);
-         delete temp;
+         DestroyElement(temp);
       }
 
       WHEN("Removing non-available elements") {

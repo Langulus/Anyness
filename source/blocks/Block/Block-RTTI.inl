@@ -143,11 +143,11 @@ namespace Langulus::Anyness
    LANGULUS(INLINED) bool Block<TYPE>::CastsToMeta(DMeta type, Count count) const {
       if constexpr (TypeErased) {
          return not mType or not type
-             or mType->CastsTo<BINARY_COMPATIBLE>(type, count);
+             or mType->template CastsTo<BINARY_COMPATIBLE>(type, count);
       }
       else {
          return not type
-             or GetType()->CastsTo<BINARY_COMPATIBLE>(type, count);
+             or GetType()->template CastsTo<BINARY_COMPATIBLE>(type, count);
       }
    }
 
