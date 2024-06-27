@@ -64,7 +64,7 @@ namespace Langulus::A
       requires CT::Semantic<S<Verb>>
       Verb(S<Verb>&&);
 
-      ~Verb() {}
+      ~Verb() = default;
 
       Verb& operator = (const Verb&);
       Verb& operator = (Verb&&);
