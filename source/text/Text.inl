@@ -197,46 +197,13 @@ namespace Langulus::Anyness
 
    /// Convert a number type to text                                          
    /// Notice that this constructor explicitly avoids character types         
+   ///   @attention this will truncate numbers, and stringify them in a       
+   ///      format that is best used for logging. If you want to serialize    
+   ///      a number, you should use Flow::Code container cast instead.       
    ///   @param number - the number to stringify                              
    template<CT::BuiltinNumber T> requires (not CT::Character<T>)
-   LANGULUS(INLINED) Text::Text(const T& number) {
-      mType = MetaDataOf<Letter>();
-
-      if constexpr (CT::Real<T>) {
-         // Stringify a real number                                     
-         constexpr auto size = ::std::numeric_limits<T>::max_digits10 * 2;
-         char temp[size];
-         auto [lastChar, errorCode] = ::std::to_chars(
-            temp, temp + size, number, ::std::chars_format::general);
-         LANGULUS_ASSERT(errorCode == ::std::errc(), Convert,
-            "std::to_chars failure");
-
-         while ((*lastChar == '0' or *lastChar == '.') and lastChar > temp) {
-            if (*lastChar == '.')
-               break;
-            --lastChar;
-         }
-
-         const auto c = static_cast<Count>(lastChar - temp);
-         AllocateFresh(RequestSize(c));
-         memcpy(mRaw, temp, c);
-         mCount = c;
-      }
-      else if constexpr (CT::Integer<T>) {
-         // Stringify an integer                                        
-         constexpr auto size = ::std::numeric_limits<T>::digits10 * 2;
-         char temp[size];
-         auto [lastChar, errorCode] = ::std::to_chars(temp, temp + size, number);
-         LANGULUS_ASSERT(errorCode == ::std::errc(), Convert,
-            "std::to_chars failure");
-
-         const auto c = static_cast<Count>(lastChar - temp);
-         AllocateFresh(RequestSize(c));
-         memcpy(mRaw, temp, c);
-         mCount = c;
-      }
-      else LANGULUS_ERROR("Unsupported number type");
-   }
+   LANGULUS(INLINED) Text::Text(const T& number)
+      : Text {FromNumber<2>(number)} {}
 
    /// Compose text by an arbitrary amount of formattable arguments           
    ///   @param ...args - the arguments                                       
@@ -251,6 +218,96 @@ namespace Langulus::Anyness
    /// Destructor                                                             
    inline Text::~Text() {
       Base::Free();
+   }
+
+   /// Create text from a number                                              
+   ///   @tparam PRECISION - number of digits after the floating point, use   
+   ///      0 for no truncation. Will produce scientific notation for too     
+   ///      bit or too small numbers.                                         
+   ///   @param number - the number to stringify                              
+   ///   @return the text                                                     
+   template<Count PRECISION, CT::BuiltinNumber T> LANGULUS(INLINED)
+   Text Text::FromNumber(const T& number) {
+      Text result;
+      result.mType = MetaDataOf<Letter>();
+
+      if constexpr (CT::Real<T>) {
+         // Stringify a real number                                     
+         constexpr auto size = ::std::numeric_limits<T>::max_digits10 * 2;
+         char temp[size];
+         auto [lastChar, errorCode] = ::std::to_chars(
+            temp, temp + size, number, ::std::chars_format::general);
+         LANGULUS_ASSERT(errorCode == ::std::errc(), Convert,
+            "std::to_chars failure");
+
+         // Find the dot                                                
+         auto dot = temp;
+         while (dot < lastChar and *dot != '.')
+            ++dot;
+
+         if (dot == lastChar) {
+            // There is no dot...                                       
+            const auto c = static_cast<Count>(lastChar - temp);
+            result.AllocateFresh(result.RequestSize(c));
+            memcpy(result.mRaw, temp, c);
+            result.mCount = c;
+            return Abandon(result);
+         }
+
+         // Truncate or just remove all trailing zeroes back until dot  
+         --lastChar;
+         bool approximate = false;
+
+         while (lastChar >= dot) {
+            // If last digit is zero/dot directly skip it               
+            if (*lastChar == '.' or *lastChar == '0') {
+               --lastChar;
+               continue;
+            }
+
+            if constexpr (PRECISION) {
+               // We can truncate even more                             
+               if (lastChar > dot + PRECISION) {
+                  --lastChar;
+                  approximate = true;
+                  continue;
+               }
+               else break;
+            }
+            else break;
+         }
+
+         ++lastChar;
+         const auto c = static_cast<Count>(lastChar - temp);
+         if (approximate) {
+            // We've truncated the number, so prepend a '~' symbol to   
+            // signify it's an approximate representation               
+            result.AllocateFresh(result.RequestSize(c + 1));
+            *result.mRaw = '~';
+            memcpy(result.mRaw + 1, temp, c);
+            result.mCount = c + 1;
+         }
+         else {
+            result.AllocateFresh(result.RequestSize(c));
+            memcpy(result.mRaw, temp, c);
+            result.mCount = c;
+         }
+      }
+      else if constexpr (CT::Integer<T>) {
+         // Stringify an integer                                        
+         constexpr auto size = ::std::numeric_limits<T>::digits10 * 2;
+         char temp[size];
+         auto [lastChar, errorCode] = ::std::to_chars(temp, temp + size, number);
+         LANGULUS_ASSERT(errorCode == ::std::errc(), Convert,
+            "std::to_chars failure");
+
+         const auto c = static_cast<Count>(lastChar - temp);
+         result.AllocateFresh(result.RequestSize(c));
+         memcpy(result.mRaw, temp, c);
+         result.mCount = c;
+      }
+      else LANGULUS_ERROR("Unsupported number type");
+      return Abandon(result);
    }
 
    /// Construction from bounded or unbounded array/pointer of characters     
@@ -717,12 +774,22 @@ namespace Langulus::Anyness
       return *this;
    }
 
-   /// Concatenate two text containers                                        
+   /// Concatenate with anything convertible to text on the right             
    ///   @param rhs - right hand side                                         
    ///   @return the concatenated text container                              
    template<class T> requires CT::Stringifiable<Desem<T>> LANGULUS(ALWAYS_INLINED)
    Text Text::operator + (T&& rhs) const {
       return ConcatInner<Text>(Forward<T>(rhs));
+   }
+
+   /// Concatenate with anything convertible to text on the left              
+   ///   @param lhs - left hand side                                          
+   ///   @param rhs - right hand side                                         
+   ///   @return the concatenated text container                              
+   template<class T> requires (CT::Stringifiable<Desem<T>> and not CT::TextBased<T>)
+   LANGULUS(ALWAYS_INLINED)
+   Text operator + (T&& lhs, const Text& rhs) {
+      return Text {Forward<T>(lhs)}.ConcatInner<Text>(rhs);
    }
 
    /// Concatenate (destructively) text containers                            
