@@ -311,7 +311,10 @@ namespace Langulus::Anyness
       ~Text();
 
       template<class T> requires CT::String<Desem<T>>
-      static Text From(T&&, Count);
+      NOD() static Text From(T&&, Count);
+
+      template<Count PRECISION = 0, CT::BuiltinNumber T>
+      NOD() static Text FromNumber(const T&);
 
       ///                                                                     
       ///   Assignment                                                        
@@ -373,6 +376,8 @@ namespace Langulus::Anyness
       ///                                                                     
       template<class T> requires CT::Stringifiable<Desem<T>>
       NOD() Text operator + (T&&) const;
+      template<class T> requires (CT::Stringifiable<Desem<T>> and not CT::TextBased<T>)
+      friend Text operator + (T&&, const Text&);
 
       template<class T> requires CT::Stringifiable<Desem<T>>
       Text& operator += (T&&);
