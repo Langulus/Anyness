@@ -479,10 +479,10 @@ namespace Langulus::Anyness
 
    /// Semantic-insert that uses the best approach to push anything inside    
    /// container in order to keep hierarchy and states, but also reuse memory 
+   /// Static data will always be preserved as static.                        
    ///   @tparam ALLOW_CONCAT - whether or not concatenation is allowed       
    ///   @tparam FORCE - insert even if types mismatch, by making this block  
-   ///                   deep with provided type - use void to disable        
-   ///   @tparam THIS - the type of the block, used for absorbtion            
+   ///      deep with provided type - use void to disable                     
    ///   @param index - the index at which to insert (if needed)              
    ///   @param value - the value to smart-push                               
    ///   @param state - a state to apply after pushing is done                
@@ -501,8 +501,8 @@ namespace Langulus::Anyness
             return 0;
 
          const bool stateCompliant = CanFitState(DesemCast(value));
-         if (IsEmpty() and not DesemCast(value).IsStatic() and stateCompliant) {
-            // We can directly absorb                                   
+         if (IsEmpty() and /*not DesemCast(value).IsStatic() and*/ stateCompliant) {
+            // We can directly absorb. This will preserve staticness.   
             Free();
             BlockTransfer(S::Nest(value));
             return 1;
@@ -510,24 +510,25 @@ namespace Langulus::Anyness
 
          if constexpr (ALLOW_CONCAT) {
             // Let's try concatenating                                  
-            const auto done = SmartConcat<FORCE>(
-               index, stateCompliant, S::Nest(value), state);
-
-            if (done)
-               return done;
+            // It will deepen in order to preserve staticness, if FORCE 
+            // is not void                                              
+            if (SmartConcat<FORCE>(index, stateCompliant, S::Nest(value), state))
+               return true;
          }
       }
 
-      // If reached, then none of the above succeeded - just push       
+      // If reached, then none of the above succeeded - just push.      
+      // It will deepen in order to preserve staticness, if FORCE is    
+      // not void                                                       
       return SmartPushInner<FORCE>(index, S::Nest(value), state);
    }
 
    
    /// Smart concatenation inner call, used by smart push                     
    /// Attempts to either concatenate elements, or deepen and push block      
-   ///   @tparam THIS - the type of the block, used for absorbtion            
+   /// Static data will always be preserved as static, by deepening the block 
    ///   @tparam FORCE - insert even if types mismatch, by making this block  
-   ///                   deep with provided type - use void to disable        
+   ///      deep with provided type - use void to disable                     
    ///   @param index - the place to insert at                                
    ///   @param sc - is this block state-compliant for insertion              
    ///   @param value - the value to concatenate                              
@@ -538,13 +539,12 @@ namespace Langulus::Anyness
       CT::Index auto index, bool sc, T1&& value, DataState state
    ) {
       if constexpr (TypeErased) {
-         // If this container is compatible and concatenation is        
-         // enabled, try concatenating the two containers               
+         // At runtime...                                               
          const bool typeCompliant = IsUntyped()
             or (not CT::Void<FORCE> and DesemCast(value).IsDeep())
             or IsSimilar(DesemCast(value));
 
-         if (not IsConstant() and not IsStatic() and typeCompliant and sc
+         if (not IsConstant() /*and not IsStatic()*/ and typeCompliant and sc
          and not (GetCount() > 1 and not mState.IsOr() and state.IsOr())) {
             if (IsUntyped()) {
                // Block insert never mutates, so make sure type         
@@ -552,7 +552,8 @@ namespace Langulus::Anyness
                SetType<false>(DesemCast(value).GetType());
             }
             else if constexpr (not CT::Void<FORCE>) {
-               if (not IsDeep() and DesemCast(value).IsDeep())
+               if ((not IsDeep() and DesemCast(value).IsDeep())
+               or IsStatic() or DesemCast(value).IsStatic())
                   Deepen<FORCE, false>();
             }
 
@@ -562,15 +563,15 @@ namespace Langulus::Anyness
          }
       }
       else {
-         // If this container is compatible and concatenation is        
-         // enabled, try concatenating the two containers               
+         // As statically optimized as possible                         
          const bool typeCompliant = IsSimilar(DesemCast(value)) or
             (not CT::Void<FORCE> and DesemCast(value).IsDeep());
 
-         if (not IsConstant() and not IsStatic() and typeCompliant and sc
+         if (not IsConstant() /*and not IsStatic()*/ and typeCompliant and sc
          and not (GetCount() > 1 and not mState.IsOr() and state.IsOr())) {
             if constexpr (CT::CanBeDeepened<FORCE, Block>) {
-               if (not IsDeep() and DesemCast(value).IsDeep())
+               if ((not IsDeep() and DesemCast(value).IsDeep())
+               or IsStatic() or DesemCast(value).IsStatic())
                   Deepen<FORCE, false>();
             }
 
@@ -585,7 +586,7 @@ namespace Langulus::Anyness
    
    /// Inner smart-push function                                              
    ///   @tparam FORCE - insert even if types mismatch, by making this block  
-   ///                   deep with provided type - use void to disable        
+   ///      deep with provided type - use void to disable                     
    ///   @param index - the place to insert at                                
    ///   @param value - the value to concatenate                              
    ///   @param state - the state to apply after concatenation                
