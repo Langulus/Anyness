@@ -385,7 +385,9 @@ namespace Langulus::Anyness
          LANGULUS_ASSUME(DevAssumes, not IsStatic(),
             "Last reference, but container was marked static"
             " - make sure initialization of this container was correct, "
-            "did you forget to add a reference?");
+            "did you forget to add a reference?",
+            " Container contains ", mCount, " elements of ", mType
+         );
 
          if (mCount)
             Destroy();
