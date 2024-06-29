@@ -81,6 +81,9 @@ namespace Langulus::Anyness
 } // namespace Langulus::Anyness
 
 
+/// Define a static trait                                                     
+///   @param T - the trait, as it appears in namespace Langulus::Traits       
+///   @param INFOSTRING - information about the trait's purpose               
 #define LANGULUS_DEFINE_TRAIT(T, INFOSTRING) \
    namespace Langulus::Traits \
    { \
@@ -96,6 +99,11 @@ namespace Langulus::Anyness
       }; \
    }
 
+
+/// Define a static trait with any additional properties                      
+///   @param T - the trait, as it appears in namespace Langulus::Traits       
+///   @param INFOSTRING - information about the trait's purpose               
+///   @param PROPERTIES - any properties tha will be added to T               
 #define LANGULUS_DEFINE_TRAIT_WITH_PROPERTIES(T, INFOSTRING, PROPERTIES) \
    namespace Langulus::Traits \
    { \
@@ -111,6 +119,7 @@ namespace Langulus::Anyness
          PROPERTIES; \
       }; \
    }
+
 
 LANGULUS_DEFINE_TRAIT(Logger,
    "Logger trait, used to access the logger instance");
