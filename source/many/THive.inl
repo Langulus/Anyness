@@ -29,10 +29,11 @@ namespace Langulus::Anyness
    TME()::THive(THive&& other)
       : THive {Move(other)} {}
 
-   /// Semantic constructor                                                   
-   ///   @param other - the hive and semantic to use                          
-   TEMPLATE() template<template<class> class S> LANGULUS(INLINED)
-   THive<T>::THive(S<THive>&&) requires CT::Semantic<S<THive>> {
+   /// Intent constructor                                                     
+   ///   @param other - the hive and intent to use                            
+   TEMPLATE() template<template<class> class S>
+   requires CT::Intent<S<THive<T>>> LANGULUS(INLINED)
+   THive<T>::THive(S<THive>&&) {
       TODO();
    }
 
@@ -56,10 +57,11 @@ namespace Langulus::Anyness
       return operator = (Move(other));
    }
 
-   /// Semantic assignment                                                    
+   /// Intent assignment                                                      
    ///   @param other - the hive to assign                                    
-   TEMPLATE() template<template<class> class S> LANGULUS(INLINED)
-   THive<T>& THive<T>::operator = (S<THive>&& other) requires CT::Semantic<S<THive>> {
+   TEMPLATE() template<template<class> class S> 
+   requires CT::Intent<S<THive<T>>> LANGULUS(INLINED)
+   THive<T>& THive<T>::operator = (S<THive>&& other) {
       using SS = S<THive>;
       mFrames = SS::Nest(other->mFrames);
       mReusable = other->mReusable;

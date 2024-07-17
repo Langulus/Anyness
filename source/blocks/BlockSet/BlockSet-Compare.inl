@@ -18,7 +18,7 @@ namespace Langulus::Anyness
    ///   @param rhs - the set/value to compare against, type-erased or not    
    ///   @return true if sets are the same                                    
    template<CT::Set THIS>
-   bool BlockSet::operator == (const CT::NotSemantic auto& rhs) const {
+   bool BlockSet::operator == (const CT::NoIntent auto& rhs) const {
       using OTHER = Deref<decltype(rhs)>;
 
       if constexpr (CT::Set<OTHER>) {
@@ -76,7 +76,7 @@ namespace Langulus::Anyness
    ///   @param key - the key to search for                                   
    ///   @return true if key is found, false otherwise                        
    template<CT::Set THIS> LANGULUS(INLINED)
-   bool BlockSet::Contains(const CT::NotSemantic auto& key) const {
+   bool BlockSet::Contains(const CT::NoIntent auto& key) const {
       return FindInner<THIS>(key) != InvalidOffset;
    }
 
@@ -84,7 +84,7 @@ namespace Langulus::Anyness
    ///   @param key - the key to search for                                   
    ///   @return the index if key was found, or IndexNone if not              
    template<CT::Set THIS> LANGULUS(INLINED)
-   Index BlockSet::Find(const CT::NotSemantic auto& key) const {
+   Index BlockSet::Find(const CT::NoIntent auto& key) const {
       const auto offset = FindInner<THIS>(key);
       return offset != InvalidOffset ? Index {offset} : IndexNone;
    }
@@ -93,7 +93,7 @@ namespace Langulus::Anyness
    ///   @param key - the key to search for                                   
    ///   @return the iterator                                                 
    template<CT::Set THIS> LANGULUS(INLINED)
-   BlockSet::Iterator<THIS> BlockSet::FindIt(const CT::NotSemantic auto& key) {
+   BlockSet::Iterator<THIS> BlockSet::FindIt(const CT::NoIntent auto& key) {
       const auto offset = FindInner<THIS>(key);
       if (offset == InvalidOffset)
          return end();
@@ -105,7 +105,7 @@ namespace Langulus::Anyness
    }
 
    template<CT::Set THIS> LANGULUS(INLINED)
-   BlockSet::Iterator<const THIS> BlockSet::FindIt(const CT::NotSemantic auto& key) const {
+   BlockSet::Iterator<const THIS> BlockSet::FindIt(const CT::NoIntent auto& key) const {
       return const_cast<BlockSet*>(this)->template FindIt<THIS>(key);
    }
 
@@ -114,7 +114,7 @@ namespace Langulus::Anyness
    ///   @param match - the key to search for                                 
    ///   @return the index, or InvalidOffset if not found                     
    template<CT::Set THIS>
-   Offset BlockSet::FindInner(const CT::NotSemantic auto& match) const {
+   Offset BlockSet::FindInner(const CT::NoIntent auto& match) const {
       using K = Deref<decltype(match)>;
       if (IsEmpty())
          return InvalidOffset;

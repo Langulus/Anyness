@@ -96,7 +96,7 @@ namespace Langulus::Anyness
 
       // Construct from handle                                          
       template<template<class> class S, CT::Handle H>
-      requires CT::SemanticMakable<S, T>
+      requires CT::IntentMakable<S, T>
       constexpr Handle(S<H>&&);
 
       ~Handle();
@@ -116,9 +116,9 @@ namespace Langulus::Anyness
       NOD() AllocType&       GetEntry() noexcept;
       NOD() AllocType const& GetEntry() const noexcept;
 
-      void CreateSemantic(auto&&, DMeta = {});
+      void CreateWithIntent(auto&&, DMeta = {});
       void Assign(const Type&, AllocType = nullptr) noexcept requires (Embedded and Mutable);
-      void AssignSemantic(auto&&, DMeta = {}) requires Mutable;
+      void AssignWithIntent(auto&&, DMeta = {}) requires Mutable;
       void Swap(CT::Handle auto&, DMeta = {}) requires Mutable;
       NOD() bool Compare(const auto&, DMeta = {}) const;
       template<bool RESET = false, bool DEALLOCATE = true>
@@ -134,6 +134,7 @@ namespace Langulus::Anyness
 
       NOD() Handle operator + (Offset) const noexcept requires Embedded;
       NOD() Handle operator - (Offset) const noexcept requires Embedded;
+
       Handle& operator += (Offset) noexcept requires Embedded;
       Handle& operator -= (Offset) noexcept requires Embedded;
    };

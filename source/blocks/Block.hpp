@@ -163,7 +163,7 @@ namespace Langulus
          /// Unfolds T, if it is a bounded array, or std::range, and returns  
          /// a nullptr pointer of the type contained inside. Nested for       
          /// ranges containing other ranges, or arrays containing ranges.     
-         /// Removes semantics and handles, too.                              
+         /// Removes intents and handles, too.                                
          ///   @tparam T - type to unfold                                     
          ///   @tparam UNLESS - stop unfolding if the type is similar         
          ///      useful in cases when you actually want to insert a std::map 
@@ -172,19 +172,19 @@ namespace Langulus
          template<class T, class UNLESS = void>
          consteval auto Unfold() {
             if constexpr (CT::Similar<T, UNLESS>)
-               return (Deref<Desem<T>>*) nullptr;
-            else if constexpr (CT::Sparse<Desem<T>>) {
-               if constexpr (CT::Array<Desem<T>>)
-                  return Unfold<Deext<Desem<T>>>();
+               return (Deref<Deint<T>>*) nullptr;
+            else if constexpr (CT::Sparse<Deint<T>>) {
+               if constexpr (CT::Array<Deint<T>>)
+                  return Unfold<Deext<Deint<T>>>();
                else
-                  return (Deref<Desem<T>>*) nullptr;
+                  return (Deref<Deint<T>>*) nullptr;
             }
-            else if constexpr (CT::Handle<Desem<T>>)
-               return (TypeOf<Desem<T>>*) nullptr;
-            else if constexpr (::std::ranges::range<Desem<T>>)
-               return Unfold<TypeOf<Desem<T>>>();
+            else if constexpr (CT::Handle<Deint<T>>)
+               return (TypeOf<Deint<T>>*) nullptr;
+            else if constexpr (::std::ranges::range<Deint<T>>)
+               return Unfold<TypeOf<Deint<T>>>();
             else
-               return (Deref<Desem<T>>*) nullptr;
+               return (Deref<Deint<T>>*) nullptr;
          }
 
       } // namespace Langulus::CT::Inner
@@ -213,9 +213,9 @@ namespace Langulus
            or ::std::assignable_from<T&, Unfold<A>>);
 
       /// Check if T is insertable to containers, either directly, or while   
-      /// wrapped in a semantic                                               
+      /// wrapped in an intent                                                
       template<class...TN>
-      concept UnfoldInsertable = Insertable<Desem<TN>...>;
+      concept UnfoldInsertable = Insertable<Deint<TN>...>;
 
       namespace Inner
       {
@@ -227,17 +227,17 @@ namespace Langulus
          template<class T, class...A>
          consteval bool DeepMakable() noexcept {
             using FA = FirstOf<A...>;
-            using SA = SemanticOf<FA>;
+            using SA = IntentOf<FA>;
 
             if constexpr (TypeErased<T>) {
                // Type-erased containers accept almost any type - they  
                // will report errors at runtime instead, if any         
                return UnfoldInsertable<A...>;
             }
-            else if constexpr (sizeof...(A) == 1 and CT::Block<Desem<FA>>) {
+            else if constexpr (sizeof...(A) == 1 and CT::Block<Deint<FA>>) {
                // If only one A provided, it HAS to be a CT::Block      
                if constexpr (SA::Shallow) {
-                  // Generally, shallow semantics are always supported, 
+                  // Generally, shallow intents are always supported,   
                   // but copying will call element constructors, so we  
                   // have to check if the contained type supports it    
                   if constexpr (CT::Copied<SA>)
@@ -249,7 +249,7 @@ namespace Langulus
                   // Cloning always calls element constructors, and     
                   // we have to check whether contained elements can    
                   // do it                                              
-                  return SemanticMakable<Langulus::Cloned, T>;
+                  return IntentMakable<Langulus::Cloned, T>;
                }
             }
             else return UnfoldMakableFrom<T, A...>;
@@ -261,16 +261,16 @@ namespace Langulus
          ///   @return true if TMany<T> is assignable using = A               
          template<class T, class A>
          consteval bool DeepAssignable() noexcept {
-            using SA = SemanticOf<A>;
+            using SA = IntentOf<A>;
 
             if constexpr (TypeErased<T>) {
                // Type-erased containers accept almost any type - they  
                // will report errors at runtime instead, if any         
                return UnfoldInsertable<A>;
             }
-            else if constexpr (CT::Block<Desem<A>>) {
+            else if constexpr (CT::Block<Deint<A>>) {
                if constexpr (SA::Shallow) {
-                  // Generally, shallow semantics are always supported, 
+                  // Generally, shallow intents are always supported,   
                   // but copying will call element assigners, so we     
                   // have to check if the contained type supports it    
                   if constexpr (CT::Copied<SA>)
@@ -281,7 +281,7 @@ namespace Langulus
                else {
                   // Cloning always calls element assigners, and we     
                   // have to check whether contained elements can do it 
-                  return SemanticAssignable<Langulus::Cloned, T>;
+                  return IntentAssignable<Langulus::Cloned, T>;
                }
             }
             else return UnfoldAssignableFrom<T, A>;
@@ -402,7 +402,7 @@ namespace Langulus::Anyness
       template<class T1, class...TN> requires CT::DeepMakable<TYPE, T1, TN...>
       void BlockCreate(T1&&, TN&&...);
 
-      template<class B> requires CT::Block<Desem<B>>
+      template<class B> requires CT::Block<Deint<B>>
       void BlockTransfer(B&&);
 
       template<CT::Block THIS, class T1>
@@ -558,7 +558,7 @@ namespace Langulus::Anyness
       NOD() Block<> operator * () const;
 
       void SwapIndices(CT::Index auto, CT::Index auto);
-      template<class T> requires CT::Block<Desem<T>>
+      template<class T> requires CT::Block<Deint<T>>
       void Swap(T&&);
 
       template<bool REVERSE = false>
@@ -744,12 +744,12 @@ namespace Langulus::Anyness
       NOD() bool Compare(const CT::Block auto&) const;
       NOD() Hash GetHash() const requires (TypeErased or CT::Hashable<TYPE>);
 
-      template<bool REVERSE = false, CT::NotSemantic T1>
+      template<bool REVERSE = false, CT::NoIntent T1>
       NOD() Index Find(const T1&, Offset = 0) const noexcept
       requires (TypeErased or CT::Comparable<TYPE, T1>);
 
-      NOD() Iterator      FindIt(const CT::NotSemantic auto&);
-      NOD() ConstIterator FindIt(const CT::NotSemantic auto&) const;
+      NOD() Iterator      FindIt(const CT::NoIntent auto&);
+      NOD() ConstIterator FindIt(const CT::NoIntent auto&) const;
 
       template<bool REVERSE = false>
       NOD() Index FindBlock(const CT::Block auto&, CT::Index auto) const noexcept;
@@ -762,7 +762,7 @@ namespace Langulus::Anyness
       NOD() Count MatchesLoose(const CT::Block auto&) const noexcept;
 
    protected:
-      NOD() bool CompareSingleValue(const CT::NotSemantic auto&) const;
+      NOD() bool CompareSingleValue(const CT::NoIntent auto&) const;
       NOD() bool CompareStates(const Block&) const noexcept;
       NOD() bool CompareTypes(const CT::Block auto&, RTTI::Base&) const;
       NOD() bool CallComparer(const Block&, const RTTI::Base&) const;
@@ -805,7 +805,7 @@ namespace Langulus::Anyness
       requires (TypeErased or CT::UnfoldMakableFrom<TYPE, T1, TN...>);
 
       template<class FORCE = Many, bool MOVE_ASIDE = true, class T>
-      requires CT::Block<Desem<T>>
+      requires CT::Block<Deint<T>>
       Count InsertBlock(CT::Index auto, T&&);
 
       template<class FORCE = Many, bool MOVE_ASIDE = true, class T1, class...TN>
@@ -813,7 +813,7 @@ namespace Langulus::Anyness
       requires (TypeErased or CT::UnfoldMakableFrom<TYPE, T1, TN...>);
 
       template<class FORCE = Many, bool MOVE_ASIDE = true, class T>
-      requires CT::Block<Desem<T>>
+      requires CT::Block<Deint<T>>
       Count MergeBlock(CT::Index auto, T&&);
    
       template<bool MOVE_ASIDE = true, class...A>
@@ -844,7 +844,7 @@ namespace Langulus::Anyness
       template<class FORCE, bool MOVE_ASIDE>
       void InsertInner(CT::Index auto, auto&&);
 
-      template<class FORCE, bool MOVE_ASIDE, class T> requires CT::Block<Desem<T>>
+      template<class FORCE, bool MOVE_ASIDE, class T> requires CT::Block<Deint<T>>
       void InsertBlockInner(CT::Index auto, T&&);
 
       template<class FORCE, bool MOVE_ASIDE>
@@ -852,13 +852,13 @@ namespace Langulus::Anyness
       template<class FORCE, bool MOVE_ASIDE>
       Count UnfoldMerge(CT::Index auto, auto&&);
 
-      template<class FORCE, class T> requires CT::Deep<Desem<T>>
+      template<class FORCE, class T> requires CT::Deep<Deint<T>>
       Count SmartConcat(const CT::Index auto, bool, T&&, DataState);
 
       template<class FORCE>
       Count SmartPushInner(const CT::Index auto, auto&&, DataState);
 
-      template<CT::Block THIS, class T> requires CT::Block<Desem<T>>
+      template<CT::Block THIS, class T> requires CT::Block<Deint<T>>
       THIS ConcatBlock(T&&) const;
 
       void CreateDefault();
@@ -869,24 +869,24 @@ namespace Langulus::Anyness
       template<class...A>
       void Create(A&&...);
 
-      template<bool REVERSE = false, class T> requires CT::Block<Desem<T>>
-      void CreateSemantic(T&&);
+      template<bool REVERSE = false, class T> requires CT::Block<Deint<T>>
+      void CreateWithIntent(T&&);
 
-      template<class T> requires CT::Handle<Desem<T>>
-      void CreateSemantic(T&&);
+      template<class T> requires CT::Handle<Deint<T>>
+      void CreateWithIntent(T&&);
 
-      template<class T> requires CT::Block<Desem<T>>
+      template<class T> requires CT::Block<Deint<T>>
       void ShallowBatchPointerConstruction(T&&);
 
    public:
       template<class T>
-      void AssignSemantic(T&&) requires CT::Block<Desem<T>>;
+      void AssignWithIntent(T&&) requires CT::Block<Deint<T>>;
 
       ///                                                                     
       ///   Removal                                                           
       ///                                                                     
       template<bool REVERSE = false>
-      Count Remove(const CT::NotSemantic auto&);
+      Count Remove(const CT::NoIntent auto&);
       Count RemoveIndex(CT::Index auto, Count = 1);
       Count RemoveIndexDeep(CT::Index auto);
       Iterator RemoveIt(const Iterator&, Count = 1);

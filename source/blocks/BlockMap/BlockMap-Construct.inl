@@ -13,11 +13,11 @@
 namespace Langulus::Anyness
 {
    
-   /// Semantically transfer the members of one map onto another              
+   /// Transfer the members of one map onto another, with or without intent   
    ///   @tparam TO - the type of map we're transferring to                   
-   ///   @param other - the map and semantic to transfer from                 
+   ///   @param other - the map and intent to transfer from                   
    template<CT::Map TO, template<class> class S, CT::Map FROM>
-   requires CT::Semantic<S<FROM>> LANGULUS(INLINED)
+   requires CT::Intent<S<FROM>> LANGULUS(INLINED)
    void BlockMap::BlockTransfer(S<FROM>&& other) {
       using SS = S<FROM>;
 
@@ -131,7 +131,7 @@ namespace Langulus::Anyness
                      auto srcKey = asFrom->template GetKeyHandle<B>(0);
                      while (info != infoEnd) {
                         if (*info)
-                           dstKey.CreateSemantic(Refer(srcKey));
+                           dstKey.CreateWithIntent(Refer(srcKey));
 
                         ++info;
                         ++dstKey;
@@ -156,7 +156,7 @@ namespace Langulus::Anyness
                      auto srcKey = asFrom->template GetKeyHandle<B>(0);
                      while (info != infoEnd) {
                         if (*info)
-                           dstKey.CreateSemantic(Refer(srcKey));
+                           dstKey.CreateWithIntent(Refer(srcKey));
 
                         ++info;
                         ++dstKey;
@@ -249,7 +249,7 @@ namespace Langulus::Anyness
                   auto srcKey = asFrom->template GetKeyHandle<B>(0);
                   while (info != infoEnd) {
                      if (*info)
-                        dstKey.CreateSemantic(SS::Nest(srcKey));
+                        dstKey.CreateWithIntent(SS::Nest(srcKey));
 
                      ++info;
                      ++dstKey;
@@ -309,7 +309,7 @@ namespace Langulus::Anyness
                   auto srcKey = asFrom->template GetKeyHandle<B>(0);
                   while (info != infoEnd) {
                      if (*info)
-                        dstKey.CreateSemantic(SS::Nest(srcKey));
+                        dstKey.CreateWithIntent(SS::Nest(srcKey));
 
                      ++info;
                      ++dstKey;
@@ -354,7 +354,7 @@ namespace Langulus::Anyness
    ///   @attention assumes key type is dense, and values go into the same    
    ///      places                                                            
    ///   @attention assumes key and value types are clone-constructible       
-   template<template<class> class S, CT::Map B> requires CT::Semantic<S<B>>
+   template<template<class> class S, CT::Map B> requires CT::Intent<S<B>>
    void BlockMap::CloneValuesInner(S<B>&& asFrom) {
       using SS = S<B>;
 
@@ -364,7 +364,7 @@ namespace Langulus::Anyness
 
          // We're cloning dense keys or shallow-copying any keys, so    
          // we're 100% sure, that each pair will end up in the same spot
-         if constexpr (CT::Dense<V> or CT::ShallowSemantic<SS>) {
+         if constexpr (CT::Dense<V> or CT::ShallowIntent<SS>) {
             if constexpr (CT::POD<V>) {
                // Data is POD, we can directly copy all values          
                CopyMemory(
@@ -380,7 +380,7 @@ namespace Langulus::Anyness
                auto srcKey = asFrom->template GetValHandle<B>(0);
                while (info != infoEnd) {
                   if (*info)
-                     dstKey.CreateSemantic(SS::Nest(srcKey));
+                     dstKey.CreateWithIntent(SS::Nest(srcKey));
 
                   ++info;
                   ++dstKey;
@@ -397,7 +397,7 @@ namespace Langulus::Anyness
                   IndexBack, SS::Nest(*item.mValue));
             }
 
-            // We're using Handle::Create, instead of CreateSemantic    
+            // We're using Handle::Create, instead of CreateWithIntent  
             // so we have to reference here                             
             const_cast<Allocation*>(coalescedValues.mEntry)
                ->Keep(asFrom->GetCount());
@@ -420,7 +420,7 @@ namespace Langulus::Anyness
          // We're cloning dense elements or shallow-copying any, so     
          // we're 100% sure, that each element will end up in the same  
          // spot                                                        
-         if (not asFrom->mValues.mType->mIsSparse or CT::ShallowSemantic<SS>) {
+         if (not asFrom->mValues.mType->mIsSparse or CT::ShallowIntent<SS>) {
             if (asFrom->mValues.mType->mIsPOD) {
                // Values are POD, we can directly copy them all         
                CopyMemory(
@@ -436,7 +436,7 @@ namespace Langulus::Anyness
                auto srcKey = asFrom->template GetValHandle<B>(0);
                while (info != infoEnd) {
                   if (*info)
-                     dstKey.CreateSemantic(SS::Nest(srcKey));
+                     dstKey.CreateWithIntent(SS::Nest(srcKey));
 
                   ++info;
                   ++dstKey;
@@ -462,7 +462,7 @@ namespace Langulus::Anyness
             const auto infoEnd = GetInfoEnd();
             while (info != infoEnd) {
                if (*info) {
-                  GetValHandle<B>(info - GetInfo()).CreateSemantic(
+                  GetValHandle<B>(info - GetInfo()).CreateWithIntent(
                      HandleLocal<void*> {ptrVal, coalescedValues.mEntry}
                   );
                   ptrVal += valstride.mSize;
@@ -478,7 +478,7 @@ namespace Langulus::Anyness
    ///   @attention assumes keys are sparse and all pairs will end up in      
    ///      different places                                                  
    ///   @attention assumes key and value types are clone-constructible       
-   template<template<class> class S, CT::Map B> requires CT::Semantic<S<B>>
+   template<template<class> class S, CT::Map B> requires CT::Intent<S<B>>
    void BlockMap::CloneValuesReinsertInner(CT::Block auto& coalescedKeys, S<B>&& asFrom) {
       using SS = S<B>;
 

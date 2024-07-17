@@ -38,16 +38,15 @@ namespace Langulus::Anyness
    TABLE()::Map(Map&& other)
       : Map {Move(other)} {}
 
-   /// Unfold constructor                                                     
-   /// If there's one map argument, it will be absorbed                       
+   /// Unfold constructor. If there's one map argument, it will be absorbed   
    /// Otherwise, elements are expected to initialize a pair each             
-   ///   @param t1 - first pair (can be semantic)                             
-   ///   @param tn... - the rest of the pairs (optional, can be semantic)     
+   ///   @param t1 - first pair, with or without intent                       
+   ///   @param tn... - the rest of the pairs (optional, can have intents)    
    TEMPLATE() template<class T1, class...TN>
    requires CT::UnfoldInsertable<T1, TN...> LANGULUS(INLINED)
    TABLE()::Map(T1&& t1, TN&&...tn) {
       if constexpr (sizeof...(TN) == 0) {
-         using S = SemanticOf<decltype(t1)>;
+         using S = IntentOf<decltype(t1)>;
          using T = TypeOf<S>;
 
          if constexpr (CT::Map<T>)
@@ -80,18 +79,18 @@ namespace Langulus::Anyness
       return operator = (Move(rhs));
    }
 
-   /// Pair/map assignment, semantic or not                                   
+   /// Pair/map assignment, with or without intent                            
    ///   @param rhs - the pair, or map to assign                              
    ///   @return a reference to this container                                
    TEMPLATE() LANGULUS(INLINED)
    TABLE()& TABLE()::operator = (CT::UnfoldInsertable auto&& rhs) {
-      using S = SemanticOf<decltype(rhs)>;
+      using S = IntentOf<decltype(rhs)>;
       using T = TypeOf<S>;
 
       if constexpr (CT::Map<T>) {
          // Potentially absorb a container                              
          if (static_cast<const BlockMap*>(this)
-          == static_cast<const BlockMap*>(&DesemCast(rhs)))
+          == static_cast<const BlockMap*>(&DeintCast(rhs)))
             return *this;
 
          BlockMap::Free<Map>();
@@ -356,7 +355,7 @@ namespace Langulus::Anyness
    ///   @param key - the key to search for                                   
    ///   @return the index if key was found, or IndexNone if not              
    TEMPLATE() LANGULUS(INLINED)
-   Index TABLE()::Find(const CT::NotSemantic auto& key) const {
+   Index TABLE()::Find(const CT::NoIntent auto& key) const {
       return BlockMap::Find<Map>(key);
    }
 
@@ -364,12 +363,12 @@ namespace Langulus::Anyness
    ///   @param key - the key to search for                                   
    ///   @return the iterator                                                 
    TEMPLATE() LANGULUS(INLINED)
-   typename TABLE()::Iterator TABLE()::FindIt(const CT::NotSemantic auto& key) {
+   typename TABLE()::Iterator TABLE()::FindIt(const CT::NoIntent auto& key) {
       return BlockMap::FindIt<Map>(key);
    }
 
    TEMPLATE() LANGULUS(INLINED)
-   typename TABLE()::ConstIterator TABLE()::FindIt(const CT::NotSemantic auto& key) const {
+   typename TABLE()::ConstIterator TABLE()::FindIt(const CT::NoIntent auto& key) const {
       return BlockMap::FindIt<Map>(key);
    }
 
@@ -378,12 +377,12 @@ namespace Langulus::Anyness
    ///   @param key - the key to search for                                   
    ///   @return a reference to the value                                     
    TEMPLATE() LANGULUS(INLINED)
-   decltype(auto) TABLE()::At(const CT::NotSemantic auto& key) {
+   decltype(auto) TABLE()::At(const CT::NoIntent auto& key) {
       return BlockMap::At<Map>(key);
    }
 
    TEMPLATE() LANGULUS(INLINED)
-   decltype(auto) TABLE()::At(const CT::NotSemantic auto& key) const {
+   decltype(auto) TABLE()::At(const CT::NoIntent auto& key) const {
       return BlockMap::At<Map>(key);
    }
 
@@ -391,13 +390,13 @@ namespace Langulus::Anyness
    ///   @param key - the key to find                                         
    ///   @return a reference to the value                                     
    TEMPLATE() LANGULUS(INLINED)
-   decltype(auto) TABLE()::operator[] (const CT::NotSemantic auto& key) {
-      return BlockMap::operator [] <Map>(key);
+   decltype(auto) TABLE()::operator[] (const CT::NoIntent auto& key) {
+      return BlockMap::operator [] <Map> (key);
    }
 
    TEMPLATE() LANGULUS(INLINED)
-   decltype(auto) TABLE()::operator[] (const CT::NotSemantic auto& key) const {
-      return BlockMap::operator [] <Map>(key);
+   decltype(auto) TABLE()::operator[] (const CT::NoIntent auto& key) const {
+      return BlockMap::operator [] <Map> (key);
    }
    
    /// Reserves space for the specified number of pairs                       
@@ -430,7 +429,7 @@ namespace Langulus::Anyness
    ///   @param key - the key to search for                                   
    ///   @return 1 if key was found and pair was removed                      
    TEMPLATE() LANGULUS(INLINED)
-   Count TABLE()::RemoveKey(const CT::NotSemantic auto& key) {
+   Count TABLE()::RemoveKey(const CT::NoIntent auto& key) {
       return BlockMap::RemoveKey<Map>(key);
    }
 
@@ -438,7 +437,7 @@ namespace Langulus::Anyness
    ///   @param value - the match to search for                               
    ///   @return the number of removed pairs                                  
    TEMPLATE() LANGULUS(INLINED)
-   Count TABLE()::RemoveValue(const CT::NotSemantic auto& value) {
+   Count TABLE()::RemoveValue(const CT::NoIntent auto& value) {
       return BlockMap::RemoveValue<Map>(value);
    }
      

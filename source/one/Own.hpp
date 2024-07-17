@@ -76,9 +76,9 @@ namespace Langulus::Anyness
    ///                                                                        
    ///   An owned value, dense or sparse                                      
    ///                                                                        
-   /// Provides ownership and semantics, for when you need to cleanup after a 
-   /// move, for example. By default, fundamental types are not reset after a 
-   /// move - wrapping them inside this ensures they are.                     
+   /// Provides ownership and intent support, for when you need to cleanup    
+   /// after a move, for example. By default fundamental types are not reset  
+   /// after a move - wrapping them inside this ensures they are.             
    ///   @attention this container is suboptimal for pointers, because it     
    ///              will constantly search the allocation corresponding to    
    ///              them, as it doesn't cache it in order to minimize size.   
@@ -105,8 +105,7 @@ namespace Langulus::Anyness
       constexpr Own(const Own&) requires (CT::Sparse<T> or CT::ReferMakable<T>);
       constexpr Own(Own&&) requires (CT::Sparse<T> or CT::MoveMakable<T>);
 
-      template<template<class> class S>
-      requires CT::SemanticMakable<S, T>
+      template<template<class> class S> requires CT::IntentMakable<S, T>
       constexpr Own(S<Own>&&);
 
       template<CT::NotOwned...A>
@@ -116,11 +115,14 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Assignment                                                        
       ///                                                                     
-      constexpr Own& operator = (const Own&) requires (CT::Sparse<T> or CT::ReferAssignable<T>);
-      constexpr Own& operator = (Own&&) requires (CT::Sparse<T> or CT::MoveAssignable<T>);
+      constexpr Own& operator = (const Own&)
+      requires (CT::Sparse<T> or CT::ReferAssignable<T>);
+
+      constexpr Own& operator = (Own&&)
+      requires (CT::Sparse<T> or CT::MoveAssignable<T>);
 
       template<template<class> class S>
-      requires CT::SemanticAssignable<S, T>
+      requires CT::IntentAssignable<S, T>
       constexpr Own& operator = (S<Own>&&);
 
       template<CT::NotOwned A> requires CT::AssignableFrom<T, A>

@@ -125,14 +125,14 @@ namespace Langulus::Anyness
    constexpr Block<TYPE>::Block(const A::Block& other) noexcept
       : A::Block {other} {}
 
-   /// Construct from a list of elements, each of them can be semantic or not,
-   /// an array, as well as any other kinds of blocks                         
+   /// Construct from a list of elements with or without intents, an array,   
+   /// as well as any other kinds of blocks                                   
    ///   @param t1 - first element                                            
    ///   @param tn - tail of elements (optional)                              
    template<class TYPE> template<class T1, class...TN>
    requires CT::DeepMakable<TYPE, T1, TN...>
    void Block<TYPE>::BlockCreate(T1&& t1, TN&&...tn) {
-      using S = SemanticOf<decltype(t1)>;
+      using S = IntentOf<decltype(t1)>;
       using T = TypeOf<S>;
 
       if constexpr (TypeErased) {
@@ -165,7 +165,7 @@ namespace Langulus::Anyness
                         // that are base of this container's type. Each 
                         // element should be dynamically cast to this   
                         // type                                         
-                        for (auto pointer : DesemCast(t1)) {
+                        for (auto pointer : DeintCast(t1)) {
                            auto dcast = dynamic_cast<TYPE>(&(*pointer));
                            if (dcast)
                               Insert<void, true>(IndexBack, dcast);
@@ -176,7 +176,7 @@ namespace Langulus::Anyness
                         // that are derived from this container's type. 
                         // Each element should be statically sliced to  
                         // this type                                    
-                        for (auto pointer : DesemCast(t1))
+                        for (auto pointer : DeintCast(t1))
                            Insert<void, true>(IndexBack, static_cast<TYPE>(&(*pointer)));
                      }
                      else Insert(IndexBack, Forward<T1>(t1));
@@ -185,7 +185,7 @@ namespace Langulus::Anyness
                }
                else if constexpr (CT::Deep<T>) {
                   // Type-erased block, do run-time type checks         
-                  if (IsSimilar(DesemCast(t1).GetType())) {
+                  if (IsSimilar(DeintCast(t1).GetType())) {
                      // If types are similar, it is safe to absorb the  
                      // block, essentially converting a type- erased    
                      // Many back to its TMany equivalent               
@@ -216,17 +216,17 @@ namespace Langulus::Anyness
       return *this;
    }
 
-   /// Semantically transfer the members of one block onto another with the   
-   /// smallest number of instructions possible                               
+   /// Transfer the members of one block onto another with the smallest       
+   /// number of instructions possible, with or without intents.              
    ///   @attention will not set mType if TO is type-constrained              
    ///   @attention will not set mRaw, mReserved, mEntry, if 'from' is empty  
-   ///   @param from - the block and semantic to transfer from                
-   template<class TYPE> template<class FROM> requires CT::Block<Desem<FROM>>
+   ///   @param from - the block and intent to transfer from                  
+   template<class TYPE> template<class FROM> requires CT::Block<Deint<FROM>>
    LANGULUS(INLINED) void Block<TYPE>::BlockTransfer(FROM&& block) {
-      using S = SemanticOf<decltype(block)>;
+      using S = IntentOf<decltype(block)>;
       using T = TypeOf<S>;
       using B = Conditional<T::TypeErased, Block, T>;
-      auto& from = DesemCast(block);
+      auto& from = DeintCast(block);
 
       if constexpr (TypeErased) {
          // We can safely overwrite type and state                      
@@ -296,7 +296,7 @@ namespace Langulus::Anyness
 
                   auto& thisb = reinterpret_cast<B&>(*this);
                   thisb.AllocateFresh(thisb.RequestSize(from.mCount));
-                  thisb.CreateSemantic(Refer(block));
+                  thisb.CreateWithIntent(Refer(block));
                   // This validates elements, do it last in case        
                   // something throws along the way                     
                   mCount = from.mCount;
@@ -339,25 +339,25 @@ namespace Langulus::Anyness
 
          auto& thisb = reinterpret_cast<B&>(*this);
          thisb.AllocateFresh(thisb.RequestSize(from.mCount));
-         thisb.CreateSemantic(Forward<FROM>(block));
+         thisb.CreateWithIntent(Forward<FROM>(block));
 
          // This validates elements, do it last in case something throw 
          mCount = from.mCount;
       }
    }
 
-   /// Semantically assign one block onto another with the smallest number of 
-   /// instructions possible.                                                 
+   /// Assign one block onto another with the smallest number of instructions 
+   /// possible, using an intent or not.                                      
    ///   @param rhs - the block/value and semantic to assign                  
    ///   @return a reference to this block                                    
    template<class TYPE> template<CT::Block THIS, class T1>
    THIS& Block<TYPE>::BlockAssign(T1&& rhs) requires CT::DeepAssignable<TYPE, T1> {
-      using S = SemanticOf<decltype(rhs)>;
+      using S = IntentOf<decltype(rhs)>;
       using T = TypeOf<S>;
 
       if constexpr (CT::Block<T>) {
          if (static_cast<const A::Block*>(this)
-          == static_cast<const A::Block*>(&DesemCast(rhs)))
+          == static_cast<const A::Block*>(&DeintCast(rhs)))
             return reinterpret_cast<THIS&>(*this);
       }
 
@@ -415,7 +415,7 @@ namespace Langulus::Anyness
    /// Construct a block, that best represents a contiguous piece of memory   
    /// If BLOCK is a container with ownership, then data will be copied if    
    /// not in jurisdiction, which involves a slow authority check. If you     
-   /// want to avoid checking and copying at all - use the Disown semantics.  
+   /// want to avoid checking and copying at all - use the Disown intent.     
    /// By default, data will be wrapped in an automatically detected Block    
    /// without ownership.                                                     
    ///   @attention this function doesn't call any BLOCK constructor! For     
@@ -425,8 +425,8 @@ namespace Langulus::Anyness
    ///      you're doing!!                                                    
    ///   @tparam BLOCK - the type of block to use, use void to auto-detect    
    ///      When auto-detected, the block will never own the data, unless     
-   ///      a semantic that isn't Disown is given.                            
-   ///   @param what - start of data to semantically interface                
+   ///      an intent that isn't Disown is given.                             
+   ///   @param what - start of data to interface, with or without intent     
    ///   @param count - number of items, in case 'what' is sparse             
    ///   @attention if 'what' is a bounded array, then count is multiplied by 
    ///      the array's extent, for the final number of elements              
@@ -437,17 +437,17 @@ namespace Langulus::Anyness
          "BLOCK can be either void, or a Block type");
 
       using A  = Deref<decltype(what)>;
-      using S  = SemanticOf<A>;
+      using S  = IntentOf<A>;
       using ST = TypeOf<S>;
 
       // Auto-detect block type                                         
       using B = Conditional<CT::Void<BLOCK>
-         , Conditional<CT::NotSemantic<A> or CT::Disowned<A>
-            , Conditional<CT::Array<Desem<A>>
+         , Conditional<CT::NoIntent<A> or CT::Disowned<A>
+            , Conditional<CT::Array<Deint<A>>
                , Block<Decvq<CT::Unfold<A>>>
                , Block<Decvq<Deptr<CT::Unfold<A>>>>
             >
-            , Conditional<CT::Array<Desem<A>>
+            , Conditional<CT::Array<Deint<A>>
                , TMany<Decvq<CT::Unfold<A>>>
                , TMany<Decvq<Deptr<CT::Unfold<A>>>>
             >
@@ -472,7 +472,7 @@ namespace Langulus::Anyness
                new (&result) Block<T> {
                   DataState::Constrained,
                   result.GetType(), count,
-                  DesemCast(what), nullptr
+                  DeintCast(what), nullptr
                };
             }
             else {
@@ -493,7 +493,7 @@ namespace Langulus::Anyness
                new (&result) Block<T> {
                   DataState::Constrained,
                   result.GetType(), count,
-                  DesemCast(what), nullptr
+                  DeintCast(what), nullptr
                };
             }
             else {
@@ -512,7 +512,7 @@ namespace Langulus::Anyness
                new (&result) Block<T> {
                   DataState::Constrained,
                   result.GetType(), count,
-                  &DesemCast(what), nullptr
+                  &DeintCast(what), nullptr
                };
             }
             else {
@@ -529,7 +529,7 @@ namespace Langulus::Anyness
             new (&result) Block<Deext<ST>> {
                DataState::Constrained,
                MetaDataOf<Deext<ST>>(), count,
-               DesemCast(what), nullptr
+               DeintCast(what), nullptr
             };
          }
          else if constexpr (CT::Sparse<ST>) {
@@ -537,25 +537,25 @@ namespace Langulus::Anyness
             new (&result) Block<Deptr<ST>> {
                DataState::Constrained,
                MetaDataOf<Deptr<ST>>(), count,
-               DesemCast(what), nullptr
+               DeintCast(what), nullptr
             };
          }
          else {
             // ... from a value                                         
             if constexpr (CT::Resolvable<ST>) {
                // Resolve a runtime-resolvable value                    
-               new (&result) Block<> {DesemCast(what).GetBlock()};
+               new (&result) Block<> {DeintCast(what).GetBlock()};
             }
             else if constexpr (CT::Deep<ST>) {
                // Static cast to Block if CT::Deep                      
-               new (&result) Block<> {DesemCast(what)};
+               new (&result) Block<> {DeintCast(what)};
             }
             else {
                // Any other value gets wrapped inside a temporary Block 
                new (&result) Block<ST> {
                   DataState::Constrained,
                   MetaDataOf<ST>(), 1,
-                  &DesemCast(what), nullptr
+                  &DeintCast(what), nullptr
                };
             }
          }

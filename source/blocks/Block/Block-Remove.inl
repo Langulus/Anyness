@@ -18,7 +18,7 @@ namespace Langulus::Anyness
    ///   @param item - the item type to search for and remove                 
    ///   @return 1 if the element was found and removed, 0 otherwise          
    template<class TYPE> template<bool REVERSE> LANGULUS(INLINED)
-   Count Block<TYPE>::Remove(const CT::NotSemantic auto& item) {
+   Count Block<TYPE>::Remove(const CT::NoIntent auto& item) {
       const auto found = Find<REVERSE>(item);
       return found ? RemoveIndex(found.GetOffsetUnsafe(), 1) : 0;
    }
@@ -81,7 +81,7 @@ namespace Langulus::Anyness
                // Fill gap by invoking abandon-constructors             
                // We're moving to the left, so no reverse is required   
                const auto tail = mCount - ender;
-               CropInner(idx, tail).CreateSemantic(
+               CropInner(idx, tail).CreateWithIntent(
                   Abandon(CropInner(ender, tail)));
             }
          }
@@ -113,7 +113,7 @@ namespace Langulus::Anyness
                   // Fill gap	if any by invoking move constructions     
                   // Moving to the left, so no overlap possible         
                   const auto tail = mCount - ender;
-                  CropInner(idx, tail).CreateSemantic(
+                  CropInner(idx, tail).CreateWithIntent(
                      Abandon(CropInner(ender, tail)));
                }
             }

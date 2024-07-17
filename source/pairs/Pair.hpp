@@ -63,7 +63,7 @@ namespace Langulus
          Pair(Pair const&) = default;
          Pair(Pair&&) noexcept = default;
 
-         template<class P> requires CT::Pair<Desem<P>>
+         template<class P> requires CT::Pair<Deint<P>>
          Pair(P&&);
 
          template<class K, class V> requires CT::UnfoldInsertable<K, V>
@@ -71,7 +71,7 @@ namespace Langulus
 
          Pair& operator = (Pair const&) = default;
          Pair& operator = (Pair&&) noexcept = default;
-         template<class P> requires CT::Pair<Desem<P>>
+         template<class P> requires CT::Pair<Deint<P>>
          Pair& operator = (P&&);
 
          ///                                                                  

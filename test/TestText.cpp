@@ -54,16 +54,16 @@ void Text_CheckState_Abandoned(const Text&);
 /// Possible actions for each state:                                          
 ///   - uninitialized                                                         
 ///      - default-initialized                                                
-///      - semantic-initialized from container                                
-///      - semantic-initialized from dense letter                             
-///      - semantic-initialized from dense std::string                        
-///      - semantic-initialized from dense std::string_view                   
-///      - semantic-initialized from dense number (stringification)           
-///      - semantic-initialized from sparse meta (stringification)            
-///      - semantic-initialized from exception (stringification)              
-///      - semantic-initialized from sparse element, zero-terminated          
-///      - semantic-initialized from sparse element, bound-terminated         
-///      - semantic-initialized from sparse element, count-terminated         
+///      - intent-initialized from container                                  
+///      - intent-initialized from dense letter                               
+///      - intent-initialized from dense std::string                          
+///      - intent-initialized from dense std::string_view                     
+///      - intent-initialized from dense number (stringification)             
+///      - intent-initialized from sparse meta (stringification)              
+///      - intent-initialized from exception (stringification)                
+///      - intent-initialized from sparse element, zero-terminated            
+///      - intent-initialized from sparse element, bound-terminated           
+///      - intent-initialized from sparse element, count-terminated           
 
 TEMPLATE_TEST_CASE("Testing text containers", "[text]",
    Text, Path

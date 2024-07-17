@@ -112,7 +112,7 @@ TEMPLATE_TEST_CASE("Handles from sequential containers", "[handle]",
          const Allocation* const n0e = n.GetEntry();
          IF_LANGULUS_MANAGED_MEMORY(REQUIRE(n0e->GetUses() == 1));
 
-         n.AssignSemantic(Move(h0));
+         n.AssignWithIntent(Move(h0));
 
          if constexpr (REFERENCABLE) {
             if constexpr (SPARSE) {

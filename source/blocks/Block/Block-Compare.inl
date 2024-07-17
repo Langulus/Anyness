@@ -46,9 +46,9 @@ namespace Langulus::Anyness
    bool Block<TYPE>::Compare(const CT::Block auto& right) const {
       using RHS = Deref<decltype(right)>;
       VERBOSE_TAB("Comparing ",
-         Logger::Push, Logger::White, mCount, " elements of ", GetToken(),
+         Logger::PushWhite, mCount, " elements of ", GetToken(),
          Logger::Pop, " with ",
-         Logger::Push, Logger::White, right.mCount, " elements of ", right.GetToken()
+         Logger::PushWhite, right.mCount, " elements of ", right.GetToken()
       );
 
       if constexpr (not TypeErased and not RHS::TypeErased) {
@@ -284,7 +284,7 @@ namespace Langulus::Anyness
    ///   @param rhs - the value to compare against                            
    ///   @return true if elements are the same                                
    template<class TYPE> LANGULUS(INLINED)
-   bool Block<TYPE>::CompareSingleValue(const CT::NotSemantic auto& rhs) const {
+   bool Block<TYPE>::CompareSingleValue(const CT::NoIntent auto& rhs) const {
       using T = Deref<decltype(rhs)>;
       if (mCount != 1)
          return false;
@@ -430,7 +430,7 @@ namespace Langulus::Anyness
    ///   @param item - the item to search for                                 
    ///   @param cookie - resume search from a given index                     
    ///   @return the index of the found item, or IndexNone if none found      
-   template<class TYPE> template<bool REVERSE, CT::NotSemantic T1>
+   template<class TYPE> template<bool REVERSE, CT::NoIntent T1>
    Index Block<TYPE>::Find(const T1& item, Offset cookie) const noexcept
    requires (TypeErased or CT::Comparable<TYPE, T1>) {
       if constexpr (not TypeErased) {

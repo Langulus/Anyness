@@ -18,18 +18,18 @@ namespace Langulus::CT
    /// Concept for recognizing arguments, with which a statically typed       
    /// pair can be constructed                                                
    template<class K, class V, class A>
-   concept PairMakable = Pair<Desem<A>> and NotReference<K, V>
-       and (SemanticOf<A>::Shallow or (
-            SemanticMakableAlt<typename SemanticOf<A>::template As<K>>
-        and SemanticMakableAlt<typename SemanticOf<A>::template As<V>>));
+   concept PairMakable = Pair<Deint<A>> and NotReference<K, V>
+       and (IntentOf<A>::Shallow or (
+            IntentMakableAlt<typename IntentOf<A>::template As<K>>
+        and IntentMakableAlt<typename IntentOf<A>::template As<V>>));
 
    /// Concept for recognizing argument, with which a statically typed        
    /// pair can be assigned                                                   
    template<class K, class V, class A>
-   concept PairAssignable = Pair<Desem<A>> and NotReference<K, V>
-       and (SemanticOf<A>::Shallow or (
-            SemanticAssignableAlt<typename SemanticOf<A>::template As<K>>
-        and SemanticAssignableAlt<typename SemanticOf<A>::template As<V>>));
+   concept PairAssignable = Pair<Deint<A>> and NotReference<K, V>
+       and (IntentOf<A>::Shallow or (
+            IntentAssignableAlt<typename IntentOf<A>::template As<K>>
+        and IntentAssignableAlt<typename IntentOf<A>::template As<V>>));
 
    /// Concept for recognizing argument, against which a pair can be compared 
    template<class K, class V, class A>

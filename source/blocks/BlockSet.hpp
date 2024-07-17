@@ -97,7 +97,7 @@ namespace Langulus::Anyness
 
    protected:
       template<CT::Set TO, template<class> class S, CT::Set FROM>
-      requires CT::Semantic<S<FROM>>
+      requires CT::Intent<S<FROM>>
       void BlockTransfer(S<FROM>&&);
 
       template<CT::Set>
@@ -183,7 +183,7 @@ namespace Langulus::Anyness
       NOD() Offset SimplifyIndex(INDEX) const
       noexcept(not LANGULUS_SAFE() and CT::BuiltinInteger<INDEX>);
 
-      NOD() static Offset GetBucket(Offset, const CT::NotSemantic auto&) noexcept;
+      NOD() static Offset GetBucket(Offset, const CT::NoIntent auto&) noexcept;
       NOD() static Offset GetBucketUnknown(Offset, const Block<>&) noexcept;
 
       template<CT::Set = UnorderedSet>
@@ -276,24 +276,24 @@ namespace Langulus::Anyness
       ///   Comparison                                                        
       ///                                                                     
       template<CT::Set = UnorderedSet>
-      bool operator == (const CT::NotSemantic auto&) const;
+      bool operator == (const CT::NoIntent auto&) const;
 
       template<CT::Set = UnorderedSet>
       NOD() Hash GetHash() const;
 
       template<CT::Set = UnorderedSet>
-      NOD() bool Contains(const CT::NotSemantic auto&) const;
+      NOD() bool Contains(const CT::NoIntent auto&) const;
 
       template<CT::Set = UnorderedSet>
-      NOD() Index Find(const CT::NotSemantic auto&) const;
+      NOD() Index Find(const CT::NoIntent auto&) const;
       template<CT::Set THIS = UnorderedSet>
-      NOD() Iterator<THIS> FindIt(const CT::NotSemantic auto&);
+      NOD() Iterator<THIS> FindIt(const CT::NoIntent auto&);
       template<CT::Set THIS = UnorderedSet>
-      NOD() Iterator<const THIS> FindIt(const CT::NotSemantic auto&) const;
+      NOD() Iterator<const THIS> FindIt(const CT::NoIntent auto&) const;
 
    protected:
       template<CT::Set>
-      NOD() Offset FindInner(const CT::NotSemantic auto&) const;
+      NOD() Offset FindInner(const CT::NoIntent auto&) const;
       template<CT::Set>
       NOD() Offset FindBlockInner(const Block<>&) const;
 
@@ -325,10 +325,10 @@ namespace Langulus::Anyness
       template<CT::Set = UnorderedSet, class T1, class...TAIL>
       Count Insert(T1&&, TAIL&&...);
 
-      template<CT::Set = UnorderedSet, class T> requires CT::Set<Desem<T>>
+      template<CT::Set = UnorderedSet, class T> requires CT::Set<Deint<T>>
       Count InsertBlock(T&&);
       
-      template<CT::Set = UnorderedSet, class T> requires CT::Block<Desem<T>>
+      template<CT::Set = UnorderedSet, class T> requires CT::Block<Deint<T>>
       Count InsertBlock(T&&);
 
    protected:
@@ -347,7 +347,7 @@ namespace Langulus::Anyness
       Offset InsertInner(Offset, auto&&);
 
       template<CT::Set, bool CHECK_FOR_MATCH, template<class> class S, CT::Block B>
-      requires CT::Semantic<S<B>>
+      requires CT::Intent<S<B>>
       Offset InsertBlockInner(Offset, S<B>&&);
 
       template<CT::Set>
@@ -358,7 +358,7 @@ namespace Langulus::Anyness
       ///   Removal                                                           
       ///                                                                     
       template<CT::Set = UnorderedSet>
-      Count Remove(const CT::NotSemantic auto&);
+      Count Remove(const CT::NoIntent auto&);
 
       template<CT::Set = UnorderedSet>
       void Clear();
@@ -374,7 +374,7 @@ namespace Langulus::Anyness
       template<CT::Set>
       void RemoveInner(Offset) IF_UNSAFE(noexcept);
       template<CT::Set>
-      Count RemoveKeyInner(const CT::NotSemantic auto&);
+      Count RemoveKeyInner(const CT::NoIntent auto&);
 
    #if LANGULUS(TESTING)
       public: NOD() constexpr const void* GetRawMemory() const noexcept;

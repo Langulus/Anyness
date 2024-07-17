@@ -18,18 +18,18 @@ namespace Langulus::CT
    template<class K, class V, class...A>
    concept DeepMapMakable = UnfoldMakableFrom<Anyness::TPair<K, V>, A...>
         or (sizeof...(A) == 1
-           and Map<Desem<FirstOf<A...>>> and (SemanticOf<FirstOf<A...>>::Shallow
-            or SemanticMakableAlt<
-              typename SemanticOf<FirstOf<A...>>::template As<Anyness::TPair<K, V>>>
+           and Map<Deint<FirstOf<A...>>> and (IntentOf<FirstOf<A...>>::Shallow
+            or IntentMakableAlt<
+              typename IntentOf<FirstOf<A...>>::template As<Anyness::TPair<K, V>>>
         ));
 
    /// Concept for recognizing argument, with which a statically typed        
    /// map can be assigned                                                    
    template<class K, class V, class A>
    concept DeepMapAssignable = UnfoldMakableFrom<Anyness::TPair<K, V>, A>
-        or (Map<Desem<A>> and (SemanticOf<A>::Shallow 
-           or SemanticAssignableAlt<
-             typename SemanticOf<A>::template As<Anyness::TPair<K, V>>>));
+        or (Map<Deint<A>> and (IntentOf<A>::Shallow
+           or IntentAssignableAlt<
+             typename IntentOf<A>::template As<Anyness::TPair<K, V>>>));
 
 } // namespace Langulus::CT
 
@@ -153,7 +153,7 @@ namespace Langulus::Anyness
       NOD() bool IsValueExact(DMeta) const noexcept;
 
    protected:
-      template<CT::NotSemantic, CT::NotSemantic>
+      template<CT::NoIntent, CT::NoIntent>
       void Mutate() noexcept;
       void Mutate(DMeta, DMeta);
 
@@ -161,12 +161,12 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Indexing                                                          
       ///                                                                     
-      NOD() K&           GetKey(CT::Index auto);
-      NOD() K const&     GetKey(CT::Index auto) const;
-      NOD() V&           GetValue(CT::Index auto);
-      NOD() V const&     GetValue(CT::Index auto) const;
-      NOD() PairRef      GetPair(CT::Index auto);
-      NOD() PairConstRef GetPair(CT::Index auto) const;
+      NOD() auto GetKey  (CT::Index auto)       -> K&;
+      NOD() auto GetKey  (CT::Index auto) const -> K const&;
+      NOD() auto GetValue(CT::Index auto)       -> V&;
+      NOD() auto GetValue(CT::Index auto) const -> V const&;
+      NOD() auto GetPair (CT::Index auto)       -> PairRef;
+      NOD() auto GetPair (CT::Index auto) const -> PairConstRef;
 
    protected:
       using Base::GetBucket;
@@ -227,34 +227,34 @@ namespace Langulus::Anyness
 
       NOD() Hash GetHash() const requires CT::Hashable<K, V>;
 
-      template<CT::NotSemantic K1> requires CT::Comparable<K, K1>
+      template<CT::NoIntent K1> requires CT::Comparable<K, K1>
       NOD() bool ContainsKey(K1 const&) const;
 
-      template<CT::NotSemantic V1> requires CT::Comparable<V, V1>
+      template<CT::NoIntent V1> requires CT::Comparable<V, V1>
       NOD() bool ContainsValue(V1 const&) const;
 
       template<CT::Pair P> requires CT::Comparable<TPair<K, V>, P>
       NOD() bool ContainsPair(P const&) const;
 
-      template<CT::NotSemantic K1> requires CT::Comparable<K, K1>
+      template<CT::NoIntent K1> requires CT::Comparable<K, K1>
       NOD() Index Find(K1 const&) const;
 
-      template<CT::NotSemantic K1> requires CT::Comparable<K, K1>
+      template<CT::NoIntent K1> requires CT::Comparable<K, K1>
       NOD() Iterator FindIt(K1 const&);
 
-      template<CT::NotSemantic K1> requires CT::Comparable<K, K1>
+      template<CT::NoIntent K1> requires CT::Comparable<K, K1>
       NOD() ConstIterator FindIt(K1 const&) const;
 
-      template<CT::NotSemantic K1> requires CT::Comparable<K, K1>
+      template<CT::NoIntent K1> requires CT::Comparable<K, K1>
       NOD() decltype(auto) At(K1 const&);
 
-      template<CT::NotSemantic K1> requires CT::Comparable<K, K1>
+      template<CT::NoIntent K1> requires CT::Comparable<K, K1>
       NOD() decltype(auto) At(K1 const&) const;
 
-      template<CT::NotSemantic K1> requires CT::Comparable<K, K1>
+      template<CT::NoIntent K1> requires CT::Comparable<K, K1>
       NOD() decltype(auto) operator[] (K1 const&);
 
-      template<CT::NotSemantic K1> requires CT::Comparable<K, K1>
+      template<CT::NoIntent K1> requires CT::Comparable<K, K1>
       NOD() decltype(auto) operator[] (K1 const&) const;
 
       ///                                                                     
@@ -292,9 +292,9 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Removal                                                           
       ///                                                                     
-      template<CT::NotSemantic K1> requires CT::Comparable<K, K1>
+      template<CT::NoIntent K1> requires CT::Comparable<K, K1>
       Count RemoveKey(const K1&);
-      template<CT::NotSemantic V1> requires CT::Comparable<V, V1>
+      template<CT::NoIntent V1> requires CT::Comparable<V, V1>
       Count RemoveValue(const V1&);
       template<CT::Pair P> requires CT::Comparable<TPair<K, V>, P>
       Count RemovePair(const P&);

@@ -8,7 +8,6 @@
 ///                                                                           
 #include "TestPairCommon.hpp"
 
-
 #define PAIR_TESTS(MANAGED) \
    (MapTest<Pair, Trait*, RT*, MANAGED>), \
  \
@@ -20,6 +19,7 @@
    (MapTest<Pair, Traits::Count*, RT*, MANAGED>), \
    (MapTest<Pair, Many*, RT*, MANAGED>), \
    (MapTest<Pair, RT*, RT*, MANAGED>)
+
 
 /// The main test for TPair/Pair containers, with all kinds of items, from    
 /// sparse to dense, from trivial to complex, from flat to deep               
@@ -47,7 +47,7 @@ TEMPLATE_TEST_CASE("Sparse TPair/Pair", "[pair]",
    const auto sp = CreatePair<stdT, K, V, MANAGED>("five hundred", 555);
 
    if constexpr (CT::Untyped<T>) {
-      // All type-erased containers should have all semantic            
+      // All type-erased containers should have all intent              
       // constructors and assigners available, and errors will instead  
       // be thrown as exceptions at runtime                             
       static_assert(CT::CopyMakable<T>);

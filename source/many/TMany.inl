@@ -42,10 +42,10 @@ namespace Langulus::Anyness
    TMany<T>::TMany(TMany&& other) noexcept
       : TMany {Move(other)} {}
    
-   /// Create from a list of elements, each of them can be semantic or not,   
-   /// an array, as well as any other kinds of anies                          
-   ///   @param t1 - first element                                            
-   ///   @param tn - tail of elements (optional)                              
+   /// Create from a list of elements, an array, as well as any other kinds   
+   /// of data. Each can have an individual intent or not.                    
+   ///   @param t1 - first element and intent                                 
+   ///   @param tn - tail of elements (optional, can have intents)            
    TEMPLATE() template<class T1, class...TN>
    requires CT::DeepMakable<T, T1, TN...> LANGULUS(INLINED)
    TMany<T>::TMany(T1&& t1, TN&&...tn) {
@@ -155,23 +155,23 @@ namespace Langulus::Anyness
       return Base::template Extend<TMany>(count);
    }
   
-   /// Concatenate anything, semantically or not                              
-   ///   @param rhs - the element/block/array to copy-concatenate             
+   /// Concatenate anything, with or without intents                          
+   ///   @param rhs - the element/block/array and intent to concatenate with  
    ///   @return a new container, containing both blocks                      
    TEMPLATE() template<class T1>
    requires CT::DeepMakable<T, T1> LANGULUS(INLINED)
    TMany<T> TMany<T>::operator + (T1&& rhs) const {
-      using S = SemanticOf<decltype(rhs)>;
+      using S = IntentOf<decltype(rhs)>;
       return Base::template ConcatBlock<TMany>(S::Nest(rhs));
    }
 
-   /// Concatenate destructively, semantically or not                         
-   ///   @param rhs - the element/block/array to semantically concatenate     
+   /// Concatenate destructively, with or without intents                     
+   ///   @param rhs - the element/block/array and intent to concatenate with  
    ///   @return a reference to this container                                
    TEMPLATE() template<class T1>
    requires CT::DeepMakable<T, T1> LANGULUS(INLINED)
    TMany<T>& TMany<T>::operator += (T1&& rhs) {
-      using S = SemanticOf<decltype(rhs)>;
+      using S = IntentOf<decltype(rhs)>;
       Base::template InsertBlock<void>(IndexBack, S::Nest(rhs));
       return *this;
    }

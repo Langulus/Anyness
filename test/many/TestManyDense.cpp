@@ -51,7 +51,7 @@ TEMPLATE_TEST_CASE("Dense Many/TMany", "[many]",
    };
 
    if constexpr (CT::Untyped<T>) {
-      // All type-erased containers should have all semantic            
+      // All type-erased containers should have all intent              
       // constructors and assigners available, and errors will instead  
       // be thrown as exceptions at runtime                             
       static_assert(CT::CopyMakable<T>);

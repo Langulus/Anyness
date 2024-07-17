@@ -15,10 +15,10 @@ namespace Langulus::Anyness
 
    /// Construct pair from any other kind of pair                             
    ///   @param other - the pair to construct with                            
-   template<class P> requires CT::Pair<Desem<P>> LANGULUS(INLINED)
+   template<class P> requires CT::Pair<Deint<P>> LANGULUS(INLINED)
    Pair::Pair(P&& other)
-      : mKey   {SemanticOf<decltype(other)>::Nest(DesemCast(other).mKey)}
-      , mValue {SemanticOf<decltype(other)>::Nest(DesemCast(other).mValue)} {}
+      : mKey   {IntentOf<decltype(other)>::Nest(DeintCast(other).mKey)}
+      , mValue {IntentOf<decltype(other)>::Nest(DeintCast(other).mValue)} {}
 
    /// Construct pair manually                                                
    ///   @param key - the key                                                 
@@ -31,11 +31,11 @@ namespace Langulus::Anyness
 
    /// Assign any kind of pair                                                
    ///   @param rhs - the pair to assign                                      
-   template<class P> requires CT::Pair<Desem<P>> LANGULUS(INLINED)
+   template<class P> requires CT::Pair<Deint<P>> LANGULUS(INLINED)
    Pair& Pair::operator = (P&& rhs) {
-      using S = SemanticOf<decltype(rhs)>;
-      mKey   = Many::Wrap(S::Nest(DesemCast(rhs).mKey));
-      mValue = Many::Wrap(S::Nest(DesemCast(rhs).mValue));
+      using S = IntentOf<decltype(rhs)>;
+      mKey   = Many::Wrap(S::Nest(DeintCast(rhs).mKey));
+      mValue = Many::Wrap(S::Nest(DeintCast(rhs).mValue));
       return *this;
    }
 

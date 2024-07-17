@@ -34,40 +34,40 @@ namespace Langulus::Anyness
    Text::Text(Text&& other) noexcept
       : Text {Move(other)} { }
 
-   /// Semantic text constructor                                              
-   ///   @param other - the text container to use semantically                
-   template<class T> requires CT::TextBased<Desem<T>> LANGULUS(INLINED)
+   /// Generic text constructor                                               
+   ///   @param other - the text container to use, with or without intent     
+   template<class T> requires CT::TextBased<Deint<T>> LANGULUS(INLINED)
    Text::Text(T&& other) {
       Base::BlockCreate(Forward<T>(other));
    }
 
-   /// Construct from single character                                        
+   /// Construct from single character - any intent will be ignored           
    ///   @param other - the character to copy                                 
-   template<class T> requires CT::Character<Desem<T>> LANGULUS(INLINED)
+   template<class T> requires CT::Character<Deint<T>> LANGULUS(INLINED)
    Text::Text(T&& other) {
       AllocateFresh(RequestSize(1));
       mCount = 1;
-      (*this)[0] = DesemCast(other);
+      (*this)[0] = DeintCast(other);
    }
 
    /// Construct from a bounded character array                               
    ///   @attention assumes that the character sequence is null-terminated    
    ///      - this is usually guaranteed for string literals, but its left    
    ///        to an assumption, as the user can reinterpret_cast as array     
-   ///   @param other - the string and semantic                               
-   template<class T> requires CT::String<Desem<T>> LANGULUS(INLINED)
+   ///   @param other - the string and intent                                 
+   template<class T> requires CT::String<Deint<T>> LANGULUS(INLINED)
    Text::Text(T&& other) {
-      using S = SemanticOf<decltype(other)>;
+      using S = IntentOf<decltype(other)>;
       Count count;
 
-      if constexpr (CT::StringLiteral<Desem<T>>) {
-         count = DesemCast(other)
-            ? strnlen(DesemCast(other), ExtentOf<Desem<T>>)
+      if constexpr (CT::StringLiteral<Deint<T>>) {
+         count = DeintCast(other)
+            ? strnlen(DeintCast(other), ExtentOf<Deint<T>>)
             : 0;
       }
       else {
-         count = DesemCast(other)
-            ? ::std::strlen(DesemCast(other))
+         count = DeintCast(other)
+            ? ::std::strlen(DeintCast(other))
             : 0;
       }
 
@@ -78,19 +78,19 @@ namespace Langulus::Anyness
          // Copy/Clone                                                  
          AllocateFresh(RequestSize(count));
          mCount = count;
-         memcpy(mRaw, DesemCast(other), count);
+         memcpy(mRaw, DeintCast(other), count);
       }
       else if constexpr (S::Move or S::Keep) {
          // Will perform search and take authority if not owned by us   
          new (this) Base {
-            DataState::Constrained, GetType(), count, DesemCast(other)
+            DataState::Constrained, GetType(), count, DeintCast(other)
          };
          TakeAuthority();
       }
       else {
          // We're disowning it, so no transfer, just a static view      
          new (this) Base {
-            DataState::Constrained, GetType(), count, DesemCast(other), nullptr
+            DataState::Constrained, GetType(), count, DeintCast(other), nullptr
          };
       }
    }
@@ -99,18 +99,18 @@ namespace Langulus::Anyness
    /// characters. This includes std::string, string_view, span, vector,      
    /// array, etc.                                                            
    ///   @attention containers that aren't strings will be strnlen'ed         
-   ///   @param other - the string and semantic                               
-   template<class T> requires CT::StdString<Desem<T>>
+   ///   @param other - the string and intent                                 
+   template<class T> requires CT::StdString<Deint<T>>
    LANGULUS(INLINED) Text::Text(T&& other) {
-      using S = SemanticOf<decltype(other)>;
-      if (DesemCast(other).empty())
+      using S = IntentOf<decltype(other)>;
+      if (DeintCast(other).empty())
          return;
 
       Count count;
-      if constexpr (not ::std::is_convertible_v<Desem<T>, std::string_view>)
-         count = strnlen(DesemCast(other).data(), DesemCast(other).size());
+      if constexpr (not ::std::is_convertible_v<Deint<T>, std::string_view>)
+         count = strnlen(DeintCast(other).data(), DeintCast(other).size());
       else
-         count = DesemCast(other).size();
+         count = DeintCast(other).size();
 
       if (not count)
          return;
@@ -119,19 +119,19 @@ namespace Langulus::Anyness
          // Copy/Clone                                                  
          AllocateFresh(RequestSize(count));
          mCount = count;
-         memcpy(mRaw, DesemCast(other).data(), count);
+         memcpy(mRaw, DeintCast(other).data(), count);
       }
       else if constexpr (S::Move or S::Keep) {
          // Will perform search and take authority if not owned by us   
          new (this) Base {
-            DataState::Constrained, GetType(), count, DesemCast(other).data()
+            DataState::Constrained, GetType(), count, DeintCast(other).data()
          };
          TakeAuthority();
       }
       else {
          // We're disowning it, so no transfer, just a static view      
          new (this) Base {
-            DataState::Constrained, GetType(), count, DesemCast(other).data(), nullptr
+            DataState::Constrained, GetType(), count, DeintCast(other).data(), nullptr
          };
       }
    }
@@ -311,7 +311,7 @@ namespace Langulus::Anyness
    }
 
    /// Construction from bounded or unbounded array/pointer of characters     
-   ///   @attention semantic is ignored, this doesn't apply ownership, only   
+   ///   @attention intent is ignored, this doesn't apply ownership, only     
    ///      interfaces the data - you can TakeAuthority() after this call.    
    ///   @attention assumes text pointer is valid                             
    ///   @param text - text memory to wrap, assumed valid                     
@@ -319,17 +319,17 @@ namespace Langulus::Anyness
    ///   @attention count will shrink if a terminating character was found,   
    ///      or if 'text' is a bounded array of smaller size                   
    ///   @return the text wrapped inside a Text container                     
-   template<class T> requires CT::String<Desem<T>> LANGULUS(INLINED)
+   template<class T> requires CT::String<Deint<T>> LANGULUS(INLINED)
    Text Text::From(T&& text, Count count) {
       if (count == 0)
          return {};
 
-      if constexpr (CT::Array<Desem<T>>) {
+      if constexpr (CT::Array<Deint<T>>) {
          // In case of an array - represent array, and then edit count  
          auto block = MakeBlock<Text>(Disown(text));
          // Make sure string is properly terminated                     
          block.mCount = strnlen(
-            block.GetRaw(), ::std::min(count, ExtentOf<Desem<T>>));
+            block.GetRaw(), ::std::min(count, ExtentOf<Deint<T>>));
          return block;
       }
       else {
@@ -362,7 +362,7 @@ namespace Langulus::Anyness
    
    /// Assign any Text block                                                  
    ///   @param rhs - the block to assign                                     
-   template<class T> requires CT::TextBased<Desem<T>> LANGULUS(INLINED)
+   template<class T> requires CT::TextBased<Deint<T>> LANGULUS(INLINED)
    Text& Text::operator = (T&& rhs) {
       return Base::BlockAssign<Text>(Forward<T>(rhs));
    }
@@ -741,7 +741,7 @@ namespace Langulus::Anyness
    /// Insert an element at the back of the container                         
    ///   @param rhs - the element to insert                                   
    ///   @return a reference to this container for chaining                   
-   template<class T> requires CT::Stringifiable<Desem<T>> LANGULUS(ALWAYS_INLINED)
+   template<class T> requires CT::Stringifiable<Deint<T>> LANGULUS(ALWAYS_INLINED)
    Text& Text::operator << (T&& rhs) {
       Base::InsertBlockInner<void, true>(IndexBack, Text {Forward<T>(rhs)});
       return *this;
@@ -750,7 +750,7 @@ namespace Langulus::Anyness
    /// Insert an element at the front of the container                        
    ///   @param rhs - the element to insert                                   
    ///   @return a reference to this container for chaining                   
-   template<class T> requires CT::Stringifiable<Desem<T>> LANGULUS(ALWAYS_INLINED)
+   template<class T> requires CT::Stringifiable<Deint<T>> LANGULUS(ALWAYS_INLINED)
    Text& Text::operator >> (T&& rhs) {
       Base::InsertBlockInner<void, true>(IndexFront, Text {Forward<T>(rhs)});
       return *this;
@@ -759,7 +759,7 @@ namespace Langulus::Anyness
    /// Merge an element at the back of the container                          
    ///   @param rhs - the element to insert                                   
    ///   @return a reference to this container for chaining                   
-   template<class T> requires CT::Stringifiable<Desem<T>> LANGULUS(ALWAYS_INLINED)
+   template<class T> requires CT::Stringifiable<Deint<T>> LANGULUS(ALWAYS_INLINED)
    Text& Text::operator <<= (T&& rhs) {
       Base::MergeBlock<void>(IndexBack, Text {Forward<T>(rhs)});
       return *this;
@@ -768,7 +768,7 @@ namespace Langulus::Anyness
    /// Merge an element at the front of the container                         
    ///   @param rhs - the element to insert                                   
    ///   @return a reference to this container for chaining                   
-   template<class T> requires CT::Stringifiable<Desem<T>> LANGULUS(ALWAYS_INLINED)
+   template<class T> requires CT::Stringifiable<Deint<T>> LANGULUS(ALWAYS_INLINED)
    Text& Text::operator >>= (T&& rhs) {
       Base::MergeBlock<void>(IndexFront, Text {Forward<T>(rhs)});
       return *this;
@@ -777,7 +777,7 @@ namespace Langulus::Anyness
    /// Concatenate with anything convertible to text on the right             
    ///   @param rhs - right hand side                                         
    ///   @return the concatenated text container                              
-   template<class T> requires CT::Stringifiable<Desem<T>> LANGULUS(ALWAYS_INLINED)
+   template<class T> requires CT::Stringifiable<Deint<T>> LANGULUS(ALWAYS_INLINED)
    Text Text::operator + (T&& rhs) const {
       return ConcatInner<Text>(Forward<T>(rhs));
    }
@@ -786,7 +786,7 @@ namespace Langulus::Anyness
    ///   @param lhs - left hand side                                          
    ///   @param rhs - right hand side                                         
    ///   @return the concatenated text container                              
-   template<class T> requires (CT::Stringifiable<Desem<T>> and not CT::TextBased<T>)
+   template<class T> requires (CT::Stringifiable<Deint<T>> and not CT::TextBased<T>)
    LANGULUS(ALWAYS_INLINED)
    Text operator + (T&& lhs, const Text& rhs) {
       return Text {Forward<T>(lhs)}.ConcatInner<Text>(rhs);
@@ -795,7 +795,7 @@ namespace Langulus::Anyness
    /// Concatenate (destructively) text containers                            
    ///   @param rhs - right hand side                                         
    ///   @return a reference to this container                                
-   template<class T> requires CT::Stringifiable<Desem<T>> LANGULUS(ALWAYS_INLINED)
+   template<class T> requires CT::Stringifiable<Deint<T>> LANGULUS(ALWAYS_INLINED)
    Text& Text::operator += (T&& rhs) {
       return ConcatRelativeInner<Text>(Forward<T>(rhs));
    }
@@ -805,7 +805,7 @@ namespace Langulus::Anyness
    ///   @return the concatenated text container                              
    template<CT::TextBased THIS, class T>
    THIS Text::ConcatInner(T&& rhs) const {
-      using S = SemanticOf<decltype(rhs)>;
+      using S = IntentOf<decltype(rhs)>;
       using B = TypeOf<S>;
 
       if constexpr (CT::Block<B>) {
@@ -828,7 +828,7 @@ namespace Langulus::Anyness
       }
       else {
          // RHS isn't Block, try to convert it to Text, and nest        
-         return ConcatInner<THIS>(static_cast<THIS>(DesemCast(rhs)));
+         return ConcatInner<THIS>(static_cast<THIS>(DeintCast(rhs)));
       }
    }
 
@@ -837,7 +837,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container                                
    template<CT::TextBased THIS, class T>
    THIS& Text::ConcatRelativeInner(T&& rhs) {
-      using S = SemanticOf<decltype(rhs)>;
+      using S = IntentOf<decltype(rhs)>;
       using B = TypeOf<S>;
 
       if constexpr (CT::Block<B>) {
@@ -860,7 +860,7 @@ namespace Langulus::Anyness
       }
       else {
          // RHS isn't Block, try to convert it to Text, and nest        
-         return ConcatRelativeInner<THIS>(static_cast<THIS>(DesemCast(rhs)));
+         return ConcatRelativeInner<THIS>(static_cast<THIS>(DeintCast(rhs)));
       }
 
       return static_cast<THIS&>(*this);

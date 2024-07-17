@@ -27,12 +27,10 @@ namespace Langulus::Anyness
    Construct::Construct(Construct&& other) noexcept
       : Construct {Move(other)} {}
 
-   /// Semantic constructor                                                   
-   ///   @tparam S - semantic (deducible)                                     
-   ///   @param other - the construct and semantic                            
-   template<template<class> class S> LANGULUS(INLINED)
-   Construct::Construct(S<Construct>&& other)
-   requires CT::Semantic<S<Construct>>
+   /// Intent constructor                                                     
+   ///   @param other - the construct and intent                              
+   template<template<class> class S> requires CT::Intent<S<Construct>>
+   LANGULUS(INLINED) Construct::Construct(S<Construct>&& other)   
       : mType {other->mType}
       , mDescriptor {S<Neat> {other->mDescriptor}}
       , mCharge {other->mCharge} {
@@ -48,9 +46,9 @@ namespace Langulus::Anyness
    Construct::Construct(DMeta type)
       : mType {type ? type->mOrigin : nullptr} {}
 
-   /// Semantic manual constructor                                            
+   /// Manual constructor                                                     
    ///   @param type - the type of the construct                              
-   ///   @param args - the arguments for construction                         
+   ///   @param args - the arguments for construction, with or without intent 
    ///   @param charge - the charge for the construction                      
    LANGULUS(INLINED)
    Construct::Construct(DMeta type, auto&& args, const Charge& charge)
@@ -90,13 +88,11 @@ namespace Langulus::Anyness
       return operator = (Move(rhs));
    }
 
-   /// Semantic-assignment                                                    
-   ///   @tparam S - semantic to use (deducible)                              
+   /// Intent-assignment                                                      
    ///   @param rhs - the right hand side                                     
    ///   @return a reference to this construct                                
-   template<template<class> class S> LANGULUS(INLINED)
-   Construct& Construct::operator = (S<Construct>&& rhs)
-   requires CT::Semantic<S<Construct>> {
+   template<template<class> class S> requires CT::Intent<S<Construct>>
+   LANGULUS(INLINED) Construct& Construct::operator = (S<Construct>&& rhs) {
       mType = rhs->mType;
       mDescriptor = S<Neat> {rhs->mDescriptor};
       mCharge = rhs->mCharge;

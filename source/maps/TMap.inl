@@ -43,15 +43,15 @@ namespace Langulus::Anyness
    TABLE()::TMap(TMap&& other) noexcept
       : TMap {Move(other)} {}
    
-   /// Create from a list of pairs, each of them can be semantic or not,      
-   /// an array, as well as any other kinds of maps                           
-   ///   @param t1 - first element                                            
-   ///   @param tn - tail of elements (optional)                              
+   /// Create from a list of pairs, an array, as well as any other kinds of   
+   /// maps. Each argument can be with or without intent.                     
+   ///   @param t1 - first element and intent                                 
+   ///   @param tn - tail of elements (optional, can have intents)            
    TEMPLATE() template<class T1, class...TN>
    requires CT::DeepMapMakable<K, V, T1, TN...> LANGULUS(INLINED)
    TABLE()::TMap(T1&& t1, TN&&...tn) {
       if constexpr (sizeof...(TN) == 0) {
-         using S = SemanticOf<decltype(t1)>;
+         using S  = IntentOf<decltype(t1)>;
          using ST = TypeOf<S>;
 
          if constexpr (CT::Map<ST>) {
@@ -66,8 +66,8 @@ namespace Langulus::Anyness
             }
             else {
                // Type-erased map, do run-time type checks              
-               if (mKeys.mType   == DesemCast(t1).GetKeyType()
-               and mValues.mType == DesemCast(t1).GetValueType()) {
+               if (mKeys.mType   == DeintCast(t1).GetKeyType()
+               and mValues.mType == DeintCast(t1).GetValueType()) {
                   // If types are exactly the same, it is safe to       
                   // absorb the map, essentially converting a type-     
                   // erased Map back to its TMap equivalent             
@@ -109,13 +109,13 @@ namespace Langulus::Anyness
    TEMPLATE() template<class T1>
    requires CT::DeepMapAssignable<K, V, T1> LANGULUS(INLINED)
    TABLE()& TABLE()::operator = (T1&& rhs) {
-      using S = SemanticOf<decltype(rhs)>;
+      using S  = IntentOf<decltype(rhs)>;
       using ST = TypeOf<S>;
        
       if constexpr (CT::Map<ST>) {
          // Potentially absorb the container                            
          if (static_cast<const BlockMap*>(this)
-          == static_cast<const BlockMap*>(&DesemCast(rhs)))
+          == static_cast<const BlockMap*>(&DeintCast(rhs)))
             return *this;
 
          BlockMap::Free<TMap>();
@@ -427,7 +427,7 @@ namespace Langulus::Anyness
    /// Checks type compatibility and sets type for the type-erased map        
    ///   @param key - the key type                                            
    ///   @param value - the value type                                        
-   TEMPLATE() template<CT::NotSemantic K1, CT::NotSemantic V1>
+   TEMPLATE() template<CT::NoIntent K1, CT::NoIntent V1>
    LANGULUS(INLINED) void TABLE()::Mutate() noexcept {
       return BlockMap::Mutate<TMap, K1, V1>();
    }
@@ -447,9 +447,9 @@ namespace Langulus::Anyness
       return BlockMap::Reserve<TMap>(count);
    }
 
-   /// Insert pair, by manually providing key and value, semantically or not  
-   ///   @param key - the key to insert                                       
-   ///   @param val - the value to insert                                     
+   /// Insert pair with separate key and value, with or without intents       
+   ///   @param key - the key and intent to insert                            
+   ///   @param val - the value and intent to insert                          
    ///   @return 1 if pair was inserted, zero otherwise                       
    TEMPLATE() template<class K1, class V1>
    requires (CT::MakableFrom<K, K1> and CT::MakableFrom<V, V1>)
@@ -473,7 +473,7 @@ namespace Langulus::Anyness
       return BlockMap::InsertBlock<TMap>(Forward<K1>(key), Forward<V1>(val));
    }
 
-   /// Unfold-insert pairs, semantically or not                               
+   /// Unfold-insert pairs, with or without intents                           
    ///   @param t1, tn... - pairs, or arrays of pairs, to insert              
    ///   @return the number of inserted pairs                                 
    TEMPLATE() template<class T1, class...TN>
@@ -538,7 +538,7 @@ namespace Langulus::Anyness
    /// Erase a pair via key                                                   
    ///   @param key - the key to search for                                   
    ///   @return 1 if key was found and pair was removed                      
-   TEMPLATE() template<CT::NotSemantic K1>
+   TEMPLATE() template<CT::NoIntent K1>
    requires CT::Comparable<K, K1> LANGULUS(INLINED)
    Count TABLE()::RemoveKey(const K1& key) {
       return BlockMap::RemoveKey<TMap>(key);
@@ -547,7 +547,7 @@ namespace Langulus::Anyness
    /// Erase all pairs with a given value                                     
    ///   @param value - the match to search for                               
    ///   @return the number of removed pairs                                  
-   TEMPLATE() template<CT::NotSemantic V1>
+   TEMPLATE() template<CT::NoIntent V1>
    requires CT::Comparable<V, V1> LANGULUS(INLINED)
    Count TABLE()::RemoveValue(const V1& value) {
       return BlockMap::RemoveValue<TMap>(value);
@@ -620,7 +620,7 @@ namespace Langulus::Anyness
    /// Search for a key inside the table                                      
    ///   @param key - the key to search for                                   
    ///   @return true if key is found, false otherwise                        
-   TEMPLATE() template<CT::NotSemantic K1>
+   TEMPLATE() template<CT::NoIntent K1>
    requires CT::Comparable<K, K1> LANGULUS(INLINED)
    bool TABLE()::ContainsKey(K1 const& key) const {
       return BlockMap::ContainsKey<TMap>(key);
@@ -629,7 +629,7 @@ namespace Langulus::Anyness
    /// Search for a value inside the table                                    
    ///   @param val - the value to search for                                 
    ///   @return true if value is found, false otherwise                      
-   TEMPLATE() template<CT::NotSemantic V1>
+   TEMPLATE() template<CT::NoIntent V1>
    requires CT::Comparable<V, V1> LANGULUS(INLINED)
    bool TABLE()::ContainsValue(V1 const& val) const {
       return BlockMap::ContainsValue<TMap>(val);
@@ -647,7 +647,7 @@ namespace Langulus::Anyness
    /// Search for a key inside the table, and return it if found              
    ///   @param key - the key to search for                                   
    ///   @return the index if key was found, or IndexNone if not              
-   TEMPLATE() template<CT::NotSemantic K1>
+   TEMPLATE() template<CT::NoIntent K1>
    requires CT::Comparable<K, K1> LANGULUS(INLINED)
    Index TABLE()::Find(K1 const& key) const {
       return BlockMap::Find<TMap>(key);
@@ -656,13 +656,13 @@ namespace Langulus::Anyness
    /// Search for a key inside the table, and return an iterator to it        
    ///   @param key - the key to search for                                   
    ///   @return the iterator                                                 
-   TEMPLATE() template<CT::NotSemantic K1>
+   TEMPLATE() template<CT::NoIntent K1>
    requires CT::Comparable<K, K1> LANGULUS(INLINED)
    typename TABLE()::Iterator TABLE()::FindIt(K1 const& key) {
       return BlockMap::FindIt<TMap>(key);
    }
 
-   TEMPLATE() template<CT::NotSemantic K1>
+   TEMPLATE() template<CT::NoIntent K1>
    requires CT::Comparable<K, K1> LANGULUS(INLINED)
    typename TABLE()::ConstIterator TABLE()::FindIt(K1 const& key) const {
       return BlockMap::FindIt<TMap>(key);
@@ -672,13 +672,13 @@ namespace Langulus::Anyness
    /// Throws Except::OutOfRange if element cannot be found                   
    ///   @param key - the key to search for                                   
    ///   @return a reference to the value                                     
-   TEMPLATE() template<CT::NotSemantic K1>
+   TEMPLATE() template<CT::NoIntent K1>
    requires CT::Comparable<K, K1> LANGULUS(INLINED)
    decltype(auto) TABLE()::At(K1 const& key) {
       return BlockMap::At<TMap>(key);
    }
 
-   TEMPLATE() template<CT::NotSemantic K1>
+   TEMPLATE() template<CT::NoIntent K1>
    requires CT::Comparable<K, K1> LANGULUS(INLINED)
    decltype(auto) TABLE()::At(K1 const& key) const {
       return BlockMap::At<TMap>(key);
@@ -687,13 +687,13 @@ namespace Langulus::Anyness
    /// Access value by key                                                    
    ///   @param key - the key to find                                         
    ///   @return a reference to the value                                     
-   TEMPLATE() template<CT::NotSemantic K1>
+   TEMPLATE() template<CT::NoIntent K1>
    requires CT::Comparable<K, K1> LANGULUS(INLINED)
    decltype(auto) TABLE()::operator[] (K1 const& key) {
       return BlockMap::operator [] <TMap>(key);
    }
 
-   TEMPLATE() template<CT::NotSemantic K1>
+   TEMPLATE() template<CT::NoIntent K1>
    requires CT::Comparable<K, K1> LANGULUS(INLINED)
    decltype(auto) TABLE()::operator[] (K1 const& key) const {
       return BlockMap::operator [] <TMap>(key);

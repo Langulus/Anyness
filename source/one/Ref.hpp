@@ -40,8 +40,7 @@ namespace Langulus::Anyness
       explicit constexpr Ref(const Ref&);
       explicit constexpr Ref(Ref&&);
 
-      template<template<class> class S>
-      requires CT::SemanticMakable<S, T*>
+      template<template<class> class S> requires CT::IntentMakable<S, T*>
       explicit constexpr Ref(S<Ref>&&);
 
       template<class A> requires CT::MakableFrom<T*, A>
@@ -58,8 +57,7 @@ namespace Langulus::Anyness
       constexpr Ref& operator = (const Ref&);
       constexpr Ref& operator = (Ref&&);
 
-      template<template<class> class S>
-      requires CT::SemanticAssignable<S, T*>
+      template<template<class> class S> requires CT::IntentAssignable<S, T*>
       Ref& operator = (S<Ref>&&);
 
       template<CT::NotOwned A> requires CT::AssignableFrom<T*, A>

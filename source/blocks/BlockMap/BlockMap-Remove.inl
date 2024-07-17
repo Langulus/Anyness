@@ -50,7 +50,7 @@ namespace Langulus::Anyness
    ///   @param key - the key to search for                                   
    ///   @return the number of removed pairs                                  
    template<CT::Map THIS> LANGULUS(INLINED)
-   Count BlockMap::RemoveKey(const CT::NotSemantic auto& key) {
+   Count BlockMap::RemoveKey(const CT::NoIntent auto& key) {
       using K = Deref<decltype(key)>;
       if (IsEmpty())
          return 0;
@@ -97,7 +97,7 @@ namespace Langulus::Anyness
    ///   @param key - the key to search for                                   
    ///   @return 1 if pair was removed                                        
    template<CT::Map THIS> LANGULUS(INLINED)
-   Count BlockMap::RemoveKeyInner(const CT::NotSemantic auto& key) {
+   Count BlockMap::RemoveKeyInner(const CT::NoIntent auto& key) {
       const auto found = FindInner<THIS>(key);
       if (found != InvalidOffset) {
          // Key found, remove the pair                                  
@@ -113,7 +113,7 @@ namespace Langulus::Anyness
    ///   @param value - the values to search for                              
    ///   @return the number of removed pairs                                  
    template<CT::Map THIS> LANGULUS(INLINED)
-   Count BlockMap::RemoveValue(const CT::NotSemantic auto& value) {
+   Count BlockMap::RemoveValue(const CT::NoIntent auto& value) {
       using V = Deref<decltype(value)>;
       if (IsEmpty())
          return 0;
@@ -156,7 +156,7 @@ namespace Langulus::Anyness
    ///   @param value - the value to search for                               
    ///   @return the number of removed pairs                                  
    template<CT::Map THIS>
-   Count BlockMap::RemoveValInner(const CT::NotSemantic auto& value) {
+   Count BlockMap::RemoveValInner(const CT::NoIntent auto& value) {
       Count removed = 0;
       auto psl = GetInfo();
       const auto pslEnd = GetInfoEnd();
@@ -218,11 +218,11 @@ namespace Langulus::Anyness
       while (*psl > 1) {
          psl[-1] = (*psl) - 1;
 
-         (key--).CreateSemantic(Abandon(key));
+         (key--).CreateWithIntent(Abandon(key));
          key.Destroy();
          ++key;
 
-         (val--).CreateSemantic(Abandon(val));
+         (val--).CreateWithIntent(Abandon(val));
          val.Destroy();
          ++val;
 
@@ -238,12 +238,12 @@ namespace Langulus::Anyness
 
          // Shift first pair to the back                                
          key = GetKeyHandle<THIS>(0);
-         GetKeyHandle<THIS>(last).CreateSemantic(Abandon(key));
+         GetKeyHandle<THIS>(last).CreateWithIntent(Abandon(key));
          key.Destroy();
          ++key;
 
          val = GetValHandle<THIS>(0);
-         GetValHandle<THIS>(last).CreateSemantic(Abandon(val));
+         GetValHandle<THIS>(last).CreateWithIntent(Abandon(val));
          val.Destroy();
          ++val;
 

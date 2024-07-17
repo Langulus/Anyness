@@ -45,52 +45,52 @@ private:
    PrivatelyConstructible(PrivatelyConstructible&&) = default;
 };
 
-/// Had no explicit semantic constructors and assigners                       
+/// Has no explicit intent constructors and assigners                         
 /// Has only implicit refer & move constructors and assigners                 
-class NonSemanticConstructible {
+class NonIntentConstructible {
    LANGULUS(POD) false;
 public:
-   NonSemanticConstructible(CT::NotSemantic auto&&) {}
+   NonIntentConstructible(CT::NoIntent auto&&) {}
 };
 
 /// Has explicit copy, move, refer, clone, abandon, disown constructors       
 /// Has implicit refer & move constructors, too                               
-/// Has no explicit semantic assigners, only implicit refer & move            
-class PartiallySemanticConstructible {
+/// Has no explicit intent assigners, only implicit refer & move              
+class PartiallyIntentConstructible {
 public:
    template<template<class> class S, class T>
-   PartiallySemanticConstructible(S<T>&&) requires CT::Semantic<S<T>> {}
+   PartiallyIntentConstructible(S<T>&&) requires CT::Intent<S<T>> {}
 };
 
-/// Has all semantic constructors + implicit refer & move ones                
-/// Has no explicit semantic assigners, only implicit refer & move ones       
-/// Making constructor explicit makes sure, that no implicit semantic assign  
+/// Has all intent constructors + implicit refer & move ones                  
+/// Has no explicit intent assigners, only implicit refer & move ones         
+/// Making constructor explicit makes sure, that no implicit intent assign    
 /// happens                                                                   
-class AllSemanticConstructible {
+class AllIntentConstructible {
 public:
    LANGULUS(POD) false;
-   explicit AllSemanticConstructible(CT::Semantic auto&&) {}
+   explicit AllIntentConstructible(CT::Intent auto&&) {}
 };
 
-/// Has all semantic constructors + implicit refer & move ones                
-/// Has no explicit semantic assigners, only implicit refer & move ones       
-/// Making constructor implicit also allows for semantic assignments          
-class AllSemanticConstructibleImplicit {
+/// Has all intent constructors + implicit refer & move ones                  
+/// Has no explicit intent assigners, only implicit refer & move ones         
+/// Making constructor implicit also allows for intent assignments            
+class AllIntentConstructibleImplicit {
 public:
    LANGULUS(POD) false;
-   AllSemanticConstructibleImplicit(CT::Semantic auto&&) {}
+   AllIntentConstructibleImplicit(CT::Intent auto&&) {}
 };
 
-/// Has all semantic constructors and assigners + implicit refer & move ones  
-class AllSemanticConstructibleAndAssignable {
+/// Has all intnet constructors and assigners + implicit refer & move ones    
+class AllIntentConstructibleAndAssignable {
 public:
    LANGULUS(POD) false;
-   AllSemanticConstructibleAndAssignable(CT::Semantic auto&&) {}
-   AllSemanticConstructibleAndAssignable& operator = (CT::Semantic auto&&) { return *this; }
+   AllIntentConstructibleAndAssignable(CT::Intent auto&&) {}
+   AllIntentConstructibleAndAssignable& operator = (CT::Intent auto&&) { return *this; }
 };
 
 /// Has explicit descriptor constructor, and implicit refer & move ones       
-/// Has no explicit semantic assigners, only implicit refer & move            
+/// Has no explicit intent assigners, only implicit refer & move              
 class DescriptorConstructible {
 public:
    DescriptorConstructible(Describe&&) {}

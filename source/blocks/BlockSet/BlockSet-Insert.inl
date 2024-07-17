@@ -14,15 +14,15 @@
 namespace Langulus::Anyness
 {
 
-   /// Wrap the argument semantically into a handle with value's type         
+   /// Wrap the argument into a handle with value's type                      
    ///   @attention if value is a type-erased handle or void*, we assume that 
    ///      the pointer always points to a valid instance of the current      
    ///      value type                                                        
-   ///   @param val - the val to wrap                                         
+   ///   @param val - the val to wrap, with or without intent                 
    ///   @return the handle object                                            
    template<CT::Set THIS>
    auto BlockSet::CreateValHandle(auto&& val) {
-      using S = SemanticOf<decltype(val)>;
+      using S = IntentOf<decltype(val)>;
       using T = TypeOf<S>;
 
       if constexpr (CT::Typed<THIS>) {
@@ -38,13 +38,13 @@ namespace Langulus::Anyness
       }
    }
 
-   /// Insert an element, or an array of elements                             
-   ///   @param item - the argument to unfold and insert, can be semantic     
+   /// Insert an element, or an array of elements, with or without intent     
+   ///   @param item - the argument and intent to unfold and insert           
    ///   @return the number of inserted elements after unfolding              
    template<CT::Set THIS>
    Count BlockSet::UnfoldInsert(auto&& item) {
       using E = Conditional<CT::Typed<THIS>, TypeOf<THIS>, void>;
-      using S = SemanticOf<decltype(item)>;
+      using S = IntentOf<decltype(item)>;
       using T = TypeOf<S>;
 
       if constexpr (not CT::TypeErased<E>)
@@ -55,11 +55,11 @@ namespace Langulus::Anyness
             if constexpr (CT::MakableFrom<E, Deext<T>>) {
                // Construct from an array of elements, each of which    
                // can be used to initialize an element, nesting any     
-               // semantic while doing it                               
+               // intents while at it                                   
                Reserve(GetCount() + ExtentOf<T>);
-               for (auto& key : DesemCast(item)) {
+               for (auto& key : DeintCast(item)) {
                   InsertInner<THIS, true>(
-                     GetBucket(GetReserved() - 1, DesemCast(key)),
+                     GetBucket(GetReserved() - 1, DeintCast(key)),
                      S::Nest(key)
                   );
                }
@@ -69,7 +69,7 @@ namespace Langulus::Anyness
                // Construct from an array of things, which can't be used
                // to directly construct elements, so nest this insert   
                Count inserted = 0;
-               for (auto& key : DesemCast(item))
+               for (auto& key : DeintCast(item))
                   inserted += UnfoldInsert<THIS>(S::Nest(key));
                return inserted;
             }
@@ -90,7 +90,7 @@ namespace Langulus::Anyness
             Mutate<THIS, Deext<T>>();
             Reserve(GetCount() + ExtentOf<T>);
             Count inserted = 0;
-            for (auto& e : DesemCast(item)) {
+            for (auto& e : DeintCast(item)) {
                inserted += InsertInner<THIS, true>(
                   GetBucket(GetReserved() - 1, e),
                   S::Nest(e)
@@ -104,7 +104,7 @@ namespace Langulus::Anyness
             // Insert a handle                                          
             Reserve(GetCount() + 1);
             InsertInner<THIS, true>(
-               GetBucket(GetReserved() - 1, DesemCast(item).Get()),
+               GetBucket(GetReserved() - 1, DeintCast(item).Get()),
                S::Nest(item)
             );
             return 1;
@@ -115,7 +115,7 @@ namespace Langulus::Anyness
             mKeys.mType = MetaDataOf<E>();
             Reserve(GetCount() + 1);
             InsertInner<THIS, true>(
-               GetBucket(GetReserved() - 1, DesemCast(item)),
+               GetBucket(GetReserved() - 1, DeintCast(item)),
                S::Nest(item)
             );
             return 1;
@@ -128,19 +128,19 @@ namespace Langulus::Anyness
 
                if constexpr (CT::MakableFrom<E, T2>) {
                   // Elements are mappable                              
-                  Reserve(GetCount() + DesemCast(item).GetCount());
-                  for (auto& key : DesemCast(item)) {
+                  Reserve(GetCount() + DeintCast(item).GetCount());
+                  for (auto& key : DeintCast(item)) {
                      InsertInner<THIS, true>(
                         GetBucket(GetReserved() - 1, key),
                         S::Nest(key)
                      );
                   }
-                  return DesemCast(item).GetCount();
+                  return DeintCast(item).GetCount();
                }
                else if constexpr (CT::MakableFrom<E, CT::Unfold<T2>>) {
                   // Set elements need to be unfolded one by one        
                   Count inserted = 0;
-                  for (auto& key : DesemCast(item))
+                  for (auto& key : DeintCast(item))
                      inserted += UnfoldInsert<THIS>(S::Nest(key));
                   return inserted;
                }
@@ -148,17 +148,17 @@ namespace Langulus::Anyness
             }
             else {
                // The rhs set is type-erased                            
-               LANGULUS_ASSERT(DesemCast(item).template IsSimilar<E>(), Meta,
+               LANGULUS_ASSERT(DeintCast(item).template IsSimilar<E>(), Meta,
                   "Type mismatch");
 
-               Reserve(GetCount() + DesemCast(item).GetCount());
-               for (auto& key : DesemCast(item)) {
+               Reserve(GetCount() + DeintCast(item).GetCount());
+               for (auto& key : DeintCast(item)) {
                   InsertBlockInner<THIS, true>(
                      GetBucketUnknown(GetReserved() - 1, key),
                      S::Nest(key)
                   );
                }
-               return DesemCast(item).GetCount();
+               return DeintCast(item).GetCount();
             }
          }
          else LANGULUS_ERROR("Can't insert argument");
@@ -170,7 +170,7 @@ namespace Langulus::Anyness
             Mutate<THIS, Decvq<TypeOf<T>>>();
             Reserve(GetCount() + 1);
             InsertInner<THIS, true>(
-               GetBucket(GetReserved() - 1, DesemCast(item).Get()),
+               GetBucket(GetReserved() - 1, DeintCast(item).Get()),
                S::Nest(item)
             );
          }
@@ -180,7 +180,7 @@ namespace Langulus::Anyness
             Mutate<THIS, Decvq<T>>();
             Reserve(GetCount() + 1);
             InsertInner<THIS, true>(
-               GetBucket(GetReserved() - 1, DesemCast(item)),
+               GetBucket(GetReserved() - 1, DeintCast(item)),
                S::Nest(item)
             );
          }
@@ -189,7 +189,7 @@ namespace Langulus::Anyness
       }
    }
 
-   /// Insert elements, semantically or not                                   
+   /// Insert elements, with or without intents                               
    ///   @param t1 - the first item to insert                                 
    ///   @param tn... - the rest of items to insert (optional)                
    ///   @return number of inserted elements                                  
@@ -201,14 +201,14 @@ namespace Langulus::Anyness
       return inserted;
    }
    
-   /// Insert all elements of a set, semantically or not                      
+   /// Insert all elements of a set, with or without intents                  
    ///   @param item - the set to insert                                      
    ///   @return number of inserted elements                                  
-   template<CT::Set THIS, class T> requires CT::Set<Desem<T>> LANGULUS(INLINED)
+   template<CT::Set THIS, class T> requires CT::Set<Deint<T>> LANGULUS(INLINED)
    Count BlockSet::InsertBlock(T&& item) {
-      using S = SemanticOf<decltype(item)>;
+      using S  = IntentOf<decltype(item)>;
       using ST = TypeOf<S>;
-      const auto count = DesemCast(item).GetCount();
+      const auto count = DeintCast(item).GetCount();
       if (not count)
          return 0;
 
@@ -221,7 +221,7 @@ namespace Langulus::Anyness
          if constexpr (CT::Typed<ST> or CT::Typed<THIS>) {
             // Merging with a statically typed sets                     
             using B = Conditional<CT::Typed<ST>, ST, THIS>;
-            for (auto& it : reinterpret_cast<const B&>(DesemCast(item))) {
+            for (auto& it : reinterpret_cast<const B&>(DeintCast(item))) {
                InsertInner<THIS, false>(
                   GetBucket(GetReserved() - 1, it),
                   S::Nest(it)
@@ -230,7 +230,7 @@ namespace Langulus::Anyness
          }
          else {
             // Merging type-erased sets                                 
-            for (auto& it : DesemCast(item)) {
+            for (auto& it : DeintCast(item)) {
                InsertBlockInner<THIS, false>(
                   GetBucketUnknown(GetReserved() - 1, it),
                   S::Nest(it)
@@ -244,7 +244,7 @@ namespace Langulus::Anyness
          if constexpr (CT::Typed<ST> or CT::Typed<THIS>) {
             // Merging with a statically typed sets                     
             using B = Conditional<CT::Typed<ST>, ST, THIS>;
-            for (auto& it : reinterpret_cast<const B&>(DesemCast(item))) {
+            for (auto& it : reinterpret_cast<const B&>(DeintCast(item))) {
                InsertInner<THIS, true>(
                   GetBucket(GetReserved() - 1, it),
                   S::Nest(it)
@@ -253,7 +253,7 @@ namespace Langulus::Anyness
          }
          else {
             // Merging type-erased sets                                 
-            for (auto& it : DesemCast(item)) {
+            for (auto& it : DeintCast(item)) {
                InsertBlockInner<THIS, true>(
                   GetBucketUnknown(GetReserved() - 1, it),
                   S::Nest(it)
@@ -265,14 +265,14 @@ namespace Langulus::Anyness
       return count;
    }
    
-   /// Insert all elements of a block, semantically or not                    
+   /// Insert all elements of a block, with or without intents                
    ///   @param item - the set to insert                                      
    ///   @return number of inserted elements                                  
-   template<CT::Set THIS, class T> requires CT::Block<Desem<T>> LANGULUS(INLINED)
+   template<CT::Set THIS, class T> requires CT::Block<Deint<T>> LANGULUS(INLINED)
    Count BlockSet::InsertBlock(T&& item) {
-      using S = SemanticOf<decltype(item)>;
+      using S  = IntentOf<decltype(item)>;
       using ST = TypeOf<S>;
-      const auto count = DesemCast(item).GetCount();
+      const auto count = DeintCast(item).GetCount();
       if (not count)
          return 0;
 
@@ -281,7 +281,7 @@ namespace Langulus::Anyness
       if constexpr (CT::Typed<ST> or CT::Typed<THIS>) {
          // Merging with a statically typed set and/or block            
          using B = Conditional<CT::Typed<ST>, ST, typename THIS::BlockType>;
-         for (auto& it : reinterpret_cast<const B&>(DesemCast(item))) {
+         for (auto& it : reinterpret_cast<const B&>(DeintCast(item))) {
             InsertInner<THIS, true>(
                GetBucket(GetReserved() - 1, it),
                S::Nest(it)
@@ -290,7 +290,7 @@ namespace Langulus::Anyness
       }
       else {
          // Merging type-erased block with a type-erased set            
-         for (auto& it : DesemCast(item)) {
+         for (auto& it : DeintCast(item)) {
             InsertBlockInner<THIS, true>(
                GetBucketUnknown(GetReserved() - 1, it),
                S::Nest(it)
@@ -381,7 +381,7 @@ namespace Langulus::Anyness
                else {
                   Block<> keyswap {DataState {}, GetType(), 1};
                   keyswap.AllocateFresh(keyswap.RequestSize(1));
-                  keyswap.CreateSemantic(Abandon(oldKey));
+                  keyswap.CreateWithIntent(Abandon(oldKey));
 
                   // Destroy the pair and info at old index             
                   oldKey.Destroy();
@@ -433,7 +433,7 @@ namespace Langulus::Anyness
                if (not mInfo[to] and attempt < *oldInfo) {
                   // Empty spot found, so move element there            
                   auto key = GetHandle<THIS>(oldIndex);
-                  GetHandle<THIS>(to).CreateSemantic(Abandon(key));
+                  GetHandle<THIS>(to).CreateWithIntent(Abandon(key));
                   key.Destroy();
 
                   mInfo[to] = attempt;
@@ -450,12 +450,12 @@ namespace Langulus::Anyness
    /// Inner insertion function                                               
    ///   @tparam CHECK_FOR_MATCH - false if you guarantee key doesn't exist   
    ///   @param start - the starting index                                    
-   ///   @param key - key & semantic to insert                                
+   ///   @param key - key and intent to insert                                
    ///   @return the offset at which pair was inserted                        
    template<CT::Set THIS, bool CHECK_FOR_MATCH>
    Offset BlockSet::InsertInner(const Offset start, auto&& key) {
       BranchOut<THIS>();
-      using S = SemanticOf<decltype(key)>;
+      using S = IntentOf<decltype(key)>;
       auto keyswapper = CreateValHandle<THIS>(S::Nest(key));
 
       // Get the starting index based on the key hash                   
@@ -494,7 +494,7 @@ namespace Langulus::Anyness
       // Might not seem like it, but we gave a guarantee, that this is  
       // eventually reached, unless key exists and returns early        
       const auto index = psl - GetInfo();
-      GetHandle<THIS>(index).CreateSemantic(Abandon(keyswapper));
+      GetHandle<THIS>(index).CreateWithIntent(Abandon(keyswapper));
       if (insertedAt == mKeys.mReserved)
          insertedAt = index;
 
@@ -506,10 +506,10 @@ namespace Langulus::Anyness
    /// Inner insertion function from type-erased block                        
    ///   @tparam CHECK_FOR_MATCH - false if you guarantee key doesn't exist   
    ///   @param start - the starting index                                    
-   ///   @param key - key & semantic to insert                                
+   ///   @param key - key and intent to insert                                
    ///   @return the offset at which pair was inserted                        
    template<CT::Set THIS, bool CHECK_FOR_MATCH, template<class> class S, CT::Block B>
-   requires CT::Semantic<S<B>>
+   requires CT::Intent<S<B>>
    Offset BlockSet::InsertBlockInner(const Offset start, S<B>&& key) {
       BranchOut<THIS>();
 
@@ -549,7 +549,7 @@ namespace Langulus::Anyness
       // eventually reached, unless element exists and returns early    
       // We're moving only a single element, so no chance of overlap    
       const auto index = psl - GetInfo();
-      GetHandle<THIS>(index).CreateSemantic(key.Forward());
+      GetHandle<THIS>(index).CreateWithIntent(key.Forward());
       if (insertedAt == mKeys.mReserved)
          insertedAt = index;
 

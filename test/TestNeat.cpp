@@ -23,14 +23,14 @@ SCENARIO("Data normalization", "[neat]") {
    Many test3aa {Copy(test1aa)};
    Many test4aa {Refer(test1aa)};
 
-   SemanticNew(&test3aa, Copy(test1aa));
-   SemanticNew(&test3aa, Clone(test1aa));
-   SemanticNew(&test3aa, Refer(test1aa));
+   IntentNew(&test3aa, Copy(test1aa));
+   IntentNew(&test3aa, Clone(test1aa));
+   IntentNew(&test3aa, Refer(test1aa));
 
    static_assert(CT::Complete<Many>);
 
-   static_assert(CT::SemanticMakable<Copied, Many>);
-   static_assert(CT::SemanticMakable<Referred, Many>);
+   static_assert(CT::IntentMakable<Copied, Many>);
+   static_assert(CT::IntentMakable<Referred, Many>);
 
    static_assert(CT::DeepMakable<Many, Cloned<TMany<Many>>>);
    static_assert(CT::CopyMakable<Many>);
@@ -57,30 +57,30 @@ SCENARIO("Data normalization", "[neat]") {
 
 
 
-   static_assert(CT::Exact<typename SemanticOf<Cloned<const int>>::template
+   static_assert(CT::Exact<typename IntentOf<Cloned<const int>>::template
       As<float>, Cloned<float>>);
-   static_assert(CT::Exact<typename SemanticOf<Cloned<const int>&>::template
+   static_assert(CT::Exact<typename IntentOf<Cloned<const int>&>::template
       As<float>, Cloned<float>>);
-   static_assert(CT::Exact<typename SemanticOf<Cloned<const int>&&>::template
+   static_assert(CT::Exact<typename IntentOf<Cloned<const int>&&>::template
       As<float>, Cloned<float>>);
-   static_assert(CT::Exact<typename SemanticOf<const Cloned<const int>&>::template
+   static_assert(CT::Exact<typename IntentOf<const Cloned<const int>&>::template
       As<float>, Cloned<float>>);
 
-   static_assert(CT::Pair<Desem<Cloned<TPair<TMeta, TMany<Many>>>>>);
+   static_assert(CT::Pair<Deint<Cloned<TPair<TMeta, TMany<Many>>>>>);
    static_assert(CT::PairMakable<TMeta, TMany<Many>, Cloned<TPair<TMeta, TMany<Many>>>>);
    static_assert(CT::PairAssignable<TMeta, TMany<Many>, Cloned<TPair<TMeta, TMany<Many>>>>);
 
-   static_assert(CT::SemanticMakableAlt<Copied<TMeta>>);
-   static_assert(CT::SemanticMakableAlt<Referred<TMeta>>);
-   static_assert(CT::SemanticMakableAlt<Cloned<TMeta>>);
+   static_assert(CT::IntentMakableAlt<Copied<TMeta>>);
+   static_assert(CT::IntentMakableAlt<Referred<TMeta>>);
+   static_assert(CT::IntentMakableAlt<Cloned<TMeta>>);
 
-   static_assert(CT::SemanticMakableAlt<Copied<TMany<Many>>>);
-   static_assert(CT::SemanticMakableAlt<Referred<TMany<Many>>>);
-   static_assert(CT::SemanticMakableAlt<Cloned<TMany<Many>>>);
+   static_assert(CT::IntentMakableAlt<Copied<TMany<Many>>>);
+   static_assert(CT::IntentMakableAlt<Referred<TMany<Many>>>);
+   static_assert(CT::IntentMakableAlt<Cloned<TMany<Many>>>);
 
-   static_assert(CT::SemanticMakableAlt<Copied<TPair<TMeta, TMany<Many>>>>);
-   static_assert(CT::SemanticMakableAlt<Referred<TPair<TMeta, TMany<Many>>>>);
-   static_assert(CT::SemanticMakableAlt<Cloned<TPair<TMeta, TMany<Many>>>>);
+   static_assert(CT::IntentMakableAlt<Copied<TPair<TMeta, TMany<Many>>>>);
+   static_assert(CT::IntentMakableAlt<Referred<TPair<TMeta, TMany<Many>>>>);
+   static_assert(CT::IntentMakableAlt<Cloned<TPair<TMeta, TMany<Many>>>>);
 
    static_assert(CT::CopyMakable<TUnorderedMap<TMeta, TMany<Many>>>);
    static_assert(CT::ReferMakable<TUnorderedMap<TMeta, TMany<Many>>>);

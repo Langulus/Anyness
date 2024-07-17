@@ -84,12 +84,10 @@ namespace Langulus::Anyness
       Neat(const Neat&);
       Neat(Neat&&) noexcept;
 
-      template<template<class> class S>
-      requires CT::Semantic<S<Neat>>
+      template<template<class> class S> requires CT::Intent<S<Neat>>
       Neat(S<Neat>&&);
 
-      template<class T1, class...TN>
-      requires CT::UnfoldInsertable<T1, TN...>
+      template<class T1, class...TN> requires CT::UnfoldInsertable<T1, TN...>
       Neat(T1&&, TN&&...);
 
       ///                                                                     
@@ -98,8 +96,7 @@ namespace Langulus::Anyness
       Neat& operator = (const Neat&) = default;
       Neat& operator = (Neat&&) noexcept = default;
 
-      template<template<class> class S>
-      requires CT::Semantic<S<Neat>>
+      template<template<class> class S> requires CT::Intent<S<Neat>>
       Neat& operator = (S<Neat>&&);
 
       ///                                                                     
@@ -220,10 +217,9 @@ namespace Langulus::Anyness
       Count UnfoldInsert(auto&&);
       void InsertInner(auto&&);
 
-      void AddTrait(CT::Semantic auto&&);
-      //void AddData(CT::Semantic auto&&);
-      void AddConstruct(CT::Semantic auto&&);
-      void AddVerb(CT::Semantic auto&&);
+      void AddTrait(CT::Intent auto&&);
+      void AddConstruct(CT::Intent auto&&);
+      void AddVerb(CT::Intent auto&&);
 
       template<Offset... IDX>
       bool ExtractTraitInner(const TMany<Many>&, ::std::integer_sequence<Offset, IDX...>, CT::Data auto&...) const;

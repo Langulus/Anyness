@@ -17,17 +17,17 @@ namespace Langulus::CT
    /// set can be constructed                                                 
    template<class T, class...A>
    concept DeepSetMakable = UnfoldMakableFrom<T, A...>
-        or (sizeof...(A) == 1 and Set<Desem<FirstOf<A...>>> and (
-              SemanticOf<FirstOf<A...>>::Shallow
-           or SemanticMakableAlt<typename SemanticOf<FirstOf<A...>>::template As<T>>
+        or (sizeof...(A) == 1 and Set<Deint<FirstOf<A...>>> and (
+              IntentOf<FirstOf<A...>>::Shallow
+           or IntentMakableAlt<typename IntentOf<FirstOf<A...>>::template As<T>>
         ));
 
    /// Concept for recognizing argument, with which a statically typed        
    /// set can be assigned                                                    
    template<class T, class A>
-   concept DeepSetAssignable = UnfoldMakableFrom<T, A> or (Set<Desem<A>> and (
-            SemanticOf<A>::Shallow
-         or SemanticAssignableAlt<typename SemanticOf<A>::template As<T>>)
+   concept DeepSetAssignable = UnfoldMakableFrom<T, A> or (Set<Deint<A>> and (
+            IntentOf<A>::Shallow
+         or IntentAssignableAlt<typename IntentOf<A>::template As<T>>)
       );
 
 } // namespace Langulus::CT
@@ -123,10 +123,10 @@ namespace Langulus::Anyness
       using Iterator = BlockSet::Iterator<TSet>;
       using ConstIterator = BlockSet::Iterator<const TSet>;
 
-      NOD() Iterator begin() noexcept;
-      NOD() Iterator last() noexcept;
-      NOD() ConstIterator begin() const noexcept;
-      NOD() ConstIterator last() const noexcept;
+      NOD() auto begin() noexcept -> Iterator;
+      NOD() auto last()  noexcept -> Iterator;
+      NOD() auto begin() const noexcept -> ConstIterator;
+      NOD() auto last()  const noexcept -> ConstIterator;
       using Base::end;
 
       template<bool REVERSE = false>
@@ -160,7 +160,7 @@ namespace Langulus::Anyness
       NOD() bool IsExact(DMeta) const noexcept;
 
    protected:
-      template<CT::NotSemantic>
+      template<CT::NoIntent>
       constexpr void Mutate() noexcept;
       void Mutate(DMeta);
 
@@ -168,21 +168,20 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Comparison                                                        
       ///                                                                     
-      template<CT::NotSemantic T1>
-      requires (CT::Set<T1> or CT::Comparable<T, T1>)
+      template<CT::NoIntent T1> requires (CT::Set<T1> or CT::Comparable<T, T1>)
       bool operator == (const T1&) const;
 
-      template<CT::NotSemantic T1> requires CT::Comparable<T, T1>
+      template<CT::NoIntent T1> requires CT::Comparable<T, T1>
       NOD() bool Contains(T1 const&) const;
 
-      template<CT::NotSemantic T1> requires CT::Comparable<T, T1>
-      NOD() Index Find(T1 const&) const;
+      template<CT::NoIntent T1> requires CT::Comparable<T, T1>
+      NOD() auto Find(T1 const&) const -> Index;
 
-      template<CT::NotSemantic T1> requires CT::Comparable<T, T1>
-      NOD() Iterator FindIt(T1 const&);
+      template<CT::NoIntent T1> requires CT::Comparable<T, T1>
+      NOD() auto FindIt(T1 const&) -> Iterator;
 
-      template<CT::NotSemantic T1> requires CT::Comparable<T, T1>
-      NOD() ConstIterator FindIt(T1 const&) const;
+      template<CT::NoIntent T1> requires CT::Comparable<T, T1>
+      NOD() auto FindIt(T1 const&) const ->ConstIterator;
 
       ///                                                                     
       ///   Memory management                                                 
@@ -196,10 +195,10 @@ namespace Langulus::Anyness
       requires CT::UnfoldMakableFrom<T, T1, TN...>
       Count Insert(T1&&, TN&&...);
 
-      template<class T1> requires CT::Set<Desem<T1>>
+      template<class T1> requires CT::Set<Deint<T1>>
       Count InsertBlock(T1&&);
 
-      template<class T1> requires CT::Block<Desem<T1>>
+      template<class T1> requires CT::Block<Deint<T1>>
       Count InsertBlock(T1&&);
 
       template<class T1> requires CT::UnfoldMakableFrom<T, T1>

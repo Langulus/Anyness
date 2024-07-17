@@ -60,8 +60,7 @@ namespace Langulus::A
       Verb(const Verb&);
       Verb(Verb&&);
 
-      template<template<class> class S>
-      requires CT::Semantic<S<Verb>>
+      template<template<class> class S> requires CT::Intent<S<Verb>>
       Verb(S<Verb>&&);
 
       ~Verb() = default;
@@ -69,8 +68,7 @@ namespace Langulus::A
       Verb& operator = (const Verb&);
       Verb& operator = (Verb&&);
 
-      template<template<class> class S>
-      requires CT::Semantic<S<Verb>>
+      template<template<class> class S> requires CT::Intent<S<Verb>>
       Verb& operator = (S<Verb>&&);
 
       ///                                                                     
@@ -163,7 +161,7 @@ namespace Langulus::CT
    /// Concept for recognizing arguments, with which a verb can be constructed
    template<class T1, class...TN>
    concept VerbMakable = UnfoldInsertable<T1, TN...>
-        or (sizeof...(TN) == 0 and VerbBased<Desem<T1>>);
+        or (sizeof...(TN) == 0 and VerbBased<Deint<T1>>);
 
    /// Concept for recognizing argument, with which a verb can be assigned    
    template<class A>

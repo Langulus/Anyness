@@ -87,10 +87,10 @@ void Any_Helper_TestSame(const LHS& lhs, const RHS& rhs) {
 ///   - uninitialized                                                         
 ///      - constexpr-default-initialized                                      
 ///      - runtime-default-initialized                                        
-///      - semantic-initialized from container                                
-///      - semantic-initialized from single dense element                     
-///      - semantic-initialized from multiple dense elements                  
-///      - semantic-initialized from dense element bounded array              
+///      - intent-initialized from container                                  
+///      - intent-initialized from single dense element                       
+///      - intent-initialized from multiple dense elements                    
+///      - intent-initialized from dense element bounded array                
 
 template<class E>
 void Any_CheckState_Default(const auto& any) {
