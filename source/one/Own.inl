@@ -46,7 +46,7 @@ namespace Langulus::Anyness
    
    /// Generic constructor                                                    
    TEMPLATE() template<template<class> class S>
-   requires CT::SemanticMakable<S, T> LANGULUS(INLINED)
+   requires CT::IntentMakable<S, T> LANGULUS(INLINED)
    constexpr TME()::Own(S<Own>&& other)
       : mValue {S<Own>::Nest(other->mValue)} {}
 
@@ -74,7 +74,7 @@ namespace Langulus::Anyness
    
    /// Generic assignment                                                     
    TEMPLATE() template<template<class> class S>
-   requires CT::SemanticAssignable<S, T> LANGULUS(INLINED)
+   requires CT::IntentAssignable<S, T> LANGULUS(INLINED)
    constexpr TME()& TME()::operator = (S<Own>&& rhs) {
       mValue = S<Own>::Nest(rhs->mValue);
       return *this;

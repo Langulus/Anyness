@@ -25,8 +25,8 @@ namespace Langulus::Anyness
    Trait::Trait(Trait&& other) noexcept
       : Trait {Move(other)} {}
 
-   /// Unfold constructor, any element can be a semantic                      
-   /// If there's only one argument, that is deep or a trait, it will be      
+   /// Unfold constructor, with or without intents                            
+   /// If there's only one argument that is deep or a trait, it will be       
    /// absorbed                                                               
    ///   @param t1 - first argument                                           
    ///   @param tn - the rest of the arguments (optional)                     
@@ -34,12 +34,12 @@ namespace Langulus::Anyness
    requires CT::UnfoldInsertable<T1, TN...> LANGULUS(INLINED)
    Trait::Trait(T1&& t1, TN&&...tn) {
       if constexpr (sizeof...(TN) == 0 and not CT::Array<T1>) {
-         using S = SemanticOf<decltype(t1)>;
+         using S = IntentOf<decltype(t1)>;
          using T = TypeOf<S>;
 
          if constexpr (CT::TraitBased<T>) {
             Base::BlockTransfer(S::Nest(t1).template Forward<Base>());
-            mTraitType = DesemCast(t1).GetTrait();
+            mTraitType = DeintCast(t1).GetTrait();
          }
          else if constexpr (CT::Deep<T>)
             Base::BlockTransfer(S::Nest(t1));
@@ -66,7 +66,7 @@ namespace Langulus::Anyness
    ///   @return a trait preconfigured with the provided types and contents   
    template<CT::Trait T> LANGULUS(INLINED)
    Trait Trait::From(auto&& stuff) {
-      using S = SemanticOf<decltype(stuff)>;
+      using S = IntentOf<decltype(stuff)>;
       Trait temp {S {stuff}};
       temp.SetTrait<T>();
       return Abandon(temp);
@@ -78,7 +78,7 @@ namespace Langulus::Anyness
    ///   @return the trait                                                    
    LANGULUS(INLINED)
    Trait Trait::From(TMeta meta, auto&& stuff) {
-      using S = SemanticOf<decltype(stuff)>;
+      using S = IntentOf<decltype(stuff)>;
       Trait temp {S {stuff}};
       temp.SetTrait(meta);
       return Abandon(temp);
@@ -197,7 +197,7 @@ namespace Langulus::Anyness
    ///      otherwise function resolution doesn't work properly on MSVC       
    ///   @param other - the thing to compare with                             
    ///   @return true if things are the same                                  
-   template<CT::TraitBased THIS, CT::NotSemantic T> requires CT::NotOwned<T>
+   template<CT::TraitBased THIS, CT::NoIntent T> requires CT::NotOwned<T>
    LANGULUS(INLINED) bool Trait::operator == (const T& rhs) const {
       if constexpr (CT::Trait<THIS, T>) {
          return CT::Exact<typename THIS::TraitType, typename T::TraitType>
@@ -226,18 +226,18 @@ namespace Langulus::Anyness
       return operator = (Move(rhs));
    }
 
-   /// Unfold assignment, semantic or not                                     
+   /// Unfold assignment, with or without intents                             
    /// If argument is deep or trait, it will be absorbed                      
-   ///   @param rhs - right hand side                                         
+   ///   @param rhs - right hand side and intent                              
    ///   @return a reference to this trait                                    
    LANGULUS(INLINED)
    Trait& Trait::operator = (CT::UnfoldInsertable auto&& rhs) {
-      using S = SemanticOf<decltype(rhs)>;
+      using S = IntentOf<decltype(rhs)>;
       using T = TypeOf<S>;
 
       if constexpr (CT::TraitBased<T>) {
          Base::operator = (S::Nest(rhs).template Forward<Base>());
-         mTraitType = DesemCast(rhs).GetTrait();
+         mTraitType = DeintCast(rhs).GetTrait();
       }
       else if constexpr (CT::Deep<T>)
          Base::operator = (S::Nest(rhs).template Forward<Base>());
@@ -246,13 +246,13 @@ namespace Langulus::Anyness
       return *this;
    }
 
-   /// Concatenate with traits/deep types, semantically or not                
+   /// Concatenate with traits/deep types, with or without intents            
    ///   @attention trait type will be set, if not set yet, and rhs is trait  
    ///   @param rhs - the right operand                                       
    ///   @return the combined container                                       
    template<CT::TraitBased THIS> LANGULUS(INLINED)
    THIS Trait::operator + (CT::UnfoldInsertable auto&& rhs) const {
-      using S = SemanticOf<decltype(rhs)>;
+      using S = IntentOf<decltype(rhs)>;
       using T = TypeOf<S>;
 
       if constexpr (CT::TraitBased<T>) {
@@ -262,7 +262,7 @@ namespace Langulus::Anyness
             return THIS {Abandon(result)};
          else {
             return Trait::From(
-               GetTrait<THIS>() ? mTraitType : DesemCast(rhs).GetTrait(),
+               GetTrait<THIS>() ? mTraitType : DeintCast(rhs).GetTrait(),
                Abandon(result)
             );
          }
@@ -277,13 +277,13 @@ namespace Langulus::Anyness
       }
    }
 
-   /// Destructively concatenate with traits/deep types, semantically or not  
-   ///   @attention trait type will be set, if not set yet, and rhs is trait  
-   ///   @param rhs - the right operand                                       
+   /// Destructively concatenate with traits/deep types                       
+   ///   @attention trait type will be set, if not set yet and rhs is a trait 
+   ///   @param rhs - the right operand and intent                            
    ///   @return a reference to this modified container                       
    template<CT::TraitBased THIS> LANGULUS(INLINED)
    THIS& Trait::operator += (CT::UnfoldInsertable auto&& rhs) {
-      using S = SemanticOf<decltype(rhs)>;
+      using S = IntentOf<decltype(rhs)>;
       using T = TypeOf<S>;
 
       if constexpr (CT::TraitBased<T>) {
@@ -291,7 +291,7 @@ namespace Langulus::Anyness
 
          if constexpr (not CT::Trait<THIS>) {
             if (not mTraitType)
-               mTraitType = DesemCast(rhs).GetTrait();
+               mTraitType = DeintCast(rhs).GetTrait();
          }
       }
       else Many::operator += (S::Nest(rhs).Forward());

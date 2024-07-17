@@ -18,7 +18,7 @@ namespace Langulus::Anyness
    ///   @param key - the key to search for                                   
    ///   @return the number of removed pairs                                  
    template<CT::Set THIS> LANGULUS(INLINED)
-   Count BlockSet::Remove(const CT::NotSemantic auto& key) {
+   Count BlockSet::Remove(const CT::NoIntent auto& key) {
       using K = Deref<decltype(key)>;
       if (IsEmpty())
          return 0;
@@ -45,7 +45,7 @@ namespace Langulus::Anyness
    ///   @param key - the key to search for                                   
    ///   @return 1 if pair was removed                                        
    template<CT::Set THIS> LANGULUS(INLINED)
-   Count BlockSet::RemoveKeyInner(const CT::NotSemantic auto& key) {
+   Count BlockSet::RemoveKeyInner(const CT::NoIntent auto& key) {
       const auto found = FindInner<THIS>(key);
       if (found != InvalidOffset) {
          // Key found, remove it                                        
@@ -88,7 +88,7 @@ namespace Langulus::Anyness
             #pragma GCC diagnostic ignored "-Wplacement-new"
          #endif
 
-         (key--).CreateSemantic(Abandon(key));
+         (key--).CreateWithIntent(Abandon(key));
          key.Destroy();
          ++key;
 
@@ -109,7 +109,7 @@ namespace Langulus::Anyness
          // Shift first entry to the back                               
          key = GetHandle<THIS>(0);
          auto lastkey = GetHandle<THIS>(last);
-         lastkey.CreateSemantic(Abandon(key));
+         lastkey.CreateWithIntent(Abandon(key));
          key.Destroy();
          ++key;
 

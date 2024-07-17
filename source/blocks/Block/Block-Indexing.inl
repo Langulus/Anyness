@@ -561,26 +561,26 @@ namespace Langulus::Anyness
          auto data = GetRaw();
          TYPE temp = ::std::move(data[to]);
          data[to]  = ::std::move(data[from]);
-         SemanticAssign(data[from], Abandon(temp));
+         IntentAssign(data[from], Abandon(temp));
       }
    }
    
    /// Swap contents of this block, with the contents of another, using       
    /// a temporary block                                                      
    ///   @param rhs - the block to swap with                                  
-   template<class TYPE> template<class T1> requires CT::Block<Desem<T1>>
+   template<class TYPE> template<class T1> requires CT::Block<Deint<T1>>
    void Block<TYPE>::Swap(T1&& rhs) {
-      using S = SemanticOf<decltype(rhs)>;
+      using S = IntentOf<decltype(rhs)>;
       using ST = Conditional<TypeErased, TypeOf<S>, Block>;
-      LANGULUS_ASSUME(DevAssumes, mCount and DesemCast(rhs).mCount == mCount,
+      LANGULUS_ASSUME(DevAssumes, mCount and DeintCast(rhs).mCount == mCount,
          "Invalid count");
 
       // Type-erased pointers (void*) are always acceptable             
       //TODO add this check to IsSimilar(Block auto) directly?
       LANGULUS_ASSUME(DevAssumes, (
-          DesemCast(rhs).IsSimilar(*this)
-      or (DesemCast(rhs).template IsSimilar<void*>() and IsSparse())
-      ), "Type mismatch on swap", ": ", DesemCast(rhs).GetType(), " != ", GetType());
+          DeintCast(rhs).IsSimilar(*this)
+      or (DeintCast(rhs).template IsSimilar<void*>() and IsSparse())
+      ), "Type mismatch on swap", ": ", DeintCast(rhs).GetType(), " != ", GetType());
 
       using B = Block<TypeOf<ST>>;
       B temporary {mState, mType};
@@ -588,11 +588,11 @@ namespace Langulus::Anyness
       temporary.mCount = mCount;
 
       // Move this to temporary                                         
-      temporary.CreateSemantic(Move(*this));
+      temporary.CreateWithIntent(Move(*this));
       // Assign all elements from rhs to this                           
-      reinterpret_cast<B*>(this)->AssignSemantic(S::Nest(rhs));
+      reinterpret_cast<B*>(this)->AssignWithIntent(S::Nest(rhs));
       // Assign all elements from temporary to rhs                      
-      reinterpret_cast<B*>(&DesemCast(rhs))->AssignSemantic(Abandon(temporary));
+      reinterpret_cast<B*>(&DeintCast(rhs))->AssignWithIntent(Abandon(temporary));
       // Cleanup temporary                                              
       temporary.Destroy();
       Allocator::Deallocate(const_cast<Allocation*>(temporary.mEntry));

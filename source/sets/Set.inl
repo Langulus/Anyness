@@ -37,15 +37,14 @@ namespace Langulus::Anyness
    TABLE()::Set(Set&& other)
       : Set {Move(other)} {}
    
-   /// Unfold constructor                                                     
-   /// If there's one set argument, it will be absorbed                       
-   ///   @param t1 - first element (can be semantic)                          
-   ///   @param tn... - the rest of the elements (optional, can be semantic)  
+   /// Unfold constructor. If there's one set argument, it will be absorbed   
+   ///   @param t1 - first element and intent                                 
+   ///   @param tn... - the rest of the elements (optional, can have intents) 
    TEMPLATE() template<class T1, class...TN>
    requires CT::UnfoldInsertable<T1, TN...> LANGULUS(INLINED)
    TABLE()::Set(T1&& t1, TN&&...tn) {
       if constexpr (sizeof...(TN) == 0) {
-         using S = SemanticOf<decltype(t1)>;
+         using S = IntentOf<decltype(t1)>;
          using T = TypeOf<S>;
 
          if constexpr (CT::Set<T>)
@@ -78,18 +77,18 @@ namespace Langulus::Anyness
       return operator = (Move(rhs));
    }
 
-   /// Pair/map assignment, semantic or not                                   
-   ///   @param rhs - the pair, or map to assign                              
+   /// Pair/map assignment, with or without intents                           
+   ///   @param rhs - the pair, or map to assign, with optional intents       
    ///   @return a reference to this container                                
    TEMPLATE() LANGULUS(INLINED)
    TABLE()& TABLE()::operator = (CT::UnfoldInsertable auto&& rhs) {
-      using S = SemanticOf<decltype(rhs)>;
+      using S = IntentOf<decltype(rhs)>;
       using T = TypeOf<S>;
 
       if constexpr (CT::Set<T>) {
          // Potentially absorb a container                              
          if (static_cast<const BlockSet*>(this)
-          == static_cast<const BlockSet*>(&DesemCast(rhs)))
+          == static_cast<const BlockSet*>(&DeintCast(rhs)))
             return *this;
 
          BlockSet::Free<Set>();
@@ -124,24 +123,24 @@ namespace Langulus::Anyness
    /// Get iterator to first element                                          
    ///   @return an iterator to the first element, or end if empty            
    TEMPLATE() LANGULUS(INLINED)
-   typename TABLE()::Iterator TABLE()::begin() noexcept {
+   auto TABLE()::begin() noexcept -> Iterator {
       return BlockSet::begin<Set>();
    }
    
    TEMPLATE() LANGULUS(INLINED)
-   typename TABLE()::ConstIterator TABLE()::begin() const noexcept {
+   auto TABLE()::begin() const noexcept -> ConstIterator {
       return BlockSet::begin<Set>();
    }
 
    /// Get iterator to the last element                                       
    ///   @return an iterator to the last element, or end if empty             
    TEMPLATE() LANGULUS(INLINED)
-   typename TABLE()::Iterator TABLE()::last() noexcept {
+   auto TABLE()::last() noexcept -> Iterator {
       return BlockSet::last<Set>();
    }
 
    TEMPLATE() LANGULUS(INLINED)
-   typename TABLE()::ConstIterator TABLE()::last() const noexcept {
+   auto TABLE()::last() const noexcept -> ConstIterator {
       return BlockSet::last<Set>();
    }
 
@@ -252,7 +251,7 @@ namespace Langulus::Anyness
    ///   @param key - the key to search for                                   
    ///   @return the index if key was found, or IndexNone if not              
    TEMPLATE() LANGULUS(INLINED)
-   Index TABLE()::Find(const CT::NotSemantic auto& key) const {
+   Index TABLE()::Find(const CT::NoIntent auto& key) const {
       return BlockSet::Find<Set>(key);
    }
 
@@ -260,12 +259,12 @@ namespace Langulus::Anyness
    ///   @param key - the key to search for                                   
    ///   @return the iterator                                                 
    TEMPLATE() LANGULUS(INLINED)
-   typename TABLE()::Iterator TABLE()::FindIt(const CT::NotSemantic auto& key) {
+   auto TABLE()::FindIt(const CT::NoIntent auto& key) -> Iterator {
       return BlockSet::FindIt<Set>(key);
    }
 
    TEMPLATE() LANGULUS(INLINED)
-   typename TABLE()::ConstIterator TABLE()::FindIt(const CT::NotSemantic auto& key) const {
+   auto TABLE()::FindIt(const CT::NoIntent auto& key) const -> ConstIterator {
       return BlockSet::FindIt<Set>(key);
    }
 

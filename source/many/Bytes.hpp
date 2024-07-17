@@ -94,7 +94,7 @@ namespace Langulus::Anyness
       Bytes(const Bytes&);
       Bytes(Bytes&&) noexcept;
 
-      template<class T> requires CT::Bytes<Desem<T>>
+      template<class T> requires CT::Bytes<Deint<T>>
       Bytes(T&&);
 
       explicit Bytes(const CT::BinablePOD auto&);
@@ -106,7 +106,7 @@ namespace Langulus::Anyness
 
       ~Bytes();
 
-      template<class T> requires (CT::Sparse<Desem<T>> and CT::Byte<Decay<Desem<T>>>)
+      template<class T> requires (CT::Sparse<Deint<T>> and CT::Byte<Decay<Deint<T>>>)
       static Bytes From(T&&, Count);
 
       ///                                                                     
@@ -115,7 +115,7 @@ namespace Langulus::Anyness
       Bytes& operator = (const Bytes&);
       Bytes& operator = (Bytes&&);
 
-      template<class T> requires CT::Bytes<Desem<T>>
+      template<class T> requires CT::Bytes<Deint<T>>
       Bytes& operator = (T&&);
       
       ///                                                                     
@@ -140,18 +140,18 @@ namespace Langulus::Anyness
       ///                                                                     
       NOD() Bytes Extend(Count);
 
-      template<class T> requires CT::Binable<Desem<T>>
+      template<class T> requires CT::Binable<Deint<T>>
       Bytes& operator << (T&&);
-      template<class T> requires CT::Binable<Desem<T>>
+      template<class T> requires CT::Binable<Deint<T>>
       Bytes& operator >> (T&&);
 
       ///                                                                     
       ///   Concatenation                                                     
       ///                                                                     
-      template<class T> requires CT::Binable<Desem<T>>
+      template<class T> requires CT::Binable<Deint<T>>
       NOD() Bytes operator + (T&&) const;
 
-      template<class T> requires CT::Binable<Desem<T>>
+      template<class T> requires CT::Binable<Deint<T>>
       Bytes& operator += (T&&);
 
    protected:

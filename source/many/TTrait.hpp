@@ -33,7 +33,7 @@ namespace Langulus::Anyness
       TTrait(TTrait&&);
 
       template<class T> requires (
-      CT::Trait<Desem<T>> and not CT::Same<typename T::TraitType, TRAIT>)
+      CT::Trait<Deint<T>> and not CT::Same<typename T::TraitType, TRAIT>)
       TTrait(T&&);
 
       template<CT::Data>
@@ -58,7 +58,7 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Compare                                                           
       ///                                                                     
-      template<CT::NotSemantic T> requires CT::NotOwned<T>
+      template<CT::NoIntent T> requires CT::NotOwned<T>
       NOD() bool operator == (const T&) const;
 
       ///                                                                     

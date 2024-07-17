@@ -59,10 +59,10 @@ namespace Langulus::Anyness
       using Iterator = BlockSet::Iterator<Set>;
       using ConstIterator = BlockSet::Iterator<const Set>;
 
-      NOD() Iterator begin() noexcept;
-      NOD() Iterator last() noexcept;
-      NOD() ConstIterator begin() const noexcept;
-      NOD() ConstIterator last() const noexcept;
+      NOD() auto begin() noexcept -> Iterator;
+      NOD() auto last()  noexcept -> Iterator;
+      NOD() auto begin() const noexcept -> ConstIterator;
+      NOD() auto last()  const noexcept -> ConstIterator;
 
       template<bool REVERSE = false>
       Count ForEach(auto&&...);
@@ -99,9 +99,9 @@ namespace Langulus::Anyness
       ///                                                                     
       using BlockSet::operator ==;
 
-      NOD() Index Find(const CT::NotSemantic auto&) const;
-      NOD() Iterator FindIt(const CT::NotSemantic auto&);
-      NOD() ConstIterator FindIt(const CT::NotSemantic auto&) const;
+      NOD() auto Find  (const CT::NoIntent auto&) const -> Index;
+      NOD() auto FindIt(const CT::NoIntent auto&)       -> Iterator;
+      NOD() auto FindIt(const CT::NoIntent auto&) const -> ConstIterator;
 
       ///                                                                     
       ///   Memory management                                                 

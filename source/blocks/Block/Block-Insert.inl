@@ -77,25 +77,25 @@ namespace Langulus::Anyness
       return count;
    }
 
-   /// Inner semantic function for a contiguous range-insertion               
+   /// Inner intent function for a contiguous range-insertion                 
    ///   @tparam FORCE - insert even if types mismatch, by making this block  
    ///      deep with provided type - use void to disable                     
    ///   @tparam MOVE_ASIDE - true to allocate more elements, and move any    
    ///      elements at index to the right, in order to fit the insertion     
    ///   @param index - the offset at which to start inserting                
-   ///   @param data - data and semantic to use                               
+   ///   @param data - block to insert, with intent or not                    
    template<class TYPE>
-   template<class FORCE, bool MOVE_ASIDE, class T1> requires CT::Block<Desem<T1>>
+   template<class FORCE, bool MOVE_ASIDE, class T1> requires CT::Block<Deint<T1>>
    void Block<TYPE>::InsertBlockInner(CT::Index auto index, T1&& data) {
       // If both sides are void, then we have a type-erased insertion   
-      using S = SemanticOf<decltype(data)>;
-      using T = Conditional<TypeErased, TypeOf<Desem<T1>>, TYPE>;
+      using S = IntentOf<decltype(data)>;
+      using T = Conditional<TypeErased, TypeOf<Deint<T1>>, TYPE>;
 
       if constexpr (CT::CanBeDeepened<FORCE, Block> and MOVE_ASIDE) {
          // Type may mutate                                             
          bool depened;
          if constexpr (CT::TypeErased<T>)
-            depened = Mutate<FORCE>(DesemCast(data).GetType()->mDecvq);
+            depened = Mutate<FORCE>(DeintCast(data).GetType()->mDecvq);
          else
             depened = Mutate<Decvq<T>, FORCE>();
 
@@ -109,14 +109,14 @@ namespace Langulus::Anyness
       }
       else {
          // Type can't mutate, but we still have to check if compatible 
-         LANGULUS_ASSERT(IsSimilar(DesemCast(data)), Meta,
-            "Inserting incompatible type `", DesemCast(data).GetType(),
+         LANGULUS_ASSERT(IsSimilar(DeintCast(data)), Meta,
+            "Inserting incompatible type `", DeintCast(data).GetType(),
             "` to container of type `", GetType(), '`'
          );
       }
 
       // If reached, then we have binary compatible type, so allocate   
-      const auto count = DesemCast(data).GetCount();
+      const auto count = DeintCast(data).GetCount();
       const auto idx   = SimplifyIndex<false>(index);
 
       if constexpr (MOVE_ASIDE) {
@@ -130,26 +130,26 @@ namespace Langulus::Anyness
             // We're moving to the right, so make sure we do it in      
             // reverse to avoid any potential overlap                   
             const auto moved = mCount - idx;
-            CropInner(idx + count, moved).template CreateSemantic<true>(
+            CropInner(idx + count, moved).template CreateWithIntent<true>(
                Abandon(CropInner(idx, moved)));
          }
       }
 
       // Construct data in place                                        
-      CropInner(idx, count).CreateSemantic(S::Nest(data));
+      CropInner(idx, count).CreateWithIntent(S::Nest(data));
       mCount += count;
    }
 
-   /// Inner semantic insertion function                                      
+   /// Inner intent insertion function                                        
    ///   @tparam FORCE - insert even if types mismatch, by making this block  
    ///      deep with provided type - use void to disable                     
    ///   @tparam MOVE_ASIDE - true to allocate more elements, and move any    
    ///      elements at index to the right, in order to fit the insertion     
    ///   @param index - the offset at which to insert                         
-   ///   @param item - item (and semantic) to insert                          
+   ///   @param item - item to insert, with or without intent                 
    template<class TYPE> template<class FORCE, bool MOVE_ASIDE>
    void Block<TYPE>::InsertInner(CT::Index auto index, auto&& item) {
-      using S = SemanticOf<decltype(item)>;
+      using S = IntentOf<decltype(item)>;
       using T = Conditional<TypeErased, TypeOf<S>, TYPE>;
       static_assert(CT::Insertable<T>, "T is not insertable");
 
@@ -175,7 +175,7 @@ namespace Langulus::Anyness
                // We're moving to the right, so make sure we do it in   
                // reverse to avoid any potential overlap                
                const auto moved = mCount - idx;
-               CropInner(idx + 1, moved).template CreateSemantic<true>(
+               CropInner(idx + 1, moved).template CreateWithIntent<true>(
                   Abandon(CropInner(idx, moved)));
             }
          }
@@ -212,12 +212,12 @@ namespace Langulus::Anyness
                // We're moving to the right, so make sure we do it in   
                // reverse to avoid any potential overlap                
                const auto moved = mCount - idx;
-               CropInner(idx + 1, moved).template CreateSemantic<true>(
+               CropInner(idx + 1, moved).template CreateWithIntent<true>(
                   Abandon(CropInner(idx, moved)));
             }
          }
 
-         GetHandle<T>(idx).CreateSemantic(S::Nest(item), mType);
+         GetHandle<T>(idx).CreateWithIntent(S::Nest(item), mType);
       }
 
       ++mCount;
@@ -229,11 +229,11 @@ namespace Langulus::Anyness
    ///   @tparam MOVE_ASIDE - true to allocate more elements, and move any    
    ///      elements at index to the right, in order to fit the insertion     
    ///   @param index - the index at which to insert                          
-   ///   @param item - the argument to unfold and insert, can be semantic     
+   ///   @param item - item to unfold and insert, with or without intent      
    ///   @return the number of inserted elements after unfolding              
    template<class TYPE> template<class FORCE, bool MOVE_ASIDE>
    Count Block<TYPE>::UnfoldInsert(CT::Index auto index, auto&& item) {
-      using S = SemanticOf<decltype(item)>;
+      using S = IntentOf<decltype(item)>;
       using T = TypeOf<S>;
       
       if constexpr (CT::Array<T>) {
@@ -263,11 +263,11 @@ namespace Langulus::Anyness
    ///   @tparam MOVE_ASIDE - true to allocate more elements, and move any    
    ///      elements at index to the right, in order to fit the insertion     
    ///   @param index - the index at which to insert                          
-   ///   @param item - the argument to unfold and insert, can be semantic     
+   ///   @param item - item to unfold and insert, with or without intent      
    ///   @return the number of inserted elements after unfolding              
    template<class TYPE> template<class FORCE, bool MOVE_ASIDE>
    Count Block<TYPE>::UnfoldMerge(CT::Index auto index, auto&& item) {
-      using S = SemanticOf<decltype(item)>;
+      using S = IntentOf<decltype(item)>;
       using T = TypeOf<S>;
       
       if constexpr (CT::Array<T>) {
@@ -302,7 +302,7 @@ namespace Langulus::Anyness
          if (CT::Void<FORCE> and not IsSimilar<T>())
             return 0;
 
-         if (not IsSimilar<T>() or not Find<false>(DesemCast(item))) {
+         if (not IsSimilar<T>() or not Find<false>(DeintCast(item))) {
             InsertInner<FORCE, MOVE_ASIDE>(index, S::Nest(item));
             return 1;
          }
@@ -311,7 +311,7 @@ namespace Langulus::Anyness
       return 0;
    }
 
-   /// Insert elements at a given index, semantically or not                  
+   /// Insert elements at a given index, with or without intent               
    ///   @tparam FORCE - insert even if types mismatch, by making this block  
    ///      deep with provided type - use void to disable                     
    ///   @tparam MOVE_ASIDE - true to allocate more elements, and move any    
@@ -330,7 +330,7 @@ namespace Langulus::Anyness
       return inserted;
    }
    
-   /// Insert all elements of a block at an index, semantically or not        
+   /// Insert all elements of a block at an index, with or without intent     
    ///   @tparam FORCE - insert even if types mismatch, by making this block  
    ///      deep with provided type - use void to disable                     
    ///   @tparam MOVE_ASIDE - true to allocate more elements, and move any    
@@ -339,10 +339,10 @@ namespace Langulus::Anyness
    ///   @param other - the block to insert                                   
    ///   @return the number of inserted elements                              
    template<class TYPE> template<class FORCE, bool MOVE_ASIDE, class T>
-   requires CT::Block<Desem<T>> LANGULUS(INLINED)
+   requires CT::Block<Deint<T>> LANGULUS(INLINED)
    Count Block<TYPE>::InsertBlock(CT::Index auto index, T&& other) {
-      using S = SemanticOf<decltype(other)>;
-      auto& rhs = DesemCast(other);
+      using S = IntentOf<decltype(other)>;
+      auto& rhs = DeintCast(other);
       const auto count = rhs.GetCount();
       if (not count)
          return 0;
@@ -358,7 +358,7 @@ namespace Langulus::Anyness
       return count;
    }
    
-   /// Merge a single element by a semantic                                   
+   /// Merge a single element, using a semantic or not                        
    /// Element will be pushed only if not found in block                      
    ///   @tparam FORCE - insert even if types mismatch, by making this block  
    ///      deep with provided type - use void to disable                     
@@ -378,8 +378,7 @@ namespace Langulus::Anyness
       return inserted;
    }
 
-   /// Search for a sequence of elements, and if not found, semantically      
-   /// insert it                                                              
+   /// Search for a sequence of elements, and if not found - insert it        
    ///   @tparam FORCE - insert even if types mismatch, by making this block  
    ///      deep with provided type - use void to disable                     
    ///   @tparam MOVE_ASIDE - true to allocate more elements, and move any    
@@ -388,11 +387,11 @@ namespace Langulus::Anyness
    ///   @param other - the block to search for, and eventually insert        
    ///   @return the number of inserted elements                              
    template<class TYPE> template<class FORCE, bool MOVE_ASIDE, class T>
-   requires CT::Block<Desem<T>> LANGULUS(INLINED)
+   requires CT::Block<Deint<T>> LANGULUS(INLINED)
    Count Block<TYPE>::MergeBlock(CT::Index auto index, T&& other) {
-      using S = SemanticOf<decltype(other)>;
+      using S = IntentOf<decltype(other)>;
       Count inserted = 0;
-      if (not FindBlock(DesemCast(other), IndexFront))
+      if (not FindBlock(DeintCast(other), IndexFront))
          inserted += InsertBlock<FORCE, MOVE_ASIDE>(index, S::Nest(other));
       return inserted;
    }
@@ -432,7 +431,7 @@ namespace Langulus::Anyness
             // We're moving to the right, so make sure we do it in      
             // reverse to avoid any overlap                             
             const auto tail = mCount - offset;
-            CropInner(offset + 1, tail).template CreateSemantic<true>(
+            CropInner(offset + 1, tail).template CreateWithIntent<true>(
                Abandon(CropInner(offset, tail)));
          }
       }
@@ -477,7 +476,7 @@ namespace Langulus::Anyness
       return Get<T>();
    }
 
-   /// Semantic-insert that uses the best approach to push anything inside    
+   /// Intent-insert that uses the best approach to push anything inside      
    /// container in order to keep hierarchy and states, but also reuse memory 
    /// Static data will always be preserved as static.                        
    ///   @tparam ALLOW_CONCAT - whether or not concatenation is allowed       
@@ -491,17 +490,17 @@ namespace Langulus::Anyness
    Count Block<TYPE>::SmartPush(
       CT::Index auto index, auto&& value, DataState state
    ) {
-      using S = SemanticOf<decltype(value)>;
+      using S = IntentOf<decltype(value)>;
       using T = TypeOf<S>;
 
       if constexpr (CT::Deep<T>) {
          // We're inserting a deep item, so we can do various smart     
          // things before inserting, like absorbing and concatenating   
-         if (not DesemCast(value).IsValid())
+         if (not DeintCast(value).IsValid())
             return 0;
 
-         const bool stateCompliant = CanFitState(DesemCast(value));
-         if (IsEmpty() and /*not DesemCast(value).IsStatic() and*/ stateCompliant) {
+         const bool stateCompliant = CanFitState(DeintCast(value));
+         if (IsEmpty() and /*not DeintCast(value).IsStatic() and*/ stateCompliant) {
             // We can directly absorb. This will preserve staticness.   
             Free();
             BlockTransfer(S::Nest(value));
@@ -534,26 +533,26 @@ namespace Langulus::Anyness
    ///   @param value - the value to concatenate                              
    ///   @param state - the state to apply after concatenation                
    ///   @return the number of inserted elements                              
-   template<class TYPE> template<class FORCE, class T1> requires CT::Deep<Desem<T1>>
+   template<class TYPE> template<class FORCE, class T1> requires CT::Deep<Deint<T1>>
    LANGULUS(INLINED) Count Block<TYPE>::SmartConcat(
       CT::Index auto index, bool sc, T1&& value, DataState state
    ) {
       if constexpr (TypeErased) {
          // At runtime...                                               
          const bool typeCompliant = IsUntyped()
-            or (not CT::Void<FORCE> and DesemCast(value).IsDeep())
-            or IsSimilar(DesemCast(value));
+            or (not CT::Void<FORCE> and DeintCast(value).IsDeep())
+            or IsSimilar(DeintCast(value));
 
          if (not IsConstant() /*and not IsStatic()*/ and typeCompliant and sc
          and not (GetCount() > 1 and not mState.IsOr() and state.IsOr())) {
             if (IsUntyped()) {
                // Block insert never mutates, so make sure type         
                // is valid before insertion                             
-               SetType<false>(DesemCast(value).GetType());
+               SetType<false>(DeintCast(value).GetType());
             }
             else if constexpr (not CT::Void<FORCE>) {
-               if ((not IsDeep() and DesemCast(value).IsDeep())
-               or IsStatic() or DesemCast(value).IsStatic())
+               if ((not IsDeep() and DeintCast(value).IsDeep())
+               or IsStatic() or DeintCast(value).IsStatic())
                   Deepen<FORCE, false>();
             }
 
@@ -564,14 +563,14 @@ namespace Langulus::Anyness
       }
       else {
          // As statically optimized as possible                         
-         const bool typeCompliant = IsSimilar(DesemCast(value)) or
-            (not CT::Void<FORCE> and DesemCast(value).IsDeep());
+         const bool typeCompliant = IsSimilar(DeintCast(value)) or
+            (not CT::Void<FORCE> and DeintCast(value).IsDeep());
 
          if (not IsConstant() /*and not IsStatic()*/ and typeCompliant and sc
          and not (GetCount() > 1 and not mState.IsOr() and state.IsOr())) {
             if constexpr (CT::CanBeDeepened<FORCE, Block>) {
-               if ((not IsDeep() and DesemCast(value).IsDeep())
-               or IsStatic() or DesemCast(value).IsStatic())
+               if ((not IsDeep() and DeintCast(value).IsDeep())
+               or IsStatic() or DeintCast(value).IsStatic())
                   Deepen<FORCE, false>();
             }
 
@@ -595,7 +594,7 @@ namespace Langulus::Anyness
    Count Block<TYPE>::SmartPushInner(
       CT::Index auto index, auto&& value, DataState state
    ) {
-      using S = SemanticOf<decltype(value)>;
+      using S = IntentOf<decltype(value)>;
       using T = TypeOf<S>;
 
       if constexpr (TypeErased) {
@@ -660,18 +659,18 @@ namespace Langulus::Anyness
       }
    }
    
-   /// Concatenate this, and another block into a new block, semantically     
-   ///   @param rhs - block and semantic to concatenate with (right side)     
+   /// Concatenate this, and another block into a new block                   
+   ///   @param rhs - block concatenate with (right side), can have intent    
    ///   @return the concatenated container                                   
    template<class TYPE> template<CT::Block THIS, class T1>
-   requires CT::Block<Desem<T1>> LANGULUS(INLINED)
+   requires CT::Block<Deint<T1>> LANGULUS(INLINED)
    THIS Block<TYPE>::ConcatBlock(T1&& rhs) const {
-      using S = SemanticOf<decltype(rhs)>;
+      using S = IntentOf<decltype(rhs)>;
       auto& lhs = reinterpret_cast<const THIS&>(*this);
 
       if (IsEmpty())
          return {S::Nest(rhs)};
-      else if (DesemCast(rhs).IsEmpty())
+      else if (DeintCast(rhs).IsEmpty())
          return lhs;
 
       if (GetUses() == 1 and not mType->mDestructor and not mType->mIsSparse) {
@@ -690,8 +689,8 @@ namespace Langulus::Anyness
       // Allocate a new concatenated container, and push inside         
       THIS result;
       if constexpr (TypeErased)
-         result.template SetType<false>(DesemCast(rhs).GetType());
-      result.AllocateFresh(result.RequestSize(mCount + DesemCast(rhs).GetCount()));
+         result.template SetType<false>(DeintCast(rhs).GetType());
+      result.AllocateFresh(result.RequestSize(mCount + DeintCast(rhs).GetCount()));
       result.template InsertBlock<void, false>(IndexBack, Refer(lhs));
       result.template InsertBlock<void, false>(IndexBack, S::Nest(rhs));
       return Abandon(result);
@@ -873,7 +872,7 @@ namespace Langulus::Anyness
    ///   1. If A is empty, the reflected default constructor is used, if such 
    ///      has been reflected.                                               
    ///   2. If A is a single argument of exactly the same type, then the      
-   ///      appropriate reflected semantic constructor will be used.          
+   ///      appropriate reflected intent constructor will be used.            
    ///   3. If A is not empty, not exactly same as the contained type, or     
    ///      is more than a single argument, then all arguments will be        
    ///      wrapped in a Neat, and then forwarded to the descriptor-          
@@ -883,7 +882,7 @@ namespace Langulus::Anyness
    ///   @attention this is assumed to have no initialized elements, despite  
    ///      having its mCount set                                             
    ///   @attention be mindful when initializing multiple elements with move  
-   ///      or abandon semantics - the arguments will be lost after the first 
+   ///      or abandon intents - the arguments will be lost after the first   
    ///      element is initialized.                                           
    ///   @param arguments... - the arguments to forward to constructor        
    template<class TYPE> template<class...A>
@@ -939,16 +938,16 @@ namespace Langulus::Anyness
                // for the rest of the elements.                         
                CreateDescribe(Forward<A>(arguments)...);
             }
-            else if (IsSimilar<Desem<F>>()) {
+            else if (IsSimilar<Deint<F>>()) {
                // One argument, that is the same as the contained type, 
                // so just invoke the refer-construction for each newly  
                // allocated item                                        
-               if constexpr (CT::Sparse<Desem<F>>) {
+               if constexpr (CT::Sparse<Deint<F>>) {
                   // Initialize sparse elemets                          
                   auto lhs = GetRaw<void*>();
                   const auto lhsEnd = lhs + mCount;
                   while (lhs != lhsEnd) {
-                     ((*lhs) = ... = DesemCast(arguments));
+                     ((*lhs) = ... = DeintCast(arguments));
                      ++lhs;
                   }
 
@@ -980,7 +979,7 @@ namespace Langulus::Anyness
                      auto lhs = mRaw;
                      const auto lhsEnd = lhs + GetBytesize();
                      while (lhs != lhsEnd) {
-                        (mover(&DesemCast(arguments), lhs), ...);
+                        (mover(&DeintCast(arguments), lhs), ...);
                         lhs += mType->mSize;
                      }
                   }
@@ -1010,7 +1009,7 @@ namespace Langulus::Anyness
                      auto lhs = mRaw;
                      const auto lhsEnd = lhs + GetBytesize();
                      while (lhs != lhsEnd) {
-                        (copier(&DesemCast(arguments), lhs), ...);
+                        (copier(&DeintCast(arguments), lhs), ...);
                         lhs += mType->mSize;
                      }
                   }
@@ -1023,8 +1022,8 @@ namespace Langulus::Anyness
       }
    }
 
-   /// Call semantic constructors in a region and initialize memory, by       
-   /// using a Block as a source                                              
+   /// Call intent constructors in a region and initialize memory, by using   
+   /// a Block as a source                                                    
    ///   @attention never modifies any block state                            
    ///   @attention assumes none of the elements are constructed              
    ///   @attention assumes blocks types are similar                          
@@ -1032,24 +1031,24 @@ namespace Langulus::Anyness
    ///                     account for potential memory overlap               
    ///   @param source - the source of the elements to initialize with        
    template<class TYPE>
-   template<bool REVERSE, class T1> requires CT::Block<Desem<T1>>
-   void Block<TYPE>::CreateSemantic(T1&& source) {
-      using S = SemanticOf<decltype(source)>;
-      const auto count = DesemCast(source).mCount;
+   template<bool REVERSE, class T1> requires CT::Block<Deint<T1>>
+   void Block<TYPE>::CreateWithIntent(T1&& source) {
+      using S = IntentOf<decltype(source)>;
+      const auto count = DeintCast(source).mCount;
       LANGULUS_ASSUME(DevAssumes, count and count <= mReserved,
          "Count outside limits", '(', count, " > ", mReserved);
 
       // Type-erased pointers (void*) are acceptable                    
       LANGULUS_ASSUME(DevAssumes, 
-            (DesemCast(source).IsSimilar(*this)
-         or (DesemCast(source).template IsSimilar<void*>() and IsSparse())
-         or (DesemCast(source).IsSparse() and IsSimilar<void*>())),
-         "Type mismatch on creation", ": ", DesemCast(source).GetType(), " != ", GetType());
+            (DeintCast(source).IsSimilar(*this)
+         or (DeintCast(source).template IsSimilar<void*>() and IsSparse())
+         or (DeintCast(source).IsSparse() and IsSimilar<void*>())),
+         "Type mismatch on creation", ": ", DeintCast(source).GetType(), " != ", GetType());
 
       using B = Conditional<TypeErased, TypeOf<S>, Block>;
       using T = TypeOf<B>;
       auto& mthis = BlockCast<B>(*this);
-      auto& other = BlockCast<B>(DesemCast(source));
+      auto& other = BlockCast<B>(DeintCast(source));
 
       if constexpr (not CT::TypeErased<T>) {
          // Leverage the fact, that containers are statically typed     
@@ -1081,7 +1080,7 @@ namespace Langulus::Anyness
                auto src = other.GetRaw();
                const auto srcEnd = src + count;
                while (src != srcEnd) {
-                  SemanticNew(dst, Clone(**src));
+                  IntentNew(dst, Clone(**src));
                   handle.Assign(dst, clonedCoalescedSrc.mEntry);
 
                   ++dst;
@@ -1132,11 +1131,11 @@ namespace Langulus::Anyness
                         "abandon-constructor for type ", NameOf<T>(),
                         " to fix this warning"
                      ));
-                     SemanticNew(lhs, Move(*rhs));
+                     IntentNew(lhs, Move(*rhs));
                   }
                   else LANGULUS_ERROR("T is not movable, nor abandon-constructible");
                }
-               else SemanticNew(lhs, S::Nest(*rhs));
+               else IntentNew(lhs, S::Nest(*rhs));
 
                if constexpr (REVERSE) {
                   --lhs;
@@ -1225,7 +1224,7 @@ namespace Langulus::Anyness
                auto src = other.GetElementInner();
                const auto lhsEnd = lhs + count;
                while (lhs.mValue != lhsEnd.mValue) {
-                  dst.CreateSemantic(Clone(src.template GetDense<1>()));
+                  dst.CreateWithIntent(Clone(src.template GetDense<1>()));
                   lhs.Assign(dst.mRaw, clonedCoalescedSrc.mEntry);
                   ++dst;
                   ++src;
@@ -1290,14 +1289,14 @@ namespace Langulus::Anyness
       }
    }
    
-   /// Call a single semantic constructor by using a Handle as a source       
+   /// Call a single intent constructor by using a Handle as a source         
    ///   @attention never modifies any block state                            
    ///   @attention assumes none of the elements are constructed              
    ///   @attention assumes blocks types are similar                          
    ///   @param source - the handle to initialize with                        
-   template<class TYPE> template<class T1> requires CT::Handle<Desem<T1>>
-   void Block<TYPE>::CreateSemantic(T1&& source) {
-      using S = SemanticOf<decltype(source)>;
+   template<class TYPE> template<class T1> requires CT::Handle<Deint<T1>>
+   void Block<TYPE>::CreateWithIntent(T1&& source) {
+      using S = IntentOf<decltype(source)>;
       using T = TypeOf<TypeOf<S>>;
 
       static_assert(CT::Sparse<T>,
@@ -1317,20 +1316,20 @@ namespace Langulus::Anyness
          " instead of ", MetaDataOf<T>());
 
       using LOSSLESS = Conditional<TypeErased, T, TYPE>;
-      GetHandle<LOSSLESS>().CreateSemantic(S::Nest(source), GetType());
+      GetHandle<LOSSLESS>().CreateWithIntent(S::Nest(source), GetType());
    }
    
-   /// Batch-optimized semantic pointer constructions                         
+   /// Batch-optimized intentful pointer constructions                        
    ///   @attention overwrites pointers without dereferencing their memory    
    ///   @attention doesn't modify any container state                        
    ///   @attention assumes blocks are similar                                
    ///   @param source - the source of pointers                               
-   template<class TYPE> template<class T> requires CT::Block<Desem<T>>
+   template<class TYPE> template<class T> requires CT::Block<Deint<T>>
    void Block<TYPE>::ShallowBatchPointerConstruction(T&& source) {
-      using S  = SemanticOf<decltype(source)>;
+      using S  = IntentOf<decltype(source)>;
       using ST = TypeOf<S>;
 
-      LANGULUS_ASSUME(DevAssumes, IsSimilar(DesemCast(source)),
+      LANGULUS_ASSUME(DevAssumes, IsSimilar(DeintCast(source)),
          "Type mismatch");
 
       static_assert(TypeErased or Sparse,
@@ -1338,17 +1337,17 @@ namespace Langulus::Anyness
       static_assert(ST::TypeErased or ST::Sparse,
          "Source isn't sparse");
       static_assert(S::Shallow,
-         "This function works only for shallow semantics");
+         "This function works only for shallow intents");
 
       using P = Conditional<TypeErased,
          Conditional<ST::TypeErased, void*, DecvqAll<TypeOf<ST>>>, void*>;
 
-      const auto count = DesemCast(source).mCount;
+      const auto count = DeintCast(source).mCount;
       const auto pointersDst = GetRaw<P>();
-      const auto pointersSrc = DesemCast(source).template GetRaw<P>();
+      const auto pointersSrc = DeintCast(source).template GetRaw<P>();
       const auto entriesDst  = GetEntries();
-      const auto entriesSrc  = DesemCast(source).mEntry
-         ? DesemCast(source).GetEntries()
+      const auto entriesSrc  = DeintCast(source).mEntry
+         ? DeintCast(source).GetEntries()
          : nullptr;
 
       if constexpr (S::Move) {
@@ -1391,8 +1390,8 @@ namespace Langulus::Anyness
                      ++entry;
                   }
                }
-               else if (DesemCast(source).mType->mReference) {
-                  auto reference = DesemCast(source).mType->mReference;
+               else if (DeintCast(source).mType->mReference) {
+                  auto reference = DeintCast(source).mType->mReference;
                   while (entry != entryEnd) {
                      if (*entry) {
                         const_cast<Allocation*>(*entry)->Keep();
@@ -1421,14 +1420,14 @@ namespace Langulus::Anyness
       }
    }
    
-   /// Call semantic assignment in a region                                   
+   /// Call intent assignment in a region                                     
    ///   @attention never modifies any block state                            
    ///   @attention assumes blocks don't overlap (sparse elements may still   
    ///      overlap, but this is handled in the assignment operators)         
    ///   @attention assumes blocks are binary compatible                      
    ///   @param source - the elements to assign                               
    template<class TYPE> template<class T1>
-   void Block<TYPE>::AssignSemantic(T1&& source) requires CT::Block<Desem<T1>> {
+   void Block<TYPE>::AssignWithIntent(T1&& source) requires CT::Block<Deint<T1>> {
       const auto count = source->mCount;
       LANGULUS_ASSUME(DevAssumes, count and count <= mReserved,
          "Count outside limits", '(', count, " > ", mReserved);
@@ -1441,8 +1440,8 @@ namespace Langulus::Anyness
          or (source->IsSparse() and IsSimilar<void*>())),
          "Type mismatch on assignment", ": ", source->GetType(), " != ", GetType());
 
-      using OTHER = Desem<T1>;
-      using S = SemanticOf<decltype(source)>;
+      using OTHER = Deint<T1>;
+      using S = IntentOf<decltype(source)>;
       using B = Conditional<TypeErased, OTHER, Block>;
       using T = TypeOf<B>;
       const auto mthis = reinterpret_cast<B*>(this);
@@ -1480,7 +1479,7 @@ namespace Langulus::Anyness
                auto src = source->GetRaw();
                const auto srcEnd = src + count;
                while (src != srcEnd) {
-                  SemanticNew(dst, Clone(**src));
+                  IntentNew(dst, Clone(**src));
                   handle.Assign(dst, clonedCoalescedSrc.mEntry);
 
                   ++dst;
@@ -1521,11 +1520,11 @@ namespace Langulus::Anyness
                         "abandon-assignment for type ", NameOf<T>(),
                         " to fix this warning"
                      ));
-                     SemanticAssign(*lhs, Move(*rhs));
+                     IntentAssign(*lhs, Move(*rhs));
                   }
                   else LANGULUS_ERROR("T is not movable, nor abandon-assignable");
                }
-               else SemanticAssign(*lhs, S::Nest(*rhs));
+               else IntentAssign(*lhs, S::Nest(*rhs));
 
                ++lhs;
                ++rhs;
@@ -1588,7 +1587,7 @@ namespace Langulus::Anyness
             const auto lhsEnd = lhs + count;
 
             while (lhs.mValue != lhsEnd.mValue) {
-               lhs.AssignSemantic(S::Nest(rhs), mType);
+               lhs.AssignWithIntent(S::Nest(rhs), mType);
 
                ++lhs;
                ++rhs;
@@ -1635,7 +1634,7 @@ namespace Langulus::Anyness
    /// Never allocate new elements, instead assign all currently initialized  
    /// elements a single value                                                
    ///   @param what - the value to assign                                    
-   ///   @attention be careful when filling using a move/abandon semantic -   
+   ///   @attention be careful when filling using a move/abandon intent -     
    ///      'what' can be reset after the first assignment if not trivial     
    template<class TYPE> template<class A> LANGULUS(INLINED)
    void Block<TYPE>::Fill(A&& what)
@@ -1643,7 +1642,7 @@ namespace Langulus::Anyness
       if (IsEmpty())
          return;
 
-      using S  = SemanticOf<decltype(what)>;
+      using S  = IntentOf<decltype(what)>;
       using ST = TypeOf<S>;
 
       if constexpr (not TypeErased) {
@@ -1696,12 +1695,12 @@ namespace Langulus::Anyness
             "Type mismatch");
 
          // Wrap argument into a block, and assign it to each element   
-         auto rhs = MakeBlock(DesemCast(what));
+         auto rhs = MakeBlock(DeintCast(what));
          auto lhs = GetElement();
          const auto size = GetBytesize();
          const auto lhsEnd = mRaw + size;
          while (lhs.mRaw < lhsEnd) {
-            lhs.AssignSemantic(S::Nest(rhs));
+            lhs.AssignWithIntent(S::Nest(rhs));
             lhs.mRaw += size;
          }
       }

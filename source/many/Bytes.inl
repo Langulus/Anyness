@@ -26,8 +26,8 @@ namespace Langulus::Anyness
       : Bytes {Move(other)} {}
 
    /// Semantic bytes constructor                                             
-   ///   @param other - the text container to use semantically                
-   template<class T> requires CT::Bytes<Desem<T>> LANGULUS(ALWAYS_INLINED)
+   ///   @param other - the text container to use, with or without intent     
+   template<class T> requires CT::Bytes<Deint<T>> LANGULUS(ALWAYS_INLINED)
    Bytes::Bytes(T&& other) {
       Base::BlockCreate(Forward<T>(other));
    }
@@ -90,11 +90,11 @@ namespace Langulus::Anyness
       Base::Free();
    }
 
-   /// Semantic construction from count-terminated array                      
+   /// Construction from count-terminated array, with or without intent       
    ///   @param text - text memory to wrap                                    
    ///   @param count - number of characters inside text                      
    ///   @return the byte container                                           
-   template<class T> requires (CT::Sparse<Desem<T>> and CT::Byte<Decay<Desem<T>>>)
+   template<class T> requires (CT::Sparse<Deint<T>> and CT::Byte<Decay<Deint<T>>>)
    LANGULUS(ALWAYS_INLINED) Bytes Bytes::From(T&& text, Count count) {
       return MakeBlock<Bytes>(Forward<T>(text), count);
    }
@@ -119,7 +119,7 @@ namespace Langulus::Anyness
 
    /// Assign any Bytes block                                                 
    ///   @param rhs - the block to assign                                     
-   template<class T> requires CT::Bytes<Desem<T>> LANGULUS(ALWAYS_INLINED)
+   template<class T> requires CT::Bytes<Deint<T>> LANGULUS(ALWAYS_INLINED)
    Bytes& Bytes::operator = (T&& rhs) {
       return Base::BlockAssign<Bytes>(Forward<T>(rhs));
    }
@@ -186,7 +186,7 @@ namespace Langulus::Anyness
    /// Serialize to binary, and append to the back                            
    ///   @param rhs - the data to serialize                                   
    ///   @return a reference to this byte container                           
-   template<class T> requires CT::Binable<Desem<T>> LANGULUS(ALWAYS_INLINED)
+   template<class T> requires CT::Binable<Deint<T>> LANGULUS(ALWAYS_INLINED)
    Bytes& Bytes::operator << (T&& rhs) {
       Base::InsertBlock<void>(IndexBack, Bytes {Forward<T>(rhs)});
       return *this;
@@ -195,7 +195,7 @@ namespace Langulus::Anyness
    /// Serialize to binary, and append to the front                           
    ///   @param rhs - the data to serialize                                   
    ///   @return a reference to this byte container                           
-   template<class T> requires CT::Binable<Desem<T>> LANGULUS(ALWAYS_INLINED)
+   template<class T> requires CT::Binable<Deint<T>> LANGULUS(ALWAYS_INLINED)
    Bytes& Bytes::operator >> (T&& rhs) {
       Base::InsertBlock<void>(IndexFront, Bytes {Forward<T>(rhs)});
       return *this;
@@ -204,7 +204,7 @@ namespace Langulus::Anyness
    /// Concatenate two byte containers                                        
    ///   @param rhs - right hand side                                         
    ///   @return the concatenated byte container                              
-   template<class T> requires CT::Binable<Desem<T>> LANGULUS(ALWAYS_INLINED)
+   template<class T> requires CT::Binable<Deint<T>> LANGULUS(ALWAYS_INLINED)
    Bytes Bytes::operator + (T&& rhs) const {
       return ConcatInner<Bytes>(Forward<T>(rhs));
    }
@@ -212,7 +212,7 @@ namespace Langulus::Anyness
    /// Concatenate (destructively) byte containers                            
    ///   @param rhs - right hand side                                         
    ///   @return a reference to this container                                
-   template<class T> requires CT::Binable<Desem<T>> LANGULUS(ALWAYS_INLINED)
+   template<class T> requires CT::Binable<Deint<T>> LANGULUS(ALWAYS_INLINED)
    Bytes& Bytes::operator += (T&& rhs) {
       return ConcatRelativeInner<Bytes>(Forward<T>(rhs));
    }
@@ -222,7 +222,7 @@ namespace Langulus::Anyness
    ///   @return the concatenated byte container                              
    template<CT::Bytes THIS, class T>
    THIS Bytes::ConcatInner(T&& rhs) const {
-      using S = SemanticOf<decltype(rhs)>;
+      using S = IntentOf<decltype(rhs)>;
       using B = TypeOf<S>;
 
       if constexpr (CT::Block<B>) {
@@ -240,7 +240,7 @@ namespace Langulus::Anyness
       }
       else {
          // RHS isn't Block, try to convert it to Bytes, and nest       
-         return ConcatInner<THIS>(static_cast<THIS>(DesemCast(rhs)));
+         return ConcatInner<THIS>(static_cast<THIS>(DeintCast(rhs)));
       }
    }
 
@@ -249,7 +249,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container                                
    template<CT::Bytes THIS, class T>
    THIS& Bytes::ConcatRelativeInner(T&& rhs) {
-      using S = SemanticOf<decltype(rhs)>;
+      using S = IntentOf<decltype(rhs)>;
       using B = TypeOf<S>;
 
       if constexpr (CT::Block<B>) {
@@ -267,7 +267,7 @@ namespace Langulus::Anyness
       }
       else {
          // RHS isn't Block, try to convert it to Text, and nest        
-         return ConcatRelativeInner<THIS>(static_cast<THIS>(DesemCast(rhs)));
+         return ConcatRelativeInner<THIS>(static_cast<THIS>(DeintCast(rhs)));
       }
 
       return static_cast<THIS&>(*this);
@@ -283,9 +283,9 @@ namespace Langulus::Anyness
    }
    
    /// Insert an element, or an array of elements                             
-   ///   @param item - the argument to unfold and insert, can be semantic     
+   ///   @param item - the argument and intent to unfold and insert           
    void Bytes::UnfoldInsert(auto&& item) {
-      using S = SemanticOf<decltype(item)>;
+      using S = IntentOf<decltype(item)>;
       using T = TypeOf<S>;
       
       if constexpr (CT::Array<T>) {
@@ -298,31 +298,31 @@ namespace Langulus::Anyness
          }
          else {
             // Unfold and serialize elements, one by one                
-            for (auto& element : DesemCast(item))
+            for (auto& element : DeintCast(item))
                UnfoldInsert(S::Nest(element));
          }
       }
       else if constexpr (CT::Block<T>) {
          if constexpr (CT::Bytes<T>) {
             // Insert another byte block's contents                     
-            Base::AllocateMore(mCount + DesemCast(item).GetCount());
-            CopyMemory(GetRaw() + mCount, DesemCast(item).GetRaw());
-            mCount += DesemCast(item).GetCount();
+            Base::AllocateMore(mCount + DeintCast(item).GetCount());
+            CopyMemory(GetRaw() + mCount, DeintCast(item).GetRaw());
+            mCount += DeintCast(item).GetCount();
          }
          else if constexpr (CT::Typed<T>) {
             // Nest-insert typed block's elements one by one            
-            for (auto& element : DesemCast(item))
+            for (auto& element : DeintCast(item))
                UnfoldInsert(S::Nest(element));
          }
          else {
             // Check a type-erased block                                
-            if (DesemCast(item).GetType()->template IsSimilar<Byte>()) {
+            if (DeintCast(item).GetType()->template IsSimilar<Byte>()) {
                // Insert another byte block's contents directly         
-               Base::AllocateMore(mCount + DesemCast(item).GetCount());
-               CopyMemory(GetRaw() + mCount, DesemCast(item).template GetRaw<Byte>());
-               mCount += DesemCast(item).GetCount();
+               Base::AllocateMore(mCount + DeintCast(item).GetCount());
+               CopyMemory(GetRaw() + mCount, DeintCast(item).template GetRaw<Byte>());
+               mCount += DeintCast(item).GetCount();
             }
-            else for (auto subblock : DesemCast(item))
+            else for (auto subblock : DeintCast(item))
                UnfoldInsert(S::Nest(subblock));
          }
       }

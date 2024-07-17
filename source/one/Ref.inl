@@ -47,13 +47,13 @@ namespace Langulus::Anyness
    constexpr TME()::Ref(Ref&& other)
       : Ref {Move(other)} {}
    
-   /// Semantic construction                                                  
+   /// Generic construction                                                   
    ///   @param other - the value to initialize with                          
    TEMPLATE() template<template<class> class S> 
-   requires CT::SemanticMakable<S, T*> LANGULUS(INLINED)
+   requires CT::IntentMakable<S, T*> LANGULUS(INLINED)
    constexpr TME()::Ref(S<Ref>&& other) {
       using SS = S<Ref>;
-      GetHandle().CreateSemantic(SS::Nest(other->GetHandle()));
+      GetHandle().CreateWithIntent(SS::Nest(other->GetHandle()));
    }
 
    /// Construct from any compatible pointer                                  
@@ -63,7 +63,7 @@ namespace Langulus::Anyness
    TEMPLATE() template<class A>
    requires CT::MakableFrom<T*, A> LANGULUS(INLINED)
    constexpr TME()::Ref(A&& other) {
-      using S = SemanticOf<decltype(other)>;
+      using S  = IntentOf<decltype(other)>;
       using ST = TypeOf<S>;
 
       if constexpr (CT::Nullptr<ST>) {
@@ -72,8 +72,8 @@ namespace Langulus::Anyness
       }
       else {
          // Always copy, and thus reference raw pointers                
-         auto converted = static_cast<Type>(DesemCast(other));
-         GetHandle().CreateSemantic(S::Nest(converted));
+         auto converted = static_cast<Type>(DeintCast(other));
+         GetHandle().CreateWithIntent(S::Nest(converted));
       }
    }
 
@@ -133,11 +133,11 @@ namespace Langulus::Anyness
       return operator = (Move(rhs));
    }
 
-   /// Semantically assign from any pointer/shared pointer/nullptr/related    
-   ///   @param rhs - the value and semantic to assign                        
+   /// Assign from any pointer/shared pointer/nullptr/related                 
+   ///   @param rhs - the value and intent to assign with                     
    ///   @return a reference to this shared pointer                           
    TEMPLATE() template<template<class> class S>
-   requires CT::SemanticAssignable<S, T*> LANGULUS(INLINED)
+   requires CT::IntentAssignable<S, T*> LANGULUS(INLINED)
    TME()& TME()::operator = (S<Ref>&& rhs) {
       if (mEntry)
          ResetInner();
@@ -145,13 +145,13 @@ namespace Langulus::Anyness
       return *this;
    }
 
-   /// Semantically assign from any pointer/shared pointer/nullptr/related    
-   ///   @param rhs - the value and semantic to assign                        
+   /// Assign from any pointer/shared pointer/nullptr/related                 
+   ///   @param rhs - the value and intent to assign with                     
    ///   @return a reference to this shared pointer                           
    TEMPLATE() template<CT::NotOwned A>
    requires CT::AssignableFrom<T*, A> LANGULUS(INLINED)
    TME()& TME()::operator = (A&& rhs) {
-      using S = SemanticOf<decltype(rhs)>;
+      using S  = IntentOf<decltype(rhs)>;
       using ST = TypeOf<S>;
 
       if constexpr (CT::Nullptr<ST>) {

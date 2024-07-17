@@ -31,7 +31,7 @@ namespace Langulus::A
    /// Move constructor                                                       
    ///   @param other - the verb to move                                      
    template<template<class> class S>
-   requires CT::Semantic<S<Verb>> LANGULUS(INLINED)
+   requires CT::Intent<S<Verb>> LANGULUS(INLINED)
    Verb::Verb(S<Verb>&& other) {
       Many::operator = (other.template Forward<Many>());
       Charge::operator = (*other);
@@ -57,11 +57,11 @@ namespace Langulus::A
       return operator = (Move(rhs));
    }
 
-   /// Semantic assignment                                                    
-   ///   @param rhs - the verb/argument and semantic to assign by             
+   /// Generic assignment                                                     
+   ///   @param rhs - the verb/argument and intent to assign by               
    ///   @return a reference to this verb                                     
    template<template<class> class S>
-   requires CT::Semantic<S<Verb>> LANGULUS(INLINED)
+   requires CT::Intent<S<Verb>> LANGULUS(INLINED)
    Verb& Verb::operator = (S<Verb>&& rhs) {
       Many::operator = (rhs.template Forward<Many>());
       Charge::operator = (*rhs);

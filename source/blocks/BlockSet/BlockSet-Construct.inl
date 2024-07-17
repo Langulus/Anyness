@@ -13,11 +13,11 @@
 namespace Langulus::Anyness
 {
    
-   /// Semantically transfer the members of one set onto another              
+   /// Transfer the members of one set onto another                           
    ///   @tparam TO - the type of set we're transferring to                   
-   ///   @param other - the set and semantic to transfer from                 
+   ///   @param other - the set and intent to transfer from                   
    template<CT::Set TO, template<class> class S, CT::Set FROM>
-   requires CT::Semantic<S<FROM>> LANGULUS(INLINED)
+   requires CT::Intent<S<FROM>> LANGULUS(INLINED)
    void BlockSet::BlockTransfer(S<FROM>&& other) {
       using SS = S<FROM>;
 
@@ -35,7 +35,7 @@ namespace Langulus::Anyness
       }
 
       if constexpr (SS::Shallow) {
-         // We're transferring via a shallow semantic                   
+         // We're transferring via a shallow intent                     
          if constexpr (SS::Keep) {
             // Move/Refer/Copy other                                    
             if constexpr (SS::Move) {
@@ -113,7 +113,7 @@ namespace Langulus::Anyness
                      auto srcKey = asFrom->template GetHandle<B>(0);
                      while (info != infoEnd) {
                         if (*info)
-                           dstKey.CreateSemantic(Refer(srcKey));
+                           dstKey.CreateWithIntent(Refer(srcKey));
 
                         ++info;
                         ++dstKey;
@@ -138,7 +138,7 @@ namespace Langulus::Anyness
                      auto srcKey = asFrom->template GetHandle<B>(0);
                      while (info != infoEnd) {
                         if (*info)
-                           dstKey.CreateSemantic(Refer(srcKey));
+                           dstKey.CreateWithIntent(Refer(srcKey));
 
                         ++info;
                         ++dstKey;
@@ -216,7 +216,7 @@ namespace Langulus::Anyness
                   auto srcKey = asFrom->template GetHandle<B>(0);
                   while (info != infoEnd) {
                      if (*info)
-                        dstKey.CreateSemantic(SS::Nest(srcKey));
+                        dstKey.CreateWithIntent(SS::Nest(srcKey));
 
                      ++info;
                      ++dstKey;
@@ -281,7 +281,7 @@ namespace Langulus::Anyness
                   auto srcKey = asFrom->template GetHandle<B>(0);
                   while (info != infoEnd) {
                      if (*info)
-                        dstKey.CreateSemantic(SS::Nest(srcKey));
+                        dstKey.CreateWithIntent(SS::Nest(srcKey));
 
                      ++info;
                      ++dstKey;

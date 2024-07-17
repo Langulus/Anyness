@@ -37,17 +37,17 @@ namespace Langulus::Anyness
    TABLE()::TSet(TSet&& other)
       : TSet {Move(other)} {}
    
-   /// Create from a list of elements, each of them can be semantic or not,   
-   /// an array, as well as any other kinds of sets                           
-   ///   @param t1 - first element                                            
-   ///   @param tn - tail of elements (optional)                              
+   /// Create from a list of elements, an array, as well as any other kinds   
+   /// of set. Each argument can have an intent or not.                       
+   ///   @param t1 - first element and intent                                 
+   ///   @param tn - tail of elements (optional, can have intents)            
    TEMPLATE() template<class T1, class...TN>
    requires CT::DeepSetMakable<T, T1, TN...> LANGULUS(INLINED)
    TABLE()::TSet(T1&& t1, TN&&...tn) {
       mKeys.mType = MetaDataOf<T>();
 
       if constexpr (sizeof...(TN) == 0) {
-         using S = SemanticOf<decltype(t1)>;
+         using S  = IntentOf<decltype(t1)>;
          using ST = TypeOf<S>;
 
          if constexpr (CT::Set<ST>) {
@@ -63,7 +63,7 @@ namespace Langulus::Anyness
                      // The statically typed set contains items that    
                      // are base of this container's type. Each element 
                      // should be dynamically cast to this type         
-                     for (auto pointer : DesemCast(t1)) {
+                     for (auto pointer : DeintCast(t1)) {
                         auto dcast = dynamic_cast<T>(&(*pointer));
                         if (dcast)
                            (*this) << dcast;
@@ -73,7 +73,7 @@ namespace Langulus::Anyness
                      // The statically typed set contains items that    
                      // are derived from this container's type. Each    
                      // element should be statically sliced to this type
-                     for (auto pointer : DesemCast(t1))
+                     for (auto pointer : DeintCast(t1))
                         (*this) << static_cast<T>(&(*pointer));
                   }
                   else Insert(Forward<T1>(t1));
@@ -82,7 +82,7 @@ namespace Langulus::Anyness
             }
             else {
                // Type-erased set, do run-time type checks              
-               if (mKeys.mType == DesemCast(t1).GetType()) {
+               if (mKeys.mType == DeintCast(t1).GetType()) {
                   // If types are exactly the same, it is safe to       
                   // absorb the set, essentially converting a type-     
                   // erased Set back to its TSet equivalent             
@@ -126,13 +126,13 @@ namespace Langulus::Anyness
    TEMPLATE() template<class T1>
    requires CT::DeepSetAssignable<T, T1> LANGULUS(INLINED)
    TABLE()& TABLE()::operator = (T1&& rhs) {
-      using S = SemanticOf<decltype(rhs)>;
+      using S  = IntentOf<decltype(rhs)>;
       using ST = TypeOf<S>;
        
       if constexpr (CT::Set<ST>) {
          // Potentially absorb a set                                    
          if (static_cast<const BlockSet*>(this)
-          == static_cast<const BlockSet*>(&DesemCast(rhs)))
+          == static_cast<const BlockSet*>(&DeintCast(rhs)))
             return *this;
 
          BlockSet::Free<TSet>();
@@ -289,7 +289,7 @@ namespace Langulus::Anyness
       BlockSet::Reserve<TSet>(count);
    }
 
-   /// Unfold-insert elements, semantically or not                            
+   /// Unfold-insert elements, with or without intents                        
    ///   @param t1 - element, or array of elements, to insert                 
    ///   @param tn... - the rest of the elements (optional)                   
    ///   @return the number of inserted elements                              
@@ -299,24 +299,24 @@ namespace Langulus::Anyness
       return BlockSet::Insert<TSet>(Forward<T1>(t1), Forward<TN>(tn)...);
    }
    
-   /// Insert all elements of a set, semantically or not                      
+   /// Insert all elements of a set, with or without intents                  
    ///   @param t1 - the set to insert                                        
    ///   @return number of inserted elements                                  
-   TEMPLATE() template<class T1> requires CT::Set<Desem<T1>> LANGULUS(INLINED)
+   TEMPLATE() template<class T1> requires CT::Set<Deint<T1>> LANGULUS(INLINED)
    Count TABLE()::InsertBlock(T1&& t1) {
       return BlockSet::InsertBlock<TSet>(Forward<T1>(t1));
    }
    
-   /// Insert all elements of a block, semantically or not                    
+   /// Insert all elements of a block, with or without intents                
    ///   @param t1 - the block to insert                                      
    ///   @return number of inserted elements                                  
-   TEMPLATE() template<class T1> requires CT::Block<Desem<T1>> LANGULUS(INLINED)
+   TEMPLATE() template<class T1> requires CT::Block<Deint<T1>> LANGULUS(INLINED)
    Count TABLE()::InsertBlock(T1&& t1) {
       return BlockSet::InsertBlock<TSet>(Forward<T1>(t1));
    }
 
-   /// Move-insert a pair inside the map                                      
-   ///   @param rhs - the pair to insert                                      
+   /// Move-insert a pair inside the map, with or without intents             
+   ///   @param rhs - the pair and intent to insert                           
    ///   @return a reference to this table for chaining                       
    TEMPLATE() template<class T1>
    requires CT::UnfoldMakableFrom<T, T1> LANGULUS(INLINED)
@@ -343,7 +343,7 @@ namespace Langulus::Anyness
    ///   @return the iterator of the previous element, unless index is the    
    ///           first, or at the end already                                 
    TEMPLATE()
-   typename TABLE()::Iterator TABLE()::RemoveIt(const Iterator& index) {
+   auto TABLE()::RemoveIt(const Iterator& index) -> Iterator {
       const auto sentinel = GetReserved();
       auto offset = static_cast<Offset>(index.mInfo - mInfo);
       if (offset >= sentinel)
@@ -382,7 +382,7 @@ namespace Langulus::Anyness
    /// Checks if both tables contain the same entries                         
    ///   @param other - the table to compare against                          
    ///   @return true if tables match                                         
-   TEMPLATE() template<CT::NotSemantic T1>
+   TEMPLATE() template<CT::NoIntent T1>
    requires (CT::Set<T1> or CT::Comparable<T, T1>) LANGULUS(INLINED)
    bool TABLE()::operator == (const T1& other) const {
       return BlockSet::operator == <TSet> (other);
@@ -391,7 +391,7 @@ namespace Langulus::Anyness
    /// Search for a key inside the table                                      
    ///   @param key - the key to search for                                   
    ///   @return true if key is found, false otherwise                        
-   TEMPLATE() template<CT::NotSemantic T1>
+   TEMPLATE() template<CT::NoIntent T1>
    requires CT::Comparable<T, T1> LANGULUS(INLINED)
    bool TABLE()::Contains(T1 const& key) const {
       return BlockSet::Contains<TSet>(key);
@@ -400,18 +400,18 @@ namespace Langulus::Anyness
    /// Search for a key inside the table, and return it if found              
    ///   @param key - the key to search for                                   
    ///   @return the index if key was found, or IndexNone if not              
-   TEMPLATE() template<CT::NotSemantic T1>
+   TEMPLATE() template<CT::NoIntent T1>
    requires CT::Comparable<T, T1> LANGULUS(INLINED)
-   Index TABLE()::Find(T1 const& key) const {
+   auto TABLE()::Find(T1 const& key) const -> Index {
       return BlockSet::Find<TSet>(key);
    }
    
    /// Search for a key inside the table, and return an iterator to it        
    ///   @param key - the key to search for                                   
    ///   @return the iterator                                                 
-   TEMPLATE() template<CT::NotSemantic T1>
+   TEMPLATE() template<CT::NoIntent T1>
    requires CT::Comparable<T, T1> LANGULUS(INLINED)
-   typename TABLE()::Iterator TABLE()::FindIt(T1 const& key) {
+   auto TABLE()::FindIt(T1 const& key) -> Iterator {
       const auto found = FindInner<TABLE()>(key);
       if (found == InvalidOffset)
          return end();
@@ -422,33 +422,33 @@ namespace Langulus::Anyness
       };
    }
 
-   TEMPLATE() template<CT::NotSemantic T1>
+   TEMPLATE() template<CT::NoIntent T1>
    requires CT::Comparable<T, T1> LANGULUS(INLINED)
-   typename TABLE()::ConstIterator TABLE()::FindIt(T1 const& key) const {
+   auto TABLE()::FindIt(T1 const& key) const -> ConstIterator {
       return const_cast<TABLE()*>(this)->FindIt(key);
    }
 
    /// Get iterator to first element                                          
    ///   @return an iterator to the first element, or end if empty            
    TEMPLATE() LANGULUS(INLINED)
-   typename TABLE()::Iterator TABLE()::begin() noexcept {
+   auto TABLE()::begin() noexcept -> Iterator {
       return BlockSet::begin<TSet>();
    }
    
    TEMPLATE() LANGULUS(INLINED)
-   typename TABLE()::ConstIterator TABLE()::begin() const noexcept {
+   auto TABLE()::begin() const noexcept -> ConstIterator {
       return BlockSet::begin<TSet>();
    }
 
    /// Get iterator to the last element                                       
    ///   @return an iterator to the last element, or end if empty             
    TEMPLATE() LANGULUS(INLINED)
-   typename TABLE()::Iterator TABLE()::last() noexcept {
+   auto TABLE()::last() noexcept -> Iterator {
       return BlockSet::last<TSet>();
    }
 
    TEMPLATE() LANGULUS(INLINED)
-   typename TABLE()::ConstIterator TABLE()::last() const noexcept {
+   auto TABLE()::last() const noexcept -> ConstIterator {
       return BlockSet::last<TSet>();
    }
 

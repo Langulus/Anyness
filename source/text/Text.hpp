@@ -280,16 +280,16 @@ namespace Langulus::Anyness
       Text(const Text&);
       Text(Text&&) noexcept;
 
-      template<class T> requires CT::TextBased<Desem<T>>
+      template<class T> requires CT::TextBased<Deint<T>>
       Text(T&&);
 
-      template<class T> requires CT::String<Desem<T>>
+      template<class T> requires CT::String<Deint<T>>
       Text(T&&);
 
-      template<class T> requires CT::Character<Desem<T>>
+      template<class T> requires CT::Character<Deint<T>>
       Text(T&&);
 
-      template<class T> requires CT::StdString<Desem<T>>
+      template<class T> requires CT::StdString<Deint<T>>
       Text(T&&);
 
       Text(const CT::Meta auto&);
@@ -310,7 +310,7 @@ namespace Langulus::Anyness
 
       ~Text();
 
-      template<class T> requires CT::String<Desem<T>>
+      template<class T> requires CT::String<Deint<T>>
       NOD() static Text From(T&&, Count);
 
       template<Count PRECISION = 0, CT::BuiltinNumber T>
@@ -322,7 +322,7 @@ namespace Langulus::Anyness
       Text& operator = (const Text&);
       Text& operator = (Text&&) noexcept;
 
-      template<class T> requires CT::TextBased<Desem<T>>
+      template<class T> requires CT::TextBased<Deint<T>>
       Text& operator = (T&&);
 
       ///                                                                     
@@ -355,14 +355,14 @@ namespace Langulus::Anyness
       Text Extend(Count);
       NOD() Text Terminate() const;
 
-      template<class T> requires CT::Stringifiable<Desem<T>>
+      template<class T> requires CT::Stringifiable<Deint<T>>
       Text& operator << (T&&);
-      template<class T> requires CT::Stringifiable<Desem<T>>
+      template<class T> requires CT::Stringifiable<Deint<T>>
       Text& operator >> (T&&);
 
-      template<class T> requires CT::Stringifiable<Desem<T>>
+      template<class T> requires CT::Stringifiable<Deint<T>>
       Text& operator <<= (T&&);
-      template<class T> requires CT::Stringifiable<Desem<T>>
+      template<class T> requires CT::Stringifiable<Deint<T>>
       Text& operator >>= (T&&);
 
       ///                                                                     
@@ -374,12 +374,12 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Concatenation                                                     
       ///                                                                     
-      template<class T> requires CT::Stringifiable<Desem<T>>
+      template<class T> requires CT::Stringifiable<Deint<T>>
       NOD() Text operator + (T&&) const;
-      template<class T> requires (CT::Stringifiable<Desem<T>> and not CT::TextBased<T>)
+      template<class T> requires (CT::Stringifiable<Deint<T>> and not CT::TextBased<T>)
       friend Text operator + (T&&, const Text&);
 
-      template<class T> requires CT::Stringifiable<Desem<T>>
+      template<class T> requires CT::Stringifiable<Deint<T>>
       Text& operator += (T&&);
 
       ///                                                                     

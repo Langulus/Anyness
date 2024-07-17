@@ -41,8 +41,8 @@ namespace Langulus::Anyness
    /// If there's one deep argument, it will be absorbed                      
    /// If any of the element types don't match exactly, the container becomes 
    /// deep in order to incorporate them                                      
-   ///   @param t1 - first element (can be semantic)                          
-   ///   @param tn... - the rest of the elements (optional, can be semantic)  
+   ///   @param t1 - first element, with or without intent                    
+   ///   @param tn... - the rest of the elements (optional, can have intents) 
    template<class T1, class...TN> requires CT::UnfoldInsertable<T1, TN...>
    LANGULUS(INLINED) Many::Many(T1&& t1, TN&&...tn) {
       Base::BlockCreate(Forward<T1>(t1), Forward<TN>(tn)...);
@@ -140,7 +140,7 @@ namespace Langulus::Anyness
       return operator = (Move(rhs));
    }
 
-   /// Element/container assignment, semantic or not                          
+   /// Element/container assignment, with or without intents                  
    ///   @param rhs - the element, or container to assign                     
    ///   @return a reference to this container                                
    LANGULUS(INLINED)
@@ -198,21 +198,21 @@ namespace Langulus::Anyness
       return Base::Select<Many>(start, count);
    }
 
-   /// Concatenate with any deep type, semantically or not                    
+   /// Concatenate with any deep type, with or without intents                
    ///   @param rhs - the right operand                                       
    ///   @return the combined container                                       
    LANGULUS(INLINED)
    Many Many::operator + (CT::UnfoldInsertable auto&& rhs) const {
-      using S = SemanticOf<decltype(rhs)>;
+      using S = IntentOf<decltype(rhs)>;
       return ConcatBlock<Many>(S::Nest(rhs));
    }
 
-   /// Destructive concatenate with any deep type, semantically or not        
+   /// Destructive concatenate with any deep type, with or without intents    
    ///   @param rhs - the right operand                                       
    ///   @return a reference to this modified container                       
    LANGULUS(INLINED)
    Many& Many::operator += (CT::UnfoldInsertable auto&& rhs) {
-      using S = SemanticOf<decltype(rhs)>;
+      using S = IntentOf<decltype(rhs)>;
       InsertBlock<void>(IndexBack, S::Nest(rhs));
       return *this;
    }

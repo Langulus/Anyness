@@ -37,8 +37,8 @@ namespace Langulus::Anyness
       Construct(const Construct&) noexcept;
       Construct(Construct&&) noexcept;
 
-      template<template<class> class S>
-      Construct(S<Construct>&&) requires CT::Semantic<S<Construct>>;
+      template<template<class> class S> requires CT::Intent<S<Construct>>
+      Construct(S<Construct>&&);
 
       Construct(DMeta);
       Construct(DMeta, auto&&, const Charge& = {});
@@ -50,8 +50,8 @@ namespace Langulus::Anyness
 
       Construct& operator = (const Construct&) noexcept;
       Construct& operator = (Construct&&) noexcept;
-      template<template<class> class S>
-      Construct& operator = (S<Construct>&&) requires CT::Semantic<S<Construct>>;
+      template<template<class> class S> requires CT::Intent<S<Construct>>
+      Construct& operator = (S<Construct>&&);
 
    public:
       NOD() Hash GetHash() const;

@@ -96,7 +96,7 @@ namespace Langulus::Anyness
    ///   @param key - the key to search for                                   
    ///   @return true if key is found, false otherwise                        
    template<CT::Map THIS> LANGULUS(INLINED)
-   bool BlockMap::ContainsKey(const CT::NotSemantic auto& key) const {
+   bool BlockMap::ContainsKey(const CT::NoIntent auto& key) const {
       return FindInner<THIS>(key) != InvalidOffset;
    }
 
@@ -104,7 +104,7 @@ namespace Langulus::Anyness
    ///   @param value - the value to search for                               
    ///   @return true if value is found, false otherwise                      
    template<CT::Map THIS> LANGULUS(INLINED)
-   bool BlockMap::ContainsValue(const CT::NotSemantic auto& value) const {
+   bool BlockMap::ContainsValue(const CT::NoIntent auto& value) const {
       if (IsEmpty())
          return false;
 
@@ -172,7 +172,7 @@ namespace Langulus::Anyness
    ///   @param key - the key to search for                                   
    ///   @return the index if key was found, or IndexNone if not              
    template<CT::Map THIS> LANGULUS(INLINED)
-   Index BlockMap::Find(const CT::NotSemantic auto& key) const {
+   Index BlockMap::Find(const CT::NoIntent auto& key) const {
       const auto offset = FindInner<THIS>(key);
       return offset != InvalidOffset ? Index {offset} : IndexNone;
    }
@@ -181,7 +181,7 @@ namespace Langulus::Anyness
    ///   @param key - the key to search for                                   
    ///   @return the iterator                                                 
    template<CT::Map THIS> LANGULUS(INLINED)
-   BlockMap::Iterator<THIS> BlockMap::FindIt(const CT::NotSemantic auto& key) {
+   BlockMap::Iterator<THIS> BlockMap::FindIt(const CT::NoIntent auto& key) {
       const auto offset = FindInner<THIS>(key);
       if (offset == InvalidOffset)
          return end();
@@ -194,7 +194,7 @@ namespace Langulus::Anyness
    }
    
    template<CT::Map THIS> LANGULUS(INLINED)
-   BlockMap::Iterator<const THIS> BlockMap::FindIt(const CT::NotSemantic auto& key) const {
+   BlockMap::Iterator<const THIS> BlockMap::FindIt(const CT::NoIntent auto& key) const {
       return const_cast<BlockMap*>(this)->template FindIt<THIS>(key);
    }
 
@@ -203,14 +203,14 @@ namespace Langulus::Anyness
    ///   @param key - the key to search for                                   
    ///   @return the value, wrapped in a type-erased block                    
    template<CT::Map THIS> LANGULUS(INLINED)
-   decltype(auto) BlockMap::At(const CT::NotSemantic auto& key) {
+   decltype(auto) BlockMap::At(const CT::NoIntent auto& key) {
       const auto found = FindInner<THIS>(key);
       LANGULUS_ASSERT(found != InvalidOffset, OutOfRange, "Key not found");
       return GetValRef<THIS>(found);
    }
    
    template<CT::Map THIS> LANGULUS(INLINED)
-   decltype(auto) BlockMap::At(const CT::NotSemantic auto& key) const {
+   decltype(auto) BlockMap::At(const CT::NoIntent auto& key) const {
       return const_cast<BlockMap*>(this)->template At<THIS>(key);
    }
 
@@ -218,12 +218,12 @@ namespace Langulus::Anyness
    ///   @param key - the key to find                                         
    ///   @return the value, wrapped in a type-erased block                    
    template<CT::Map THIS> LANGULUS(INLINED)
-   decltype(auto) BlockMap::operator[] (const CT::NotSemantic auto& key) {
+   decltype(auto) BlockMap::operator[] (const CT::NoIntent auto& key) {
       return At<THIS>(key);
    }
 
    template<CT::Map THIS> LANGULUS(INLINED)
-   decltype(auto) BlockMap::operator[] (const CT::NotSemantic auto& key) const {
+   decltype(auto) BlockMap::operator[] (const CT::NoIntent auto& key) const {
       return At<THIS>(key);
    }
 
@@ -232,7 +232,7 @@ namespace Langulus::Anyness
    ///   @param match - the key to search for                                 
    ///   @return the index, or InvalidOffset if not found                     
    template<CT::Map THIS>
-   Offset BlockMap::FindInner(const CT::NotSemantic auto& match) const {
+   Offset BlockMap::FindInner(const CT::NoIntent auto& match) const {
       if (IsEmpty())
          return InvalidOffset;
 

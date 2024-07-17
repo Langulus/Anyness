@@ -123,15 +123,15 @@ namespace Langulus::Anyness
 
    protected:
       template<CT::Map TO, template<class> class S, CT::Map FROM>
-      requires CT::Semantic<S<FROM>>
+      requires CT::Intent<S<FROM>>
       void BlockTransfer(S<FROM>&&);
 
       template<template<class> class S, CT::Map FROM>
-      requires CT::Semantic<S<FROM>>
+      requires CT::Intent<S<FROM>>
       void CloneValuesInner(S<FROM>&&);
 
       template<template<class> class S, CT::Map FROM>
-      requires CT::Semantic<S<FROM>>
+      requires CT::Intent<S<FROM>>
       void CloneValuesReinsertInner(CT::Block auto&, S<FROM>&&);
 
       template<CT::Map>
@@ -269,7 +269,7 @@ namespace Langulus::Anyness
       NOD() Offset SimplifyIndex(INDEX) const
       noexcept(not LANGULUS_SAFE() and CT::BuiltinInteger<INDEX>);
 
-      NOD() static Offset GetBucket(Offset, const CT::NotSemantic auto&) noexcept;
+      NOD() static Offset GetBucket(Offset, const CT::NoIntent auto&) noexcept;
       NOD() static Offset GetBucketUnknown(Offset, const Block<>&) noexcept;
 
       template<CT::Map>
@@ -384,7 +384,7 @@ namespace Langulus::Anyness
       NOD() bool IsValueExact(DMeta) const noexcept;
 
    protected:
-      template<CT::Map, CT::NotSemantic, CT::NotSemantic>
+      template<CT::Map, CT::NoIntent, CT::NoIntent>
       void Mutate();
       template<CT::Map>
       void Mutate(DMeta, DMeta);
@@ -407,32 +407,32 @@ namespace Langulus::Anyness
       NOD() Hash GetHash() const;
 
       template<CT::Map = UnorderedMap>
-      NOD() bool ContainsKey(const CT::NotSemantic auto&) const;
+      NOD() bool ContainsKey(const CT::NoIntent auto&) const;
       template<CT::Map = UnorderedMap>
-      NOD() bool ContainsValue(const CT::NotSemantic auto&) const;
+      NOD() bool ContainsValue(const CT::NoIntent auto&) const;
       template<CT::Map = UnorderedMap>
       NOD() bool ContainsPair(const CT::Pair auto&) const;
 
       template<CT::Map = UnorderedMap>
-      NOD() Index Find(const CT::NotSemantic auto&) const;
+      NOD() Index Find(const CT::NoIntent auto&) const;
       template<CT::Map THIS = UnorderedMap>
-      NOD() Iterator<THIS> FindIt(const CT::NotSemantic auto&);
+      NOD() Iterator<THIS> FindIt(const CT::NoIntent auto&);
       template<CT::Map THIS = UnorderedMap>
-      NOD() Iterator<const THIS> FindIt(const CT::NotSemantic auto&) const;
+      NOD() Iterator<const THIS> FindIt(const CT::NoIntent auto&) const;
 
       template<CT::Map = UnorderedMap>
-      NOD() decltype(auto) At(const CT::NotSemantic auto&);
+      NOD() decltype(auto) At(const CT::NoIntent auto&);
       template<CT::Map = UnorderedMap>
-      NOD() decltype(auto) At(const CT::NotSemantic auto&) const;
+      NOD() decltype(auto) At(const CT::NoIntent auto&) const;
 
       template<CT::Map = UnorderedMap>
-      NOD() decltype(auto) operator[] (const CT::NotSemantic auto&);
+      NOD() decltype(auto) operator[] (const CT::NoIntent auto&);
       template<CT::Map = UnorderedMap>
-      NOD() decltype(auto) operator[] (const CT::NotSemantic auto&) const;
+      NOD() decltype(auto) operator[] (const CT::NoIntent auto&) const;
 
    protected:
       template<CT::Map>
-      NOD() Offset FindInner(const CT::NotSemantic auto&) const;
+      NOD() Offset FindInner(const CT::NoIntent auto&) const;
       template<CT::Map>
       NOD() Offset FindBlockInner(const Block<>&) const;
 
@@ -465,7 +465,7 @@ namespace Langulus::Anyness
       Count Insert(auto&&, auto&&);
 
       template<CT::Map, class T1, class T2>
-      requires CT::Block<Desem<T1>, Desem<T2>>
+      requires CT::Block<Deint<T1>, Deint<T2>>
       Count InsertBlock(T1&&, T2&&);
 
       template<CT::Map, class T1, class...TAIL>
@@ -494,11 +494,11 @@ namespace Langulus::Anyness
       Offset InsertInner(Offset, auto&&, auto&&);
 
       template<CT::Map, bool CHECK_FOR_MATCH, template<class> class S1, template<class> class S2, CT::Block T>
-      requires CT::Semantic<S1<T>, S2<T>>
+      requires CT::Intent<S1<T>, S2<T>>
       Offset InsertBlockInner(Offset, S1<T>&&, S2<T>&&);
 
       template<CT::Map, bool CHECK_FOR_MATCH, template<class> class S, CT::Pair T>
-      requires CT::Semantic<S<T>>
+      requires CT::Intent<S<T>>
       Count InsertPairInner(Count, S<T>&&);
 
       template<CT::Map>
@@ -509,9 +509,9 @@ namespace Langulus::Anyness
       ///   Removal                                                           
       ///                                                                     
       template<CT::Map>
-      Count RemoveKey(const CT::NotSemantic auto&);
+      Count RemoveKey(const CT::NoIntent auto&);
       template<CT::Map>
-      Count RemoveValue(const CT::NotSemantic auto&);
+      Count RemoveValue(const CT::NoIntent auto&);
       template<CT::Map>
       Count RemovePair(const CT::Pair auto&);
       template<CT::Map THIS>
@@ -526,9 +526,9 @@ namespace Langulus::Anyness
 
    protected:
       template<CT::Map>
-      Count RemoveKeyInner(const CT::NotSemantic auto&);
+      Count RemoveKeyInner(const CT::NoIntent auto&);
       template<CT::Map>
-      Count RemoveValInner(const CT::NotSemantic auto&);
+      Count RemoveValInner(const CT::NoIntent auto&);
       template<CT::Map>
       Count RemovePairInner(const CT::Pair auto&);
 

@@ -128,7 +128,7 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Compare                                                           
       ///                                                                     
-      template<CT::TraitBased = Trait, CT::NotSemantic T> requires CT::NotOwned<T>
+      template<CT::TraitBased = Trait, CT::NoIntent T> requires CT::NotOwned<T>
       NOD() bool operator == (const T&) const;
 
       ///                                                                     

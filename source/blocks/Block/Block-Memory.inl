@@ -114,7 +114,7 @@ namespace Langulus::Anyness
                         or CT::CopyMakable<TYPE>
                         ) {
                         mRaw = const_cast<Byte*>(mEntry->GetBlockStart());
-                        CreateSemantic(Abandon(previousBlock));
+                        CreateWithIntent(Abandon(previousBlock));
                         previousBlock.Free();
                      }
                      else LANGULUS_THROW(Construct,
@@ -127,11 +127,11 @@ namespace Langulus::Anyness
                      // copiable/referable.                             
                      if constexpr (CT::ReferMakable<TYPE>) {
                         AllocateFresh(request);
-                        CreateSemantic(Refer(previousBlock));
+                        CreateWithIntent(Refer(previousBlock));
                      }
                      else if constexpr (CT::CopyMakable<TYPE>) {
                         AllocateFresh(request);
-                        CreateSemantic(Copy(previousBlock));
+                        CreateWithIntent(Copy(previousBlock));
                      }
                      else LANGULUS_THROW(Construct,
                         "Memory moved, but T is not refer/copy-constructible");
@@ -268,10 +268,10 @@ namespace Langulus::Anyness
          return;
       }
 
-      // Shallow-copy all elements (equivalent to a Copy semantic)      
+      // Shallow-copy all elements (equivalent to a Copy intent)        
       Block shallowCopy {*this};
       shallowCopy.AllocateFresh(RequestSize(mCount));
-      shallowCopy.CreateSemantic(Refer(*this));
+      shallowCopy.CreateWithIntent(Refer(*this));
       shallowCopy.mState -= DataState::Static | DataState::Constant;
       CopyMemory(this, &shallowCopy);
    }
@@ -315,13 +315,13 @@ namespace Langulus::Anyness
                // Sparse containers have additional memory allocated for
                // each pointer's entry, if managed memory is enabled    
                mRaw = const_cast<Byte*>(mEntry->GetBlockStart());
-               CreateSemantic(Abandon(previousBlock));
+               CreateWithIntent(Abandon(previousBlock));
             }
             else {
                // Memory is used from multiple locations, and we must   
                // copy the memory for this block - we can't move it!    
                AllocateFresh(request);
-               CreateSemantic(Refer(previousBlock));
+               CreateWithIntent(Refer(previousBlock));
                previousBlock.Free();
             }
          }

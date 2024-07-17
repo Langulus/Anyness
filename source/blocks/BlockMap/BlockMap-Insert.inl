@@ -14,15 +14,15 @@
 namespace Langulus::Anyness
 {
 
-   /// Wrap the argument semantically into a handle with key's type           
+   /// Wrap the argument into a handle with key's type                        
    ///   @attention if key is a type-erased handle or void*, we assume that   
    ///      the pointer always points to a valid instance of the current      
    ///      key type                                                          
-   ///   @param key - the key to wrap                                         
+   ///   @param key - the key to wrap, with or without intent                 
    ///   @return the handle object                                            
    template<CT::Map THIS>
    auto BlockMap::CreateKeyHandle(auto&& key) {
-      using S = SemanticOf<decltype(key)>;
+      using S = IntentOf<decltype(key)>;
       using T = TypeOf<S>;
 
       if constexpr (CT::Typed<THIS>) {
@@ -38,15 +38,15 @@ namespace Langulus::Anyness
       }
    }
 
-   /// Wrap the argument semantically into a handle with value's type         
+   /// Wrap the argument into a handle with value's type                      
    ///   @attention if value is a type-erased handle or void*, we assume that 
    ///      the pointer always points to a valid instance of the current      
    ///      value type                                                        
-   ///   @param val - the value to wrap                                       
+   ///   @param val - the value to wrap, with or without intent               
    ///   @return the handle object                                            
    template<CT::Map THIS>
    auto BlockMap::CreateValHandle(auto&& val) {
-      using S = SemanticOf<decltype(val)>;
+      using S = IntentOf<decltype(val)>;
       using T = TypeOf<S>;
 
       if constexpr (CT::Typed<THIS>) {
@@ -63,12 +63,12 @@ namespace Langulus::Anyness
    }
 
    /// Insert a pair, or an array of pairs                                    
-   ///   @param item - the argument to unfold and insert, can be semantic     
+   ///   @param item - the argument to unfold and insert, can have intent     
    ///   @return the number of inserted elements after unfolding              
    template<CT::Map THIS>
    Count BlockMap::UnfoldInsert(auto&& item) {
       using E = Conditional<CT::Typed<THIS>, typename THIS::Pair, Anyness::Pair>;
-      using S = SemanticOf<decltype(item)>;
+      using S = IntentOf<decltype(item)>;
       using T = TypeOf<S>;
 
       if constexpr (CT::Typed<THIS>) {
@@ -81,31 +81,31 @@ namespace Langulus::Anyness
          if constexpr (CT::Typed<THIS>) {
             if constexpr (CT::MakableFrom<E, Deext<T>>) {
                // Construct from an array of elements, each of which    
-               // can be used to initialize a pair, nesting any         
-               // semantic while doing it                               
+               // can be used to initialize a pair, nesting any intent  
+               // while at it                                           
                Reserve<THIS>(GetCount() + ExtentOf<T>);
                const auto mask = GetReserved() - 1;
-               for (auto& pair : DesemCast(item))
+               for (auto& pair : DeintCast(item))
                   inserted += InsertPairInner<THIS, true>(mask, S::Nest(pair));
             }
             else if constexpr (CT::MakableFrom<E, CT::Unfold<Deext<T>>>) {
                // Construct from an array of things, which can't be used
                // to directly construct elements, so nest this insert   
-               for (auto& pair : DesemCast(item))
+               for (auto& pair : DeintCast(item))
                   inserted += UnfoldInsert<THIS>(S::Nest(pair));
             }
             else LANGULUS_ERROR("Array elements aren't insertable as pairs");
          }
          else {
             // Insert the array                                         
-            const auto& firstPair = DesemCast(item)[0];
+            const auto& firstPair = DeintCast(item)[0];
             Mutate<THIS>(
                firstPair.GetKeyBlock().GetType(),
                firstPair.GetValueBlock().GetType()
             );
             Reserve<THIS>(GetCount() + ExtentOf<T>);
             const auto mask = GetReserved() - 1;
-            for (auto& pair : DesemCast(item)) {
+            for (auto& pair : DeintCast(item)) {
                Mutate<THIS>(
                   pair.GetKeyBlock().GetType(),
                   pair.GetValueBlock().GetType()
@@ -130,14 +130,14 @@ namespace Langulus::Anyness
 
                if constexpr (CT::MakableFrom<E, T2>) {
                   // Elements are mappable                              
-                  Reserve<THIS>(GetCount() + DesemCast(item).GetCount());
+                  Reserve<THIS>(GetCount() + DeintCast(item).GetCount());
                   const auto mask = GetReserved() - 1;
-                  for (auto& pair : DesemCast(item))
+                  for (auto& pair : DeintCast(item))
                      inserted += InsertPairInner<THIS, true>(mask, S::Nest(pair));
                }
                else if constexpr (CT::MakableFrom<E, CT::Unfold<T2>>) {
                   // Map pairs need to be unfolded one by one           
-                  for (auto& pair : DesemCast(item))
+                  for (auto& pair : DeintCast(item))
                      inserted += UnfoldInsert<THIS>(S::Nest(pair));
                }
                else LANGULUS_ERROR("Maps aren't mappable to each other");
@@ -145,12 +145,12 @@ namespace Langulus::Anyness
             else {
                // The rhs map is type-erased                            
                Mutate<THIS>(
-                  DesemCast(item).GetKeyType(),
-                  DesemCast(item).GetValueType()
+                  DeintCast(item).GetKeyType(),
+                  DeintCast(item).GetValueType()
                );
-               Reserve<THIS>(GetCount() + DesemCast(item).GetCount());
+               Reserve<THIS>(GetCount() + DeintCast(item).GetCount());
                const auto mask = GetReserved() - 1;
-               for (auto& pair : DesemCast(item))
+               for (auto& pair : DeintCast(item))
                   inserted += InsertPairInner<THIS, true>(mask, S::Nest(pair));
             }
          }
@@ -161,8 +161,8 @@ namespace Langulus::Anyness
          // Some of the arguments might still be used directly to       
          // make pairs, forward these to standard insertion here        
          Mutate<THIS>(
-            DesemCast(item).GetKeyBlock().GetType(),
-            DesemCast(item).GetValueBlock().GetType()
+            DeintCast(item).GetKeyBlock().GetType(),
+            DeintCast(item).GetValueBlock().GetType()
          );
          Reserve<THIS>(GetCount() + 1);
          const auto mask = GetReserved() - 1;
@@ -173,33 +173,33 @@ namespace Langulus::Anyness
       return inserted;
    }
 
-   /// Manually insert pair, semantically or not                              
+   /// Manually insert pair, with or without intent                           
    ///   @param key - the key to insert                                       
    ///   @param val - the value to insert                                     
    ///   @return 1 if pair was inserted, zero otherwise                       
    template<CT::Map THIS> LANGULUS(INLINED)
    Count BlockMap::Insert(auto&& key, auto&& val) {
-      using SK = SemanticOf<decltype(key)>;
-      using SV = SemanticOf<decltype(val)>;
+      using SK = IntentOf<decltype(key)>;
+      using SV = IntentOf<decltype(val)>;
 
       Mutate<THIS, TypeOf<SK>, TypeOf<SV>>();
       Reserve<THIS>(GetCount() + 1);
       InsertInner<THIS, true>(
-         GetBucket(GetReserved() - 1, DesemCast(key)), 
+         GetBucket(GetReserved() - 1, DeintCast(key)), 
          SK::Nest(key), SV::Nest(val)
       );
       return 1;
    }
    
-   /// Manually insert type-rased pair, semantically or not                   
+   /// Manually insert type-rased pair, with or without intent                
    ///   @param key - the key to insert                                       
    ///   @param val - the value to insert                                     
    ///   @return 1 if pair was inserted or value was overwritten              
    template<CT::Map THIS, class T1, class T2>
-   requires CT::Block<Desem<T1>, Desem<T2>> LANGULUS(INLINED)
+   requires CT::Block<Deint<T1>, Deint<T2>> LANGULUS(INLINED)
    Count BlockMap::InsertBlock(T1&& key, T2&& val) {
-      using SK = SemanticOf<decltype(key)>;
-      using SV = SemanticOf<decltype(val)>;
+      using SK = IntentOf<decltype(key)>;
+      using SV = IntentOf<decltype(val)>;
       using KB = TypeOf<SK>;
       using VB = TypeOf<SV>;
 
@@ -208,14 +208,14 @@ namespace Langulus::Anyness
          Mutate<THIS, TypeOf<KB>, TypeOf<VB>>();
       else {
          Mutate<THIS>(
-            DesemCast(key).GetType(),
-            DesemCast(val).GetType()
+            DeintCast(key).GetType(),
+            DeintCast(val).GetType()
          );
       }
 
       const auto count = ::std::min(
-         DesemCast(key).GetCount(),
-         DesemCast(val).GetCount()
+         DeintCast(key).GetCount(),
+         DeintCast(val).GetCount()
       );
 
       Reserve<THIS>(GetCount() + count);
@@ -223,20 +223,20 @@ namespace Langulus::Anyness
       for (Offset i = 0; i < count; ++i) {
          if constexpr (not CT::Typed<KB> or not CT::Typed<VB>) {
             // Type-erased insertion                                    
-            auto keyBlock = DesemCast(key).GetElement(i);
+            auto keyBlock = DeintCast(key).GetElement(i);
             InsertBlockInner<THIS, true>(
                GetBucketUnknown(GetReserved() - 1, keyBlock),
                SK::Nest(keyBlock),
-               SV::Nest(DesemCast(val).GetElement(i))
+               SV::Nest(DeintCast(val).GetElement(i))
             );
          }
          else {
             // Static type insertion                                    
-            auto& keyRef = DesemCast(key)[i];
+            auto& keyRef = DeintCast(key)[i];
             InsertInner<THIS, true>(
                GetBucket(GetReserved() - 1, keyRef),
                SK::Nest(keyRef),
-               SV::Nest(DesemCast(val)[i])
+               SV::Nest(DeintCast(val)[i])
             );
          }
       }
@@ -244,7 +244,7 @@ namespace Langulus::Anyness
       return count;
    }
 
-   /// Unfold-insert pairs, semantically or not                               
+   /// Unfold-insert pairs, with or without intent                            
    ///   @param t1 - the first pair to insert                                 
    ///   @param tn... - the rest of the pairs to insert (optional)            
    ///   @return the number of inserted pairs                                 
@@ -354,12 +354,12 @@ namespace Langulus::Anyness
                else {
                   Block<> keyswap {mKeys.GetState(), GetKeyType<THIS>(), 1};
                   keyswap.AllocateFresh(keyswap.RequestSize(1));
-                  keyswap.CreateSemantic(Abandon(oldKey));
+                  keyswap.CreateWithIntent(Abandon(oldKey));
 
                   auto oldValue = GetValHandle<THIS>(oldIndex);
                   Block<> valswap {mValues.GetState(), GetValueType<THIS>(), 1};
                   valswap.AllocateFresh(valswap.RequestSize(1));
-                  valswap.CreateSemantic(Abandon(oldValue));
+                  valswap.CreateWithIntent(Abandon(oldValue));
 
                   // Destroy the pair and info at old index             
                   oldKey.Destroy();
@@ -435,7 +435,7 @@ namespace Langulus::Anyness
                else {
                   Block<> keyswap {mKeys.GetState(), GetKeyType<THIS>(), 1};
                   keyswap.AllocateFresh(keyswap.RequestSize(1));
-                  keyswap.CreateSemantic(Abandon(oldKey));
+                  keyswap.CreateWithIntent(Abandon(oldKey));
 
                   // Destroy the pair and info at old index             
                   oldKey.Destroy();
@@ -511,7 +511,7 @@ namespace Langulus::Anyness
                   auto oldValue = old.GetValHandle<THIS>(oldIndex);
                   Block<> valswap {mValues.GetState(), GetValueType<THIS>(), 1};
                   valswap.AllocateFresh(valswap.RequestSize(1));
-                  valswap.CreateSemantic(Abandon(oldValue));
+                  valswap.CreateWithIntent(Abandon(oldValue));
 
                   // Destroy the pair and info at old index             
                   oldValue.Destroy();
@@ -566,11 +566,11 @@ namespace Langulus::Anyness
                if (not mInfo[to] and attempt < *oldInfo) {
                   // Empty spot found, so move pair there               
                   auto key = GetKeyHandle<THIS>(oldIndex);
-                  GetKeyHandle<THIS>(to).CreateSemantic(Abandon(key));
+                  GetKeyHandle<THIS>(to).CreateWithIntent(Abandon(key));
                   key.Destroy();
 
                   auto val = GetValHandle<THIS>(oldIndex);
-                  GetValHandle<THIS>(to).CreateSemantic(Abandon(val));
+                  GetValHandle<THIS>(to).CreateWithIntent(Abandon(val));
                   val.Destroy();
 
                   mInfo[to] = attempt;
@@ -589,14 +589,14 @@ namespace Langulus::Anyness
    ///      provided arguments                                                
    ///   @tparam CHECK_FOR_MATCH - false if you guarantee key doesn't exist   
    ///   @param start - the starting index                                    
-   ///   @param key - key to insert (can be semantic)                         
-   ///   @param val - value to insert (can be semantic)                       
+   ///   @param key - key to insert, with or without intent                   
+   ///   @param val - value to insert, with or without intent                 
    ///   @return the offset at which pair was inserted                        
    template<CT::Map THIS, bool CHECK_FOR_MATCH>
    Offset BlockMap::InsertInner(const Offset start, auto&& key, auto&& val) {
       BranchOut<THIS>();
-      using SK = SemanticOf<decltype(key)>;
-      using SV = SemanticOf<decltype(val)>;
+      using SK = IntentOf<decltype(key)>;
+      using SV = IntentOf<decltype(val)>;
       auto keyswapper = CreateKeyHandle<THIS>(SK::Nest(key));
       auto valswapper = CreateValHandle<THIS>(SV::Nest(val));
 
@@ -611,7 +611,7 @@ namespace Langulus::Anyness
          if constexpr (CHECK_FOR_MATCH) {
             if (keyswapper.Compare(GetKeyRef<THIS>(index))) {
                // Neat, the key already exists - just set value and go  
-               GetValHandle<THIS>(index).AssignSemantic(Abandon(valswapper));
+               GetValHandle<THIS>(index).AssignWithIntent(Abandon(valswapper));
                return index;
             }
          }
@@ -639,8 +639,8 @@ namespace Langulus::Anyness
       // Might not seem like it, but we gave a guarantee, that this is  
       // eventually reached, unless key exists and returns early        
       const auto index = psl - GetInfo();
-      GetKeyHandle<THIS>(index).CreateSemantic(Abandon(keyswapper));
-      GetValHandle<THIS>(index).CreateSemantic(Abandon(valswapper));
+      GetKeyHandle<THIS>(index).CreateWithIntent(Abandon(keyswapper));
+      GetValHandle<THIS>(index).CreateWithIntent(Abandon(valswapper));
       if (insertedAt == mKeys.mReserved)
          insertedAt = index;
 
@@ -656,7 +656,7 @@ namespace Langulus::Anyness
    ///   @param val - value to move in                                        
    ///   @return the offset at which pair was inserted                        
    template<CT::Map THIS, bool CHECK_FOR_MATCH, template<class> class S1, template<class> class S2, CT::Block T>
-   requires CT::Semantic<S1<T>, S2<T>>
+   requires CT::Intent<S1<T>, S2<T>>
    Offset BlockMap::InsertBlockInner(const Offset start, S1<T>&& key, S2<T>&& val) {
       BranchOut<THIS>();
 
@@ -671,7 +671,7 @@ namespace Langulus::Anyness
             const auto candidate = GetKeyHandle<THIS>(index);
             if (candidate == *key) {
                // Neat, the key already exists - just set value and go  
-               GetValHandle<THIS>(index).AssignSemantic(val.Forward());
+               GetValHandle<THIS>(index).AssignWithIntent(val.Forward());
 
                if constexpr (S2<T>::Move) {
                   val->Destroy();
@@ -706,8 +706,8 @@ namespace Langulus::Anyness
       // eventually reached, unless key exists and returns early        
       // We're moving only a single element, so no chance of overlap    
       const auto index = psl - GetInfo();
-      GetKeyHandle<THIS>(index).CreateSemantic(key.Forward());
-      GetValHandle<THIS>(index).CreateSemantic(val.Forward());
+      GetKeyHandle<THIS>(index).CreateWithIntent(key.Forward());
+      GetValHandle<THIS>(index).CreateWithIntent(val.Forward());
 
       if (insertedAt == mKeys.mReserved)
          insertedAt = index;
@@ -730,10 +730,10 @@ namespace Langulus::Anyness
    /// Insert any pair into a preinitialized map                              
    ///   @tparam CHECK_FOR_MATCH - false if you guarantee key doesn't exist   
    ///   @param hashmask - precalculated hashmask                             
-   ///   @param pair - the semantic and pair type to insert                   
+   ///   @param pair - the pair to insert, with or without intent             
    ///   @return the number of newly inserted pairs                           
    template<CT::Map THIS, bool CHECK_FOR_MATCH, template<class> class S, CT::Pair T>
-   requires CT::Semantic<S<T>>
+   requires CT::Intent<S<T>>
    Count BlockMap::InsertPairInner(const Count hashmask, S<T>&& pair) {
       const auto initialCount = GetCount();
       if constexpr (CT::Typed<T>) {

@@ -35,10 +35,10 @@ namespace Langulus::Anyness
       : mValue {v}
       , mEntry {e} {}
 
-   /// Semantically construct using handle of any compatible type             
-   ///   @param other - the handle and semantic to construct with             
+   /// Construct using handle of any compatible type                          
+   ///   @param other - the handle and intent to construct with               
    TEMPLATE() template<template<class> class S, CT::Handle H>
-   requires CT::SemanticMakable<S, T> LANGULUS(INLINED)
+   requires CT::IntentMakable<S, T> LANGULUS(INLINED)
    constexpr HAND()::Handle(S<H>&& other)
       : mValue (S<T>(other->Get()))
       , mEntry {nullptr} {
@@ -208,15 +208,15 @@ namespace Langulus::Anyness
       else                                return  mEntry;
    }
 
-   /// Semantically instantiate anything at the handle                        
+   /// Instantiate anything at the handle, with or without an intent          
    ///   @attention this overwrites previous handle without dereferencing it, 
    ///      and without destroying anything - that's your responsibility      
    ///   @param rhs - what are we instantiating                               
    ///   @param type - type of the contained data, used only if handle is     
    ///      type-erased                                                       
    TEMPLATE() LANGULUS(INLINED)
-   void HAND()::CreateSemantic(auto&& rhs, DMeta type) {
-      using S  = SemanticOf<decltype(rhs)>;
+   void HAND()::CreateWithIntent(auto&& rhs, DMeta type) {
+      using S  = IntentOf<decltype(rhs)>;
       using ST = TypeOf<S>;
 
       if constexpr (TypeErased) {
@@ -271,7 +271,7 @@ namespace Langulus::Anyness
 
                   if constexpr (S::Keep and Embedded) {
                      // Raw pointers are always referenced, even when   
-                     // moved (as long as it's a keeper semantic)       
+                     // moved (as long as it's a keeper intent)         
                      if (GetEntry()) {
                         const_cast<Allocation*>(GetEntry())->Keep();
                         if (type->mReference)
@@ -354,7 +354,7 @@ namespace Langulus::Anyness
             }
             else if constexpr (CT::MakableFrom<T, ST>) {
                using DT = Deptr<T>;
-               Get() = DesemCast(rhs);
+               Get() = DeintCast(rhs);
                if constexpr (CT::Allocatable<DT> and (S::Keep or S::Move))
                   GetEntry() = Allocator::Find(MetaDataOf<DT>(), Get());
                else
@@ -362,7 +362,7 @@ namespace Langulus::Anyness
 
                if constexpr (S::Keep and Embedded) {
                   // Raw pointers are always referenced, even when moved
-                  // (as long as it's a keeper semantic)                
+                  // (as long as it's a keeper intent)                  
                   if (GetEntry()) {
                      const_cast<Allocation*>(GetEntry())->Keep();
                      if constexpr (CT::Referencable<Deptr<T>>)
@@ -397,11 +397,11 @@ namespace Langulus::Anyness
 
                if constexpr (CT::Handle<ST>) {
                   static_assert(CT::Similar<T, TypeOf<ST>>, "Type mismatch");
-                  SemanticNew(pointer, S::Nest(*rhs->Get()));
+                  IntentNew(pointer, S::Nest(*rhs->Get()));
                }
                else {
                   static_assert(CT::Similar<T, ST>, "Type mismatch");
-                  SemanticNew(pointer, S::Nest(**rhs));
+                  IntentNew(pointer, S::Nest(**rhs));
                }
 
                Get() = pointer;
@@ -432,10 +432,10 @@ namespace Langulus::Anyness
    ///   @param type - type of the contained data, used only if handle is     
    ///      type-erased                                                       
    TEMPLATE() LANGULUS(INLINED)
-   void HAND()::AssignSemantic(auto&& rhs, DMeta type) requires Mutable {
-      using S = SemanticOf<decltype(rhs)>;
+   void HAND()::AssignWithIntent(auto&& rhs, DMeta type) requires Mutable {
+      using S = IntentOf<decltype(rhs)>;
       Destroy(type);
-      CreateSemantic(S::Nest(rhs), type);
+      CreateWithIntent(S::Nest(rhs), type);
    }
    
    /// Swap any two handles, often this is embedded, while rhs is not         
@@ -461,8 +461,8 @@ namespace Langulus::Anyness
       else {
          HandleLocal<T> tmp {Abandon(*this)};
          Destroy<false, true>(type);
-         CreateSemantic(Abandon(rhs), type);
-         rhs.CreateSemantic(Abandon(tmp), type);
+         CreateWithIntent(Abandon(rhs), type);
+         rhs.CreateWithIntent(Abandon(tmp), type);
       }
    }
 

@@ -141,15 +141,15 @@ namespace Langulus::Anyness
       ///                                                                     
       using BlockMap::operator ==;
 
-      NOD() Index Find(const CT::NotSemantic auto&) const;
-      NOD() Iterator FindIt(const CT::NotSemantic auto&);
-      NOD() ConstIterator FindIt(const CT::NotSemantic auto&) const;
+      NOD() Index Find(const CT::NoIntent auto&) const;
+      NOD() Iterator FindIt(const CT::NoIntent auto&);
+      NOD() ConstIterator FindIt(const CT::NoIntent auto&) const;
 
-      NOD() decltype(auto) At(const CT::NotSemantic auto&);
-      NOD() decltype(auto) At(const CT::NotSemantic auto&) const;
+      NOD() decltype(auto) At(const CT::NoIntent auto&);
+      NOD() decltype(auto) At(const CT::NoIntent auto&) const;
 
-      NOD() decltype(auto) operator[] (const CT::NotSemantic auto&);
-      NOD() decltype(auto) operator[] (const CT::NotSemantic auto&) const;
+      NOD() decltype(auto) operator[] (const CT::NoIntent auto&);
+      NOD() decltype(auto) operator[] (const CT::NoIntent auto&) const;
 
       ///                                                                     
       ///   Memory management                                                 
@@ -161,12 +161,11 @@ namespace Langulus::Anyness
       ///                                                                     
       Count Insert(auto&&, auto&&);
 
-      template<class T1, class T2>
-      requires CT::Block<Desem<T1>, Desem<T2>>
+      template<class T1, class T2> requires CT::Block<Deint<T1>, Deint<T2>>
       Count InsertBlock(T1&&, T2&&);
 
-      template<class T1, class...TAIL>
-      Count InsertPair(T1&&, TAIL&&...);
+      template<class T1, class...TN>
+      Count InsertPair(T1&&, TN&&...);
 
       Map& operator << (CT::UnfoldInsertable auto&&);
       Map& operator >> (CT::UnfoldInsertable auto&&);
@@ -174,8 +173,8 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Removal                                                           
       ///                                                                     
-      Count RemoveKey(const CT::NotSemantic auto&);
-      Count RemoveValue(const CT::NotSemantic auto&);
+      Count RemoveKey(const CT::NoIntent auto&);
+      Count RemoveValue(const CT::NoIntent auto&);
       Count RemovePair(const CT::Pair auto&);
       Iterator RemoveIt(const Iterator&);
 

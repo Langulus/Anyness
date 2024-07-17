@@ -16,7 +16,7 @@ namespace Langulus::Anyness
    /// Checks type compatibility and sets type of type-erased maps            
    ///   @tparam K - the key type                                             
    ///   @tparam V - the value type                                           
-   template<CT::Map THIS, CT::NotSemantic K, CT::NotSemantic V>
+   template<CT::Map THIS, CT::NoIntent K, CT::NoIntent V>
    LANGULUS(INLINED) void BlockMap::Mutate() {
       if constexpr (CT::Typed<THIS>) {
          static_assert(CT::MakableFrom<typename THIS::Key, K>,

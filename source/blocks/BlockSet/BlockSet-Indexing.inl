@@ -177,7 +177,7 @@ namespace Langulus::Anyness
    ///   @param value - the value to hash                                     
    ///   @return the bucket index                                             
    LANGULUS(INLINED)
-   Offset BlockSet::GetBucket(const Offset mask, const CT::NotSemantic auto& value) noexcept {
+   Offset BlockSet::GetBucket(const Offset mask, const CT::NoIntent auto& value) noexcept {
       return HashOf(value).mHash & mask;
    }
    

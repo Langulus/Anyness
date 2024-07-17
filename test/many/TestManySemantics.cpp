@@ -10,16 +10,16 @@
 
 
 ///                                                                           
-///   Refer semantics                                                         
+///   Refer intents                                                           
 ///                                                                           
-TEMPLATE_TEST_CASE("Testing refer-makable types", "[semantics]",
+TEMPLATE_TEST_CASE("Testing refer-makable types", "[intents]",
    TMany<AggregateType>,
    TMany<ImplicitlyConstructible>,
    TMany<Destructible>,
-   TMany<NonSemanticConstructible>,
-   TMany<AllSemanticConstructible>,
-   TMany<AllSemanticConstructibleAndAssignable>,
-   TMany<PartiallySemanticConstructible>,
+   TMany<NonIntentConstructible>,
+   TMany<AllIntentConstructible>,
+   TMany<AllIntentConstructibleAndAssignable>,
+   TMany<PartiallyIntentConstructible>,
    TMany<DescriptorConstructible>,
    TMany<Complex>, TMany<ContainsComplex>,
    TMany<bool>, TMany<uint32_t>, TMany<float>, TMany<char>, TMany<wchar_t>, TMany<char8_t>, TMany<Langulus::Byte>,
@@ -31,10 +31,10 @@ TEMPLATE_TEST_CASE("Testing refer-makable types", "[semantics]",
    using T = TestType;
    static_assert(CT::ReferMakable<T>);
    static_assert(CT::ReferMakable<T*>);
-   static_assert(CT::SemanticMakable<Referred, T>);
-   static_assert(CT::SemanticMakable<Referred, T*>);
-   static_assert(CT::SemanticMakableAlt<Referred<T>>);
-   static_assert(CT::SemanticMakableAlt<Referred<T*>>);
+   static_assert(CT::IntentMakable<Referred, T>);
+   static_assert(CT::IntentMakable<Referred, T*>);
+   static_assert(CT::IntentMakableAlt<Referred<T>>);
+   static_assert(CT::IntentMakableAlt<Referred<T*>>);
 
    auto meta1 = MetaDataOf<T>();
    REQUIRE(meta1);
@@ -45,7 +45,7 @@ TEMPLATE_TEST_CASE("Testing refer-makable types", "[semantics]",
    REQUIRE(meta2->mReferConstructor);
 }
 
-/*TEMPLATE_TEST_CASE("Testing non-refer-makable types", "[semantics]",
+/*TEMPLATE_TEST_CASE("Testing non-refer-makable types", "[intents]",
    //TMany<IncompleteType>,
    TMany<NonDestructible>,
    TMany<PrivatelyConstructible>
@@ -53,25 +53,25 @@ TEMPLATE_TEST_CASE("Testing refer-makable types", "[semantics]",
    using T = TestType;
    static_assert(not CT::ReferMakable<T>);
    static_assert(    CT::ReferMakable<T*>);
-   static_assert(not CT::SemanticMakable<Referred, T>);
-   static_assert(    CT::SemanticMakable<Referred, T*>);
-   static_assert(not CT::SemanticMakableAlt<Referred<T>>);
-   static_assert(    CT::SemanticMakableAlt<Referred<T*>>);
+   static_assert(not CT::IntentMakable<Referred, T>);
+   static_assert(    CT::IntentMakable<Referred, T*>);
+   static_assert(not CT::IntentMakableAlt<Referred<T>>);
+   static_assert(    CT::IntentMakableAlt<Referred<T*>>);
 
    auto meta = MetaDataOf<Conditional<CT::Complete<T>, T, T*>>();
    REQUIRE(meta);
    REQUIRE_FALSE(meta->mReferConstructor);
 }*/
 
-TEMPLATE_TEST_CASE("Testing refer-assignable types", "[semantics]",
+TEMPLATE_TEST_CASE("Testing refer-assignable types", "[intents]",
    TMany<AggregateType>,
    TMany<ImplicitlyConstructible>,
    TMany<NonDestructible>,
    TMany<Destructible>,
-   TMany<NonSemanticConstructible>,
-   TMany<AllSemanticConstructible>,
-   TMany<AllSemanticConstructibleAndAssignable>,
-   TMany<PartiallySemanticConstructible>,
+   TMany<NonIntentConstructible>,
+   TMany<AllIntentConstructible>,
+   TMany<AllIntentConstructibleAndAssignable>,
+   TMany<PartiallyIntentConstructible>,
    TMany<DescriptorConstructible>,
    TMany<bool>, TMany<uint32_t>, TMany<float>, TMany<char>, TMany<wchar_t>, TMany<char8_t>, TMany<Langulus::Byte>,
    TMany<AMeta>, TMany<TMeta>, TMany<CMeta>, TMany<DMeta>, TMany<VMeta>,
@@ -85,14 +85,14 @@ TEMPLATE_TEST_CASE("Testing refer-assignable types", "[semantics]",
    static_assert(not CT::ReferAssignable<const T>);
    static_assert(    CT::ReferAssignable<T*>);
    static_assert(    CT::ReferAssignable<const T*>);
-   static_assert(    CT::SemanticAssignable<Referred, T>);
-   static_assert(not CT::SemanticAssignable<Referred, const T>);
-   static_assert(    CT::SemanticAssignable<Referred, T*>);
-   static_assert(    CT::SemanticAssignable<Referred, const T*>);
-   static_assert(    CT::SemanticAssignableAlt<Referred<T>>);
-   static_assert(not CT::SemanticAssignableAlt<Referred<const T>>);
-   static_assert(    CT::SemanticAssignableAlt<Referred<T*>>);
-   static_assert(    CT::SemanticAssignableAlt<Referred<const T*>>);
+   static_assert(    CT::IntentAssignable<Referred, T>);
+   static_assert(not CT::IntentAssignable<Referred, const T>);
+   static_assert(    CT::IntentAssignable<Referred, T*>);
+   static_assert(    CT::IntentAssignable<Referred, const T*>);
+   static_assert(    CT::IntentAssignableAlt<Referred<T>>);
+   static_assert(not CT::IntentAssignableAlt<Referred<const T>>);
+   static_assert(    CT::IntentAssignableAlt<Referred<T*>>);
+   static_assert(    CT::IntentAssignableAlt<Referred<const T*>>);
 
    auto meta1 = MetaDataOf<T>();
    REQUIRE(meta1);
@@ -107,7 +107,7 @@ TEMPLATE_TEST_CASE("Testing refer-assignable types", "[semantics]",
    REQUIRE(meta3->mReferAssigner);
 }
 
-/*TEMPLATE_TEST_CASE("Testing non-refer-assignable types", "[semantics]",
+/*TEMPLATE_TEST_CASE("Testing non-refer-assignable types", "[intents]",
    //TMany<IncompleteType>,
    TMany<Complex>,
    TMany<ContainsComplex>,
@@ -118,14 +118,14 @@ TEMPLATE_TEST_CASE("Testing refer-assignable types", "[semantics]",
    static_assert(not CT::ReferAssignable<const T>);
    static_assert(    CT::ReferAssignable<T*>);
    static_assert(    CT::ReferAssignable<const T*>);
-   static_assert(not CT::SemanticAssignable<Referred, T>);
-   static_assert(not CT::SemanticAssignable<Referred, const T>);
-   static_assert(    CT::SemanticAssignable<Referred, T*>);
-   static_assert(    CT::SemanticAssignable<Referred, const T*>);
-   static_assert(not CT::SemanticAssignableAlt<Referred<T>>);
-   static_assert(not CT::SemanticAssignableAlt<Referred<const T>>);
-   static_assert(    CT::SemanticAssignableAlt<Referred<T*>>);
-   static_assert(    CT::SemanticAssignableAlt<Referred<const T*>>);
+   static_assert(not CT::IntentAssignable<Referred, T>);
+   static_assert(not CT::IntentAssignable<Referred, const T>);
+   static_assert(    CT::IntentAssignable<Referred, T*>);
+   static_assert(    CT::IntentAssignable<Referred, const T*>);
+   static_assert(not CT::IntentAssignableAlt<Referred<T>>);
+   static_assert(not CT::IntentAssignableAlt<Referred<const T>>);
+   static_assert(    CT::IntentAssignableAlt<Referred<T*>>);
+   static_assert(    CT::IntentAssignableAlt<Referred<const T*>>);
 
    auto meta = MetaDataOf<Conditional<CT::Complete<T>, T, T*>>();
    REQUIRE(meta);
@@ -134,16 +134,16 @@ TEMPLATE_TEST_CASE("Testing refer-assignable types", "[semantics]",
 
 
 ///                                                                           
-///   Move semantics                                                          
+///   Move intents                                                            
 ///                                                                           
-TEMPLATE_TEST_CASE("Testing move-makable types", "[semantics]",
+TEMPLATE_TEST_CASE("Testing move-makable types", "[intents]",
    TMany<AggregateType>,
    TMany<ImplicitlyConstructible>,
    TMany<Destructible>,
-   TMany<NonSemanticConstructible>,
-   TMany<AllSemanticConstructible>,
-   TMany<AllSemanticConstructibleAndAssignable>,
-   TMany<PartiallySemanticConstructible>,
+   TMany<NonIntentConstructible>,
+   TMany<AllIntentConstructible>,
+   TMany<AllIntentConstructibleAndAssignable>,
+   TMany<PartiallyIntentConstructible>,
    TMany<DescriptorConstructible>,
    TMany<Complex>,
    TMany<ContainsComplex>,
@@ -156,10 +156,10 @@ TEMPLATE_TEST_CASE("Testing move-makable types", "[semantics]",
    using T = TestType;
    static_assert(CT::MoveMakable<T>);
    static_assert(CT::MoveMakable<T*>);
-   static_assert(CT::SemanticMakable<Moved, T>);
-   static_assert(CT::SemanticMakable<Moved, T*>);
-   static_assert(CT::SemanticMakableAlt<Moved<T>>);
-   static_assert(CT::SemanticMakableAlt<Moved<T*>>);
+   static_assert(CT::IntentMakable<Moved, T>);
+   static_assert(CT::IntentMakable<Moved, T*>);
+   static_assert(CT::IntentMakableAlt<Moved<T>>);
+   static_assert(CT::IntentMakableAlt<Moved<T*>>);
 
    auto meta1 = MetaDataOf<T>();
    REQUIRE(meta1);
@@ -170,7 +170,7 @@ TEMPLATE_TEST_CASE("Testing move-makable types", "[semantics]",
    REQUIRE(meta2->mMoveConstructor);
 }
 
-/*TEMPLATE_TEST_CASE("Testing non-move-makable types", "[semantics]",
+/*TEMPLATE_TEST_CASE("Testing non-move-makable types", "[intents]",
    //TMany<IncompleteType>,
    TMany<NonDestructible>,
    TMany<PrivatelyConstructible>
@@ -178,24 +178,24 @@ TEMPLATE_TEST_CASE("Testing move-makable types", "[semantics]",
    using T = TestType;
    static_assert(not CT::MoveMakable<T>);
    static_assert(    CT::MoveMakable<T*>);
-   static_assert(not CT::SemanticMakable<Moved, T>);
-   static_assert(    CT::SemanticMakable<Moved, T*>);
-   static_assert(not CT::SemanticMakableAlt<Moved<T>>);
-   static_assert(    CT::SemanticMakableAlt<Moved<T*>>);
+   static_assert(not CT::IntentMakable<Moved, T>);
+   static_assert(    CT::IntentMakable<Moved, T*>);
+   static_assert(not CT::IntentMakableAlt<Moved<T>>);
+   static_assert(    CT::IntentMakableAlt<Moved<T*>>);
 
    auto meta = MetaDataOf<Conditional<CT::Complete<T>, T, T*>>();
    REQUIRE(meta);
    REQUIRE_FALSE(meta->mMoveConstructor);
 }*/
 
-TEMPLATE_TEST_CASE("Testing move-assignable types", "[semantics]",
+TEMPLATE_TEST_CASE("Testing move-assignable types", "[intents]",
    TMany<AggregateType>,
    TMany<ImplicitlyConstructible>,
    TMany<Destructible>,
-   TMany<NonSemanticConstructible>,
-   TMany<AllSemanticConstructible>,
-   TMany<AllSemanticConstructibleAndAssignable>,
-   TMany<PartiallySemanticConstructible>,
+   TMany<NonIntentConstructible>,
+   TMany<AllIntentConstructible>,
+   TMany<AllIntentConstructibleAndAssignable>,
+   TMany<PartiallyIntentConstructible>,
    TMany<DescriptorConstructible>,
    TMany<bool>, TMany<uint32_t>, TMany<float>, TMany<char>, TMany<wchar_t>, TMany<char8_t>, TMany<Langulus::Byte>,
    TMany<AMeta>, TMany<TMeta>, TMany<CMeta>, TMany<DMeta>, TMany<VMeta>,
@@ -210,14 +210,14 @@ TEMPLATE_TEST_CASE("Testing move-assignable types", "[semantics]",
    static_assert(not CT::MoveAssignable<const T>);
    static_assert(    CT::MoveAssignable<T*>);
    static_assert(    CT::MoveAssignable<const T*>);
-   static_assert(    CT::SemanticAssignable<Moved, T>);
-   static_assert(not CT::SemanticAssignable<Moved, const T>);
-   static_assert(    CT::SemanticAssignable<Moved, T*>);
-   static_assert(    CT::SemanticAssignable<Moved, const T*>);
-   static_assert(    CT::SemanticAssignableAlt<Moved<T>>);
-   static_assert(not CT::SemanticAssignableAlt<Moved<const T>>);
-   static_assert(    CT::SemanticAssignableAlt<Moved<T*>>);
-   static_assert(    CT::SemanticAssignableAlt<Moved<const T*>>);
+   static_assert(    CT::IntentAssignable<Moved, T>);
+   static_assert(not CT::IntentAssignable<Moved, const T>);
+   static_assert(    CT::IntentAssignable<Moved, T*>);
+   static_assert(    CT::IntentAssignable<Moved, const T*>);
+   static_assert(    CT::IntentAssignableAlt<Moved<T>>);
+   static_assert(not CT::IntentAssignableAlt<Moved<const T>>);
+   static_assert(    CT::IntentAssignableAlt<Moved<T*>>);
+   static_assert(    CT::IntentAssignableAlt<Moved<const T*>>);
 
    auto meta1 = MetaDataOf<T>();
    REQUIRE(meta1);
@@ -232,7 +232,7 @@ TEMPLATE_TEST_CASE("Testing move-assignable types", "[semantics]",
    REQUIRE(meta3->mMoveAssigner);
 }
 
-/*TEMPLATE_TEST_CASE("Testing non-move-assignable types", "[semantics]",
+/*TEMPLATE_TEST_CASE("Testing non-move-assignable types", "[intents]",
    //TMany<IncompleteType>,
    TMany<NonDestructible>,
    TMany<Complex>,
@@ -244,14 +244,14 @@ TEMPLATE_TEST_CASE("Testing move-assignable types", "[semantics]",
    static_assert(not CT::MoveAssignable<const T>);
    static_assert(    CT::MoveAssignable<T*>);
    static_assert(    CT::MoveAssignable<const T*>);
-   static_assert(not CT::SemanticAssignable<Moved, T>);
-   static_assert(not CT::SemanticAssignable<Moved, const T>);
-   static_assert(    CT::SemanticAssignable<Moved, T*>);
-   static_assert(    CT::SemanticAssignable<Moved, const T*>);
-   static_assert(not CT::SemanticAssignableAlt<Moved<T>>);
-   static_assert(not CT::SemanticAssignableAlt<Moved<const T>>);
-   static_assert(    CT::SemanticAssignableAlt<Moved<T*>>);
-   static_assert(    CT::SemanticAssignableAlt<Moved<const T*>>);
+   static_assert(not CT::IntentAssignable<Moved, T>);
+   static_assert(not CT::IntentAssignable<Moved, const T>);
+   static_assert(    CT::IntentAssignable<Moved, T*>);
+   static_assert(    CT::IntentAssignable<Moved, const T*>);
+   static_assert(not CT::IntentAssignableAlt<Moved<T>>);
+   static_assert(not CT::IntentAssignableAlt<Moved<const T>>);
+   static_assert(    CT::IntentAssignableAlt<Moved<T*>>);
+   static_assert(    CT::IntentAssignableAlt<Moved<const T*>>);
 
    auto meta = MetaDataOf<Conditional<CT::Complete<T>, T, T*>>();
    REQUIRE(meta);
@@ -262,30 +262,30 @@ TEMPLATE_TEST_CASE("Testing move-assignable types", "[semantics]",
 ///                                                                           
 ///   Copy semantics                                                          
 ///                                                                           
-TEMPLATE_TEST_CASE("Testing copy-makable types", "[semantics]",
+TEMPLATE_TEST_CASE("Testing copy-makable types", "[intents]",
    TMany<ImplicitlyConstructible>,
    TMany<AggregateType>,
-   TMany<AllSemanticConstructible>,
-   TMany<AllSemanticConstructibleImplicit>,
-   TMany<AllSemanticConstructibleAndAssignable>,
-   TMany<PartiallySemanticConstructible>,
+   TMany<AllIntentConstructible>,
+   TMany<AllIntentConstructibleImplicit>,
+   TMany<AllIntentConstructibleAndAssignable>,
+   TMany<PartiallyIntentConstructible>,
    TMany<bool>, TMany<uint32_t>, TMany<float>, TMany<char>, TMany<wchar_t>, TMany<char8_t>, TMany<Langulus::Byte>,
    TMany<AMeta>, TMany<TMeta>, TMany<CMeta>, TMany<DMeta>, TMany<VMeta>,
    TMany<ForcefullyPod>,
    TMany<Destructible>,
    TMany<Complex>,
    TMany<ContainsComplex>,
-   TMany<NonSemanticConstructible>,
+   TMany<NonIntentConstructible>,
    TMany<DescriptorConstructible>,
    TMany<AggregateTypeComplex>
 ) {
    using T = TestType;
    static_assert(CT::CopyMakable<T>);
    static_assert(CT::CopyMakable<T*>);
-   static_assert(CT::SemanticMakable<Copied, T>);
-   static_assert(CT::SemanticMakable<Copied, T*>);
-   static_assert(CT::SemanticMakableAlt<Copied<T>>);
-   static_assert(CT::SemanticMakableAlt<Copied<T*>>);
+   static_assert(CT::IntentMakable<Copied, T>);
+   static_assert(CT::IntentMakable<Copied, T*>);
+   static_assert(CT::IntentMakableAlt<Copied<T>>);
+   static_assert(CT::IntentMakableAlt<Copied<T*>>);
 
    auto meta1 = MetaDataOf<T>();
    REQUIRE(meta1);
@@ -296,7 +296,7 @@ TEMPLATE_TEST_CASE("Testing copy-makable types", "[semantics]",
    REQUIRE(meta2->mCopyConstructor);
 }
 
-TEMPLATE_TEST_CASE("Testing non-copy-makable types", "[semantics]",
+TEMPLATE_TEST_CASE("Testing non-copy-makable types", "[intents]",
    //TMany<IncompleteType>,
    TMany<NonDestructible>,
    TMany<PrivatelyConstructible>
@@ -304,31 +304,31 @@ TEMPLATE_TEST_CASE("Testing non-copy-makable types", "[semantics]",
    using T = TestType;
    static_assert(not CT::CopyMakable<T>);
    static_assert(    CT::CopyMakable<T*>);
-   static_assert(not CT::SemanticMakable<Copied, T>);
-   static_assert(    CT::SemanticMakable<Copied, T*>);
-   static_assert(not CT::SemanticMakableAlt<Copied<T>>);
-   static_assert(    CT::SemanticMakableAlt<Copied<T*>>);
+   static_assert(not CT::IntentMakable<Copied, T>);
+   static_assert(    CT::IntentMakable<Copied, T*>);
+   static_assert(not CT::IntentMakableAlt<Copied<T>>);
+   static_assert(    CT::IntentMakableAlt<Copied<T*>>);
 
    auto meta = MetaDataOf<Conditional<CT::Complete<T>, T, T*>>();
    REQUIRE(meta);
    REQUIRE_FALSE(meta->mCopyConstructor);
 }
 
-TEMPLATE_TEST_CASE("Testing copy-assignable types", "[semantics]",
+TEMPLATE_TEST_CASE("Testing copy-assignable types", "[intents]",
    TMany<ImplicitlyConstructible>,
    TMany<AggregateType>,
-   TMany<AllSemanticConstructibleImplicit>,
-   TMany<AllSemanticConstructibleAndAssignable>,
+   TMany<AllIntentConstructibleImplicit>,
+   TMany<AllIntentConstructibleAndAssignable>,
    TMany<bool>, TMany<uint32_t>, TMany<float>, TMany<char>, TMany<wchar_t>, TMany<char8_t>, TMany<Langulus::Byte>,
    TMany<AMeta>, TMany<TMeta>, TMany<CMeta>, TMany<DMeta>, TMany<VMeta>,
    TMany<ForcefullyPod>,
    TMany<Destructible>,
    TMany<Complex>,
    TMany<ContainsComplex>,
-   TMany<NonSemanticConstructible>,
+   TMany<NonIntentConstructible>,
    TMany<DescriptorConstructible>,
-   TMany<AllSemanticConstructible>,
-   TMany<PartiallySemanticConstructible>,
+   TMany<AllIntentConstructible>,
+   TMany<PartiallyIntentConstructible>,
    TMany<AggregateTypeComplex>
 ) {
    using T = TestType;
@@ -336,14 +336,14 @@ TEMPLATE_TEST_CASE("Testing copy-assignable types", "[semantics]",
    static_assert(not CT::CopyAssignable<const T>);
    static_assert(    CT::CopyAssignable<T*>);
    static_assert(    CT::CopyAssignable<const T*>);
-   static_assert(    CT::SemanticAssignable<Copied, T>);
-   static_assert(not CT::SemanticAssignable<Copied, const T>);
-   static_assert(    CT::SemanticAssignable<Copied, T*>);
-   static_assert(    CT::SemanticAssignable<Copied, const T*>);
-   static_assert(    CT::SemanticAssignableAlt<Copied<T>>);
-   static_assert(not CT::SemanticAssignableAlt<Copied<const T>>);
-   static_assert(    CT::SemanticAssignableAlt<Copied<T*>>);
-   static_assert(    CT::SemanticAssignableAlt<Copied<const T*>>);
+   static_assert(    CT::IntentAssignable<Copied, T>);
+   static_assert(not CT::IntentAssignable<Copied, const T>);
+   static_assert(    CT::IntentAssignable<Copied, T*>);
+   static_assert(    CT::IntentAssignable<Copied, const T*>);
+   static_assert(    CT::IntentAssignableAlt<Copied<T>>);
+   static_assert(not CT::IntentAssignableAlt<Copied<const T>>);
+   static_assert(    CT::IntentAssignableAlt<Copied<T*>>);
+   static_assert(    CT::IntentAssignableAlt<Copied<const T*>>);
 
    auto meta1 = MetaDataOf<T>();
    REQUIRE(meta1);
@@ -358,7 +358,7 @@ TEMPLATE_TEST_CASE("Testing copy-assignable types", "[semantics]",
    REQUIRE(meta3->mCopyAssigner);
 }
 
-TEMPLATE_TEST_CASE("Testing non-copy-assignable types", "[semantics]",
+TEMPLATE_TEST_CASE("Testing non-copy-assignable types", "[intents]",
    //TMany<IncompleteType>,
    TMany<NonDestructible>,
    TMany<PrivatelyConstructible>
@@ -368,14 +368,14 @@ TEMPLATE_TEST_CASE("Testing non-copy-assignable types", "[semantics]",
    static_assert(not CT::CopyAssignable<const T>);
    static_assert(    CT::CopyAssignable<T*>);
    static_assert(    CT::CopyAssignable<const T*>);
-   static_assert(not CT::SemanticAssignable<Copied, T>);
-   static_assert(not CT::SemanticAssignable<Copied, const T>);
-   static_assert(    CT::SemanticAssignable<Copied, T*>);
-   static_assert(    CT::SemanticAssignable<Copied, const T*>);
-   static_assert(not CT::SemanticAssignableAlt<Copied<T>>);
-   static_assert(not CT::SemanticAssignableAlt<Copied<const T>>);
-   static_assert(    CT::SemanticAssignableAlt<Copied<T*>>);
-   static_assert(    CT::SemanticAssignableAlt<Copied<const T*>>);
+   static_assert(not CT::IntentAssignable<Copied, T>);
+   static_assert(not CT::IntentAssignable<Copied, const T>);
+   static_assert(    CT::IntentAssignable<Copied, T*>);
+   static_assert(    CT::IntentAssignable<Copied, const T*>);
+   static_assert(not CT::IntentAssignableAlt<Copied<T>>);
+   static_assert(not CT::IntentAssignableAlt<Copied<const T>>);
+   static_assert(    CT::IntentAssignableAlt<Copied<T*>>);
+   static_assert(    CT::IntentAssignableAlt<Copied<const T*>>);
 
    auto meta = MetaDataOf<Conditional<CT::Complete<T>, T, T*>>();
    REQUIRE(meta);
@@ -386,11 +386,11 @@ TEMPLATE_TEST_CASE("Testing non-copy-assignable types", "[semantics]",
 ///                                                                           
 ///   Clone semantics                                                         
 ///                                                                           
-TEMPLATE_TEST_CASE("Testing clone-makable types", "[semantics]",
+TEMPLATE_TEST_CASE("Testing clone-makable types", "[intents]",
    TMany<ImplicitlyConstructible>,
-   TMany<AllSemanticConstructible>,
-   TMany<AllSemanticConstructibleAndAssignable>,
-   TMany<PartiallySemanticConstructible>,
+   TMany<AllIntentConstructible>,
+   TMany<AllIntentConstructibleAndAssignable>,
+   TMany<PartiallyIntentConstructible>,
    TMany<bool>, TMany<uint32_t>, TMany<float>, TMany<char>, TMany<wchar_t>, TMany<char8_t>, TMany<Langulus::Byte>,
    TMany<AMeta>, TMany<TMeta>, TMany<CMeta>, TMany<DMeta>, TMany<VMeta>,
    TMany<ForcefullyPod>,
@@ -399,10 +399,10 @@ TEMPLATE_TEST_CASE("Testing clone-makable types", "[semantics]",
    using T = TestType;
    static_assert(CT::CloneMakable<T>);
    static_assert(CT::CloneMakable<T*>);
-   static_assert(CT::SemanticMakable<Cloned, T>);
-   static_assert(CT::SemanticMakable<Cloned, T*>);
-   static_assert(CT::SemanticMakableAlt<Cloned<T>>);
-   static_assert(CT::SemanticMakableAlt<Cloned<T*>>);
+   static_assert(CT::IntentMakable<Cloned, T>);
+   static_assert(CT::IntentMakable<Cloned, T*>);
+   static_assert(CT::IntentMakableAlt<Cloned<T>>);
+   static_assert(CT::IntentMakableAlt<Cloned<T*>>);
 
    auto meta1 = MetaDataOf<T>();
    REQUIRE(meta1);
@@ -413,12 +413,12 @@ TEMPLATE_TEST_CASE("Testing clone-makable types", "[semantics]",
    REQUIRE(meta2->mCloneConstructor);
 }
 
-TEMPLATE_TEST_CASE("Testing non-clone-makable types", "[semantics]",
+TEMPLATE_TEST_CASE("Testing non-clone-makable types", "[intents]",
    //TMany<IncompleteType>,
    TMany<NonDestructible>,
    TMany<Destructible>,
    TMany<PrivatelyConstructible>,
-   TMany<NonSemanticConstructible>,
+   TMany<NonIntentConstructible>,
    TMany<DescriptorConstructible>,
    TMany<Complex>,
    TMany<ContainsComplex>,
@@ -428,40 +428,40 @@ TEMPLATE_TEST_CASE("Testing non-clone-makable types", "[semantics]",
    static_assert(not CT::DeepMakable<TypeOf<T>, Cloned<TestType>>);
    static_assert(not CT::CloneMakable<T>);
    static_assert(not CT::CloneMakable<T*>);
-   static_assert(not CT::SemanticMakable<Cloned, T>);
-   static_assert(not CT::SemanticMakable<Cloned, T*>);
-   static_assert(not CT::SemanticMakableAlt<Cloned<T>>);
-   static_assert(not CT::SemanticMakableAlt<Cloned<T*>>);
+   static_assert(not CT::IntentMakable<Cloned, T>);
+   static_assert(not CT::IntentMakable<Cloned, T*>);
+   static_assert(not CT::IntentMakableAlt<Cloned<T>>);
+   static_assert(not CT::IntentMakableAlt<Cloned<T*>>);
 
    auto meta = MetaDataOf<Conditional<CT::Complete<T>, T, T*>>();
    REQUIRE(meta);
    REQUIRE_FALSE(meta->mCloneConstructor);
 }
 
-TEMPLATE_TEST_CASE("Testing clone-assignable types", "[semantics]",
+TEMPLATE_TEST_CASE("Testing clone-assignable types", "[intents]",
    TMany<ImplicitlyConstructible>,
-   TMany<AllSemanticConstructibleImplicit>,
-   TMany<AllSemanticConstructibleAndAssignable>,
+   TMany<AllIntentConstructibleImplicit>,
+   TMany<AllIntentConstructibleAndAssignable>,
    TMany<bool>, TMany<uint32_t>, TMany<float>, TMany<char>, TMany<wchar_t>, TMany<char8_t>, TMany<Langulus::Byte>,
    TMany<AMeta>, TMany<TMeta>, TMany<CMeta>, TMany<DMeta>, TMany<VMeta>,
    TMany<ForcefullyPod>,
    TMany<AggregateType>,
-   TMany<AllSemanticConstructible>,       // see @attention notice in the test below
-   TMany<PartiallySemanticConstructible>  // see @attention notice in the test below
+   TMany<AllIntentConstructible>,       // see @attention notice in the test below
+   TMany<PartiallyIntentConstructible>  // see @attention notice in the test below
 ) {
    using T = TestType;
    static_assert(    CT::CloneAssignable<T>);
    static_assert(not CT::CloneAssignable<const T>);
    static_assert(    CT::CloneAssignable<T*>);
    static_assert(not CT::CloneAssignable<const T*>);
-   static_assert(    CT::SemanticAssignable<Cloned, T>);
-   static_assert(not CT::SemanticAssignable<Cloned, const T>);
-   static_assert(    CT::SemanticAssignable<Cloned, T*>);
-   static_assert(not CT::SemanticAssignable<Cloned, const T*>);
-   static_assert(    CT::SemanticAssignableAlt<Cloned<T>>);
-   static_assert(not CT::SemanticAssignableAlt<Cloned<const T>>);
-   static_assert(    CT::SemanticAssignableAlt<Cloned<T*>>);
-   static_assert(not CT::SemanticAssignableAlt<Cloned<const T*>>);
+   static_assert(    CT::IntentAssignable<Cloned, T>);
+   static_assert(not CT::IntentAssignable<Cloned, const T>);
+   static_assert(    CT::IntentAssignable<Cloned, T*>);
+   static_assert(not CT::IntentAssignable<Cloned, const T*>);
+   static_assert(    CT::IntentAssignableAlt<Cloned<T>>);
+   static_assert(not CT::IntentAssignableAlt<Cloned<const T>>);
+   static_assert(    CT::IntentAssignableAlt<Cloned<T*>>);
+   static_assert(not CT::IntentAssignableAlt<Cloned<const T*>>);
 
    auto meta1 = MetaDataOf<T>();
    REQUIRE(meta1);
@@ -476,16 +476,16 @@ TEMPLATE_TEST_CASE("Testing clone-assignable types", "[semantics]",
    REQUIRE(meta3->mCloneAssigner);
 }
 
-TEMPLATE_TEST_CASE("Testing non-clone-assignable types", "[semantics]",
+TEMPLATE_TEST_CASE("Testing non-clone-assignable types", "[intents]",
    //TMany<IncompleteType>,
    TMany<NonDestructible>,
    TMany<Destructible>,
    TMany<PrivatelyConstructible>,
-   TMany<NonSemanticConstructible>,
+   TMany<NonIntentConstructible>,
    TMany<Complex>,
    TMany<ContainsComplex>,
-   //TMany<AllSemanticConstructible>,        // see @attention notice below    
-   //TMany<PartiallySemanticConstructible>,  // see @attention notice below    
+   //TMany<AllIntentConstructible>,        // see @attention notice below    
+   //TMany<PartiallyIntentConstructible>,  // see @attention notice below    
    TMany<DescriptorConstructible>,
    TMany<AggregateTypeComplex>
 ) {
@@ -501,14 +501,14 @@ TEMPLATE_TEST_CASE("Testing non-clone-assignable types", "[semantics]",
    static_assert(not CT::CloneAssignable<const T>);
    static_assert(not CT::CloneAssignable<T*>);
    static_assert(not CT::CloneAssignable<const T*>);
-   static_assert(not CT::SemanticAssignable<Cloned, T>);
-   static_assert(not CT::SemanticAssignable<Cloned, const T>);
-   static_assert(not CT::SemanticAssignable<Cloned, T*>);
-   static_assert(not CT::SemanticAssignable<Cloned, const T*>);
-   static_assert(not CT::SemanticAssignableAlt<Cloned<T>>);
-   static_assert(not CT::SemanticAssignableAlt<Cloned<const T>>);
-   static_assert(not CT::SemanticAssignableAlt<Cloned<T*>>);
-   static_assert(not CT::SemanticAssignableAlt<Cloned<const T*>>);
+   static_assert(not CT::IntentAssignable<Cloned, T>);
+   static_assert(not CT::IntentAssignable<Cloned, const T>);
+   static_assert(not CT::IntentAssignable<Cloned, T*>);
+   static_assert(not CT::IntentAssignable<Cloned, const T*>);
+   static_assert(not CT::IntentAssignableAlt<Cloned<T>>);
+   static_assert(not CT::IntentAssignableAlt<Cloned<const T>>);
+   static_assert(not CT::IntentAssignableAlt<Cloned<T*>>);
+   static_assert(not CT::IntentAssignableAlt<Cloned<const T*>>);
 
    auto meta = MetaDataOf<Conditional<CT::Complete<T>, T, T*>>();
    REQUIRE(meta);
@@ -517,13 +517,13 @@ TEMPLATE_TEST_CASE("Testing non-clone-assignable types", "[semantics]",
 
 
 ///                                                                           
-///   Disown semantics                                                        
+///   Disown intents                                                          
 ///                                                                           
-TEMPLATE_TEST_CASE("Testing disown-makable types", "[semantics]",
+TEMPLATE_TEST_CASE("Testing disown-makable types", "[intents]",
    TMany<ImplicitlyConstructible>,
-   TMany<AllSemanticConstructible>,
-   TMany<AllSemanticConstructibleAndAssignable>,
-   TMany<PartiallySemanticConstructible>,
+   TMany<AllIntentConstructible>,
+   TMany<AllIntentConstructibleAndAssignable>,
+   TMany<PartiallyIntentConstructible>,
    TMany<bool>, TMany<uint32_t>, TMany<float>, TMany<char>, TMany<wchar_t>, TMany<char8_t>, TMany<Langulus::Byte>,
    TMany<AMeta>, TMany<TMeta>, TMany<CMeta>, TMany<DMeta>, TMany<VMeta>,
    TMany<ForcefullyPod>,
@@ -531,7 +531,7 @@ TEMPLATE_TEST_CASE("Testing disown-makable types", "[semantics]",
    TMany<NonDestructible>,
    TMany<Destructible>,
    TMany<PrivatelyConstructible>,
-   TMany<NonSemanticConstructible>,
+   TMany<NonIntentConstructible>,
    TMany<DescriptorConstructible>,
    TMany<Complex>,
    TMany<ContainsComplex>,
@@ -540,10 +540,10 @@ TEMPLATE_TEST_CASE("Testing disown-makable types", "[semantics]",
    using T = TestType;
    static_assert(CT::DisownMakable<T>);
    static_assert(CT::DisownMakable<T*>);
-   static_assert(CT::SemanticMakable<Disowned, T>);
-   static_assert(CT::SemanticMakable<Disowned, T*>);
-   static_assert(CT::SemanticMakableAlt<Disowned<T>>);
-   static_assert(CT::SemanticMakableAlt<Disowned<T*>>);
+   static_assert(CT::IntentMakable<Disowned, T>);
+   static_assert(CT::IntentMakable<Disowned, T*>);
+   static_assert(CT::IntentMakableAlt<Disowned<T>>);
+   static_assert(CT::IntentMakableAlt<Disowned<T*>>);
 
    auto meta1 = MetaDataOf<T>();
    REQUIRE(meta1);
@@ -554,7 +554,7 @@ TEMPLATE_TEST_CASE("Testing disown-makable types", "[semantics]",
    REQUIRE(meta2->mDisownConstructor);
 }
 
-/*TEMPLATE_TEST_CASE("Testing non-disown-makable types", "[semantics]",
+/*TEMPLATE_TEST_CASE("Testing non-disown-makable types", "[intents]",
    //TMany<IncompleteType>,
    TMany<PrivatelyConstructible>,
    TMany<NonSemanticConstructible>,
@@ -566,20 +566,20 @@ TEMPLATE_TEST_CASE("Testing disown-makable types", "[semantics]",
    using T = TestType;
    static_assert(not CT::DisownMakable<T>);
    static_assert(    CT::DisownMakable<T*>);
-   static_assert(not CT::SemanticMakable<Disowned, T>);
-   static_assert(    CT::SemanticMakable<Disowned, T*>);
-   static_assert(not CT::SemanticMakableAlt<Disowned<T>>);
-   static_assert(    CT::SemanticMakableAlt<Disowned<T*>>);
+   static_assert(not CT::IntentMakable<Disowned, T>);
+   static_assert(    CT::IntentMakable<Disowned, T*>);
+   static_assert(not CT::IntentMakableAlt<Disowned<T>>);
+   static_assert(    CT::IntentMakableAlt<Disowned<T*>>);
 
    auto meta = MetaDataOf<Conditional<CT::Complete<T>, T, T*>>();
    REQUIRE(meta);
    REQUIRE_FALSE(meta->mDisownConstructor);
 }*/
 
-TEMPLATE_TEST_CASE("Testing disown-assignable types", "[semantics]",
+TEMPLATE_TEST_CASE("Testing disown-assignable types", "[intents]",
    TMany<ImplicitlyConstructible>,
-   TMany<AllSemanticConstructibleImplicit>,
-   TMany<AllSemanticConstructibleAndAssignable>,
+   TMany<AllIntentConstructibleImplicit>,
+   TMany<AllIntentConstructibleAndAssignable>,
    TMany<bool>, TMany<uint32_t>, TMany<float>, TMany<char>, TMany<wchar_t>, TMany<char8_t>, TMany<Langulus::Byte>,
    TMany<AMeta>, TMany<TMeta>, TMany<CMeta>, TMany<DMeta>, TMany<VMeta>,
    TMany<ForcefullyPod>,
@@ -587,26 +587,26 @@ TEMPLATE_TEST_CASE("Testing disown-assignable types", "[semantics]",
    TMany<NonDestructible>,
    TMany<Destructible>,
    TMany<PrivatelyConstructible>,
-   TMany<NonSemanticConstructible>,
+   TMany<NonIntentConstructible>,
    TMany<DescriptorConstructible>,
    TMany<Complex>,
    TMany<ContainsComplex>,
-   TMany<AllSemanticConstructible>,
-   TMany<PartiallySemanticConstructible>
+   TMany<AllIntentConstructible>,
+   TMany<PartiallyIntentConstructible>
 ) {
    using T = TestType;
    static_assert(    CT::DisownAssignable<T>);
    static_assert(not CT::DisownAssignable<const T>);
    static_assert(    CT::DisownAssignable<T*>);
    static_assert(    CT::DisownAssignable<const T*>);
-   static_assert(    CT::SemanticAssignable<Disowned, T>);
-   static_assert(not CT::SemanticAssignable<Disowned, const T>);
-   static_assert(    CT::SemanticAssignable<Disowned, T*>);
-   static_assert(    CT::SemanticAssignable<Disowned, const T*>);
-   static_assert(    CT::SemanticAssignableAlt<Disowned<T>>);
-   static_assert(not CT::SemanticAssignableAlt<Disowned<const T>>);
-   static_assert(    CT::SemanticAssignableAlt<Disowned<T*>>);
-   static_assert(    CT::SemanticAssignableAlt<Disowned<const T*>>);
+   static_assert(    CT::IntentAssignable<Disowned, T>);
+   static_assert(not CT::IntentAssignable<Disowned, const T>);
+   static_assert(    CT::IntentAssignable<Disowned, T*>);
+   static_assert(    CT::IntentAssignable<Disowned, const T*>);
+   static_assert(    CT::IntentAssignableAlt<Disowned<T>>);
+   static_assert(not CT::IntentAssignableAlt<Disowned<const T>>);
+   static_assert(    CT::IntentAssignableAlt<Disowned<T*>>);
+   static_assert(    CT::IntentAssignableAlt<Disowned<const T*>>);
 
    auto meta1 = MetaDataOf<T>();
    REQUIRE(meta1);
@@ -621,31 +621,31 @@ TEMPLATE_TEST_CASE("Testing disown-assignable types", "[semantics]",
    REQUIRE(meta3->mDisownAssigner);
 }
 
-/*TEMPLATE_TEST_CASE("Testing non-disown-assignable types", "[semantics]",
+/*TEMPLATE_TEST_CASE("Testing non-disown-assignable types", "[intents]",
    //TMany<IncompleteType>,
    TMany<NonDestructible>,
    TMany<Destructible>,
    TMany<PrivatelyConstructible>,
-   TMany<NonSemanticConstructible>,
+   TMany<NonIntentConstructible>,
    TMany<DescriptorConstructible>,
    TMany<Complex>,
    TMany<ContainsComplex>,
-   TMany<AllSemanticConstructible>,
-   TMany<PartiallySemanticConstructible>
+   TMany<AllIntentConstructible>,
+   TMany<PartiallyIntentConstructible>
 ) {
    using T = TestType;
    static_assert(not CT::DisownAssignable<T>);
    static_assert(not CT::DisownAssignable<const T>);
    static_assert(    CT::DisownAssignable<T*>);
    static_assert(    CT::DisownAssignable<const T*>);
-   static_assert(not CT::SemanticAssignable<Disowned, T>);
-   static_assert(not CT::SemanticAssignable<Disowned, const T>);
-   static_assert(    CT::SemanticAssignable<Disowned, T*>);
-   static_assert(    CT::SemanticAssignable<Disowned, const T*>);
-   static_assert(not CT::SemanticAssignableAlt<Disowned<T>>);
-   static_assert(not CT::SemanticAssignableAlt<Disowned<const T>>);
-   static_assert(    CT::SemanticAssignableAlt<Disowned<T*>>);
-   static_assert(    CT::SemanticAssignableAlt<Disowned<const T*>>);
+   static_assert(not CT::IntentAssignable<Disowned, T>);
+   static_assert(not CT::IntentAssignable<Disowned, const T>);
+   static_assert(    CT::IntentAssignable<Disowned, T*>);
+   static_assert(    CT::IntentAssignable<Disowned, const T*>);
+   static_assert(not CT::IntentAssignableAlt<Disowned<T>>);
+   static_assert(not CT::IntentAssignableAlt<Disowned<const T>>);
+   static_assert(    CT::IntentAssignableAlt<Disowned<T*>>);
+   static_assert(    CT::IntentAssignableAlt<Disowned<const T*>>);
 
    auto meta = MetaDataOf<Conditional<CT::Complete<T>, T, T*>>();
    REQUIRE(meta);
@@ -654,15 +654,15 @@ TEMPLATE_TEST_CASE("Testing disown-assignable types", "[semantics]",
 
 
 ///                                                                           
-///   Abandon semantics                                                       
+///   Abandon intents                                                         
 ///                                                                           
-TEMPLATE_TEST_CASE("Testing abandon-makable types", "[semantics]",
+TEMPLATE_TEST_CASE("Testing abandon-makable types", "[intents]",
    TMany<ImplicitlyConstructible>,
    TMany<Destructible>,
-   TMany<NonSemanticConstructible>,
-   TMany<AllSemanticConstructible>,
-   TMany<AllSemanticConstructibleAndAssignable>,
-   TMany<PartiallySemanticConstructible>,
+   TMany<NonIntentConstructible>,
+   TMany<AllIntentConstructible>,
+   TMany<AllIntentConstructibleAndAssignable>,
+   TMany<PartiallyIntentConstructible>,
    TMany<DescriptorConstructible>,
    TMany<Complex>,
    TMany<ContainsComplex>,
@@ -676,10 +676,10 @@ TEMPLATE_TEST_CASE("Testing abandon-makable types", "[semantics]",
    using T = TestType;
    static_assert(CT::AbandonMakable<T>);
    static_assert(CT::AbandonMakable<T*>);
-   static_assert(CT::SemanticMakable<Abandoned, T>);
-   static_assert(CT::SemanticMakable<Abandoned, T*>);
-   static_assert(CT::SemanticMakableAlt<Abandoned<T>>);
-   static_assert(CT::SemanticMakableAlt<Abandoned<T*>>);
+   static_assert(CT::IntentMakable<Abandoned, T>);
+   static_assert(CT::IntentMakable<Abandoned, T*>);
+   static_assert(CT::IntentMakableAlt<Abandoned<T>>);
+   static_assert(CT::IntentMakableAlt<Abandoned<T*>>);
 
    auto meta1 = MetaDataOf<T>();
    REQUIRE(meta1);
@@ -690,7 +690,7 @@ TEMPLATE_TEST_CASE("Testing abandon-makable types", "[semantics]",
    REQUIRE(meta2->mAbandonConstructor);
 }
 
-/*TEMPLATE_TEST_CASE("Testing non-abandon-makable types", "[semantics]",
+/*TEMPLATE_TEST_CASE("Testing non-abandon-makable types", "[intents]",
    //TMany<IncompleteType>,
    TMany<NonDestructible>,
    TMany<PrivatelyConstructible>
@@ -698,23 +698,23 @@ TEMPLATE_TEST_CASE("Testing abandon-makable types", "[semantics]",
    using T = TestType;
    static_assert(not CT::AbandonMakable<T>);
    static_assert(    CT::AbandonMakable<T*>);
-   static_assert(not CT::SemanticMakable<Abandoned, T>);
-   static_assert(    CT::SemanticMakable<Abandoned, T*>);
-   static_assert(not CT::SemanticMakableAlt<Abandoned<T>>);
-   static_assert(    CT::SemanticMakableAlt<Abandoned<T*>>);
+   static_assert(not CT::IntentMakable<Abandoned, T>);
+   static_assert(    CT::IntentMakable<Abandoned, T*>);
+   static_assert(not CT::IntentMakableAlt<Abandoned<T>>);
+   static_assert(    CT::IntentMakableAlt<Abandoned<T*>>);
 
    auto meta = MetaDataOf<Conditional<CT::Complete<T>, T, T*>>();
    REQUIRE(meta);
    REQUIRE_FALSE(meta->mAbandonConstructor);
 }*/
 
-TEMPLATE_TEST_CASE("Testing abandon-assignable types", "[semantics]",
+TEMPLATE_TEST_CASE("Testing abandon-assignable types", "[intents]",
    TMany<ImplicitlyConstructible>,
    TMany<Destructible>,
-   TMany<NonSemanticConstructible>,
-   TMany<AllSemanticConstructible>,
-   TMany<AllSemanticConstructibleAndAssignable>,
-   TMany<PartiallySemanticConstructible>,
+   TMany<NonIntentConstructible>,
+   TMany<AllIntentConstructible>,
+   TMany<AllIntentConstructibleAndAssignable>,
+   TMany<PartiallyIntentConstructible>,
    TMany<DescriptorConstructible>,
    TMany<bool>, TMany<uint32_t>, TMany<float>, TMany<char>, TMany<wchar_t>, TMany<char8_t>, TMany<Langulus::Byte>,
    TMany<AMeta>, TMany<TMeta>, TMany<CMeta>, TMany<DMeta>, TMany<VMeta>,
@@ -730,14 +730,14 @@ TEMPLATE_TEST_CASE("Testing abandon-assignable types", "[semantics]",
    static_assert(not CT::AbandonAssignable<const T>);
    static_assert(    CT::AbandonAssignable<T*>);
    static_assert(    CT::AbandonAssignable<const T*>);
-   static_assert(    CT::SemanticAssignable<Abandoned, T>);
-   static_assert(not CT::SemanticAssignable<Abandoned, const T>);
-   static_assert(    CT::SemanticAssignable<Abandoned, T*>);
-   static_assert(    CT::SemanticAssignable<Abandoned, const T*>);
-   static_assert(    CT::SemanticAssignableAlt<Abandoned<T>>);
-   static_assert(not CT::SemanticAssignableAlt<Abandoned<const T>>);
-   static_assert(    CT::SemanticAssignableAlt<Abandoned<T*>>);
-   static_assert(    CT::SemanticAssignableAlt<Abandoned<const T*>>);
+   static_assert(    CT::IntentAssignable<Abandoned, T>);
+   static_assert(not CT::IntentAssignable<Abandoned, const T>);
+   static_assert(    CT::IntentAssignable<Abandoned, T*>);
+   static_assert(    CT::IntentAssignable<Abandoned, const T*>);
+   static_assert(    CT::IntentAssignableAlt<Abandoned<T>>);
+   static_assert(not CT::IntentAssignableAlt<Abandoned<const T>>);
+   static_assert(    CT::IntentAssignableAlt<Abandoned<T*>>);
+   static_assert(    CT::IntentAssignableAlt<Abandoned<const T*>>);
 
    auto meta1 = MetaDataOf<T>();
    REQUIRE(meta1);
@@ -752,7 +752,7 @@ TEMPLATE_TEST_CASE("Testing abandon-assignable types", "[semantics]",
    REQUIRE(meta3->mAbandonAssigner);
 }
 
-/*TEMPLATE_TEST_CASE("Testing non-abandon-assignable types", "[semantics]",
+/*TEMPLATE_TEST_CASE("Testing non-abandon-assignable types", "[intents]",
    //TMany<IncompleteType>,
    TMany<NonDestructible>,
    TMany<Complex>,
@@ -764,14 +764,14 @@ TEMPLATE_TEST_CASE("Testing abandon-assignable types", "[semantics]",
    static_assert(not CT::AbandonAssignable<const T>);
    static_assert(    CT::AbandonAssignable<T*>);
    static_assert(    CT::AbandonAssignable<const T*>);
-   static_assert(not CT::SemanticAssignable<Abandoned, T>);
-   static_assert(not CT::SemanticAssignable<Abandoned, const T>);
-   static_assert(    CT::SemanticAssignable<Abandoned, T*>);
-   static_assert(    CT::SemanticAssignable<Abandoned, const T*>);
-   static_assert(not CT::SemanticAssignableAlt<Abandoned<T>>);
-   static_assert(not CT::SemanticAssignableAlt<Abandoned<const T>>);
-   static_assert(    CT::SemanticAssignableAlt<Abandoned<T*>>);
-   static_assert(    CT::SemanticAssignableAlt<Abandoned<const T*>>);
+   static_assert(not CT::IntentAssignable<Abandoned, T>);
+   static_assert(not CT::IntentAssignable<Abandoned, const T>);
+   static_assert(    CT::IntentAssignable<Abandoned, T*>);
+   static_assert(    CT::IntentAssignable<Abandoned, const T*>);
+   static_assert(not CT::IntentAssignableAlt<Abandoned<T>>);
+   static_assert(not CT::IntentAssignableAlt<Abandoned<const T>>);
+   static_assert(    CT::IntentAssignableAlt<Abandoned<T*>>);
+   static_assert(    CT::IntentAssignableAlt<Abandoned<const T*>>);
 
    auto meta = MetaDataOf<Conditional<CT::Complete<T>, T, T*>>();
    REQUIRE(meta);
@@ -780,11 +780,11 @@ TEMPLATE_TEST_CASE("Testing abandon-assignable types", "[semantics]",
 */
 
 ///                                                                           
-///   Descriptor semantics                                                    
+///   Descriptor intents                                                      
 ///                                                                           
-TEMPLATE_TEST_CASE("Testing descriptor-makable types", "[semantics]",
-   TMany<AllSemanticConstructible>,
-   TMany<AllSemanticConstructibleAndAssignable>,
+TEMPLATE_TEST_CASE("Testing descriptor-makable types", "[intents]",
+   TMany<AllIntentConstructible>,
+   TMany<AllIntentConstructibleAndAssignable>,
    TMany<DescriptorConstructible>
 ) {
    using T = TestType;
@@ -792,7 +792,7 @@ TEMPLATE_TEST_CASE("Testing descriptor-makable types", "[semantics]",
    static_assert(not CT::DeepAssignable<TypeOf<T>, Describe>);
    static_assert(    CT::DescriptorMakable<T>);
    static_assert(not CT::DescriptorMakable<T*>);
-   static_assert(not CT::SemanticMakableAlt<Describe>);
+   static_assert(not CT::IntentMakableAlt<Describe>);
 
    auto meta1 = MetaDataOf<T>();
    REQUIRE(meta1);
@@ -803,14 +803,14 @@ TEMPLATE_TEST_CASE("Testing descriptor-makable types", "[semantics]",
    REQUIRE(meta2->mDescriptorConstructor);
 }
 
-TEMPLATE_TEST_CASE("Testing non-descriptor-makable types", "[semantics]",
+TEMPLATE_TEST_CASE("Testing non-descriptor-makable types", "[intents]",
    //TMany<IncompleteType>,
    TMany<ImplicitlyConstructible>,
    TMany<NonDestructible>,
    TMany<Destructible>,
    TMany<PrivatelyConstructible>,
-   TMany<NonSemanticConstructible>,
-   TMany<PartiallySemanticConstructible>,
+   TMany<NonIntentConstructible>,
+   TMany<PartiallyIntentConstructible>,
    TMany<Complex>,
    TMany<ContainsComplex>,
    TMany<bool>, TMany<uint32_t>, TMany<float>, TMany<char>, TMany<wchar_t>, TMany<char8_t>, TMany<Langulus::Byte>,
@@ -825,7 +825,7 @@ TEMPLATE_TEST_CASE("Testing non-descriptor-makable types", "[semantics]",
    static_assert(not CT::DeepAssignable<TypeOf<T>, Describe>);
    static_assert(not CT::DescriptorMakable<T>);
    static_assert(not CT::DescriptorMakable<T*>);
-   static_assert(not CT::SemanticMakableAlt<Describe>);
+   static_assert(not CT::IntentMakableAlt<Describe>);
 
    auto meta = MetaDataOf<Conditional<CT::Complete<T>, T, T*>>();
    REQUIRE(meta);

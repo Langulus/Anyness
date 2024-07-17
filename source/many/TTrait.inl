@@ -30,11 +30,11 @@ namespace Langulus::Anyness
       : Trait {Move(Forward<Many>(other))} {}
 
    /// Never absorb different traits, if known at compile-time                
-   ///   @param other - the trait to semantically construct with              
-   TEMPLATE() template<class T> requires (CT::Trait<Desem<T>>
+   ///   @param other - the trait to construct with, with or without intent   
+   TEMPLATE() template<class T> requires (CT::Trait<Deint<T>>
    and not CT::Same<typename T::TraitType, TRAIT>) LANGULUS(INLINED)
    TME()::TTrait(T&& other) {
-      *this << SemanticOf<decltype(other)>::Nest(other);
+      *this << IntentOf<decltype(other)>::Nest(other);
    }
 
    /// Refer-assignment                                                       
@@ -53,13 +53,13 @@ namespace Langulus::Anyness
       return static_cast<TRAIT&>(*this);
    }
    
-   /// Unfold assignment, semantic or not                                     
+   /// Unfold assignment, with or without intent                              
    /// If argument is deep or trait, it will be absorbed                      
    ///   @param rhs - right hand side                                         
    ///   @return a reference to this trait                                    
    TEMPLATE() LANGULUS(INLINED)
    TRAIT& TME()::operator = (CT::UnfoldInsertable auto&& rhs) {
-      using S = SemanticOf<decltype(rhs)>;
+      using S = IntentOf<decltype(rhs)>;
       using T = TypeOf<S>;
 
       if constexpr (CT::Trait<T>) {
@@ -134,40 +134,26 @@ namespace Langulus::Anyness
       return Trait::HasCorrectData<TRAIT>();
    }
 
-   /// Pick a constant region and reference it from another container         
-   ///   @param start - starting element index                                
-   ///   @param count - number of elements                                    
-   ///   @return the container                                                
-   /*TEMPLATE() LANGULUS(INLINED)
-   TME() TME()::Select(Offset start, Count count) const IF_UNSAFE(noexcept) {
-      return {Base::Select(start, count)};
-   }
-   
-   TEMPLATE() LANGULUS(INLINED)
-   TME() TME()::Select(Offset start, Count count) IF_UNSAFE(noexcept) {
-      return {Base::Select(start, count)};
-   }*/
-
    /// Compare traits with anything                                           
    ///   @attention function signature must match Block::operator ==          
    ///      otherwise function resolution doesn't work properly on MSVC       
    ///   @param other - the thing to compare with                             
    ///   @return true if things are the same                                  
-   TEMPLATE() template<CT::NotSemantic T> requires CT::NotOwned<T> LANGULUS(INLINED)
+   TEMPLATE() template<CT::NoIntent T> requires CT::NotOwned<T> LANGULUS(INLINED)
    bool TME()::operator == (const T& rhs) const {
       return Trait::operator == <TRAIT> (rhs);
    }
 
-   /// Concatenate with traits/deep types, semantically or not                
-   ///   @param rhs - the right operand                                       
+   /// Concatenate with traits/deep types, with or without intent             
+   ///   @param rhs - the right operand and intent                            
    ///   @return the combined trait                                           
    TEMPLATE() LANGULUS(INLINED)
    TRAIT TME()::operator + (CT::UnfoldInsertable auto&& rhs) const {
       return Trait::operator + <TRAIT> (rhs);
    }
 
-   /// Destructively concatenate with traits/deep types, semantically or not  
-   ///   @param rhs - the right operand                                       
+   /// Destructively concatenate with traits/deep types                       
+   ///   @param rhs - the right operand and intent                            
    ///   @return a reference to this modified trait                           
    TEMPLATE() LANGULUS(INLINED)
    TRAIT& TME()::operator += (CT::UnfoldInsertable auto&& rhs) {
