@@ -760,6 +760,7 @@ namespace Langulus::Anyness
       NOD() bool  CompareLoose(const CT::Block auto&) const noexcept;
       NOD() Count Matches(const CT::Block auto&) const noexcept;
       NOD() Count MatchesLoose(const CT::Block auto&) const noexcept;
+      NOD() bool  Contains(const CT::NoIntent auto&) const;
 
    protected:
       NOD() bool CompareSingleValue(const CT::NoIntent auto&) const;

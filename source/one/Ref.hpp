@@ -40,13 +40,14 @@ namespace Langulus::Anyness
       explicit constexpr Ref(const Ref&);
       explicit constexpr Ref(Ref&&);
 
-      template<template<class> class S> requires CT::IntentMakable<S, T*>
+      template<template<class> class S>
+      requires CT::IntentMakable<S, T*>
       explicit constexpr Ref(S<Ref>&&);
 
       template<class A> requires CT::MakableFrom<T*, A>
       constexpr Ref(A&&);
 
-      ~Ref();
+      constexpr ~Ref();
 
       template<class...A> requires ::std::constructible_from<T, A...>
       void New(A&&...);
