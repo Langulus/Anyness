@@ -871,6 +871,14 @@ namespace Langulus::Anyness
       }
       else TODO();
    }
+   
+   /// Check if anything comparable exists in the block                       
+   ///   @param what - the element to search for                              
+   ///   @return true if element is found, false otherwise                    
+   template<class TYPE> LANGULUS(INLINED)
+   bool Block<TYPE>::Contains(const CT::NoIntent auto& what) const {
+      return Find(what) != IndexNone;
+   }
 
    /// Sort the contents of this container using a static type                
    ///   @attention assumes T is the type of the container                    

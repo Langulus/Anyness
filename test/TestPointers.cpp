@@ -13,16 +13,42 @@
 
 ///                                                                           
 TEMPLATE_TEST_CASE("Shared pointer", "[Ref]",
-   Ref<Many>, Ref<int>, Ref<RT>
+   Ref<Many>, Ref<int>, Ref<RT>,
+   Ref<const Many>, Ref<const int>, Ref<const RT>
 ) {
    static Allocator::State memoryState;
 
    using T = TestType;
    using TT = TypeOf<T>;
 
-   GIVEN("A templated shared pointer") {
+   GIVEN("A nullptr-initialized templated shared pointer") {
+      T pointer {nullptr};
+      T pointer2 {nullptr};
+
+      constexpr T pointer_constexpr {nullptr};
+      static_assert(not pointer_constexpr);
+
+      constexpr T pointer2_constexpr {nullptr};
+      static_assert(not pointer2_constexpr);
+
+      static_assert(pointer_constexpr == pointer2_constexpr);
+
+      REQUIRE_FALSE(pointer.Get());
+      REQUIRE_FALSE(pointer);
+      REQUIRE(pointer == pointer2);
+   }
+
+   GIVEN("A default-initialized templated shared pointer") {
       T pointer;
       T pointer2;
+
+      constexpr T pointer_constexpr;
+      static_assert(not pointer_constexpr);
+
+      constexpr T pointer2_constexpr;
+      static_assert(not pointer2_constexpr);
+
+      static_assert(pointer_constexpr == pointer2_constexpr);
 
       REQUIRE_FALSE(pointer.Get());
       REQUIRE_FALSE(pointer);

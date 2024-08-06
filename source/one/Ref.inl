@@ -79,7 +79,7 @@ namespace Langulus::Anyness
 
    /// Shared pointer destruction                                             
    TEMPLATE() LANGULUS(INLINED)
-   TME()::~Ref() {
+   constexpr TME()::~Ref() {
       if (mEntry)
          ResetInner();
    }
@@ -94,7 +94,9 @@ namespace Langulus::Anyness
       pointer.mEntry = Allocator::Allocate(MetaDataOf<T>(), sizeof(T));
       LANGULUS_ASSERT(pointer.mEntry, Allocate, "Out of memory");
       pointer.mValue = reinterpret_cast<T*>(pointer.mEntry->GetBlockStart());
-      new (pointer.mValue) T {Forward<A>(arguments)...};
+      new (const_cast<Decvq<T>*>(pointer.mValue)) DecvqAll<T> {
+         Forward<A>(arguments)...
+      };
       *this = Abandon(pointer);
    }
 
