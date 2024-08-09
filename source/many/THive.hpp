@@ -172,8 +172,7 @@ namespace Langulus::Anyness
       Cell() = delete;
 
       template<class...A> requires ::std::constructible_from<T, A...>
-      Cell(A&&...args)
-         : mData {Forward<A>(args)...} {}
+      Cell(A&&...args) : mData(Forward<A>(args)...) {}
 
       /// @attention after a cell is destroyed, its mNextFreeCell must be     
       /// set to the next free cell, as this informs iterators, that the cell 
