@@ -418,7 +418,7 @@ namespace Langulus::Anyness
 
       return {
          GetInfo() + found, GetInfoEnd(),
-         &GetRaw(found)
+         GetRaw<TABLE()>(found)
       };
    }
 
