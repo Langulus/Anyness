@@ -165,7 +165,7 @@ namespace Langulus::Anyness
       return const_cast<THive*>(this)->last();
    }
 
-   /// Emplace a new unstance inside the hive                                 
+   /// Emplace a new instance inside the hive                                 
    ///   @param args... - arguments to forward to T's constructor             
    ///   @return a pointer to the newly constructed instance of T             
    TEMPLATE()
@@ -174,7 +174,7 @@ namespace Langulus::Anyness
       return &(NewInner(Forward<A>(args)...)->mData);
    }
 
-   /// Emplace a new unstance inside the hive                                 
+   /// Emplace a new instance inside the hive                                 
    ///   @param args... - arguments to forward to T's constructor             
    ///   @return a pointer to the newly constructed instance of T             
    TEMPLATE()
