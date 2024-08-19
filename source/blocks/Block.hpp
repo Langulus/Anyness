@@ -343,13 +343,6 @@ namespace Langulus::Anyness
       static constexpr bool Sparse     = CT::Sparse<TYPE>;
       static constexpr bool Dense      = not Sparse;
 
-      static_assert(TypeErased or CT::Insertable<TYPE>,
-         "Contained type must be insertable");
-      static_assert(TypeErased or CT::Allocatable<TYPE>,
-         "Contained type must be allocatable");
-      static_assert(not CT::Reference<TYPE>,
-         "Contained type can't be a reference");
-
       template<class>
       friend struct Block;
 
@@ -396,6 +389,17 @@ namespace Langulus::Anyness
       using A::Block::Block;
 
       constexpr Block(const A::Block&) noexcept;
+
+      constexpr ~Block() {
+         // A destructor is always compiled, so keep these here         
+         static_assert(TypeErased or CT::Insertable<TYPE>,
+            "Contained type must be insertable");
+         static_assert(TypeErased or CT::Allocatable<TYPE>,
+            "Contained type must be allocatable");
+         static_assert(not CT::Reference<TYPE>,
+            "Contained type can't be a reference");
+      }
+
       constexpr Block& operator = (const A::Block&) noexcept;
                
    protected:
