@@ -391,7 +391,8 @@ namespace Langulus::Anyness
       constexpr Block(const A::Block&) noexcept;
 
       constexpr ~Block() {
-         // A destructor is always compiled, so keep these here         
+         // A destructor is always compiled, so keep these here to      
+         // avoid incomplete type errors on Block declaration           
          static_assert(TypeErased or CT::Insertable<TYPE>,
             "Contained type must be insertable");
          static_assert(TypeErased or CT::Allocatable<TYPE>,
