@@ -9,7 +9,6 @@
 #include "TestManyCommon.hpp"
 
 
-
 /// The main test for Many/TMany containers, with all kinds of items, from    
 /// sparse to dense, from trivial to complex, from flat to deep               
 TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
