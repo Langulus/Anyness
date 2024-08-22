@@ -1350,14 +1350,20 @@ namespace Langulus::Anyness
          ? DeintCast(source).GetEntries()
          : nullptr;
 
+      LANGULUS_ASSUME(DevAssumes, pointersDst != pointersSrc,
+         "Memory source and destination are the same");
+      LANGULUS_ASSUME(DevAssumes, entriesDst != entriesSrc,
+         "Entries source and destination are the same");
+
       if constexpr (S::Move) {
          // Move/Abandon                                                
+         // Memory may overlap!!!                                       
          MoveMemory(pointersDst, pointersSrc, count);
 
          if (entriesSrc) {
             // Transfer entries, if available                           
             MoveMemory(entriesDst, entriesSrc, count);
-            ZeroMemory(entriesSrc, count);
+            ZeroMemoryOverlapped(entriesSrc, entriesDst, count);
          }
          else {
             // Otherwise make sure all entries are zero                 
@@ -1366,10 +1372,14 @@ namespace Langulus::Anyness
 
          // Reset source pointers, too, if not abandoned                
          if constexpr (S::Keep)
-            ZeroMemory(pointersSrc, count);
+            ZeroMemoryOverlapped(entriesSrc, entriesDst, count);
       }
       else {
          // Copy/Refer/Disown                                           
+         // Memory may NOT overlap!!!                                   
+         LANGULUS_ASSUME(DevAssumes, pointersDst >= pointersSrc + count
+                                  or pointersDst <  pointersSrc - count,
+                        "Can't copy/refer/disown memory onto itself");
          CopyMemory(pointersDst, pointersSrc, count);
 
          if constexpr (S::Keep) {

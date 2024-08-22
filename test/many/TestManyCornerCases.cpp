@@ -10,6 +10,8 @@
 
 
 SCENARIO("Pushing one sparse container, and then two more, one being the first", "[many]") {
+   BANK.Reset();
+
    static Allocator::State memoryState;
 
    auto p1 = CreateElement<Many*, true>(1);
@@ -37,7 +39,13 @@ SCENARIO("Pushing one sparse container, and then two more, one being the first",
 
          THEN("Push-back the first again and then the second") {
             pack << p1;
+            REQUIRE(pack.GetEntries()[0] == entry1);
+            REQUIRE(pack.GetEntries()[1] == entry1);
+
             pack << p2;
+            REQUIRE(pack.GetEntries()[0] == entry1);
+            REQUIRE(pack.GetEntries()[1] == entry1);
+            REQUIRE(pack.GetEntries()[2] == entry2);
 
             REQUIRE(pack.GetCount() == 3);
             REQUIRE(pack.IsExact<Many*>());
@@ -49,7 +57,13 @@ SCENARIO("Pushing one sparse container, and then two more, one being the first",
 
          THEN("Push-front the first again and then the second") {
             pack >> p1;
+            REQUIRE(pack.GetEntries()[0] == entry1);
+            REQUIRE(pack.GetEntries()[1] == entry1);
+
             pack >> p2;
+            REQUIRE(pack.GetEntries()[0] == entry2);
+            REQUIRE(pack.GetEntries()[1] == entry1);
+            REQUIRE(pack.GetEntries()[2] == entry1);
 
             REQUIRE(pack.GetCount() == 3);
             REQUIRE(pack.IsExact<Many*>());
@@ -90,4 +104,6 @@ SCENARIO("Pushing one sparse container, and then two more, one being the first",
 
    DestroyElement<true>(p1);
    DestroyElement<true>(p2);
+
+   REQUIRE(memoryState.Assert());
 }
