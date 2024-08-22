@@ -27,10 +27,13 @@ namespace Langulus::Anyness::Serial
    enum Operator {
       OpenScope = 0,
       CloseScope,
+      OpenScopeAlt,
+      CloseScopeAlt,
       OpenCode,
       CloseCode,
       OpenComment,
       CloseComment,
+      LineComment,
       OpenString,
       CloseString,
       OpenStringAlt,
@@ -38,14 +41,12 @@ namespace Langulus::Anyness::Serial
       OpenCharacter,
       CloseCharacter,
       OpenByte,
-      CloseByte,
+      SelectThing,
+      SelectIdea,
 
       Future,
       Past,
 
-      Constant,
-      Long,
-      Mono,
       Null,
 
       Mass,
@@ -68,25 +69,26 @@ namespace Langulus::Anyness::Serial
    static constexpr std::array<OperatorProperties, Operator::OpCounter> Operators {
       OperatorProperties { "(" },         // OpenScope                  
       OperatorProperties { ")" },         // CloseScope                 
-      OperatorProperties { "[" },         // OpenCode                   
-      OperatorProperties { "]" },         // CloseCode                  
+      OperatorProperties { "[" },         // OpenScopeAlt               
+      OperatorProperties { "]" },         // CloseScopeAlt              
+      OperatorProperties { "{" },         // OpenCode                   
+      OperatorProperties { "}" },         // CloseCode                  
       OperatorProperties { "/*" },        // OpenComment                
       OperatorProperties { "*/" },        // CloseComment               
+      OperatorProperties { "//" },        // LineComment                
       OperatorProperties { "\"" },        // OpenString                 
       OperatorProperties { "\"" },        // CloseString                
       OperatorProperties { "`" },         // OpenStringAlt              
       OperatorProperties { "`" },         // CloseStringAlt             
       OperatorProperties { "'" },         // OpenCharacter              
       OperatorProperties { "'" },         // CloseCharacter             
-      OperatorProperties { "#" },         // OpenByte                   
-      OperatorProperties { "" },          // CloseByte                  
+      OperatorProperties { "0x" },        // OpenByte                   
+      OperatorProperties { "#" },         // SelectThing                
+      OperatorProperties { "##" },        // SelectIdea                 
 
       OperatorProperties { "??" },        // Future                     
       OperatorProperties { "?" },         // Past                       
 
-      OperatorProperties { "const" },     // Constant                   
-      OperatorProperties { "long" },      // Long                       
-      OperatorProperties { "mono" },      // Mono                       
       OperatorProperties { "null" },      // Null                       
 
       OperatorProperties { "*", true },   // Mass                       
@@ -265,7 +267,7 @@ namespace Langulus::Anyness
          using Rules = Types<
             Serial::Rule<Serial::Wrap, Serial::BasedOn, A::Code,Operator::OpenCode,      Operator::CloseCode>,
             Serial::Rule<Serial::Wrap, Serial::BasedOn, Text,   Operator::OpenString,    Operator::CloseString>,
-            Serial::Rule<Serial::Wrap, Serial::BasedOn, Bytes,  Operator::OpenByte,      Operator::CloseByte>,
+            Serial::Rule<Serial::Wrap, Serial::BasedOn, Bytes,  Operator::OpenByte,      Operator::NoOperator>,
             Serial::Rule<Serial::Wrap, Serial::Exact,   Letter, Operator::OpenCharacter, Operator::CloseCharacter>
          >;
       };
