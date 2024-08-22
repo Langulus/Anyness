@@ -592,12 +592,13 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
          const auto i666backup = i666;
 
          if constexpr (CT::Typed<T>) {
-            pack.Emplace(IndexFront, ::std::move(i666));
+            auto& instance = pack.Emplace(IndexFront, ::std::move(i666));
 
             Any_CheckState_OwnedFull<E>(pack);
             REQUIRE(pack.GetCount() == 1);
             REQUIRE(pack.GetReserved() >= 1);
             REQUIRE(pack[0] == i666backup);
+            REQUIRE(&pack[0] == &instance);
 
             #ifdef LANGULUS_STD_BENCHMARK
                BENCHMARK_ADVANCED("Anyness::TMany::Emplace(single move at the front)") (timer meter) {
@@ -634,12 +635,13 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
          const auto i666backup = i666;
 
          if constexpr (CT::Typed<T>) {
-            pack.Emplace(IndexBack, ::std::move(i666));
+            auto& instance = pack.Emplace(IndexBack, ::std::move(i666));
 
             Any_CheckState_OwnedFull<E>(pack);
             REQUIRE(pack.GetCount() == 1);
             REQUIRE(pack.GetReserved() >= 1);
             REQUIRE(pack[0] == i666backup);
+            REQUIRE(&pack[0] == &instance);
 
             #ifdef LANGULUS_STD_BENCHMARK
                BENCHMARK_ADVANCED("Anyness::TMany::Emplace(single move at the back)") (timer meter) {
@@ -1924,7 +1926,7 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
       WHEN("Emplace item at a specific place") {
          auto i666 = CreateElement<E>(666);
          const auto i666backup = i666;
-         pack.Emplace(3, ::std::move(i666));
+         decltype(auto) instance = pack.Emplace(3, ::std::move(i666));
 
          REQUIRE(pack.GetCount() == 6);
          REQUIRE(pack.GetReserved() >= 6);
@@ -1938,6 +1940,13 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
          REQUIRE(pack[3] == i666backup);
          REQUIRE(pack[4] == darray1[3]);
          REQUIRE(pack[5] == darray1[4]);
+
+         if constexpr (CT::Typed<T>)
+            REQUIRE(&pack[3] == &instance);
+         else {
+            REQUIRE(pack[3].GetRaw() == instance.GetRaw());
+            REQUIRE(pack[3].GetCount() == 1);
+         }
 
          #ifdef LANGULUS_STD_BENCHMARK
             BENCHMARK_ADVANCED("Anyness::TMany::Emplace(single move in middle)") (timer meter) {
@@ -1967,7 +1976,7 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
       WHEN("Emplace item at the front") {
          auto i666 = CreateElement<E>(666);
          const auto i666backup = i666;
-         pack.Emplace(IndexFront, ::std::move(i666));
+         decltype(auto) instance = pack.Emplace(IndexFront, ::std::move(i666));
 
          REQUIRE(pack.GetCount() == 6);
          REQUIRE(pack.GetReserved() >= 6);
@@ -1981,6 +1990,13 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
          REQUIRE(pack[3] == darray1[2]);
          REQUIRE(pack[4] == darray1[3]);
          REQUIRE(pack[5] == darray1[4]);
+
+         if constexpr (CT::Typed<T>)
+            REQUIRE(&pack[0] == &instance);
+         else {
+            REQUIRE(pack[0].GetRaw() == instance.GetRaw());
+            REQUIRE(pack[0].GetCount() == 1);
+         }
 
          #ifdef LANGULUS_STD_BENCHMARK
             BENCHMARK_ADVANCED("Anyness::TMany::Emplace(single move at the front)") (timer meter) {
@@ -2010,7 +2026,7 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
       WHEN("Emplace item at the back") {
          auto i666 = CreateElement<E>(666);
          const auto i666backup = i666;
-         pack.Emplace(IndexBack, ::std::move(i666));
+         decltype(auto) instance = pack.Emplace(IndexBack, ::std::move(i666));
 
          REQUIRE(pack.GetCount() == 6);
          REQUIRE(pack.GetReserved() >= 6);
@@ -2024,6 +2040,13 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
          REQUIRE(pack[3] == darray1[3]);
          REQUIRE(pack[4] == darray1[4]);
          REQUIRE(pack[5] == i666backup);
+
+         if constexpr (CT::Typed<T>)
+            REQUIRE(&pack[5] == &instance);
+         else {
+            REQUIRE(pack[5].GetRaw() == instance.GetRaw());
+            REQUIRE(pack[5].GetCount() == 1);
+         }
 
          #ifdef LANGULUS_STD_BENCHMARK
             BENCHMARK_ADVANCED("Anyness::TMany::Emplace(single move at the back)") (timer meter) {

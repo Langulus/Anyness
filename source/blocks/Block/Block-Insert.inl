@@ -442,7 +442,7 @@ namespace Langulus::Anyness
       if constexpr (TypeErased)
          return selection;
       else
-         return *GetRaw();
+         return *selection.GetRaw(); //TODO should return a handle if sparse!
    }
    
    /// Wrap all contained elements inside a sub-block, making this one deep   
