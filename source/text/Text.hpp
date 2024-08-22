@@ -41,8 +41,8 @@ namespace Langulus::Anyness::Serial
       OpenCharacter,
       CloseCharacter,
       OpenByte,
-      SelectThing,
       SelectIdea,
+      SelectThing,
 
       Future,
       Past,
@@ -83,8 +83,8 @@ namespace Langulus::Anyness::Serial
       OperatorProperties { "'" },         // OpenCharacter              
       OperatorProperties { "'" },         // CloseCharacter             
       OperatorProperties { "0x" },        // OpenByte                   
-      OperatorProperties { "#" },         // SelectThing                
       OperatorProperties { "##" },        // SelectIdea                 
+      OperatorProperties { "#" },         // SelectThing                
 
       OperatorProperties { "??" },        // Future                     
       OperatorProperties { "?" },         // Past                       
