@@ -130,10 +130,10 @@ namespace Langulus
    }
 
    /// Check if data is static (size-constrained)                             
-   LANGULUS(INLINED)
+   /*LANGULUS(INLINED)
    constexpr bool DataState::IsStatic() const noexcept {
       return mState & DataState::Static;
-   }
+   }*/
 
    /// Check if data is constant (change-constrained)                         
    LANGULUS(INLINED)

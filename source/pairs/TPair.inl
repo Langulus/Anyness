@@ -81,7 +81,7 @@ namespace Langulus::Anyness
    /// Get contained key                                                      
    TEMPLATE() LANGULUS(INLINED)
    Block<K> PAIR()::GetKeyBlock() noexcept {
-      return Block<K> {
+      return {
          DataState::Member,
          MetaDataOf<Deref<K>>(), 1,
          &mKey
@@ -98,7 +98,7 @@ namespace Langulus::Anyness
    /// Get contained value                                                    
    TEMPLATE() LANGULUS(INLINED)
    Block<V> PAIR()::GetValueBlock() noexcept {
-      return Block<V> {
+      return {
          DataState::Member,
          MetaDataOf<Deref<V>>(), 1,
          &mValue

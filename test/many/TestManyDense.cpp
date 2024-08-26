@@ -992,6 +992,13 @@ TEMPLATE_TEST_CASE("Dense Many/TMany", "[many]",
 
          REQUIRE(0 == foreachit);
       }
+
+      if constexpr (CT::Exact<E, Text>) {
+         WHEN("Given an element that will be destroyed before the pack") {
+            Text owned_text = "666";
+            pack << Text(owned_text.operator Token());
+         }
+      }
    }
 
    GIVEN("Container constructed by same container copy") {

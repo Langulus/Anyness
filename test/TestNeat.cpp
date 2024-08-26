@@ -99,12 +99,33 @@ SCENARIO("Data normalization", "[neat]") {
 		}
 	}
 
-	GIVEN("A messy descriptor with contents") {
+	GIVEN("A messy descriptor with byte contents") {
       TMany<Byte> data;
       data.New(8192);
 
       WHEN("Filled with contents") {
          Neat normalized {data};
+      }
+	}
+   
+	GIVEN("A messy descriptor with text contents") {
+      Many content;
+      content << "test"_text;
+
+      WHEN("Filled with abandoned contents") {
+         Neat normalized {Abandon(content)};
+      }
+      WHEN("Filled with copied contents") {
+         Neat normalized {Copy(content)};
+      }
+      WHEN("Filled with cloned contents") {
+         Neat normalized {Clone(content)};
+      }
+      WHEN("Filled with moved contents") {
+         Neat normalized {Move(content)};
+      }
+      WHEN("Filled with refering contents") {
+         Neat normalized {Refer(content)};
       }
 	}
    

@@ -196,9 +196,9 @@ namespace Langulus::Anyness
          if constexpr (CT::BinaryCompatible<TYPE, T>) {
             // 1:1 view for binary compatible types                     
             return B {Disown(Block<> {
-               pattern.GetState() + DataState::Static,
+               pattern.GetState() /*+ DataState::Static*/,
                pattern.GetType(), mCount,
-               mRaw, mEntry
+               mRaw//, mEntry
             })};
          }
          else if constexpr (CT::POD<TYPE, T>) {
@@ -206,18 +206,18 @@ namespace Langulus::Anyness
                      and (sizeof(TYPE) %  sizeof(T)) == 0) {
                // Larger view for binary compatible types               
                return B {Disown(Block<> {
-                  pattern.GetState() + DataState::Static,
+                  pattern.GetState() /*+ DataState::Static*/,
                   pattern.GetType(), mCount * (sizeof(TYPE) / sizeof(T)),
-                  mRaw, mEntry
+                  mRaw//, mEntry
                })};
             }
             else if constexpr (sizeof(TYPE) <= sizeof(T)
                           and (sizeof(T)    %  sizeof(TYPE)) == 0) {
                // Smaller view for binary compatible types              
                return B {Disown(Block<> {
-                  pattern.GetState() + DataState::Static,
+                  pattern.GetState() /*+ DataState::Static*/,
                   pattern.GetType(), mCount / (sizeof(T) / sizeof(TYPE)),
-                  mRaw, mEntry
+                  mRaw//, mEntry
                })};
             }
             else LANGULUS_ERROR("Can't reinterpret POD types - not alignable");
@@ -241,9 +241,9 @@ namespace Langulus::Anyness
 
          // Create a static view of the desired type                    
          return B {Disown(Block<> {
-            pattern.mState + DataState::Static,
+            pattern.mState /*+ DataState::Static*/,
             pattern.mType, resultSize,
-            mRaw, mEntry
+            mRaw//, mEntry
          })};
       }
    }

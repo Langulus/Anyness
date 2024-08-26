@@ -238,7 +238,7 @@ namespace Langulus::Anyness
    ///   @return true if the contents are static (size-constrained)           
    template<class TYPE> LANGULUS(INLINED)
    constexpr bool Block<TYPE>::IsStatic() const noexcept {
-      return mRaw and (mState.IsStatic() or not mEntry);
+      return mRaw and /*(mState.IsStatic() or*/ not mEntry/*)*/;
    }
    
    /// Check if block is inhibitory (or) container                            
@@ -473,13 +473,13 @@ namespace Langulus::Anyness
    /// and reallocation. Useful to interface static data, or data on stack.   
    /// Extensively used when accessing members/bases of elements in blocks.   
    ///   @param enable - whether to enable or disable the static state        
-   template<class TYPE> LANGULUS(ALWAYS_INLINED)
+   /*template<class TYPE> LANGULUS(ALWAYS_INLINED)
    constexpr void Block<TYPE>::MakeStatic(bool enable) noexcept {
       if (enable)
          mState += DataState::Static;
       else
          mState -= DataState::Static;
-   }
+   }*/
 
    /// Make memory block constant                                             
    /// Disables the ability to access members as mutable, and disallows       

@@ -272,7 +272,7 @@ namespace Langulus::Anyness
       Block shallowCopy {*this};
       shallowCopy.AllocateFresh(RequestSize(mCount));
       shallowCopy.CreateWithIntent(Refer(*this));
-      shallowCopy.mState -= DataState::Static | DataState::Constant;
+      shallowCopy.mState -= /*DataState::Static |*/ DataState::Constant;
       CopyMemory(this, &shallowCopy);
    }
 
@@ -363,10 +363,64 @@ namespace Langulus::Anyness
    }
 
    /// Reference memory block once                                            
-   template<class TYPE> LANGULUS(INLINED)
+   ///   @param DEEP - reference inner pointers/referenced instances, too?    
+   template<class TYPE> template<bool DEEP> LANGULUS(INLINED)
    void Block<TYPE>::Keep() const noexcept {
-      if (mEntry)
-         const_cast<Allocation*>(mEntry)->Keep(1);
+      if (not mEntry)
+         return;
+
+      const_cast<Allocation*>(mEntry)->Keep(1);
+
+      if constexpr (DEEP) {
+         if constexpr (not TypeErased) {
+            if constexpr (Sparse and CT::Referencable<Deptr<TYPE>>) {
+               // Statically typed and sparse                           
+               auto entry = GetEntries();
+               const auto entryEnd = entry + mCount;
+
+               while (entry != entryEnd) {
+                  if (*entry) {
+                     const_cast<Allocation*>(*entry)->Keep();
+                     GetRaw()[entry - GetEntries()]->Reference(1);
+                  }
+                  ++entry;
+               }
+            }
+            else if constexpr (CT::Referencable<TYPE>) {
+               // Statically typed and dense                            
+               auto raw = GetRaw();
+               const auto rawEnd = raw + mCount;
+
+               while (raw != rawEnd)
+                  (raw++)->Reference(1);
+            }
+         }
+         else if (mType->mIsSparse and mType->mReference) {
+            // Type-erased and sparse                                   
+            const auto reference = mType->mReference;
+            auto entry = GetEntries();
+            const auto entryEnd = entry + mCount;
+
+            while (entry != entryEnd) {
+               if (*entry) {
+                  const_cast<Allocation*>(*entry)->Keep();
+                  reference(mRawSparse[entry - GetEntries()], 1);
+               }
+               ++entry;
+            }
+         }
+         else if (mType->mReference) {
+            // Type-erased and dense                                    
+            const auto reference = mType->mReference;
+            auto raw = mRaw;
+            const auto rawEnd = mRaw + mType->mSize * mCount;
+
+            while (raw != rawEnd) {
+               reference(raw, 1);
+               raw += mType->mSize;
+            }
+         }
+      }
    }
 
    /// Dereference memory block once and destroy all elements if data was     
@@ -396,7 +450,7 @@ namespace Langulus::Anyness
       }
       else {
          // Dereference memory                                          
-         if (mCount and not mState.IsStatic())
+         if (mCount/* and not mState.IsStatic()*/)
             Destroy<false>();
 
          const_cast<Allocation*>(mEntry)->Free();

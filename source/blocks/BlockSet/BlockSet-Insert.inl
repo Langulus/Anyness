@@ -456,6 +456,7 @@ namespace Langulus::Anyness
    Offset BlockSet::InsertInner(const Offset start, auto&& key) {
       BranchOut<THIS>();
       using S = IntentOf<decltype(key)>;
+      using T = TypeOf<S>;
       auto keyswapper = CreateValHandle<THIS>(S::Nest(key));
 
       // Get the starting index based on the key hash                   
@@ -494,7 +495,11 @@ namespace Langulus::Anyness
       // Might not seem like it, but we gave a guarantee, that this is  
       // eventually reached, unless key exists and returns early        
       const auto index = psl - GetInfo();
-      GetHandle<THIS>(index).CreateWithIntent(Abandon(keyswapper));
+      if constexpr (CT::Sparse<T>)
+         GetHandle<THIS>(index).CreateWithIntent(Refer(keyswapper));
+      else
+         GetHandle<THIS>(index).CreateWithIntent(Abandon(keyswapper));
+
       if (insertedAt == mKeys.mReserved)
          insertedAt = index;
 
