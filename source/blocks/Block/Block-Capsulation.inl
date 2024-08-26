@@ -467,19 +467,6 @@ namespace Langulus::Anyness
       else
          return reinterpret_cast<const T*>(mRaw) + mCount;
    }
-   
-   /// Make memory block static (aka size-constrained)                        
-   /// The state is useful to make block views, that disallow memory movement 
-   /// and reallocation. Useful to interface static data, or data on stack.   
-   /// Extensively used when accessing members/bases of elements in blocks.   
-   ///   @param enable - whether to enable or disable the static state        
-   /*template<class TYPE> LANGULUS(ALWAYS_INLINED)
-   constexpr void Block<TYPE>::MakeStatic(bool enable) noexcept {
-      if (enable)
-         mState += DataState::Static;
-      else
-         mState -= DataState::Static;
-   }*/
 
    /// Make memory block constant                                             
    /// Disables the ability to access members as mutable, and disallows       

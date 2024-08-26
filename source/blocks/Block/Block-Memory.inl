@@ -272,7 +272,7 @@ namespace Langulus::Anyness
       Block shallowCopy {*this};
       shallowCopy.AllocateFresh(RequestSize(mCount));
       shallowCopy.CreateWithIntent(Refer(*this));
-      shallowCopy.mState -= /*DataState::Static |*/ DataState::Constant;
+      shallowCopy.mState -= DataState::Constant;
       CopyMemory(this, &shallowCopy);
    }
 

@@ -73,7 +73,7 @@ namespace Langulus::Anyness
                // Copy                                                  
                // We're shallow-copying, so we're 100% sure, that       
                // each element will end up in the same place            
-               mKeys.mState -= /*DataState::Static |*/ DataState::Constant;
+               mKeys.mState -= DataState::Constant;
                if (other->IsEmpty())
                   return;
 
@@ -173,7 +173,7 @@ namespace Langulus::Anyness
       else {
          // We're cloning, so we guarantee, that data is no longer      
          // static and constant via state                               
-         mKeys.mState -= /*DataState::Static |*/ DataState::Constant;
+         mKeys.mState -= DataState::Constant;
          if (other->IsEmpty())
             return;
 

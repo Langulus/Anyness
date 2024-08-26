@@ -104,8 +104,9 @@ namespace Langulus::Anyness
    TEMPLATE() LANGULUS(INLINED)
    constexpr Block<T> TME()::GetBlock() const {
       return {
-         DataState::Member, GetType(), 1, &mValue
-         // Notice entry is missing, which means it will be sought      
+         DataState::Typed, GetType(), 1, &mValue
+         // Notice entry is missing, which means it will be sought if   
+         // transferred to a block with ownership                       
       };
    }
 

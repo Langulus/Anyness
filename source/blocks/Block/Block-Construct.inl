@@ -278,7 +278,7 @@ namespace Langulus::Anyness
                   // We're cloning first layer, so we guarantee, that   
                   // data is no longer static and constant (unless      
                   // mType is constant)                                 
-                  mState -= /*DataState::Static |*/ DataState::Constant;
+                  mState -= DataState::Constant;
                   if (0 == from.mCount)
                      return;
 
@@ -321,7 +321,7 @@ namespace Langulus::Anyness
       else {
          // We're cloning, so we guarantee, that data is no longer      
          // static and constant (unless mType is constant)              
-         mState -= /*DataState::Static |*/ DataState::Constant;
+         mState -= DataState::Constant;
          if (0 == from.mCount)
             return;
          

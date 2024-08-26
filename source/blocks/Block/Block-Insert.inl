@@ -500,7 +500,7 @@ namespace Langulus::Anyness
             return 0;
 
          const bool stateCompliant = CanFitState(DeintCast(value));
-         if (IsEmpty() and /*not DeintCast(value).IsStatic() and*/ stateCompliant) {
+         if (IsEmpty() and stateCompliant) {
             // We can directly absorb. This will preserve staticness.   
             Free();
             BlockTransfer(S::Nest(value));
@@ -543,7 +543,7 @@ namespace Langulus::Anyness
             or (not CT::Void<FORCE> and DeintCast(value).IsDeep())
             or IsSimilar(DeintCast(value));
 
-         if (not IsConstant() /*and not IsStatic()*/ and typeCompliant and sc
+         if (not IsConstant() and typeCompliant and sc
          and not (GetCount() > 1 and not mState.IsOr() and state.IsOr())) {
             if (IsUntyped()) {
                // Block insert never mutates, so make sure type         

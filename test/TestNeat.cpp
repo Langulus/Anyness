@@ -108,24 +108,85 @@ SCENARIO("Data normalization", "[neat]") {
       }
 	}
    
-	GIVEN("A messy descriptor with text contents") {
+	GIVEN("A messy descriptor constructed with text contents") {
       Many content;
       content << "test"_text;
 
       WHEN("Filled with abandoned contents") {
          Neat normalized {Abandon(content)};
+
+         REQUIRE(normalized == Neat {"test"});
+         REQUIRE(normalized != Neat {"test "});
       }
+
       WHEN("Filled with copied contents") {
          Neat normalized {Copy(content)};
+
+         REQUIRE(normalized == Neat {"test"});
+         REQUIRE(normalized != Neat {"test "});
       }
+
       WHEN("Filled with cloned contents") {
          Neat normalized {Clone(content)};
+
+         REQUIRE(normalized == Neat {"test"});
+         REQUIRE(normalized != Neat {"test "});
       }
+
       WHEN("Filled with moved contents") {
          Neat normalized {Move(content)};
+
+         REQUIRE(normalized == Neat {"test"});
+         REQUIRE(normalized != Neat {"test "});
       }
+
       WHEN("Filled with refering contents") {
          Neat normalized {Refer(content)};
+
+         REQUIRE(normalized == Neat {"test"});
+         REQUIRE(normalized != Neat {"test "});
+      }
+	}
+   
+	GIVEN("A messy descriptor with text contents pushed") {
+      Neat normalized;
+      Text owned_string = "test";
+      Many content;
+      content << Text {owned_string.operator Token()};
+
+      WHEN("Filled with abandoned contents") {
+         normalized << Abandon(content);
+
+         REQUIRE(normalized == Neat {"test"});
+         REQUIRE(normalized != Neat {"test "});
+      }
+
+      WHEN("Filled with copied contents") {
+         normalized << Copy(content);
+
+         REQUIRE(normalized == Neat {"test"});
+         REQUIRE(normalized != Neat {"test "});
+      }
+
+      WHEN("Filled with cloned contents") {
+         normalized << Clone(content);
+
+         REQUIRE(normalized == Neat {"test"});
+         REQUIRE(normalized != Neat {"test "});
+      }
+
+      WHEN("Filled with moved contents") {
+         normalized << Move(content);
+
+         REQUIRE(normalized == Neat {"test"});
+         REQUIRE(normalized != Neat {"test "});
+      }
+
+      WHEN("Filled with refering contents") {
+         normalized << Refer(content);
+
+         REQUIRE(normalized == Neat {"test"});
+         REQUIRE(normalized != Neat {"test "});
       }
 	}
    
@@ -163,7 +224,7 @@ SCENARIO("Data normalization", "[neat]") {
       WHEN("Copied") {
          Neat copied = neat;
 
-         //REQUIRE(neat == copied);
+         REQUIRE(neat == copied);
       }
 	}
 
