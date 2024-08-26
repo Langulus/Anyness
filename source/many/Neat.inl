@@ -167,7 +167,7 @@ namespace Langulus::Anyness
          if (lp.mKey->Is<Traits::Parent>())
             continue;
 
-         if (lp.mValue != rp.mValue)
+         if (lp.mValue != rp.GetValue())
             // Early failure on value mismatch                          
             //TODO if missing, compare only by value container type?
             return false;
@@ -497,7 +497,7 @@ namespace Langulus::Anyness
          const auto found = mAnythingElse.FindIt(meta);
 
          if (found)
-            *found.mValue << S::Nest(item);
+            found.GetValue() << S::Nest(item);
          else
             mAnythingElse.Insert(meta, S::Nest(item));
       }
@@ -507,7 +507,7 @@ namespace Langulus::Anyness
          const auto found = mAnythingElse.FindIt(meta);
 
          if (found)
-            *found.mValue << Messy {S::Nest(item)};
+            found.GetValue() << Messy {S::Nest(item)};
          else
             mAnythingElse.Insert(meta, Messy {S::Nest(item)});
       }
@@ -714,7 +714,7 @@ namespace Langulus::Anyness
          const auto meta = messy->GetTrait();
          auto found = mTraits.BranchOut().FindIt(meta);
          if (found)
-            *found.mValue << Abandon(wrapper);
+            found.GetValue() << Abandon(wrapper);
          else
             mTraits.Insert(meta, Abandon(wrapper));
       }
@@ -723,7 +723,7 @@ namespace Langulus::Anyness
          auto trait = DeintCast(messy);
          auto found = mTraits.BranchOut().FindIt(trait);
          if (found)
-            *found.mValue << Many {};
+            found.GetValue() << Many {};
          else
             mTraits.Insert(trait, Many {});
       }
@@ -744,7 +744,7 @@ namespace Langulus::Anyness
       static const auto meta = MetaDataOf<A::Verb>();
       auto found = mAnythingElse.BranchOut().FindIt(meta);
       if (found)
-         *found.mValue << verb.template Forward<A::Verb>();
+         found.GetValue() << verb.template Forward<A::Verb>();
       else
          mAnythingElse.Insert(meta, verb.template Forward<A::Verb>());
    }
@@ -761,8 +761,9 @@ namespace Langulus::Anyness
          const auto meta = messy->GetType()
             ? messy->GetType()->mOrigin : nullptr;
          const auto found = mConstructs.BranchOut().FindIt(meta);
+
          if (found) {
-            *found.mValue << Inner::DeConstruct {
+            found.GetValue() << Inner::DeConstruct {
                messy->GetHash(),
                messy->GetCharge(),
                S::Nest(messy->GetDescriptor())
@@ -786,8 +787,8 @@ namespace Langulus::Anyness
    ///   @attention if not nullptr, returned Many might contain a Neat        
    inline const Many* Neat::Get(TMeta meta, Offset index) const {
       const auto found = mTraits.FindIt(meta);
-      if (found and found.mValue->GetCount() > index)
-         return &(*found.mValue)[index];
+      if (found and found.GetValue().GetCount() > index)
+         return &(found.GetValue()[index]);
       return nullptr;
    }
 
@@ -929,7 +930,7 @@ namespace Langulus::Anyness
             return index;
 
          // Iterate all relevant traits                                 
-         for (auto& data : *found.mValue) {
+         for (auto& data : found.GetValue()) {
             // Create a temporary trait                                 
             Decay<A> temporaryTrait {data};
 
@@ -1158,7 +1159,7 @@ namespace Langulus::Anyness
 
          // Iterate all relevant datas                                  
          Count index = 0;
-         for (auto& data : *found.mValue) {
+         for (auto& data : found.GetValue()) {
             for (auto element : data) {
                if constexpr (CT::Bool<R>) {
                   // If F returns bool, you can decide when to break    
@@ -1209,16 +1210,16 @@ namespace Langulus::Anyness
       }
 
       Count count = 0;
-      for (auto data : KeepIterator(*found.mValue)) {
+      for (auto data : KeepIterator(found.GetValue())) {
          if (not *data)
             continue;
 
          // Remove only matching data entries, that aren't empty        
-         data = found.mValue->RemoveIt(data);
+         data = found.GetValue().RemoveIt(data);
          ++count;
       }
 
-      if (not *found.mValue)
+      if (not found.GetValue())
          mAnythingElse.RemoveIt(found);
       return count;
    }

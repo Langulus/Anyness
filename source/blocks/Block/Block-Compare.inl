@@ -12,7 +12,7 @@
 
 #if 0
    #define VERBOSE(...)     Logger::Verbose(__VA_ARGS__)
-   #define VERBOSE_TAB(...) auto tab = Logger::Section(__VA_ARGS__)
+   #define VERBOSE_TAB(...) const auto tab = Logger::Verbose(__VA_ARGS__, Logger::Tabs {})
 #else
    #define VERBOSE(...)     LANGULUS(NOOP)
    #define VERBOSE_TAB(...) LANGULUS(NOOP)

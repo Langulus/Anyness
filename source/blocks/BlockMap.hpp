@@ -565,10 +565,10 @@ namespace Langulus::Anyness
       LANGULUS(ABSTRACT) false;
       LANGULUS(TYPED)    Pair;
 
+   protected:
       KA mKey;
       VA mValue;
 
-   protected:
       friend struct BlockMap;
       const InfoType* mInfo;
       const InfoType* mSentinel;
@@ -580,6 +580,26 @@ namespace Langulus::Anyness
       constexpr Iterator(const Iterator&) noexcept = default;
       constexpr Iterator(Iterator&&) noexcept = default;
       constexpr Iterator(const A::IteratorEnd&) noexcept;
+
+      auto& GetKey() noexcept {
+         if constexpr (CT::TypeErased<Key>)     return  mKey;
+         else                                   return *mKey;
+      }
+      
+      auto& GetKey() const noexcept {
+         if constexpr (CT::TypeErased<Key>)     return  mKey;
+         else                                   return *mKey;
+      }
+
+      auto& GetValue() noexcept {
+         if constexpr (CT::TypeErased<Value>)   return  mValue;
+         else                                   return *mValue;
+      }
+      
+      auto& GetValue() const noexcept {
+         if constexpr (CT::TypeErased<Value>)   return  mValue;
+         else                                   return *mValue;
+      }
 
       constexpr Iterator& operator = (const Iterator&) noexcept = default;
       constexpr Iterator& operator = (Iterator&&) noexcept = default;

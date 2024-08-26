@@ -334,26 +334,13 @@ namespace Langulus::A
          OUT::SerializationRules::EndScope(mSource, out);
       }
 
-      // Write any special qualifiers before the verb token             
-      /*if (IsLongCircuited()) {
-         if (mSource.IsValid())
-            out += ' ';
-         out += OUT::Operator::Long;
-      }
-
-      if (IsMonocast()) {
-         if (mSource.IsValid() or IsLongCircuited())
-            out += ' ';
-         out += OUT::Operator::Mono;
-      }*/
-
       // After the source, we decide whether to write verb token or     
       // verb operator, depending on the verb definition, state and     
       // charge                                                         
       bool writtenAsToken = false;
       if (not mVerb) {
          // An invalid verb is always written as token                  
-         if (mSource.IsValid() /*or IsLongCircuited() or IsMonocast()*/)
+         if (mSource.IsValid())
             out += ' ';
          out += NameOf<Verb>();
          writtenAsToken = true;
@@ -367,7 +354,7 @@ namespace Langulus::A
             }
             else {
                // Write as token                                        
-               if (mSource.IsValid() /*or IsLongCircuited() or IsMonocast()*/)
+               if (mSource.IsValid())
                   out += ' ';
                out += mVerb->mTokenReverse;
                out += static_cast<OUT>(GetCharge() * -1);
@@ -381,7 +368,7 @@ namespace Langulus::A
             }
             else {
                // Write as token                                        
-               if (mSource.IsValid() /*or IsLongCircuited() or IsMonocast()*/)
+               if (mSource.IsValid())
                   out += ' ';
                out += mVerb->mToken;
                out += static_cast<OUT>(GetCharge());

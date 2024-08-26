@@ -352,7 +352,6 @@ namespace Langulus::Anyness
    Block<> Block<TYPE>::GetElement(Offset index) IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, index < mReserved, "Index out of range");
       Block result = GetElementInner(index);
-      //result.mState += DataState::Static;
       result.mState -= DataState::Or;
       return result;
    }

@@ -196,9 +196,7 @@ namespace Langulus::Anyness
          if constexpr (CT::BinaryCompatible<TYPE, T>) {
             // 1:1 view for binary compatible types                     
             return B {Disown(Block<> {
-               pattern.GetState() /*+ DataState::Static*/,
-               pattern.GetType(), mCount,
-               mRaw//, mEntry
+               pattern.GetState(), pattern.GetType(), mCount, mRaw
             })};
          }
          else if constexpr (CT::POD<TYPE, T>) {
@@ -206,18 +204,16 @@ namespace Langulus::Anyness
                      and (sizeof(TYPE) %  sizeof(T)) == 0) {
                // Larger view for binary compatible types               
                return B {Disown(Block<> {
-                  pattern.GetState() /*+ DataState::Static*/,
-                  pattern.GetType(), mCount * (sizeof(TYPE) / sizeof(T)),
-                  mRaw//, mEntry
+                  pattern.GetState(), pattern.GetType(),
+                  mCount * (sizeof(TYPE) / sizeof(T)), mRaw
                })};
             }
             else if constexpr (sizeof(TYPE) <= sizeof(T)
                           and (sizeof(T)    %  sizeof(TYPE)) == 0) {
                // Smaller view for binary compatible types              
                return B {Disown(Block<> {
-                  pattern.GetState() /*+ DataState::Static*/,
-                  pattern.GetType(), mCount / (sizeof(T) / sizeof(TYPE)),
-                  mRaw//, mEntry
+                  pattern.GetState(), pattern.GetType(),
+                  mCount / (sizeof(T) / sizeof(TYPE)), mRaw
                })};
             }
             else LANGULUS_ERROR("Can't reinterpret POD types - not alignable");
@@ -241,9 +237,7 @@ namespace Langulus::Anyness
 
          // Create a static view of the desired type                    
          return B {Disown(Block<> {
-            pattern.mState /*+ DataState::Static*/,
-            pattern.mType, resultSize,
-            mRaw//, mEntry
+            pattern.mState, pattern.mType, resultSize, mRaw
          })};
       }
    }
@@ -265,7 +259,7 @@ namespace Langulus::Anyness
          "Getting member from an empty block");
       const auto index = SimplifyIndex(idx);
       return { 
-         DataState::Member, member.GetType(), member.mCount,
+         DataState::Typed, member.GetType(), member.mCount,
          member.Get(mRaw + mType->mSize * index), mEntry
       };
    }
@@ -285,7 +279,7 @@ namespace Langulus::Anyness
    template<class TYPE> LANGULUS(INLINED)
    Block<> Block<TYPE>::GetBaseMemory(DMeta meta, const RTTI::Base& base) {
       return {
-         DataState::Member, meta,
+         DataState::Typed, meta,
          base.mCount * (base.mBinaryCompatible ? GetCount() : 1),
          mRaw + base.mOffset, mEntry
       };

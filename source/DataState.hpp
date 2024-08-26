@@ -54,13 +54,6 @@ namespace Langulus
          // If state is only Missing, then it is missing past           
          Past = Missing,
 
-         // Data won't move, reallocate, deallocate, etc.               
-         // Used to constrain the memory manipulations. That way you    
-         // can reference static or unmovable memory as any other.      
-         // Data can still change in-place, unless constant.            
-         // Reflected members are interfaced in that way                
-         //Static = 32,
-
          // Data won't move, reallocate, deallocate, or even change     
          // Used to constrain the memory manipulations for safety       
          // That way you can interface constant memory as any other     
@@ -72,12 +65,8 @@ namespace Langulus
 
          // Data is fully constrained                                   
          // Useful set of states to interface a constant member         
-         Constrained = /*Static |*/ Constant | Typed,
+         Constrained = Constant | Typed,
 
-         // Useful set of states to interface a mutable member          
-         Member = /*Static |*/ Typed,
-         ConstantMember = Constrained,
-         TypedConstant = Constant | Typed,
          MissingFuture = Missing | Future,
          MissingPast = Missing | Past
       };

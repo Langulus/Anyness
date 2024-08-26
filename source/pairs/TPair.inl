@@ -79,13 +79,12 @@ namespace Langulus::Anyness
    }
 
    /// Get contained key                                                      
+   ///   @return the key block                                                
    TEMPLATE() LANGULUS(INLINED)
    Block<K> PAIR()::GetKeyBlock() noexcept {
-      return {
-         DataState::Member,
-         MetaDataOf<Deref<K>>(), 1,
-         &mKey
-      };
+      // Notice entry is missing, which means that memory entry will    
+      // be sought if block is transferred to an owning one             
+      return { DataState::Typed, MetaDataOf<Deref<K>>(), 1, &mKey };
    }
    
    TEMPLATE() LANGULUS(ALWAYS_INLINED)
@@ -96,13 +95,12 @@ namespace Langulus::Anyness
    }
 
    /// Get contained value                                                    
+   ///   @return the value block                                              
    TEMPLATE() LANGULUS(INLINED)
    Block<V> PAIR()::GetValueBlock() noexcept {
-      return {
-         DataState::Member,
-         MetaDataOf<Deref<V>>(), 1,
-         &mValue
-      };
+      // Notice entry is missing, which means that memory entry will    
+      // be sought if block is transferred to an owning one             
+      return { DataState::Typed, MetaDataOf<Deref<V>>(), 1, &mValue };
    }
 
    TEMPLATE() LANGULUS(ALWAYS_INLINED)
