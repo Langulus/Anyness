@@ -450,7 +450,7 @@ namespace Langulus::Anyness
       }
       else {
          // Dereference memory                                          
-         if (mCount/* and not mState.IsStatic()*/)
+         if (mCount)
             Destroy<false>();
 
          const_cast<Allocation*>(mEntry)->Free();

@@ -305,7 +305,7 @@ namespace Langulus::Anyness
       if constexpr (not TypeErased) {
          using DT = Decay<TYPE>;
 
-         if constexpr (CT::Sparse<TYPE>/* and FORCE*/) {
+         if constexpr (CT::Sparse<TYPE>) {
             // Destroy every sparse element                             
             DestroySparse(mask);
          }
@@ -348,7 +348,7 @@ namespace Langulus::Anyness
          }
       }
       else {
-         if (/*FORCE and */mType->mIsSparse) {
+         if (mType->mIsSparse) {
             // Destroy every sparse element                             
             DestroySparse(mask);
          }
