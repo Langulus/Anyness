@@ -12,6 +12,7 @@
 /// The main test for Many/TMany containers, with all kinds of items, from    
 /// sparse to dense, from trivial to complex, from flat to deep               
 TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
+   (TypePair<TMany<Trait*>, Trait*>),
    (TypePair<Many, Traits::Count*>),
    (TypePair<Trait, Text*>),
    (TypePair<Trait, RT*>),
@@ -20,7 +21,6 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
    (TypePair<Traits::Name, RT*>),
 
    (TypePair<TMany<int*>, int*>),
-   (TypePair<TMany<Trait*>, Trait*>),
    (TypePair<TMany<Traits::Count*>, Traits::Count*>),
    (TypePair<TMany<Many*>, Many*>),
    (TypePair<TMany<Text*>, Text*>),

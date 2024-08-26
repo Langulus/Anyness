@@ -256,7 +256,7 @@ namespace Langulus::Anyness
                   // do not reset 'other' to avoid leaks. When using    
                   // raw Blocks, it's your responsibility to take care  
                   // of ownership.                                      
-                  Keep();
+                  Keep<true>();
                }
                else {
                   from.ResetMemory();
@@ -266,19 +266,19 @@ namespace Langulus::Anyness
             else {
                // Copy/Refer other                                      
                if constexpr (CT::Referred<S>) {
-                  // Just reference                                     
+                  // Refer                                              
                   mRaw      = from.mRaw;
                   mReserved = from.mReserved;
                   mEntry    = from.mEntry;
                   mCount    = from.mCount;
-                  Keep();
+                  Keep<true>();
                }
                else {
                   // Do a shallow copy                                  
                   // We're cloning first layer, so we guarantee, that   
                   // data is no longer static and constant (unless      
                   // mType is constant)                                 
-                  mState -= DataState::Static | DataState::Constant;
+                  mState -= /*DataState::Static |*/ DataState::Constant;
                   if (0 == from.mCount)
                      return;
 
@@ -321,7 +321,7 @@ namespace Langulus::Anyness
       else {
          // We're cloning, so we guarantee, that data is no longer      
          // static and constant (unless mType is constant)              
-         mState -= DataState::Static | DataState::Constant;
+         mState -= /*DataState::Static |*/ DataState::Constant;
          if (0 == from.mCount)
             return;
          

@@ -473,7 +473,7 @@ namespace Langulus::Anyness
       NOD() bool IsExecutable() const noexcept;
       NOD() bool IsExecutableDeep() const noexcept;
 
-      constexpr void MakeStatic(bool enable = true) noexcept;
+      //constexpr void MakeStatic(bool enable = true) noexcept;
       constexpr void MakeConst(bool enable = true) noexcept;
       constexpr void MakeTypeConstrained(bool enable = true) noexcept;
       constexpr void MakeOr() noexcept;
@@ -798,6 +798,7 @@ namespace Langulus::Anyness
       void AllocateInner(Count);
       void AllocateFresh(const AllocationRequest&);
 
+      template<bool DEEP = false>
       void Keep() const noexcept;
       void Free();
       /// @endcond                                                            

@@ -99,23 +99,24 @@ namespace Langulus::Anyness
                "Attempting to remove from constant container");
             LANGULUS_ASSERT(not IsStatic(), Access,
                "Attempting to remove from static container");
+
+            // First call the destructors on the correct region         
             BranchOut();
+            CropInner(idx, count).Destroy();
 
             if constexpr (CT::Sparse<TYPE> or CT::POD<TYPE>) {
                // Batch move                                            
                MoveMemory(GetRaw() + idx, GetRaw() + ender, mCount - ender);
-            }
-            else {
-               // Call the destructors on the correct region            
-               CropInner(idx, count).Destroy();
 
-               if (ender < mCount) {
-                  // Fill gap	if any by invoking move constructions     
-                  // Moving to the left, so no overlap possible         
-                  const auto tail = mCount - ender;
-                  CropInner(idx, tail).CreateWithIntent(
-                     Abandon(CropInner(ender, tail)));
-               }
+               if constexpr (CT::Sparse<TYPE>)
+                  MoveMemory(GetEntries() + idx, GetEntries() + ender, mCount - ender);
+            }
+            else if (ender < mCount) {
+               // Fill gap	if any by invoking move constructions        
+               // Moving to the left, so no overlap possible            
+               const auto tail = mCount - ender;
+               CropInner(idx, tail).CreateWithIntent(
+                  Abandon(CropInner(ender, tail)));
             }
          }
 
@@ -304,7 +305,7 @@ namespace Langulus::Anyness
       if constexpr (not TypeErased) {
          using DT = Decay<TYPE>;
 
-         if constexpr (CT::Sparse<TYPE> and FORCE) {
+         if constexpr (CT::Sparse<TYPE>/* and FORCE*/) {
             // Destroy every sparse element                             
             DestroySparse(mask);
          }
@@ -337,11 +338,9 @@ namespace Langulus::Anyness
                      data->Reference(-1);
                   data->~DT();
                }
-               else {
-                  if constexpr (CT::Referencable<DT>) {
-                     if (not data->Reference(-1))
-                        data->~DT();
-                  }
+               else if constexpr (CT::Referencable<DT>) {
+                  if (not data->Reference(-1))
+                     data->~DT();
                }
 
                ++data;
@@ -349,7 +348,7 @@ namespace Langulus::Anyness
          }
       }
       else {
-         if (FORCE and mType->mIsSparse) {
+         if (/*FORCE and */mType->mIsSparse) {
             // Destroy every sparse element                             
             DestroySparse(mask);
          }
@@ -385,10 +384,8 @@ namespace Langulus::Anyness
                      mType->mReference(data, -1);
                      mType->mDestructor(data);
                   }
-                  else {
-                     if (not mType->mReference(data, -1))
-                        mType->mDestructor(data);
-                  }
+                  else if (not mType->mReference(data, -1))
+                     mType->mDestructor(data);
 
                   data += mType->mSize;
 
@@ -457,18 +454,23 @@ namespace Langulus::Anyness
          UNUSED() Count remaining2;
          if constexpr (MASKED)
             remaining2 = remaining;
+
          while (handle2.mValue != endMarker) {
             if constexpr (MASKED) {
                if (not remaining2)
                   break;
+
                if (not mask[handle2.mValue - begMarker]) {
                   ++handle2;
                   continue;
                }
+
                --remaining2;
             }
+
             if (handle.GetEntry() == handle2.GetEntry())
                call(handle2);
+
             ++handle2;
          }
       };
@@ -492,32 +494,50 @@ namespace Langulus::Anyness
             continue;
          }
 
-         // Count all handles that match the current entry              
-         auto matches = 0;
-         for_each_match([&matches](const Handle<void*>&) {
-            ++matches;
-         });
-
-         if (matches) {
-            const_cast<Allocation*>(handle.GetEntry())->Free(matches);
-
-            if (1 == handle.GetEntry()->GetUses()) {
-               // Destroy all matching handles, but deallocate only     
-               // once after that                                       
-               for_each_match([&](Handle<void*>& h) {
-                  h.template Destroy<true, false>(mType);
-               });
+         if (1 != mEntry->GetUses()) {
+            if constexpr (not TypeErased) {
+               if constexpr (CT::Referencable<Deptr<TYPE>>) {
+                  // Statically typed and sparse                        
+                  const_cast<Allocation*>(handle.GetEntry())->Free();
+                  static_cast<TYPE>(handle.Get())->Reference(-1);
+               }
             }
-            else {
-               // Just dereference once more, but also reset            
-               // the matching handle entries                           
-               for_each_match([](Handle<void*>& h) {
-                  h.GetEntry() = nullptr;
-               });
+            else if (mType->mReference) {
+               // Type-erased and sparse                                
+               const auto reference = mType->mReference;
+               const_cast<Allocation*>(handle.GetEntry())->Free();
+               reference(handle.Get(), -1);
             }
          }
+         else {
+            // Count all handles that match the current entry           
+            auto matches = 0;
+            for_each_match([&matches](const Handle<void*>&) {
+               ++matches;
+            });
 
-         handle.Destroy(mType);
+            if (matches) {
+               const_cast<Allocation*>(handle.GetEntry())->Free(matches);
+
+               if (1 == handle.GetEntry()->GetUses()) {
+                  // Destroy all matching handles, but deallocate only  
+                  // once after that                                    
+                  for_each_match([&](Handle<void*>& h) {
+                     h.template Destroy<true, false>(mType);
+                  });
+               }
+               else {
+                  // Just dereference once more, but also reset         
+                  // the matching handle entries                        
+                  for_each_match([](Handle<void*>& h) {
+                     h.GetEntry() = nullptr;
+                  });
+               }
+            }
+         
+            handle.Destroy(mType);
+         }
+
          ++handle;
       }
    }

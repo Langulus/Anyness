@@ -59,7 +59,7 @@ namespace Langulus
          // can reference static or unmovable memory as any other.      
          // Data can still change in-place, unless constant.            
          // Reflected members are interfaced in that way                
-         Static = 32,
+         //Static = 32,
 
          // Data won't move, reallocate, deallocate, or even change     
          // Used to constrain the memory manipulations for safety       
@@ -72,10 +72,10 @@ namespace Langulus
 
          // Data is fully constrained                                   
          // Useful set of states to interface a constant member         
-         Constrained = Static | Constant | Typed,
+         Constrained = /*Static |*/ Constant | Typed,
 
          // Useful set of states to interface a mutable member          
-         Member = Static | Typed,
+         Member = /*Static |*/ Typed,
          ConstantMember = Constrained,
          TypedConstant = Constant | Typed,
          MissingFuture = Missing | Future,
@@ -110,7 +110,7 @@ namespace Langulus
       NOD() constexpr bool IsNow() const noexcept;
       NOD() constexpr bool IsFuture() const noexcept;
       NOD() constexpr bool IsPast() const noexcept;
-      NOD() constexpr bool IsStatic() const noexcept;
+      //NOD() constexpr bool IsStatic() const noexcept;
       NOD() constexpr bool IsConstant() const noexcept;
       NOD() constexpr bool IsTyped() const noexcept;
       NOD() constexpr bool IsConstrained() const noexcept;

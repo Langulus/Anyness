@@ -71,7 +71,14 @@ namespace Langulus::Anyness
    TEMPLATE() template<class A>
    constexpr HAND()::Handle(A&& argument) noexcept requires (not Embedded)
       : mValue (Forward<A>(argument))
-      , mEntry {nullptr} {}
+      , mEntry {nullptr} {
+      using S = IntentOf<decltype(argument)>;
+      using DT = Deptr<T>;
+      if constexpr (S::Keep and CT::Sparse<T> and CT::Complete<DT>) {
+         if constexpr (CT::Allocatable<DT>)
+            mEntry = Allocator::Find(MetaDataOf<DT>(), mValue);
+      }
+   }
 
    /// Handle destructor                                                      
    TEMPLATE()
