@@ -441,7 +441,7 @@ namespace Langulus::Anyness
    TEMPLATE() LANGULUS(INLINED)
    void HAND()::AssignWithIntent(auto&& rhs, DMeta type) requires Mutable {
       using S = IntentOf<decltype(rhs)>;
-      Destroy(type);
+      FreeInner(type);
       CreateWithIntent(S::Nest(rhs), type);
    }
    
@@ -467,7 +467,7 @@ namespace Langulus::Anyness
       }
       else {
          HandleLocal<T> tmp {Abandon(*this)};
-         Destroy<false, true>(type);
+         FreeInner<false, true>(type);
          CreateWithIntent(Abandon(rhs), type);
          rhs.CreateWithIntent(Abandon(tmp), type);
       }
@@ -497,7 +497,7 @@ namespace Langulus::Anyness
    ///   @param meta - type of the contained data, used only if handle is     
    ///      type-erased                                                       
    TEMPLATE() template<bool RESET, bool DEALLOCATE>
-   void HAND()::Destroy(DMeta meta) const requires Mutable {
+   void HAND()::FreeInner(DMeta meta) const requires Mutable {
       if constexpr (TypeErased) {
          LANGULUS_ASSUME(DevAssumes, meta,
             "Invalid type provided for type-erased handle");
@@ -515,7 +515,7 @@ namespace Langulus::Anyness
                   if (meta->mDeptr->mIsSparse) {
                      // Pointer to pointer                              
                      // Release all nested indirection layers           
-                     HandleLocal<void*> {Get()}.Destroy(meta->mDeptr);
+                     HandleLocal<void*> {Get()}.FreeInner(meta->mDeptr);
                   }
                   else if (meta->mDestructor) {
                      // Pointer to a complete, destroyable dense        
@@ -567,7 +567,7 @@ namespace Langulus::Anyness
                   if constexpr (CT::Sparse<Deptr<T>>) {
                      // Pointer to pointer                              
                      // Release all nested indirection layers           
-                     HandleLocal<Deptr<T>> {*Get()}.Destroy();
+                     HandleLocal<Deptr<T>> {*Get()}.FreeInner();
                   }
                   else if constexpr (CT::Destroyable<DT>) {
                      // Pointer to a complete, destroyable dense        

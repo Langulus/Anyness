@@ -341,8 +341,8 @@ namespace Langulus::Anyness
                   HandleLocal<V> valswap {Abandon(oldValue)};
 
                   // Destroy the key, info and value                    
-                  oldKey.Destroy();
-                  oldValue.Destroy();
+                  oldKey.FreeInner();
+                  oldValue.FreeInner();
                   *oldInfo = 0;
                   --mKeys.mCount;
 
@@ -362,8 +362,8 @@ namespace Langulus::Anyness
                   valswap.CreateWithIntent(Abandon(oldValue));
 
                   // Destroy the pair and info at old index             
-                  oldKey.Destroy();
-                  oldValue.Destroy();
+                  oldKey.FreeInner();
+                  oldValue.FreeInner();
                   *oldInfo = 0;
                   --mKeys.mCount;
 
@@ -422,7 +422,7 @@ namespace Langulus::Anyness
                   HandleLocal<K> keyswap {Abandon(oldKey)};
 
                   // Destroy the key, info and value                    
-                  oldKey.Destroy();
+                  oldKey.FreeInner();
                   *oldInfo = 0;
                   --mKeys.mCount;
 
@@ -438,7 +438,7 @@ namespace Langulus::Anyness
                   keyswap.CreateWithIntent(Abandon(oldKey));
 
                   // Destroy the pair and info at old index             
-                  oldKey.Destroy();
+                  oldKey.FreeInner();
                   *oldInfo = 0;
                   --mKeys.mCount;
 
@@ -499,7 +499,7 @@ namespace Langulus::Anyness
                   HandleLocal<V> valswap {Abandon(oldValue)};
 
                   // Destroy the key, info and value                    
-                  oldValue.Destroy();
+                  oldValue.FreeInner();
                   *oldInfo = 0;
                   --mKeys.mCount;
 
@@ -514,7 +514,7 @@ namespace Langulus::Anyness
                   valswap.CreateWithIntent(Abandon(oldValue));
 
                   // Destroy the pair and info at old index             
-                  oldValue.Destroy();
+                  oldValue.FreeInner();
                   *oldInfo = 0;
                   --mKeys.mCount;
 
@@ -567,11 +567,11 @@ namespace Langulus::Anyness
                   // Empty spot found, so move pair there               
                   auto key = GetKeyHandle<THIS>(oldIndex);
                   GetKeyHandle<THIS>(to).CreateWithIntent(Abandon(key));
-                  key.Destroy();
+                  key.FreeInner();
 
                   auto val = GetValHandle<THIS>(oldIndex);
                   GetValHandle<THIS>(to).CreateWithIntent(Abandon(val));
-                  val.Destroy();
+                  val.FreeInner();
 
                   mInfo[to] = attempt;
                   *oldInfo = 0;
@@ -597,8 +597,6 @@ namespace Langulus::Anyness
       BranchOut<THIS>();
       using SK = IntentOf<decltype(key)>;
       using SV = IntentOf<decltype(val)>;
-      using K = TypeOf<SK>;
-      using V = TypeOf<SV>;
       auto keyswapper = CreateKeyHandle<THIS>(SK::Nest(key));
       auto valswapper = CreateValHandle<THIS>(SV::Nest(val));
 
@@ -613,7 +611,7 @@ namespace Langulus::Anyness
          if constexpr (CHECK_FOR_MATCH) {
             if (keyswapper.Compare(GetKeyRef<THIS>(index))) {
                // Neat, the key already exists - just set value and go  
-               if constexpr (CT::Sparse<V>)
+               if constexpr (CT::Sparse<TypeOf<decltype(valswapper)>>)
                   GetValHandle<THIS>(index).AssignWithIntent(Refer(valswapper));
                else
                   GetValHandle<THIS>(index).AssignWithIntent(Abandon(valswapper));
@@ -644,12 +642,12 @@ namespace Langulus::Anyness
       // Might not seem like it, but we gave a guarantee, that this is  
       // eventually reached, unless key exists and returns early        
       const auto index = psl - GetInfo();
-      if constexpr (CT::Sparse<K>)
+      if constexpr (CT::Sparse<TypeOf<decltype(keyswapper)>>)
          GetKeyHandle<THIS>(index).CreateWithIntent(Refer(keyswapper));
       else
          GetKeyHandle<THIS>(index).CreateWithIntent(Abandon(keyswapper));
 
-      if constexpr (CT::Sparse<V>)
+      if constexpr (CT::Sparse<TypeOf<decltype(valswapper)>>)
          GetValHandle<THIS>(index).CreateWithIntent(Refer(valswapper));
       else
          GetValHandle<THIS>(index).CreateWithIntent(Abandon(valswapper));
@@ -728,12 +726,12 @@ namespace Langulus::Anyness
          insertedAt = index;
 
       if constexpr (S1<T>::Move) {
-         key->Destroy();
+         key->FreeInner();
          key->mCount = 0;
       }
 
       if constexpr (S2<T>::Move) {
-         val->Destroy();
+         val->FreeInner();
          val->mCount = 0;
       }
 

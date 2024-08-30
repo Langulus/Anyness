@@ -593,7 +593,7 @@ namespace Langulus::Anyness
       // Assign all elements from temporary to rhs                      
       reinterpret_cast<B*>(&DeintCast(rhs))->AssignWithIntent(Abandon(temporary));
       // Cleanup temporary                                              
-      temporary.Destroy();
+      temporary.FreeInner();
       Allocator::Deallocate(const_cast<Allocation*>(temporary.mEntry));
    }
 

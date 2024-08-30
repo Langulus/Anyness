@@ -106,7 +106,7 @@ namespace Langulus::Anyness
    void TME()::ResetInner() {
       LANGULUS_ASSUME(DevAssumes, mValue, "Null value");
       LANGULUS_ASSUME(DevAssumes, mEntry, "Null entry");
-      GetHandle().Destroy(MetaDataOf<T*>());
+      GetHandle().FreeInner(MetaDataOf<T*>());
    }
 
    /// Reset the pointer                                                      

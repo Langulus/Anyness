@@ -121,8 +121,9 @@ namespace Langulus::Anyness
       void AssignWithIntent(auto&&, DMeta = {}) requires Mutable;
       void Swap(CT::Handle auto&, DMeta = {}) requires Mutable;
       NOD() bool Compare(const auto&, DMeta = {}) const;
+
       template<bool RESET = false, bool DEALLOCATE = true>
-      void Destroy(DMeta = {}) const requires Mutable;
+      void FreeInner(DMeta = {}) const requires Mutable;
 
       // Prefix operators                                               
       Handle& operator ++ () noexcept requires Embedded;

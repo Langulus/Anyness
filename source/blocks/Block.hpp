@@ -800,7 +800,16 @@ namespace Langulus::Anyness
 
       template<bool DEEP = false>
       void Keep() const noexcept;
+      template<class MASK = std::nullptr_t>
+      void KeepInner(MASK = {}) const noexcept;
+
       void Free();
+      template<bool DESTROY = true, class MASK = std::nullptr_t>
+      void FreeInner(MASK = {}) const;
+      template<class MASK>
+      void FreeInnerSparse(MASK) const;
+
+      constexpr void ResetMemory() noexcept;
       /// @endcond                                                            
 
    public:
@@ -902,14 +911,6 @@ namespace Langulus::Anyness
       void Optimize();
       void Clear();
       void Reset();
-
-   protected:
-      template<bool FORCE = true, class MASK = std::nullptr_t>
-      void Destroy(MASK = {}) const;
-      template<class MASK>
-      void DestroySparse(MASK) const;
-
-      constexpr void ResetMemory() noexcept;
 
    public:
       ///                                                                     

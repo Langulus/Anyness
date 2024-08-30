@@ -75,7 +75,7 @@ namespace Langulus::Anyness
 
             // First call the destructors on the correct region         
             BranchOut();
-            CropInner(idx, removed).Destroy();
+            CropInner(idx, removed).FreeInner();
 
             if (ender < mCount) {
                // Fill gap by invoking abandon-constructors             
@@ -102,7 +102,7 @@ namespace Langulus::Anyness
 
             // First call the destructors on the correct region         
             BranchOut();
-            CropInner(idx, count).Destroy();
+            CropInner(idx, count).FreeInner();
 
             if constexpr (CT::Sparse<TYPE> or CT::POD<TYPE>) {
                // Batch move                                            
@@ -203,7 +203,7 @@ namespace Langulus::Anyness
 
       // Call destructors and change count                              
       BranchOut();
-      CropInner(count, mCount - count).Destroy();
+      CropInner(count, mCount - count).FreeInner();
       mCount = count;
    }
 
@@ -254,7 +254,7 @@ namespace Langulus::Anyness
       if (mEntry->GetUses() == 1) {
          // Entry is used only in this block, so it's safe to           
          // destroy all elements. We will reuse the entry and type      
-         Destroy();
+         FreeInner();
          mCount = 0;
       }
       else {
@@ -282,272 +282,6 @@ namespace Langulus::Anyness
    constexpr void Block<TYPE>::ResetState() noexcept {
       mState &= DataState::Typed;
       ResetType();
-   }
-
-   /// Call destructors of all initialized items                              
-   ///   @attention never modifies any block state                            
-   ///   @attention assumes block is not empty                                
-   ///   @attention assumes block is not static                               
-   ///   @tparam FORCE - used only when GetUses() == 1                        
-   ///   @param mask - internally used for destroying tables (tag dispatch)   
-   template<class TYPE> template<bool FORCE, class MASK>
-   void Block<TYPE>::Destroy(MASK mask) const {
-      LANGULUS_ASSUME(DevAssumes, not FORCE or GetUses() == 1,
-         "Attempting to destroy elements used from multiple locations");
-      LANGULUS_ASSUME(DevAssumes, not IsEmpty(),
-         "Attempting to destroy elements in an empty container");
-      LANGULUS_ASSUME(DevAssumes, not IsStatic(),
-         "Destroying elements in a static container is not allowed");
-
-      constexpr bool MASKED = not CT::Nullptr<MASK>;
-      const auto mthis = const_cast<Block*>(this);
-
-      if constexpr (not TypeErased) {
-         using DT = Decay<TYPE>;
-
-         if constexpr (CT::Sparse<TYPE>) {
-            // Destroy every sparse element                             
-            DestroySparse(mask);
-         }
-         else if constexpr (CT::Dense<TYPE> and CT::Destroyable<DT>
-         and (FORCE or CT::Referencable<DT>)) {
-            // Destroy every dense element                              
-            const auto count = not MASKED ? mCount : mReserved;
-            auto data = mthis->GetRaw();
-            const auto begMarker = data;
-            const auto endMarker = data + count;
-            UNUSED() Count remaining;
-            if constexpr (MASKED)
-               remaining = GetCount();
-
-            while (data != endMarker) {
-               if constexpr (MASKED) {
-                  if (not remaining)
-                     break;
-
-                  if (not mask[data - begMarker]) {
-                     ++data;
-                     continue;
-                  }
-
-                  --remaining;
-               }
-
-               if constexpr (FORCE) {
-                  if constexpr (CT::Referencable<DT>)
-                     data->Reference(-1);
-                  data->~DT();
-               }
-               else if constexpr (CT::Referencable<DT>) {
-                  if (not data->Reference(-1))
-                     data->~DT();
-               }
-
-               ++data;
-            }
-         }
-      }
-      else {
-         if (mType->mIsSparse) {
-            // Destroy every sparse element                             
-            DestroySparse(mask);
-         }
-         else if (not mType->mIsSparse and mType->mDestructor
-         and (FORCE or mType->mReference)) {
-            // Destroy every dense element                              
-            const auto count = not MASKED ? mCount : mReserved;
-            auto data = mthis->mRaw;
-            UNUSED() int index;
-            UNUSED() Count remaining;
-            if constexpr (MASKED) {
-               index = 0;
-               remaining = GetCount();
-            }
-            const auto endMarker = data + mType->mSize * count;
-
-            if (mType->mReference) {
-               while (data != endMarker) {
-                  if constexpr (MASKED) {
-                     if (not remaining)
-                        break;
-
-                     if (not mask[index]) {
-                        data += mType->mSize;
-                        ++index;
-                        continue;
-                     }
-
-                     --remaining;
-                  }
-
-                  if constexpr (FORCE) {
-                     mType->mReference(data, -1);
-                     mType->mDestructor(data);
-                  }
-                  else if (not mType->mReference(data, -1))
-                     mType->mDestructor(data);
-
-                  data += mType->mSize;
-
-                  if constexpr (MASKED)
-                     ++index;
-               }
-            }
-            else if constexpr (FORCE) {
-               while (data != endMarker) {
-                  if constexpr (MASKED) {
-                     if (not remaining)
-                        break;
-
-                     if (not mask[index]) {
-                        data += mType->mSize;
-                        ++index;
-                        continue;
-                     }
-
-                     --remaining;
-                  }
-
-                  mType->mDestructor(data);
-                  data += mType->mSize;
-
-                  if constexpr (MASKED)
-                     ++index;
-               }
-            }
-         }
-      }
-
-      // Always nullify upon destruction only if we're paranoid         
-      //TODO IF_LANGULUS_PARANOID(ZeroMemory(mRaw, GetBytesize<THIS>()));
-   }
-
-   /// Call destructors of all initialized sparse items                       
-   ///   @attention never modifies any block state                            
-   ///   @attention assumes block is not empty                                
-   ///   @attention assumes block is not static                               
-   ///   @param mask - internally used for destroying tables (tag dispatch)   
-   template<class TYPE> template<class MASK>
-   void Block<TYPE>::DestroySparse(MASK mask) const {
-      LANGULUS_ASSUME(DevAssumes, IsSparse(), "Container must be sparse");
-
-      // Destroy all indirection layers, if their references reach      
-      // 1, and destroy the dense element, if it has destructor         
-      // This is done in the following way:                             
-      //    1. First dereference all handles that point to the          
-      //       same memory together as one                              
-      //    2. Destroy those groups, that are fully dereferenced        
-      constexpr bool MASKED = not CT::Nullptr<MASK>;
-      const auto count = not MASKED ? mCount : mReserved;
-      const auto mthis = const_cast<Block*>(this);
-
-      auto handle = mthis->template GetHandle<void*>(0);
-      const auto begMarker = handle.mValue;
-      const auto endMarker = handle.mValue + count;
-      UNUSED() Count remaining;
-      if constexpr (MASKED)
-         remaining = GetCount();
-
-      // Execute a call for each handle that matches current entry      
-      const auto for_each_match = [&](auto&& call) {
-         auto handle2 = handle + 1;
-         UNUSED() Count remaining2;
-         if constexpr (MASKED)
-            remaining2 = remaining;
-
-         while (handle2.mValue != endMarker) {
-            if constexpr (MASKED) {
-               if (not remaining2)
-                  break;
-
-               if (not mask[handle2.mValue - begMarker]) {
-                  ++handle2;
-                  continue;
-               }
-
-               --remaining2;
-            }
-
-            if (handle.GetEntry() == handle2.GetEntry())
-               call(handle2);
-
-            ++handle2;
-         }
-      };
-
-      //                                                                
-      while (handle.mValue != endMarker) {
-         if constexpr (MASKED) {
-            if (not remaining)
-               break;
-
-            if (not mask[handle.mValue - begMarker]) {
-               ++handle;
-               continue;
-            }
-
-            --remaining;
-         }
-
-         if (not handle.GetEntry()) {
-            ++handle;
-            continue;
-         }
-
-         if (1 != mEntry->GetUses()) {
-            if constexpr (not TypeErased) {
-               if constexpr (CT::Referencable<Deptr<TYPE>>) {
-                  // Statically typed and sparse                        
-                  const_cast<Allocation*>(handle.GetEntry())->Free();
-                  static_cast<TYPE>(handle.Get())->Reference(-1);
-               }
-            }
-            else if (mType->mReference) {
-               // Type-erased and sparse                                
-               const auto reference = mType->mReference;
-               const_cast<Allocation*>(handle.GetEntry())->Free();
-               reference(handle.Get(), -1);
-            }
-         }
-         else {
-            // Count all handles that match the current entry           
-            auto matches = 0;
-            for_each_match([&matches](const Handle<void*>&) {
-               ++matches;
-            });
-
-            if (matches) {
-               const_cast<Allocation*>(handle.GetEntry())->Free(matches);
-
-               if (1 == handle.GetEntry()->GetUses()) {
-                  // Destroy all matching handles, but deallocate only  
-                  // once after that                                    
-                  for_each_match([&](Handle<void*>& h) {
-                     h.template Destroy<true, false>(mType);
-                  });
-               }
-               else {
-                  // Just dereference once more, but also reset         
-                  // the matching handle entries                        
-                  for_each_match([](Handle<void*>& h) {
-                     h.GetEntry() = nullptr;
-                  });
-               }
-            }
-         
-            handle.Destroy(mType);
-         }
-
-         ++handle;
-      }
-   }
-
-   /// Reset the memory inside the block                                      
-   template<class TYPE> LANGULUS(INLINED)
-   constexpr void Block<TYPE>::ResetMemory() noexcept {
-      mRaw   = nullptr;
-      mEntry = nullptr;
-      mCount = mReserved = 0;
    }
 
 } // namespace Langulus::Anyness

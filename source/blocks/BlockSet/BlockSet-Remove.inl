@@ -71,7 +71,7 @@ namespace Langulus::Anyness
       // Destroy the key and info at the start                          
       // Use statically typed optimizations where possible              
       auto key = GetHandle<THIS>(index);
-      key.Destroy();
+      key.FreeInner();
       ++key;
 
       *(psl++) = 0;
@@ -89,7 +89,7 @@ namespace Langulus::Anyness
          #endif
 
          (key--).CreateWithIntent(Abandon(key));
-         key.Destroy();
+         key.FreeInner();
          ++key;
 
          #if LANGULUS_COMPILER_GCC()
@@ -110,7 +110,7 @@ namespace Langulus::Anyness
          key = GetHandle<THIS>(0);
          auto lastkey = GetHandle<THIS>(last);
          lastkey.CreateWithIntent(Abandon(key));
-         key.Destroy();
+         key.FreeInner();
          ++key;
 
          *(psl++) = 0;
@@ -131,7 +131,7 @@ namespace Langulus::Anyness
 
       if (mKeys.mEntry->GetUses() == 1) {
          // Remove all used keys and values, they're used only here     
-         ClearInner<THIS>();
+         GetValues<THIS>().FreeInner(mInfo);
 
          // Clear all info to zero                                      
          ZeroMemory(mInfo, GetReserved());
@@ -140,7 +140,7 @@ namespace Langulus::Anyness
       else {
          // Data is used from multiple locations, don't change data     
          // We're forced to dereference and reset memory pointers       
-         ClearInner<THIS, false>();
+         GetValues<THIS>().template FreeInner<false>(mInfo);
 
          mInfo = nullptr;
          const_cast<Allocation*>(mKeys.mEntry)->Free();
@@ -155,7 +155,7 @@ namespace Langulus::Anyness
          if (mKeys.mEntry->GetUses() == 1) {
             // Remove all used keys and values, they're used only here  
             if (not IsEmpty())
-               ClearInner<THIS>();
+               GetValues<THIS>().FreeInner(mInfo);
 
             // No point in resetting info, we'll be deallocating it     
             Allocator::Deallocate(const_cast<Allocation*>(mKeys.mEntry));
@@ -163,7 +163,7 @@ namespace Langulus::Anyness
          else {
             // Data is used from multiple locations, just deref values  
             if (not IsEmpty())
-               ClearInner<THIS, false>();
+               GetValues<THIS>().template FreeInner<false>(mInfo);
 
             const_cast<Allocation*>(mKeys.mEntry)->Free();
          }
@@ -179,14 +179,6 @@ namespace Langulus::Anyness
    template<CT::Set THIS> LANGULUS(INLINED)
    void BlockSet::Compact() {
       TODO();
-   }
-   
-   /// Destroy everything valid inside the set, but don't deallocate          
-   ///   @attention doesn't affect count, or any container state              
-   ///   @tparam FORCE - used only when GetUses() == 1                        
-   template<CT::Set THIS, bool FORCE> LANGULUS(INLINED)
-   void BlockSet::ClearInner() {
-      GetValues<THIS>().template Destroy<FORCE>(mInfo);
    }
 
 } // namespace Langulus::Anyness

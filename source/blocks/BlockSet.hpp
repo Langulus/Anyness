@@ -85,6 +85,7 @@ namespace Langulus::Anyness
    ///                                                                        
    struct BlockSet : A::BlockSet {
       LANGULUS(ABSTRACT) false;
+      LANGULUS(TYPED) void;
 
       static constexpr bool Ownership = false;
       static constexpr bool Ordered = false;
@@ -313,6 +314,7 @@ namespace Langulus::Anyness
       template<CT::Set>
       void AllocateInner(Count);
 
+      template<CT::Set, bool DEEP = false>
       void Keep() const noexcept;
       template<CT::Set>
       void Free();
@@ -368,9 +370,6 @@ namespace Langulus::Anyness
       void Compact();
 
    protected:
-      template<CT::Set, bool FORCE = true>
-      void ClearInner();
-
       template<CT::Set>
       void RemoveInner(Offset) IF_UNSAFE(noexcept);
       template<CT::Set>

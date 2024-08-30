@@ -52,7 +52,7 @@ namespace Langulus::Anyness
                   // do not reset 'other' to avoid leaks. When using    
                   // raw Blocks, it's your responsibility to take care  
                   // of ownership.                                      
-                  Keep();
+                  Keep<TO, true>();
                }
                else {
                   other->mKeys.ResetMemory();
@@ -67,7 +67,7 @@ namespace Langulus::Anyness
                mKeys.mReserved = other->mKeys.mReserved;
                mInfo = other->mInfo;
 
-               Keep();
+               Keep<TO, true>();
             }
             else {
                // Copy                                                  

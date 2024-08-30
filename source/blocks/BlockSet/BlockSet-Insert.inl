@@ -371,7 +371,7 @@ namespace Langulus::Anyness
                   HandleLocal<K> keyswap {Abandon(oldKey)};
 
                   // Destroy the key, info and value                    
-                  oldKey.Destroy();
+                  oldKey.FreeInner();
                   *oldInfo = 0;
                   --mKeys.mCount;
 
@@ -384,7 +384,7 @@ namespace Langulus::Anyness
                   keyswap.CreateWithIntent(Abandon(oldKey));
 
                   // Destroy the pair and info at old index             
-                  oldKey.Destroy();
+                  oldKey.FreeInner();
                   *oldInfo = 0;
                   --mKeys.mCount;
 
@@ -434,7 +434,7 @@ namespace Langulus::Anyness
                   // Empty spot found, so move element there            
                   auto key = GetHandle<THIS>(oldIndex);
                   GetHandle<THIS>(to).CreateWithIntent(Abandon(key));
-                  key.Destroy();
+                  key.FreeInner();
 
                   mInfo[to] = attempt;
                   *oldInfo = 0;
@@ -456,7 +456,6 @@ namespace Langulus::Anyness
    Offset BlockSet::InsertInner(const Offset start, auto&& key) {
       BranchOut<THIS>();
       using S = IntentOf<decltype(key)>;
-      using T = TypeOf<S>;
       auto keyswapper = CreateValHandle<THIS>(S::Nest(key));
 
       // Get the starting index based on the key hash                   
@@ -495,7 +494,7 @@ namespace Langulus::Anyness
       // Might not seem like it, but we gave a guarantee, that this is  
       // eventually reached, unless key exists and returns early        
       const auto index = psl - GetInfo();
-      if constexpr (CT::Sparse<T>)
+      if constexpr (CT::Sparse<TypeOf<decltype(keyswapper)>>)
          GetHandle<THIS>(index).CreateWithIntent(Refer(keyswapper));
       else
          GetHandle<THIS>(index).CreateWithIntent(Abandon(keyswapper));
@@ -559,7 +558,7 @@ namespace Langulus::Anyness
          insertedAt = index;
 
       if constexpr (S<B>::Move) {
-         key->Destroy();
+         key->FreeInner();
          key->mCount = 0;
       }
 

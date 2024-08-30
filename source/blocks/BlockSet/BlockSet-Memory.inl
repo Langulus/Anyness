@@ -123,7 +123,7 @@ namespace Langulus::Anyness
                   GetBucket(hashmask, key.Get()),
                   Abandon(key)
                );
-               key.Destroy();
+               key.FreeInner();
             }
             else {
                InsertBlockInner<THIS, false>(
@@ -132,7 +132,7 @@ namespace Langulus::Anyness
                );
 
                if (key)
-                  key.Destroy();
+                  key.FreeInner();
                else
                   key.mCount = 1;
             }
@@ -171,9 +171,15 @@ namespace Langulus::Anyness
    }
    
    /// Reference memory block once                                            
-   LANGULUS(INLINED)
+   template<CT::Set THIS, bool DEEP> LANGULUS(INLINED)
    void BlockSet::Keep() const noexcept {
-      mKeys.Keep();
+      if (not mKeys.mEntry)
+         return;
+
+      const_cast<Allocation*>(mKeys.mEntry)->Keep(1);
+
+      if constexpr (DEEP)
+         GetValues<THIS>().KeepInner(mInfo);
    }
 
    /// Dereference memory block once and destroy all elements if data was     
@@ -189,13 +195,16 @@ namespace Langulus::Anyness
 
       if (mKeys.mEntry->GetUses() == 1) {
          if (not IsEmpty())
-            ClearInner<THIS>();
+            GetValues<THIS>().FreeInner(mInfo);
 
          // Deallocate stuff                                            
          Allocator::Deallocate(const_cast<Allocation*>(mKeys.mEntry));
       }
       else {
-         // Data is used from multiple locations, just deref            
+         // Dereference memory                                          
+         if (not IsEmpty())
+            GetValues<THIS>().template FreeInner<false>(mInfo);
+
          const_cast<Allocation*>(mKeys.mEntry)->Free();
       }
 

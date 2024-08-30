@@ -160,40 +160,24 @@ namespace Langulus::Anyness
    ///   @attention for internal use only, elements might not be initialized  
    template<CT::Map THIS> LANGULUS(INLINED)
    auto& BlockMap::GetKeys() const noexcept {
-      if constexpr (CT::Typed<THIS>)
-         return reinterpret_cast<const TMany<typename THIS::Key>&>(mKeys);
-      else
-         return reinterpret_cast<const Many&>(mKeys);
+      return reinterpret_cast<const Block<typename THIS::Key>&>(mKeys);
    }
 
    /// Get the templated key container                                        
    ///   @attention for internal use only, elements might not be initialized  
    template<CT::Map THIS> LANGULUS(INLINED)
    auto& BlockMap::GetKeys() noexcept {
-      if constexpr (CT::Typed<THIS>)
-         return reinterpret_cast<TMany<typename THIS::Key>&>(mKeys);
-      else
-         return reinterpret_cast<Many&>(mKeys);
+      return reinterpret_cast<Block<typename THIS::Key>&>(mKeys);
    }
 
    /// Get the templated values container                                     
    ///   @attention for internal use only, elements might not be initialized  
    template<CT::Map THIS> LANGULUS(INLINED)
-   auto& BlockMap::GetVals() const noexcept {
-      if constexpr (CT::Typed<THIS>)
-         return reinterpret_cast<const TMany<typename THIS::Value>&>(mValues);
-      else
-         return reinterpret_cast<const Many&>(mValues);
-   }
-
-   /// Get the templated values container                                     
-   ///   @attention for internal use only, elements might not be initialized  
-   template<CT::Map THIS> LANGULUS(INLINED)
-   auto& BlockMap::GetVals() noexcept {
-      if constexpr (CT::Typed<THIS>)
-         return reinterpret_cast<TMany<typename THIS::Value>&>(mValues);
-      else
-         return reinterpret_cast<Many&>(mValues);
+   auto BlockMap::GetVals() const noexcept {
+      auto temp = reinterpret_cast<const Block<typename THIS::Value>&>(mValues);
+      temp.mCount = mKeys.mCount;
+      temp.mReserved = mKeys.mReserved;
+      return temp;
    }
 
    /// Get the number of inserted pairs                                       
