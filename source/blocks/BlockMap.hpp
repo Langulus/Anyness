@@ -110,6 +110,8 @@ namespace Langulus::Anyness
    struct BlockMap : A::BlockMap {
       LANGULUS(ABSTRACT) false;
 
+      using Key = void;
+      using Value = void;
       using Pair = Anyness::Pair;
 
       static constexpr bool Ownership = false;
@@ -236,9 +238,7 @@ namespace Langulus::Anyness
       template<CT::Map>
       NOD() auto& GetKeys() noexcept;
       template<CT::Map>
-      NOD() auto& GetVals() const noexcept;
-      template<CT::Map>
-      NOD() auto& GetVals() noexcept;
+      NOD() auto GetVals() const noexcept;
 
       NOD() const InfoType* GetInfo() const noexcept;
       NOD()       InfoType* GetInfo() noexcept;
@@ -452,6 +452,7 @@ namespace Langulus::Anyness
       template<CT::Map>
       void AllocateInner(Count);
 
+      template<CT::Map, bool DEEP = false>
       void Keep() const noexcept;
       template<CT::Map>
       void Free();
@@ -534,8 +535,6 @@ namespace Langulus::Anyness
 
       template<CT::Map>
       void RemoveInner(Offset);
-      template<CT::Map, bool FORCE = true>
-      void ClearPartInner(CT::Block auto&);
 
    #if LANGULUS(TESTING)
       public: NOD() constexpr const void* GetRawKeysMemory() const noexcept;

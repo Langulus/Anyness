@@ -566,7 +566,7 @@ namespace Langulus::Anyness
          const bool typeCompliant = IsSimilar(DeintCast(value)) or
             (not CT::Void<FORCE> and DeintCast(value).IsDeep());
 
-         if (not IsConstant() /*and not IsStatic()*/ and typeCompliant and sc
+         if (not IsConstant() and typeCompliant and sc
          and not (GetCount() > 1 and not mState.IsOr() and state.IsOr())) {
             if constexpr (CT::CanBeDeepened<FORCE, Block>) {
                if ((not IsDeep() and DeintCast(value).IsDeep())

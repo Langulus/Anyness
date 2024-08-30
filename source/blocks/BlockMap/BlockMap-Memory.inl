@@ -177,8 +177,8 @@ namespace Langulus::Anyness
                   GetBucket(hashmask, key.Get()),
                   Abandon(key), Abandon(val)
                );
-               key.Destroy();
-               val.Destroy();
+               key.FreeInner();
+               val.FreeInner();
             }
             else {
                InsertBlockInner<THIS, false>(
@@ -187,12 +187,12 @@ namespace Langulus::Anyness
                );
 
                if (key)
-                  key.Destroy();
+                  key.FreeInner();
                else
                   key.mCount = 1;
 
                if (val)
-                  val.Destroy();
+                  val.FreeInner();
                else
                   val.mCount = 1;
             }
@@ -250,9 +250,17 @@ namespace Langulus::Anyness
    }
    
    /// Reference memory block once                                            
-   LANGULUS(INLINED)
+   template<CT::Map THIS, bool DEEP> LANGULUS(INLINED)
    void BlockMap::Keep() const noexcept {
-      mKeys.Keep();
+      if (not mKeys.mEntry)
+         return;
+
+      const_cast<Allocation*>(mKeys.mEntry)->Keep(1);
+
+      if constexpr (DEEP) {
+         GetKeys<THIS>().KeepInner(mInfo);
+         GetVals<THIS>().KeepInner(mInfo);
+      }
    }
 
    /// Dereference memory block once and destroy all elements if data was     
@@ -267,8 +275,8 @@ namespace Langulus::Anyness
 
       if (mKeys.mEntry->GetUses() == 1) {
          if (not IsEmpty()) {
-            ClearPartInner<THIS>(GetKeys<THIS>());
-            ClearPartInner<THIS>(GetVals<THIS>());
+            GetKeys<THIS>().FreeInner(mInfo);
+            GetVals<THIS>().FreeInner(mInfo);
          }
 
          // Deallocate stuff                                            
@@ -278,9 +286,14 @@ namespace Langulus::Anyness
          Allocator::Deallocate(const_cast<Allocation*>(mValues.mEntry));
       }
       else {
-         // Data is used from multiple locations, just deref values     
-         // Notice how we don't dereference keys, since we use only the 
-         // values' references to save on some redundancy               
+         // Dereference memory                                          
+         if (not IsEmpty()) {
+            GetKeys<THIS>().template FreeInner<false>(mInfo);
+            GetVals<THIS>().template FreeInner<false>(mInfo);
+         }
+
+         // Notice how we don't dereference mValues, since we use only  
+         // the key's block references to save on some redundancy       
          const_cast<Allocation*>(mKeys.mEntry)->Free();
       }
 

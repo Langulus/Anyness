@@ -126,8 +126,8 @@ namespace Langulus::Anyness
          if (mKeys.mEntry) {
             if (mKeys.mEntry->GetUses() == 1) {
                if (not IsEmpty()) {
-                  BlockMap::ClearPartInner<TMap>(BlockMap::GetKeys<TMap>());
-                  BlockMap::ClearPartInner<TMap>(BlockMap::GetVals<TMap>());
+                  BlockMap::GetKeys<TMap>().FreeInner(mInfo);
+                  BlockMap::GetVals<TMap>().FreeInner(mInfo);
                   mKeys.mCount = 0;
                }
             }

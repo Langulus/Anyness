@@ -172,8 +172,8 @@ namespace Langulus::Anyness
 
             // Remove every pair with matching value                    
             auto key = GetKeyHandle<THIS>(psl - GetInfo());
-            key.Destroy();
-            val.Destroy();
+            key.FreeInner();
+            val.FreeInner();
             *psl = 0;
             ++removed;
             --mKeys.mCount;
@@ -202,11 +202,11 @@ namespace Langulus::Anyness
       // Destroy the key, info and value at the start                   
       // Use statically typed optimizations where possible              
       auto key = GetKeyHandle<THIS>(index);
-      key.Destroy();
+      key.FreeInner();
       ++key;
 
       auto val = GetValHandle<THIS>(index);
-      val.Destroy();
+      val.FreeInner();
       ++val;
 
       *(psl++) = 0;
@@ -219,11 +219,11 @@ namespace Langulus::Anyness
          psl[-1] = (*psl) - 1;
 
          (key--).CreateWithIntent(Abandon(key));
-         key.Destroy();
+         key.FreeInner();
          ++key;
 
          (val--).CreateWithIntent(Abandon(val));
-         val.Destroy();
+         val.FreeInner();
          ++val;
 
          *(psl++) = 0;
@@ -239,12 +239,12 @@ namespace Langulus::Anyness
          // Shift first pair to the back                                
          key = GetKeyHandle<THIS>(0);
          GetKeyHandle<THIS>(last).CreateWithIntent(Abandon(key));
-         key.Destroy();
+         key.FreeInner();
          ++key;
 
          val = GetValHandle<THIS>(0);
          GetValHandle<THIS>(last).CreateWithIntent(Abandon(val));
-         val.Destroy();
+         val.FreeInner();
          ++val;
 
          *(psl++) = 0;
@@ -265,8 +265,8 @@ namespace Langulus::Anyness
 
       if (mKeys.mEntry->GetUses() == 1) {
          // Remove all used keys and values, they're used only here     
-         ClearPartInner<THIS>(GetKeys<THIS>());
-         ClearPartInner<THIS>(GetVals<THIS>());
+         GetKeys<THIS>().FreeInner(mInfo);
+         GetVals<THIS>().FreeInner(mInfo);
 
          // Clear all info to zero                                      
          ZeroMemory(mInfo, GetReserved());
@@ -275,8 +275,8 @@ namespace Langulus::Anyness
       else {
          // Data is used from multiple locations, don't change data     
          // We're forced to dereference and reset memory pointers       
-         ClearPartInner<THIS, false>(GetKeys<THIS>());
-         ClearPartInner<THIS, false>(GetVals<THIS>());
+         GetKeys<THIS>().template FreeInner<false>(mInfo);
+         GetVals<THIS>().template FreeInner<false>(mInfo);
 
          mInfo = nullptr;
          const_cast<Allocation*>(mKeys.mEntry)->Free();
@@ -292,8 +292,8 @@ namespace Langulus::Anyness
          if (mKeys.mEntry->GetUses() == 1) {
             // Remove all used keys and values, they're used only here  
             if (not IsEmpty()) {
-               ClearPartInner<THIS>(GetKeys<THIS>());
-               ClearPartInner<THIS>(GetVals<THIS>());
+               GetKeys<THIS>().FreeInner(mInfo);
+               GetVals<THIS>().FreeInner(mInfo);
             }
 
             // No point in resetting info, we'll be deallocating it     
@@ -305,8 +305,8 @@ namespace Langulus::Anyness
          else {
             // Data is used from multiple locations, just deref values  
             if (not IsEmpty()) {
-               ClearPartInner<THIS, false>(GetKeys<THIS>());
-               ClearPartInner<THIS, false>(GetVals<THIS>());
+               GetKeys<THIS>().template FreeInner<false>(mInfo);
+               GetVals<THIS>().template FreeInner<false>(mInfo);
             }
 
             const_cast<Allocation*>(mKeys.mEntry)->Free();
@@ -325,18 +325,6 @@ namespace Langulus::Anyness
    template<CT::Map THIS> LANGULUS(INLINED)
    void BlockMap::Compact() {
       TODO();
-   }
-   
-   /// Destroy each element in 'mthis' that corresponds to a valid map entry  
-   ///   @attention doesn't affect count, or any container state              
-   ///   @tparam FORCE - used only when GetUses() == 1                        
-   template<CT::Map THIS, bool FORCE>
-   void BlockMap::ClearPartInner(CT::Block auto& part) {
-      // Intentional slice                                              
-      Block mthis = part;
-      mthis.mCount = mKeys.mCount;
-      mthis.mReserved = mKeys.mReserved;
-      mthis.template Destroy<FORCE>(mInfo);
    }
 
 } // namespace Langulus::Anyness
