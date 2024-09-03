@@ -137,7 +137,7 @@ namespace Langulus::Anyness
       void CloneValuesReinsertInner(CT::Block auto&, S<FROM>&&);
 
       template<CT::Map>
-      void BranchOut();
+      bool BranchOut();
 
    public:
       ///                                                                     
@@ -223,27 +223,24 @@ namespace Langulus::Anyness
       template<CT::Map = UnorderedMap>
       NOD() bool IsValueExecutableDeep() const;
 
-      NOD() constexpr bool HasAuthority() const noexcept;
-      NOD() constexpr Count GetUses() const noexcept;
-
       NOD() constexpr explicit operator bool() const noexcept;
 
       #if LANGULUS(DEBUG)
          template<CT::Map> void Dump() const;
       #endif
 
-   protected:
-      template<CT::Map>
+      template<CT::Map = UnorderedMap>
       NOD() auto& GetKeys() const noexcept;
-      template<CT::Map>
+      template<CT::Map = UnorderedMap>
       NOD() auto& GetKeys() noexcept;
-      template<CT::Map>
-      NOD() auto GetVals() const noexcept;
+      template<CT::Map = UnorderedMap>
+      NOD() auto  GetVals() const noexcept;
 
-      NOD() const InfoType* GetInfo() const noexcept;
-      NOD()       InfoType* GetInfo() noexcept;
-      NOD() const InfoType* GetInfoEnd() const noexcept;
+      NOD() auto GetInfo() const noexcept -> const InfoType*;
+      NOD() auto GetInfo()       noexcept -> InfoType*;
+      NOD() auto GetInfoEnd() const noexcept -> const InfoType*;
 
+   protected:
       NOD() Count GetCountDeep(const CT::Block auto&) const noexcept;
       NOD() Count GetCountElementsDeep(const CT::Block auto&) const noexcept;
 
@@ -291,11 +288,11 @@ namespace Langulus::Anyness
       NOD() decltype(auto) GetValRef(Offset)       IF_UNSAFE(noexcept);
 
       template<CT::Map>
-      NOD() auto GetKeyHandle(Offset) IF_UNSAFE(noexcept);
+      NOD() auto GetKeyHandle(Offset)       IF_UNSAFE(noexcept);
       template<CT::Map>
       NOD() auto GetKeyHandle(Offset) const IF_UNSAFE(noexcept);
       template<CT::Map>
-      NOD() auto GetValHandle(Offset) IF_UNSAFE(noexcept);
+      NOD() auto GetValHandle(Offset)       IF_UNSAFE(noexcept);
       template<CT::Map>
       NOD() auto GetValHandle(Offset) const IF_UNSAFE(noexcept);
 
@@ -307,14 +304,14 @@ namespace Langulus::Anyness
       struct Iterator;
 
       template<CT::Map MAP>
-      NOD() Iterator<MAP> begin() noexcept;
+      NOD() auto begin()       noexcept -> Iterator<MAP>;
       template<CT::Map MAP>
-      NOD() Iterator<const MAP> begin() const noexcept;
+      NOD() auto begin() const noexcept -> Iterator<const MAP>;
 
       template<CT::Map MAP>
-      NOD() Iterator<MAP> last() noexcept;
+      NOD() auto last()       noexcept -> Iterator<MAP>;
       template<CT::Map MAP>
-      NOD() Iterator<const MAP> last() const noexcept;
+      NOD() auto last() const noexcept -> Iterator<const MAP>;
 
       constexpr A::IteratorEnd end() const noexcept { return {}; }
 
@@ -414,11 +411,11 @@ namespace Langulus::Anyness
       NOD() bool ContainsPair(const CT::Pair auto&) const;
 
       template<CT::Map = UnorderedMap>
-      NOD() Index Find(const CT::NoIntent auto&) const;
+      NOD() auto Find(const CT::NoIntent auto&) const -> Index;
       template<CT::Map THIS = UnorderedMap>
-      NOD() Iterator<THIS> FindIt(const CT::NoIntent auto&);
+      NOD() auto FindIt(const CT::NoIntent auto&) -> Iterator<THIS>;
       template<CT::Map THIS = UnorderedMap>
-      NOD() Iterator<const THIS> FindIt(const CT::NoIntent auto&) const;
+      NOD() auto FindIt(const CT::NoIntent auto&) const -> Iterator<const THIS>;
 
       template<CT::Map = UnorderedMap>
       NOD() decltype(auto) At(const CT::NoIntent auto&);
@@ -516,7 +513,7 @@ namespace Langulus::Anyness
       template<CT::Map>
       Count RemovePair(const CT::Pair auto&);
       template<CT::Map THIS>
-      Iterator<THIS> RemoveIt(const Iterator<THIS>&);
+      auto RemoveIt(const Iterator<THIS>&) -> Iterator<THIS>;
 
       template<CT::Map>
       void Clear();

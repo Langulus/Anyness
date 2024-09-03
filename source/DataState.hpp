@@ -57,11 +57,16 @@ namespace Langulus
          // Data won't move, reallocate, deallocate, or even change     
          // Used to constrain the memory manipulations for safety       
          // That way you can interface constant memory as any other     
-         Constant = 64,
+         Constant = 32,
 
          // Data won't ever change type - useful for templated packs    
          // Used to constrain the memory manipulations for safety       
-         Typed = 128,
+         Typed = 64,
+
+      #if LANGULUS(DEBUG)
+         // Tracks the memory, useful for detecting abnormalities       
+         Tracked = 128,
+      #endif
 
          // Data is fully constrained                                   
          // Useful set of states to interface a constant member         

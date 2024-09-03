@@ -489,6 +489,9 @@ namespace Langulus::Anyness
          InsertInner(S::Nest(DeintCast(item).Get()));
       }
       else if constexpr (CT::Deep<T>) {
+         DEBUGGERY((DeintCast(item).TrackingReport(nullptr,
+            "Inserting in Neat container with intent: ", NameOf<S>())));
+
          // Pushing an entire pack, make sure we flatten it, if it is   
          // allowed                                                     
          const auto meta = DeintCast(item).GetUnconstrainedState()
@@ -1203,7 +1206,8 @@ namespace Langulus::Anyness
          return count;
       }
 
-      if (mAnythingElse.GetUses() > 1) {
+      if (mAnythingElse.GetKeys().GetUses() > 1
+      or  mAnythingElse.GetVals().GetUses() > 1) {
          // mAnythingElse is used from multiple locations, and we must  
          // branch out this particular instance before modifying it     
          found = mAnythingElse.BranchOut().FindIt(filter);
@@ -1234,7 +1238,8 @@ namespace Langulus::Anyness
       if (not found)
          return 0;
 
-      if (mConstructs.GetUses() > 1) {
+      if (mConstructs.GetKeys().GetUses() > 1
+      or  mConstructs.GetVals().GetUses() > 1) {
          // mConstructs is used from multiple locations, and we must    
          // branch out this particular instance before modifying it     
          found = mConstructs.BranchOut().FindIt(filter);
@@ -1273,7 +1278,8 @@ namespace Langulus::Anyness
          return count;
       }
 
-      if (mTraits.GetUses() > 1) {
+      if (mTraits.GetKeys().GetUses() > 1
+      or  mTraits.GetVals().GetUses() > 1) {
          // mTraits is used from multiple locations, and we must        
          // branch out this particular instance before modifying it     
          found = mTraits.BranchOut().FindIt(filter);
@@ -1349,15 +1355,15 @@ namespace Langulus::Anyness
 
    template<template<class> class S>
    Inner::DeConstruct::DeConstruct(Hash hash, const Charge& charge, S<Neat>&& data)
-      : mHash {hash}
+      : mHash   {hash}
       , mCharge {charge}
-      , mData {data.Forward()} {}
+      , mData   {data.Forward()} {}
 
    template<template<class> class S> LANGULUS(INLINED)
    Inner::DeConstruct::DeConstruct(S<DeConstruct>&& other)
-      : mHash {other->mHash}
+      : mHash   {other->mHash}
       , mCharge {other->mCharge}
-      , mData {S<Many> {other->mData}} {}
+      , mData   {S<Many> {other->mData}} {}
 
    LANGULUS(INLINED)
    Hash Inner::DeConstruct::GetHash() const noexcept {

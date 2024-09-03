@@ -132,9 +132,11 @@ TEMPLATE_TEST_CASE(
          REQUIRE(map.template IsKey<K>());
          REQUIRE(map.template IsValue<V>());
          REQUIRE(map.IsAllocated());
-         REQUIRE(map.HasAuthority());
+         REQUIRE(map.GetKeys().GetAllocation());
+         REQUIRE(map.GetVals().GetAllocation());
          REQUIRE(map.GetCount() == 1);
-         REQUIRE(map.GetUses() == 1);
+         REQUIRE(map.GetKeys().GetUses() == 1);
+         REQUIRE(map.GetVals().GetUses() == 1);
          REQUIRE(map[pair.mKey] == pair.mValue);
          REQUIRE(map["five hundred"] == pair.mValue);
          REQUIRE_THROWS(map["missing"] != pair.mValue);
@@ -175,9 +177,11 @@ TEMPLATE_TEST_CASE(
       REQUIRE(map.template IsKey<K>());
       REQUIRE(map.template IsValue<V>());
       REQUIRE(map.IsAllocated());
-      REQUIRE(map.HasAuthority());
+      REQUIRE(map.GetKeys().GetAllocation());
+      REQUIRE(map.GetVals().GetAllocation());
       REQUIRE(map.GetCount() == 1);
-      REQUIRE(map.GetUses() == 1);
+      REQUIRE(map.GetKeys().GetUses() == 1);
+      REQUIRE(map.GetVals().GetUses() == 1);
       REQUIRE(map[pair.mKey] == pair.mValue);
       REQUIRE(map["five hundred"] == pair.mValue);
       REQUIRE_THROWS(map["missing"] != pair.mValue);
@@ -195,8 +199,10 @@ TEMPLATE_TEST_CASE(
       REQUIRE_FALSE(map.template IsKey<char>());
       REQUIRE_FALSE(map.template IsValue<float>());
       REQUIRE_FALSE(map.template IsValue<unsigned char>());
-      REQUIRE(map.HasAuthority());
-      REQUIRE(map.GetUses() == 1);
+      REQUIRE(map.GetKeys().GetAllocation());
+      REQUIRE(map.GetVals().GetAllocation());
+      REQUIRE(map.GetKeys().GetUses() == 1);
+      REQUIRE(map.GetVals().GetUses() == 1);
       for (auto& comparer : darray1)
          REQUIRE(map[comparer.mKey] == comparer.mValue);
       REQUIRE(map.GetReserved() >= 5);
@@ -222,8 +228,10 @@ TEMPLATE_TEST_CASE(
       REQUIRE_FALSE(map.template IsKey<char>());
       REQUIRE_FALSE(map.template IsValue<float>());
       REQUIRE_FALSE(map.template IsValue<unsigned char>());
-      REQUIRE(map.HasAuthority());
-      REQUIRE(map.GetUses() == 1);
+      REQUIRE(map.GetKeys().GetAllocation());
+      REQUIRE(map.GetVals().GetAllocation());
+      REQUIRE(map.GetKeys().GetUses() == 1);
+      REQUIRE(map.GetVals().GetUses() == 1);
       for (auto& comparer : darray1)
          REQUIRE(map[comparer.mKey] == comparer.mValue);
       REQUIRE(map.GetReserved() >= 5);
@@ -312,8 +320,10 @@ TEMPLATE_TEST_CASE(
          REQUIRE(map.template IsKey<K>());
          REQUIRE(map.GetValueType()->template Is<V>());
          REQUIRE(map.template IsValue<V>());
-         REQUIRE(map.HasAuthority());
-         REQUIRE(map.GetUses() == 1);
+         REQUIRE(map.GetKeys().GetAllocation());
+         REQUIRE(map.GetVals().GetAllocation());
+         REQUIRE(map.GetKeys().GetUses() == 1);
+         REQUIRE(map.GetVals().GetUses() == 1);
          REQUIRE(map.GetCount() == 10);
          for (auto& comparer : darray1)
             REQUIRE(map[comparer.mKey] == comparer.mValue);
@@ -405,8 +415,10 @@ TEMPLATE_TEST_CASE(
              << ::std::move(movableDarray2[3])
              << ::std::move(movableDarray2[4]);
 
-         REQUIRE(map.HasAuthority());
-         REQUIRE(map.GetUses() == 1);
+         REQUIRE(map.GetKeys().GetAllocation());
+         REQUIRE(map.GetVals().GetAllocation());
+         REQUIRE(map.GetKeys().GetUses() == 1);
+         REQUIRE(map.GetVals().GetUses() == 1);
          REQUIRE(map.GetCount() == 10);
          REQUIRE(map.GetKeyType()->template Is<K>());
          REQUIRE(map.GetValueType()->template Is<V>());
@@ -452,8 +464,10 @@ TEMPLATE_TEST_CASE(
 
          REQUIRE(map.GetKeyType()->template Is<K>());
          REQUIRE(map.GetValueType()->template Is<V>());
-         REQUIRE(map.HasAuthority());
-         REQUIRE(map.GetUses() == 1);
+         REQUIRE(map.GetKeys().GetAllocation());
+         REQUIRE(map.GetVals().GetAllocation());
+         REQUIRE(map.GetKeys().GetUses() == 1);
+         REQUIRE(map.GetVals().GetUses() == 1);
          REQUIRE(removed2 == 1);
          REQUIRE(removed4 == 1);
          REQUIRE(map.GetCount() == 3);
@@ -521,8 +535,10 @@ TEMPLATE_TEST_CASE(
 
          REQUIRE(map.GetKeyType()->template Is<K>());
          REQUIRE(map.GetValueType()->template Is<V>());
-         REQUIRE(map.HasAuthority());
-         REQUIRE(map.GetUses() == 1);
+         REQUIRE(map.GetKeys().GetAllocation());
+         REQUIRE(map.GetVals().GetAllocation());
+         REQUIRE(map.GetKeys().GetUses() == 1);
+         REQUIRE(map.GetVals().GetUses() == 1);
          REQUIRE(removed2 == 1);
          REQUIRE(removed4 == 1);
          REQUIRE(map.GetCount() == 3);
@@ -585,8 +601,10 @@ TEMPLATE_TEST_CASE(
          REQUIRE(map.GetCount() == 5);
          REQUIRE(map.GetRawKeysMemory() == keyMemory);
          REQUIRE(map.GetRawValsMemory() == valueMemory);
-         REQUIRE(map.HasAuthority());
-         REQUIRE(map.GetUses() == 1);
+         REQUIRE(map.GetKeys().GetAllocation());
+         REQUIRE(map.GetVals().GetAllocation());
+         REQUIRE(map.GetKeys().GetUses() == 1);
+         REQUIRE(map.GetVals().GetUses() == 1);
          REQUIRE(map.GetReserved() >= 5);
 
          REQUIRE(map.ContainsKey(darray1[0].mKey));
@@ -611,8 +629,10 @@ TEMPLATE_TEST_CASE(
          REQUIRE(map.GetCount() == 5);
          REQUIRE(map.GetRawKeysMemory() == keyMemory);
          REQUIRE(map.GetRawValsMemory() == valueMemory);
-         REQUIRE(map.HasAuthority());
-         REQUIRE(map.GetUses() == 1);
+         REQUIRE(map.GetKeys().GetAllocation());
+         REQUIRE(map.GetVals().GetAllocation());
+         REQUIRE(map.GetKeys().GetUses() == 1);
+         REQUIRE(map.GetVals().GetUses() == 1);
          REQUIRE(map.GetReserved() >= 5);
 
          REQUIRE(map.ContainsKey(darray1[0].mKey));
@@ -631,8 +651,10 @@ TEMPLATE_TEST_CASE(
       WHEN("More capacity is reserved") {
          map.Reserve(20);
 
-         REQUIRE(map.HasAuthority());
-         REQUIRE(map.GetUses() == 1);
+         REQUIRE(map.GetKeys().GetAllocation());
+         REQUIRE(map.GetVals().GetAllocation());
+         REQUIRE(map.GetKeys().GetUses() == 1);
+         REQUIRE(map.GetVals().GetUses() == 1);
          REQUIRE(map.GetCount() == 5);
          /*#if LANGULUS_FEATURE(MANAGED_MEMORY)
             REQUIRE(map.GetRawKeysMemory() == keyMemory);
@@ -644,8 +666,10 @@ TEMPLATE_TEST_CASE(
       WHEN("Less capacity is reserved") {
          map.Reserve(2);
 
-         REQUIRE(map.HasAuthority());
-         REQUIRE(map.GetUses() == 1);
+         REQUIRE(map.GetKeys().GetAllocation());
+         REQUIRE(map.GetVals().GetAllocation());
+         REQUIRE(map.GetKeys().GetUses() == 1);
+         REQUIRE(map.GetVals().GetUses() == 1);
          REQUIRE(map.GetCount() == 5);
          REQUIRE(map.GetRawKeysMemory() == keyMemory);
          REQUIRE(map.GetRawValsMemory() == valueMemory);
@@ -666,8 +690,10 @@ TEMPLATE_TEST_CASE(
          REQUIRE(!map);
          REQUIRE(map.GetRawKeysMemory() == keyMemory);
          REQUIRE(map.GetRawValsMemory() == valueMemory);
-         REQUIRE(map.HasAuthority());
-         REQUIRE(map.GetUses() == 1);
+         REQUIRE(map.GetKeys().GetAllocation());
+         REQUIRE(map.GetVals().GetAllocation());
+         REQUIRE(map.GetKeys().GetUses() == 1);
+         REQUIRE(map.GetVals().GetUses() == 1);
          REQUIRE(map.GetReserved() >= 5);
       }
 
@@ -684,8 +710,10 @@ TEMPLATE_TEST_CASE(
          REQUIRE(copy.GetKeyType()->template Is<K>());
          REQUIRE(copy.GetValueType()->template Is<V>());
          REQUIRE(copy.IsAllocated());
-         REQUIRE(copy.HasAuthority());
-         REQUIRE(copy.GetUses() == 2);
+         REQUIRE(copy.GetKeys().GetAllocation());
+         REQUIRE(copy.GetVals().GetAllocation());
+         REQUIRE(copy.GetKeys().GetUses() == 2);
+         REQUIRE(copy.GetVals().GetUses() == 2);
          REQUIRE(copy.GetCount() == map.GetCount());
          REQUIRE(copy.GetCount() == 5);
          REQUIRE(copy.GetRawKeysMemory() == map.GetRawKeysMemory());
@@ -706,8 +734,10 @@ TEMPLATE_TEST_CASE(
          REQUIRE(clone.GetKeyType()->template Is<K>());
          REQUIRE(clone.GetValueType()->template Is<V>());
          REQUIRE(clone.IsAllocated());
-         REQUIRE(clone.HasAuthority());
-         REQUIRE(clone.GetUses() == 1);
+         REQUIRE(clone.GetKeys().GetAllocation());
+         REQUIRE(clone.GetVals().GetAllocation());
+         REQUIRE(clone.GetKeys().GetUses() == 1);
+         REQUIRE(clone.GetVals().GetUses() == 1);
          REQUIRE(clone.GetCount() == map.GetCount());
          REQUIRE(clone.GetCount() == 5);
          REQUIRE(clone.GetRawKeysMemory() != map.GetRawKeysMemory());
@@ -743,8 +773,10 @@ TEMPLATE_TEST_CASE(
          REQUIRE(moved.GetRawValsMemory() == valueMemory);
          REQUIRE(moved.IsAllocated());
          REQUIRE(moved.GetCount() == 5);
-         REQUIRE(moved.HasAuthority());
-         REQUIRE(moved.GetUses() == 2);
+         REQUIRE(moved.GetKeys().GetAllocation());
+         REQUIRE(moved.GetVals().GetAllocation());
+         REQUIRE(moved.GetKeys().GetUses() == 2);
+         REQUIRE(moved.GetVals().GetUses() == 2);
          for (auto& comparer : darray1)
             REQUIRE(moved[comparer.mKey] == comparer.mValue);
       }

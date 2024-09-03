@@ -74,6 +74,8 @@ namespace Langulus::Anyness
       NOD() static Many Past() noexcept;
       NOD() static Many Future() noexcept;
 
+      DEBUGGERY(using Base::TrackingReport);
+
       ///                                                                     
       ///   Assignment                                                        
       ///                                                                     

@@ -109,10 +109,9 @@ namespace Langulus::Anyness
                      // allocated for each pointer's entry, if managed  
                      // memory is enabled.                              
                      if constexpr (CT::AbandonMakable<TYPE>
-                        or CT::MoveMakable<TYPE>
-                        or CT::ReferMakable<TYPE>
-                        or CT::CopyMakable<TYPE>
-                        ) {
+                     or CT::MoveMakable<TYPE>
+                     or CT::ReferMakable<TYPE>
+                     or CT::CopyMakable<TYPE>) {
                         mRaw = const_cast<Byte*>(mEntry->GetBlockStart());
                         CreateWithIntent(Abandon(previousBlock));
                         previousBlock.Free();

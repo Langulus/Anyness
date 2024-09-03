@@ -402,7 +402,12 @@ namespace Langulus::Anyness
       }
 
       constexpr Block& operator = (const A::Block&) noexcept;
-               
+
+      #if LANGULUS(DEBUG)
+         template<class MASK, class...MSGs>
+         void TrackingReport(MASK, MSGs&&...) const;
+      #endif
+
    protected:
       template<class T1, class...TN> requires CT::DeepMakable<TYPE, T1, TN...>
       void BlockCreate(T1&&, TN&&...);

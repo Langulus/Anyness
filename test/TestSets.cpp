@@ -99,7 +99,7 @@ TEMPLATE_TEST_CASE(
          REQUIRE(!set);
          REQUIRE(set.GetUses() == 0);
          REQUIRE_FALSE(set.IsAllocated());
-         REQUIRE_FALSE(set.HasAuthority());
+         REQUIRE_FALSE(set.GetAllocation());
 
          #ifdef LANGULUS_STD_BENCHMARK
             BENCHMARK_ADVANCED("Anyness::set::default construction") (timer meter) {
@@ -127,7 +127,7 @@ TEMPLATE_TEST_CASE(
          REQUIRE(set.GetType()->template Is<K>());
          REQUIRE(set.template Is<K>());
          REQUIRE(set.IsAllocated());
-         REQUIRE(set.HasAuthority());
+         REQUIRE(set.GetAllocation());
          REQUIRE(set.GetCount() == 1);
          REQUIRE(set.GetUses() == 1);
          REQUIRE(set[0] == element);
@@ -166,7 +166,7 @@ TEMPLATE_TEST_CASE(
          REQUIRE(set.GetType()->template Is<K>());
          REQUIRE(set.template Is<K>());
          REQUIRE(set.IsAllocated());
-         REQUIRE(set.HasAuthority());
+         REQUIRE(set.GetAllocation());
          REQUIRE(set.GetCount() == 1);
          REQUIRE(set.GetUses() == 1);
          REQUIRE(set.Contains(element));
@@ -182,7 +182,7 @@ TEMPLATE_TEST_CASE(
          REQUIRE(set.GetCount() == 5);
          REQUIRE(set.GetType()->template Is<K>());
          REQUIRE(set.template Is<K>());
-         REQUIRE(set.HasAuthority());
+         REQUIRE(set.GetAllocation());
          REQUIRE(set.GetUses() == 1);
          for (auto& i : darray1)
             REQUIRE(set.Contains(i));
@@ -201,7 +201,7 @@ TEMPLATE_TEST_CASE(
          REQUIRE(set.GetCount() == 5);
          REQUIRE(set.GetType()->template Is<K>());
          REQUIRE(set.template Is<K>());
-         REQUIRE(set.HasAuthority());
+         REQUIRE(set.GetAllocation());
          REQUIRE(set.GetUses() == 1);
          for (auto& i : darray1)
             REQUIRE(set.Contains(i));
@@ -302,7 +302,7 @@ TEMPLATE_TEST_CASE(
          REQUIRE(set.IsTypeConstrained() == CT::Typed<T>);
          REQUIRE(set.GetType()->template Is<K>());
          REQUIRE(set.template Is<K>());
-         REQUIRE(set.HasAuthority());
+         REQUIRE(set.GetAllocation());
          REQUIRE(set.GetUses() == 1);
          REQUIRE(set.GetCount() == 10);
          REQUIRE(set.GetReserved() >= 10);
@@ -397,7 +397,7 @@ TEMPLATE_TEST_CASE(
             << ::std::move(movableDarray2[3])
             << ::std::move(movableDarray2[4]);
 
-         REQUIRE(set.HasAuthority());
+         REQUIRE(set.GetAllocation());
          REQUIRE(set.GetUses() == 1);
          REQUIRE(set.GetCount() == 10);
          REQUIRE(set.GetType()->template Is<K>());
@@ -444,7 +444,7 @@ TEMPLATE_TEST_CASE(
          const auto removed4 = set.Remove(darray1[3]);
 
          REQUIRE(set.GetType()->template Is<K>());
-         REQUIRE(set.HasAuthority());
+         REQUIRE(set.GetAllocation());
          REQUIRE(set.GetUses() == 1);
          REQUIRE(removed2 == 1);
          REQUIRE(removed4 == 1);
@@ -501,7 +501,7 @@ TEMPLATE_TEST_CASE(
          REQUIRE(removed9 == 0);
          REQUIRE(set.GetCount() == 5);
          REQUIRE(set.GetRawMemory() == memory);
-         REQUIRE(set.HasAuthority());
+         REQUIRE(set.GetAllocation());
          REQUIRE(set.GetUses() == 1);
          REQUIRE(set.GetReserved() >= 5);
 
@@ -512,7 +512,7 @@ TEMPLATE_TEST_CASE(
       WHEN("More capacity is reserved") {
          set.Reserve(20);
 
-         REQUIRE(set.HasAuthority());
+         REQUIRE(set.GetAllocation());
          REQUIRE(set.GetUses() == 1);
          REQUIRE(set.GetCount() == 5);
          REQUIRE(set.GetReserved() >= 20);
@@ -525,7 +525,7 @@ TEMPLATE_TEST_CASE(
       WHEN("Less capacity is reserved") {
          set.Reserve(2);
 
-         REQUIRE(set.HasAuthority());
+         REQUIRE(set.GetAllocation());
          REQUIRE(set.GetUses() == 1);
          REQUIRE(set.GetCount() == 5);
          REQUIRE(set.GetRawMemory() == memory);
@@ -542,7 +542,7 @@ TEMPLATE_TEST_CASE(
          REQUIRE(set.IsTypeConstrained() == CT::Typed<T>);
          REQUIRE(!set);
          REQUIRE(set.GetRawMemory() == memory);
-         REQUIRE(set.HasAuthority());
+         REQUIRE(set.GetAllocation());
          REQUIRE(set.GetUses() == 1);
          REQUIRE(set.GetReserved() >= 5);
       }
@@ -552,7 +552,7 @@ TEMPLATE_TEST_CASE(
 
          REQUIRE(set.GetCount() == 0);
          REQUIRE_FALSE(set.IsAllocated());
-         REQUIRE_FALSE(set.HasAuthority());
+         REQUIRE_FALSE(set.GetAllocation());
          if constexpr (CT::Typed<T>) {
             REQUIRE(set.template Is<K>());
             REQUIRE(set.GetType()->template Is<K>());
@@ -569,7 +569,7 @@ TEMPLATE_TEST_CASE(
          REQUIRE(copy == set);
          REQUIRE(copy.GetType()->template Is<K>());
          REQUIRE(copy.IsAllocated());
-         REQUIRE(copy.HasAuthority());
+         REQUIRE(copy.GetAllocation());
          REQUIRE(copy.GetUses() == 2);
          REQUIRE(copy.GetCount() == set.GetCount());
          REQUIRE(copy.GetCount() == 5);
@@ -588,7 +588,7 @@ TEMPLATE_TEST_CASE(
             REQUIRE((clone != set) == CT::Sparse<K>);
             REQUIRE(clone.GetType()->template Is<K>());
             REQUIRE(clone.IsAllocated());
-            REQUIRE(clone.HasAuthority());
+            REQUIRE(clone.GetAllocation());
             REQUIRE(clone.GetUses() == 1);
             REQUIRE(clone.GetCount() == set.GetCount());
             REQUIRE(clone.GetCount() == 5);
@@ -626,7 +626,7 @@ TEMPLATE_TEST_CASE(
          REQUIRE(moved.GetRawMemory() == memory);
          REQUIRE(moved.IsAllocated());
          REQUIRE(moved.GetCount() == 5);
-         REQUIRE(moved.HasAuthority());
+         REQUIRE(moved.GetAllocation());
          REQUIRE(moved.GetUses() == 2);
          REQUIRE_FALSE(movable.IsAllocated());
          REQUIRE(!movable);

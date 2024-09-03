@@ -104,7 +104,7 @@ namespace Langulus::Anyness
       return *this;
    }
 
-   /// Create content descriptor from a static type and arguments by move     
+   /// Create content descriptor from a static type and arguments with intent 
    ///   @tparam T - type of the construct                                    
    ///   @param t1, tn  - the constructor arguments                           
    ///   @return the request                                                  
@@ -127,7 +127,7 @@ namespace Langulus::Anyness
    }
 
 #if LANGULUS_FEATURE(MANAGED_REFLECTION)
-   /// Create content descriptor from a type token and arguments by copy      
+   /// Create content descriptor from a type token and arguments with intents 
    ///   @param token - the type name for the construct                       
    ///   @param t1, tn  - the constructor arguments                           
    ///   @return the request                                                  
