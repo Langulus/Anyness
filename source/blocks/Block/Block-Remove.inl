@@ -160,9 +160,7 @@ namespace Langulus::Anyness
    ///   @return an iterator pointing to the element at index - 1, or at end  
    ///      if block became empty                                             
    template<class TYPE>
-   typename Block<TYPE>::Iterator Block<TYPE>::RemoveIt(
-      const Iterator& index, const Count count
-   ) {
+   auto Block<TYPE>::RemoveIt(const Iterator& index, const Count count) -> Iterator {
       if (index.mValue >= GetRawEnd())
          return end();
 

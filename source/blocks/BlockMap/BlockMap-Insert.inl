@@ -687,7 +687,7 @@ namespace Langulus::Anyness
                GetValHandle<THIS>(index).AssignWithIntent(val.Forward());
 
                if constexpr (S2<T>::Move) {
-                  val->Destroy();
+                  val->FreeInner();
                   val->mCount = 0;
                }
 

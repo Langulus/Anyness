@@ -499,7 +499,7 @@ namespace Langulus::Anyness
    /// Get iterator to first element                                          
    ///   @return an iterator to the first element, or end if empty            
    template<class TYPE> LANGULUS(INLINED)
-   constexpr typename Block<TYPE>::Iterator Block<TYPE>::begin() noexcept {
+   constexpr auto Block<TYPE>::begin() noexcept -> Iterator {
       if (IsEmpty())
          return end();
 
@@ -510,14 +510,14 @@ namespace Langulus::Anyness
    }
 
    template<class TYPE> LANGULUS(ALWAYS_INLINED)
-   constexpr typename Block<TYPE>::ConstIterator Block<TYPE>::begin() const noexcept {
+   constexpr auto Block<TYPE>::begin() const noexcept -> ConstIterator {
       return const_cast<Block<TYPE>*>(this)->begin();
    }
 
    /// Get iterator to the last element                                       
    ///   @return an iterator to the last element, or end if empty             
    template<class TYPE> LANGULUS(INLINED)
-   constexpr typename Block<TYPE>::Iterator Block<TYPE>::last() noexcept {
+   constexpr auto Block<TYPE>::last() noexcept -> Iterator {
       if (IsEmpty())
          return end();
 
@@ -530,7 +530,7 @@ namespace Langulus::Anyness
    }
 
    template<class TYPE> LANGULUS(ALWAYS_INLINED)
-   constexpr typename Block<TYPE>::ConstIterator Block<TYPE>::last() const noexcept {
+   constexpr auto Block<TYPE>::last() const noexcept -> ConstIterator {
       return const_cast<Block<TYPE>*>(this)->last();
    }
    

@@ -489,14 +489,14 @@ namespace Langulus::Anyness
       constexpr void ResetState() noexcept;
 	  
       template<class T = TYPE>
-      NOD() T*       GetRaw()          IF_UNSAFE(noexcept);
+      NOD() auto GetRaw()          IF_UNSAFE(noexcept) -> T*;
       template<class T = TYPE>
-      NOD() T const* GetRaw()    const IF_UNSAFE(noexcept);
+      NOD() auto GetRaw()    const IF_UNSAFE(noexcept) -> T const*;
       template<class T = TYPE>
-      NOD() T const* GetRawEnd() const IF_UNSAFE(noexcept);
+      NOD() auto GetRawEnd() const IF_UNSAFE(noexcept) -> T const*;
       
-      NOD() Allocation const* const* GetEntries() const IF_UNSAFE(noexcept);
-      NOD() Allocation const**       GetEntries()       IF_UNSAFE(noexcept);
+      NOD() auto GetEntries() const IF_UNSAFE(noexcept) -> Allocation const* const*;
+      NOD() auto GetEntries()       IF_UNSAFE(noexcept) -> Allocation const**;
 
       ///                                                                     
       ///   Indexing                                                          
@@ -595,9 +595,9 @@ namespace Langulus::Anyness
       NOD() Block<> GetElementInner(Offset = 0) const IF_UNSAFE(noexcept);
 
       NOD() IF_UNSAFE(constexpr)
-      Byte* At(Offset = 0) IF_UNSAFE(noexcept);
+      auto At(Offset = 0) IF_UNSAFE(noexcept) -> Byte*;
       NOD() IF_UNSAFE(constexpr)
-      Byte const* At(Offset = 0) const IF_UNSAFE(noexcept);
+      auto At(Offset = 0) const IF_UNSAFE(noexcept) -> Byte const*;
    
       NOD() Index Constrain(Index) const IF_UNSAFE(noexcept);
       NOD() Block CropInner(Offset, Count) const IF_UNSAFE(noexcept);
@@ -618,10 +618,10 @@ namespace Langulus::Anyness
       using Iterator      = TBlockIterator<Block>;
       using ConstIterator = TBlockIterator<const Block>;
 
-      NOD() constexpr Iterator      begin() noexcept;
-      NOD() constexpr ConstIterator begin() const noexcept;
-      NOD() constexpr Iterator      last() noexcept;
-      NOD() constexpr ConstIterator last() const noexcept;
+      NOD() constexpr auto begin()       noexcept -> Iterator;
+      NOD() constexpr auto begin() const noexcept -> ConstIterator;
+      NOD() constexpr auto last()       noexcept -> Iterator;
+      NOD() constexpr auto last() const noexcept -> ConstIterator;
 
       constexpr A::IteratorEnd end() const noexcept { return {}; }
 
@@ -758,8 +758,8 @@ namespace Langulus::Anyness
       NOD() Index Find(const T1&, Offset = 0) const noexcept
       requires (TypeErased or CT::Comparable<TYPE, T1>);
 
-      NOD() Iterator      FindIt(const CT::NoIntent auto&);
-      NOD() ConstIterator FindIt(const CT::NoIntent auto&) const;
+      NOD() auto FindIt(const CT::NoIntent auto&)       -> Iterator;
+      NOD() auto FindIt(const CT::NoIntent auto&) const -> ConstIterator;
 
       template<bool REVERSE = false>
       NOD() Index FindBlock(const CT::Block auto&, CT::Index auto) const noexcept;
@@ -793,7 +793,7 @@ namespace Langulus::Anyness
 
    protected:
       /// @cond show_protected                                                
-      NOD() AllocationRequest RequestSize(Count) const IF_UNSAFE(noexcept);
+      NOD() auto RequestSize(Count) const IF_UNSAFE(noexcept) -> AllocationRequest;
 
       template<bool CREATE = false, bool SETSIZE = false>
       void AllocateMore(Count);
@@ -910,7 +910,7 @@ namespace Langulus::Anyness
       Count Remove(const CT::NoIntent auto&);
       Count RemoveIndex(CT::Index auto, Count = 1);
       Count RemoveIndexDeep(CT::Index auto);
-      Iterator RemoveIt(const Iterator&, Count = 1);
+      auto  RemoveIt(const Iterator&, Count = 1) -> Iterator;
 
       void Trim(Count);
       void Optimize();

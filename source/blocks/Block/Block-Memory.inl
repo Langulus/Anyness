@@ -17,7 +17,7 @@ namespace Langulus::Anyness
    ///   @param count - the number of elements to request                     
    ///   @return both the provided byte size and reserved count               
    template<class TYPE> LANGULUS(INLINED)
-   AllocationRequest Block<TYPE>::RequestSize(const Count count) const
+   auto Block<TYPE>::RequestSize(const Count count) const -> AllocationRequest
    IF_UNSAFE(noexcept) {
       if constexpr (TypeErased) {
          LANGULUS_ASSUME(DevAssumes, IsTyped(),
