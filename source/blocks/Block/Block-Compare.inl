@@ -177,7 +177,7 @@ namespace Langulus::Anyness
          }
 
          if ((IsSparse() and baseForComparison.mBinaryCompatible)
-         or (baseForComparison.mType->mIsPOD
+         or (baseForComparison.mType and baseForComparison.mType->mIsPOD
          and baseForComparison.mBinaryCompatible)) {
             // Just compare the memory directly (optimization)          
             // Regardless if types are sparse or dense, as long as they 
@@ -193,7 +193,7 @@ namespace Langulus::Anyness
             VERBOSE(Logger::Green, "POD/pointers memory is the same ",
                Logger::Yellow, "(fast)");
          }
-         else if (baseForComparison.mType->mComparer) {
+         else if (baseForComparison.mType and baseForComparison.mType->mComparer) {
             if (IsSparse()) {
                if constexpr (RESOLVE) {
                   // Resolve all elements one by one and compare them by
@@ -268,11 +268,16 @@ namespace Langulus::Anyness
                   Logger::Yellow, "(slow)");
             }
          }
-         else {
+         else if (baseForComparison.mType) {
             VERBOSE(Logger::Red,
                "Can't compare related types because no == operator is reflected, "
                "and they're not POD - common base for comparison was: ",
-               baseForComparison.mType->mToken);
+               baseForComparison.mType);
+            return false;
+         }
+         else {
+            VERBOSE(Logger::Red,
+               "Can't compare unrelated types ", mType, " and ", right.mType);
             return false;
          }
 
