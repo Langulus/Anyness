@@ -511,8 +511,11 @@ namespace Langulus::Anyness
             // Let's try concatenating                                  
             // It will deepen in order to preserve staticness, if FORCE 
             // is not void                                              
-            if (SmartConcat<FORCE>(index, stateCompliant, S::Nest(value), state))
-               return true;
+            try {
+               if (SmartConcat<FORCE>(index, stateCompliant, S::Nest(value), state))
+                  return true;
+            }
+            catch (...) {}
          }
       }
 
