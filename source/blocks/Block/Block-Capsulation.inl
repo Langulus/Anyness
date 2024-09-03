@@ -571,14 +571,14 @@ namespace Langulus::Anyness
    ///   @attention as unsafe as it gets, but as fast as it gets              
    ///   @return a pointer to the first allocated element                     
    template<class TYPE> template<class T> LANGULUS(ALWAYS_INLINED)
-   T* Block<TYPE>::GetRaw() IF_UNSAFE(noexcept) {
+   auto Block<TYPE>::GetRaw() IF_UNSAFE(noexcept) -> T* {
       LANGULUS_ASSUME(DevAssumes, CT::Dense<T> or IsSparse(),
          "Representing dense data as sparse");
       return reinterpret_cast<T*>(mRaw);
    }
 
    template<class TYPE> template<class T> LANGULUS(ALWAYS_INLINED)
-   T const* Block<TYPE>::GetRaw() const IF_UNSAFE(noexcept) {
+   auto Block<TYPE>::GetRaw() const IF_UNSAFE(noexcept) -> T const* {
       return const_cast<Block<TYPE>*>(this)->template GetRaw<T>();
    }
 
@@ -587,7 +587,7 @@ namespace Langulus::Anyness
    ///   @attention the resulting pointer never points to a valid element     
    ///   @return a pointer to the last+1 element (never initialized)          
    template<class TYPE> template<class T> LANGULUS(ALWAYS_INLINED)
-   const T* Block<TYPE>::GetRawEnd() const IF_UNSAFE(noexcept) {
+   auto Block<TYPE>::GetRawEnd() const IF_UNSAFE(noexcept) -> const T* {
       LANGULUS_ASSUME(DevAssumes, CT::Dense<T> or IsSparse(),
          "Representing dense data as sparse");
 
@@ -665,9 +665,7 @@ namespace Langulus::Anyness
    ///   @attention entries exist only for sparse containers                  
    ///   @return the array of entries                                         
    template<class TYPE> LANGULUS(INLINED)
-   Allocation const** Block<TYPE>::GetEntries() IF_UNSAFE(noexcept) {
-      static_assert(TypeErased or CT::Sparse<TYPE>,
-         "Getting sparse data entries, but contains dense data");
+   auto Block<TYPE>::GetEntries() IF_UNSAFE(noexcept) -> Allocation const** {
       LANGULUS_ASSUME(DevAssumes, IsSparse(),
          "Entries do not exist for dense container");
       LANGULUS_ASSUME(DevAssumes, mEntry,
@@ -681,7 +679,7 @@ namespace Langulus::Anyness
    }
 
    template<class TYPE> LANGULUS(ALWAYS_INLINED)
-   Allocation const* const* Block<TYPE>::GetEntries() const IF_UNSAFE(noexcept) {
+   auto Block<TYPE>::GetEntries() const IF_UNSAFE(noexcept) -> Allocation const* const* {
       return const_cast<Block*>(this)->GetEntries();
    }
    

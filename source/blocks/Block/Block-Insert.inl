@@ -1464,14 +1464,14 @@ namespace Langulus::Anyness
 
             if constexpr (S::Shallow) {
                // Shallow pointer transfer                              
-               Destroy();
+               FreeInner();
                ShallowBatchPointerConstruction(source.Forward());
             }
             else if constexpr (CT::Unallocatable<Decay<T>> or not CT::CloneAssignable<T>) {
                // We early-return with an enforced shallow pointer      
                // transfer, because its requesting to clone             
                // unallocatable/unclonable/abstract data, such as metas 
-               Destroy();
+               FreeInner();
                ShallowBatchPointerConstruction(Refer(*source));
             }
             else if constexpr (CT::Sparse<DT> or not CT::Resolvable<T>) {
