@@ -147,7 +147,7 @@ namespace Langulus::Anyness
       template<CT::Set>
       NOD() bool IsOrdered() const noexcept;
 
-      NOD() constexpr bool HasAuthority() const noexcept;
+      NOD() constexpr auto GetAllocation() const noexcept -> const Allocation*;
       NOD() constexpr Count GetUses() const noexcept;
 
       NOD() constexpr explicit operator bool() const noexcept;

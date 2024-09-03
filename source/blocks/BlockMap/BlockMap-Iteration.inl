@@ -433,7 +433,7 @@ namespace Langulus::Anyness
    /// Get iterator to first element                                          
    ///   @return an iterator to the first element, or end if empty            
    template<CT::Map THIS> LANGULUS(INLINED)
-   BlockMap::Iterator<THIS> BlockMap::begin() noexcept {
+   auto BlockMap::begin() noexcept -> Iterator<THIS> {
       if (IsEmpty())
          return end();
 
@@ -451,14 +451,14 @@ namespace Langulus::Anyness
    }
 
    template<CT::Map THIS> LANGULUS(INLINED)
-   BlockMap::Iterator<const THIS> BlockMap::begin() const noexcept {
+   auto BlockMap::begin() const noexcept -> Iterator<const THIS> {
       return const_cast<BlockMap*>(this)->begin<THIS>();
    }
 
    /// Get iterator to the last element                                       
    ///   @return an iterator to the last element, or end if empty             
    template<CT::Map THIS> LANGULUS(INLINED)
-   BlockMap::Iterator<THIS> BlockMap::last() noexcept {
+   auto BlockMap::last() noexcept -> Iterator<THIS> {
       if (IsEmpty())
          return end();
 
@@ -476,7 +476,7 @@ namespace Langulus::Anyness
    }
 
    template<CT::Map THIS> LANGULUS(INLINED)
-   BlockMap::Iterator<const THIS> BlockMap::last() const noexcept {
+   auto BlockMap::last() const noexcept -> Iterator<const THIS> {
       return const_cast<BlockMap*>(this)->last<THIS>();
    }
 

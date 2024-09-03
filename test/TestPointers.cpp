@@ -58,7 +58,7 @@ TEMPLATE_TEST_CASE("Shared pointer", "[Ref]",
          pointer.New(5);
 
          REQUIRE(*pointer == 5);
-         REQUIRE(pointer.HasAuthority());
+         REQUIRE(pointer.GetAllocation());
          REQUIRE(pointer.GetUses() == 1);
          if constexpr (CT::Referencable<TT>)
             REQUIRE(pointer->Reference(0) == 1);
@@ -71,8 +71,8 @@ TEMPLATE_TEST_CASE("Shared pointer", "[Ref]",
          REQUIRE(pointer == pointer2);
          REQUIRE(*pointer == 5);
          REQUIRE(*pointer2 == 5);
-         REQUIRE(pointer.HasAuthority());
-         REQUIRE(pointer2.HasAuthority());
+         REQUIRE(pointer.GetAllocation());
+         REQUIRE(pointer2.GetAllocation());
          REQUIRE(pointer.GetUses() == 2);
          REQUIRE(pointer2.GetUses() == 2);
          if constexpr (CT::Referencable<TT>)
@@ -86,8 +86,8 @@ TEMPLATE_TEST_CASE("Shared pointer", "[Ref]",
          REQUIRE_FALSE(pointer);
          REQUIRE(pointer2);
          REQUIRE(*pointer2 == 5);
-         REQUIRE_FALSE(pointer.HasAuthority());
-         REQUIRE(pointer2.HasAuthority());
+         REQUIRE_FALSE(pointer.GetAllocation());
+         REQUIRE(pointer2.GetAllocation());
          REQUIRE(pointer.GetUses() == 0);
          REQUIRE(pointer2.GetUses() == 1);
          if constexpr (CT::Referencable<TT>)
@@ -107,8 +107,8 @@ TEMPLATE_TEST_CASE("Shared pointer", "[Ref]",
             REQUIRE(Allocator::CheckAuthority(pointer.GetType(), backup));
             REQUIRE_FALSE(Allocator::Find(pointer.GetType(), backup));
          #endif
-         REQUIRE(pointer2.HasAuthority());
-         REQUIRE(pointer.HasAuthority());
+         REQUIRE(pointer2.GetAllocation());
+         REQUIRE(pointer.GetAllocation());
          REQUIRE(pointer.GetUses() == 2);
          if constexpr (CT::Referencable<TT>)
             REQUIRE(pointer->Reference(0) == 2);
@@ -124,10 +124,10 @@ TEMPLATE_TEST_CASE("Shared pointer", "[Ref]",
          REQUIRE(*pointer == *rawBackUp);
          REQUIRE(raw == rawBackUp);
          #if LANGULUS_FEATURE(NEWDELETE)
-            REQUIRE(pointer.HasAuthority());
+            REQUIRE(pointer.GetAllocation());
             REQUIRE(pointer.GetReferences() == 2);
          #else
-            REQUIRE_FALSE(pointer.HasAuthority());
+            REQUIRE_FALSE(pointer.GetAllocation());
             if constexpr (CT::Referencable<TT>)
                REQUIRE(pointer->Reference(0) == 1);
          #endif
@@ -138,7 +138,7 @@ TEMPLATE_TEST_CASE("Shared pointer", "[Ref]",
             pointer = new Decay<TT> {3};
 
             #if LANGULUS_FEATURE(NEWDELETE)
-               REQUIRE(pointer.HasAuthority());
+               REQUIRE(pointer.GetAllocation());
                REQUIRE(pointer.GetReferences() == 2);
             #endif
          }
@@ -148,10 +148,10 @@ TEMPLATE_TEST_CASE("Shared pointer", "[Ref]",
             auto unused = Allocator::Free(pointer.GetType(), raw, 1);
             pointer = nullptr;
 
-            REQUIRE_FALSE(raw->HasAuthority());
+            REQUIRE_FALSE(raw->GetAllocation());
             REQUIRE(Allocator::CheckAuthority(pointer.GetType(), raw));
             REQUIRE_FALSE(Allocator::Find(pointer.GetType(), raw));
-            REQUIRE_FALSE(pointer.HasAuthority());
+            REQUIRE_FALSE(pointer.GetAllocation());
          }
       #endif
 
@@ -161,10 +161,10 @@ TEMPLATE_TEST_CASE("Shared pointer", "[Ref]",
          REQUIRE(pointer == raw);
          REQUIRE(*pointer == *raw);
          #if LANGULUS_FEATURE(NEWDELETE)
-            REQUIRE(pointer.HasAuthority());
+            REQUIRE(pointer.GetAllocation());
             REQUIRE(pointer.GetReferences() == 2);
          #else
-            REQUIRE_FALSE(pointer.HasAuthority());
+            REQUIRE_FALSE(pointer.GetAllocation());
             if constexpr (CT::Referencable<TT>)
                REQUIRE(pointer->Reference(0) == 1);
          #endif

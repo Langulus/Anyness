@@ -125,11 +125,13 @@ void CheckState_Default(const auto& map) {
    REQUIRE_FALSE(map.IsValid());
    REQUIRE      (map.IsInvalid());
    REQUIRE_FALSE(map.IsAllocated());
-   REQUIRE_FALSE(map.HasAuthority());
+   REQUIRE_FALSE(map.GetKeys().GetAllocation());
+   REQUIRE_FALSE(map.GetVals().GetAllocation());
    REQUIRE      (map.IsEmpty());
    REQUIRE      (map.GetCount() == 0);
    REQUIRE      (map.GetReserved() == 0);
-   REQUIRE      (map.GetUses() == 0);
+   REQUIRE      (map.GetKeys().GetUses() == 0);
+   REQUIRE      (map.GetVals().GetUses() == 0);
    REQUIRE      (map.GetRawKeysMemory() == nullptr);
    REQUIRE      (map.GetRawValsMemory() == nullptr);
    REQUIRE_FALSE(map);

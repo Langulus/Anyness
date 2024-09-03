@@ -178,9 +178,9 @@ namespace Langulus::Anyness
    }
 
    /// Check if we have authority over the memory                             
-   ///   @return true if we own the memory behind the pointer                 
+   ///   @return the allocation pointer, if we have jurisdiction              
    TEMPLATE() LANGULUS(INLINED)
-   constexpr bool TME()::HasAuthority() const noexcept {
+   constexpr auto TME()::GetAllocation() const noexcept -> const Allocation* {
       return mEntry;
    }
       

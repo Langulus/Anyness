@@ -15,6 +15,126 @@
 namespace Langulus::Anyness
 {
    
+#if LANGULUS(DEBUG)
+   /// Log a tracking event                                                   
+   ///   @param whatHappened - event message                                  
+   ///   @param mask - used when tracking tables                              
+   template<class TYPE> template<class MASK, class...MSGs> LANGULUS(ALWAYS_INLINED)
+   void Block<TYPE>::TrackingReport(MASK mask, MSGs&&...messages) const {
+      if (not (mState & DataState::Tracked))
+         return;
+
+      constexpr bool MASKED = not CT::Nullptr<MASK>;
+      const auto tab = Logger::Section(Logger::Purple,
+         NameOf<Block<TYPE>>(), ": ", Forward<MSGs>(messages)...);
+
+      if (mType)
+         Logger::Line("Type: ", mType, "; size: ", mType->mSize);
+      else
+         Logger::Line("Type: ", mType);
+
+      if (mRaw)
+         Logger::Line("Raw: ", Logger::Hex(mRaw), "; count: ", mCount, "; reserved: ", mReserved);
+      
+      if (mEntry)
+         Logger::Line("Entry: ", Logger::Hex(mEntry), "; references: ", mEntry->GetUses());
+      else if (mRaw)
+         Logger::Line("Entry: static/disowned");
+
+      if (IsEmpty())
+         return;
+
+      const auto tab2 = Logger::Section("Elements:");
+      Count remaining = mCount;
+      for (Offset i = 0; i < mReserved; ++i) {
+         if (not remaining)
+            break;
+
+         if constexpr (MASKED) {
+            if (not mask[i])
+               continue;
+         }
+
+         auto element = GetElement(i);
+         --remaining;
+
+         Text stringified;
+         if (mType->template CastsTo<Text, true>()) {
+            stringified += "\"";
+            stringified += element.template As<Text>();
+            stringified += "\"";
+         }
+         else {
+            const DMeta TextMeta = MetaDataOf<Text>();
+            auto foundTo = mType->mConvertersTo.find(TextMeta);
+            auto foundFr = TextMeta->mConvertersFrom.find(mType);
+            if (foundTo != mType->mConvertersTo.end())
+               foundTo->second.mFunction(IsSparse() ? *element.mRawSparse : element.mRaw, &stringified);
+            else if (foundFr != TextMeta->mConvertersFrom.end())
+               foundFr->second.mFunction(IsSparse() ? *element.mRawSparse : element.mRaw, &stringified);
+         }
+
+         if (not stringified)
+            stringified = "<not stringifiable>";
+
+         if (IsSparse()) {
+            // Contains pointers                                        
+            if (*((void**)element.mRaw)) {
+               // Valid pointer                                         
+               if (mType->mReference) {
+                  // Valid pointer with deep refs                       
+                  Logger::Line(i, "] ", Logger::Hex(*((void**)element.mRaw)), "; ", stringified,
+                     " (instance references: ", mType->mReference(*((void**)element.mRaw), 0),
+                     "; entry: ", Logger::Hex(GetEntries()[i]),
+                     "; entry references: ", GetEntries()[i]->GetUses(), ")"
+                  );
+               }
+               else {
+                  // Valid pointer with shallow refs                    
+                  Logger::Line(i, "] ", Logger::Hex(*((void**)element.mRaw)),
+                     "; ", stringified, " (entry: ", Logger::Hex(GetEntries()[i]),
+                     "; entry references: ", GetEntries()[i]->GetUses(), ")"
+                  );
+               }
+            }
+            else {
+               // Invalid pointer                                       
+               Logger::Line(i, "] nullptr");
+            }
+         }
+         else {
+            // Contains dense elements                                  
+            if (mType->template CastsTo<A::Block, true>()) {
+               // Can be represented as a block                         
+               auto asBlock = reinterpret_cast<const Block<>*>(element.mRaw);
+               if (asBlock->GetAllocation()) {
+                  Logger::Line(i, "] ", stringified,
+                     " (block references: ", asBlock->GetUses(), ")"
+                  );
+               }
+               else {
+                  // Not owned                                          
+                  Logger::Line(i, "] ", stringified, " (static/disowned)");
+               }
+            }
+            else {
+               // Can't be represented as a block                       
+               if (mType->mReference) {
+                  // With deep refs                                     
+                  Logger::Line(i, "] ", stringified,
+                     " (instance references: ", mType->mReference(element.mRaw, 0), ")"
+                  );
+               }
+               else {
+                  // Without refs                                       
+                  Logger::Line(i, "] ", stringified);
+               }
+            }
+         }
+      }
+   }
+#endif
+
    /// Overwrite the current data state                                       
    ///   @attention you can not add/remove constraints like that              
    ///   @param state - the state to overwrite with                           
@@ -29,6 +149,10 @@ namespace Langulus::Anyness
    template<class TYPE> LANGULUS(ALWAYS_INLINED)
    constexpr void Block<TYPE>::AddState(DataState state) noexcept {
       mState += state - DataState::Constrained;
+      #if LANGULUS(DEBUG)
+         if (state & DataState::Tracked)
+            TrackingReport(nullptr, "Started tracking");
+      #endif
    }
 
    /// Remove a state                                                         
@@ -56,7 +180,7 @@ namespace Langulus::Anyness
    }
 
    /// Check if we have jurisdiction over the contained memory                
-   ///   @return true if memory is under our authority                        
+   ///   @return the allocation pointer, if we have jurisdiction              
    template<class TYPE> LANGULUS(ALWAYS_INLINED)
    constexpr const Allocation* Block<TYPE>::GetAllocation() const noexcept {
       return mEntry;
@@ -381,11 +505,16 @@ namespace Langulus::Anyness
    }
 
    /// Get the relevant state when relaying one block	to another              
-   /// Relevant states exclude size and type constraints                      
+   /// Relevant states exclude size and type constraints, as well as tracking 
+   /// in order to avoid changes in behavior due to debugging.                
    ///   @return the current unconstrained block state                        
    template<class TYPE> LANGULUS(ALWAYS_INLINED)
    constexpr DataState Block<TYPE>::GetUnconstrainedState() const noexcept {
-      return mState - DataState::Constrained;
+      #if LANGULUS(DEBUG)
+         return mState - DataState::Constrained - DataState::Tracked;
+      #else
+         return mState - DataState::Constrained;
+      #endif
    }
    
    /// Deep (slower) check if there's anything missing inside nested blocks   

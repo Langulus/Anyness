@@ -165,12 +165,10 @@ namespace Langulus::Anyness
    }
 
    /// Check if the memory for the table is owned by us                       
-   /// This is always true, since the map can't be initialized with outside   
-   /// memory - the memory layout requirements are too strict to allow for it 
-   ///   @return true                                                         
+   ///   @return the allocation pointer                                       
    LANGULUS(INLINED)
-   constexpr bool BlockSet::HasAuthority() const noexcept {
-      return IsAllocated();
+   constexpr auto BlockSet::GetAllocation() const noexcept -> const Allocation* {
+      return mKeys.mEntry;
    }
 
    /// Get the number of references for the allocated memory                  
@@ -207,7 +205,7 @@ namespace Langulus::Anyness
 #if LANGULUS(DEBUG)
    template<CT::Set THIS>
    void BlockSet::Dump() const {
-      Logger::Info("---------------- BlockSet::Dump start ----------------");
+      const auto tab = Logger::Section("BlockSet::Dump:");
       auto info = GetInfo();
       const auto infoEnd = GetInfoEnd();
       while (info != infoEnd) {
@@ -219,7 +217,6 @@ namespace Langulus::Anyness
 
          ++info;
       }
-      Logger::Info("----------------  BlockSet::Dump end  ----------------");
    }
 #endif
 

@@ -138,21 +138,21 @@ namespace Langulus::Anyness
    /// Get the info array (const)                                             
    ///   @return a pointer to the first element inside the info array         
    LANGULUS(INLINED)
-   const BlockMap::InfoType* BlockMap::GetInfo() const noexcept {
+   auto BlockMap::GetInfo() const noexcept -> const InfoType* {
       return mInfo;
    }
 
    /// Get the info array                                                     
    ///   @return a pointer to the first element inside the info array         
    LANGULUS(INLINED)
-   BlockMap::InfoType* BlockMap::GetInfo() noexcept {
+   auto BlockMap::GetInfo() noexcept -> InfoType* {
       return mInfo;
    }
 
    /// Get the end of the info array                                          
    ///   @return a pointer to the first element inside the info array         
    LANGULUS(INLINED)
-   const BlockMap::InfoType* BlockMap::GetInfoEnd() const noexcept {
+   auto BlockMap::GetInfoEnd() const noexcept -> const InfoType* {
       return mInfo + GetReserved();
    }
 
@@ -433,23 +433,6 @@ namespace Langulus::Anyness
       return exec;
    }
 
-   /// Check if the memory for the table is owned by us                       
-   /// This is always true, since the map can't be initialized with outside   
-   /// memory - the memory layout requirements are too strict to allow for it 
-   ///   @return true                                                         
-   LANGULUS(INLINED)
-   constexpr bool BlockMap::HasAuthority() const noexcept {
-      return IsAllocated();
-   }
-
-   /// Get the number of references for the allocated memory                  
-   ///   @attention always returns zero if we don't have authority            
-   ///   @return the number of references                                     
-   LANGULUS(INLINED)
-   constexpr Count BlockMap::GetUses() const noexcept {
-      return mKeys.GetUses();
-   }
-   
    /// Explicit bool cast operator, for use in if statements                  
    ///   @return true if block contains at least one valid element            
    LANGULUS(INLINED)
