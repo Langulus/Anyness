@@ -10,6 +10,7 @@
 #include "../Block.hpp"
 #include "../../many/Trait.hpp"
 #include "../../many/Construct.hpp"
+#include "../../text/Text.hpp"
 
 
 namespace Langulus::Anyness

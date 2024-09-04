@@ -139,19 +139,12 @@ namespace Langulus::CT
    namespace Inner
    {
 
-      /// Workaround, because of MSVC ICEs introduced in 19.40.33811.0        
-      /// Hopefully it will be resolved by them one day                       
-      template<class T>
-      consteval bool StringifiableByOperator_AvoidMSVC_ICE() {
-         return std::is_object_v<T> and requires (const T& a) {
-            a.operator ::Langulus::Anyness::Text();
-         };
-      }
-   
       /// Do types have an explicit or implicit cast operator to Text         
       template<class...T>
-      concept StringifiableByOperator =
-         (StringifiableByOperator_AvoidMSVC_ICE<T>() and ...);
+      concept StringifiableByOperator = (std::is_object_v<T> and ...)
+         and requires (const T&...a) {
+            ((a.operator ::Langulus::Anyness::Text()), ...);
+         };
 
       /// Does Text has an explicit/implicit constructor that accepts T       
       template<class...T>
