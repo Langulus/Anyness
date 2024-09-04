@@ -348,7 +348,7 @@ namespace Langulus::A
       else {
          // A valid verb is written either as token, or as operator     
          if (mMass < 0) {
-            if (not mVerb->mOperatorReverse.empty() and (GetCharge() * -1).IsDefault()) {
+            if (not mVerb->mOperatorReverse.empty() and (GetCharge().operator*(-1)).IsDefault()) {
                // Write as operator                                     
                out += mVerb->mOperatorReverse;
             }
@@ -357,7 +357,7 @@ namespace Langulus::A
                if (mSource.IsValid())
                   out += ' ';
                out += mVerb->mTokenReverse;
-               out += static_cast<OUT>(GetCharge() * -1);
+               out += static_cast<OUT>(GetCharge().operator*(-1));
                writtenAsToken = true;
             }
          }

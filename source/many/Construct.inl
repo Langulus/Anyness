@@ -31,9 +31,9 @@ namespace Langulus::Anyness
    ///   @param other - the construct and intent                              
    template<template<class> class S> requires CT::Intent<S<Construct>>
    LANGULUS(INLINED) Construct::Construct(S<Construct>&& other)   
-      : mType {other->mType}
-      , mDescriptor {S<Neat> {other->mDescriptor}}
-      , mCharge {other->mCharge} {
+      : mType        {other->mType}
+      , mDescriptor  {S<Neat> {other->mDescriptor}}
+      , mCharge      {other->mCharge} {
       if constexpr (S<Construct>::Move and S<Construct>::Keep) {
          other->ResetCharge();
          other->mType = {};
@@ -52,9 +52,9 @@ namespace Langulus::Anyness
    ///   @param charge - the charge for the construction                      
    LANGULUS(INLINED)
    Construct::Construct(DMeta type, auto&& args, const Charge& charge)
-      : mType {type ? type->mOrigin : nullptr}
-      , mDescriptor {Forward<Deref<decltype(args)>>(args)}
-      , mCharge {charge} { }
+      : mType        {type ? type->mOrigin : nullptr}
+      , mDescriptor  {Forward<Deref<decltype(args)>>(args)}
+      , mCharge      {charge} { }
 
 #if LANGULUS_FEATURE(MANAGED_REFLECTION)
    /// Construct from a type token                                            
@@ -93,9 +93,9 @@ namespace Langulus::Anyness
    ///   @return a reference to this construct                                
    template<template<class> class S> requires CT::Intent<S<Construct>>
    LANGULUS(INLINED) Construct& Construct::operator = (S<Construct>&& rhs) {
-      mType = rhs->mType;
+      mType       = rhs->mType;
       mDescriptor = S<Neat> {rhs->mDescriptor};
-      mCharge = rhs->mCharge;
+      mCharge     = rhs->mCharge;
 
       if constexpr (S<Construct>::Move and S<Construct>::Keep) {
          rhs->ResetCharge();

@@ -14,6 +14,7 @@
 #include "../maps/TMap.inl"
 #include "../one/Ref.inl"
 #include "../verbs/Verb.hpp"
+#include "../text/Text.hpp"
 
 
 namespace Langulus::Anyness
@@ -36,9 +37,9 @@ namespace Langulus::Anyness
    template<template<class> class S>
    requires CT::Intent<S<Neat>> LANGULUS(INLINED)
    Neat::Neat(S<Neat>&& other)
-      : mHash {other->mHash}
-      , mTraits {S<Neat>::Nest(other->mTraits)}
-      , mConstructs {S<Neat>::Nest(other->mConstructs)}
+      : mHash         {other->mHash}
+      , mTraits       {S<Neat>::Nest(other->mTraits)}
+      , mConstructs   {S<Neat>::Nest(other->mConstructs)}
       , mAnythingElse {S<Neat>::Nest(other->mAnythingElse)} {
       // Reset remote hash if moving                                    
       if constexpr (S<Neat>::Move and S<Neat>::Keep)
@@ -62,10 +63,10 @@ namespace Langulus::Anyness
    requires CT::Intent<S<Neat>> LANGULUS(INLINED)
    Neat& Neat::operator = (S<Neat>&& other) {
       using SS = S<Neat>;
-      mTraits = SS::Nest(other->mTraits);
-      mConstructs = SS::Nest(other->mConstructs);
+      mTraits       = SS::Nest(other->mTraits);
+      mConstructs   = SS::Nest(other->mConstructs);
       mAnythingElse = SS::Nest(other->mAnythingElse);
-      mHash = other->mHash;
+      mHash         = other->mHash;
 
       // Reset remote hash if moving                                    
       if constexpr (SS::Move and SS::Keep)
@@ -182,8 +183,8 @@ namespace Langulus::Anyness
    ///   @param rhs - the container to merge                                  
    LANGULUS(INLINED)
    void Neat::Merge(const Neat& rhs) {
-      mTraits += rhs.mTraits;
-      mConstructs += rhs.mConstructs;
+      mTraits       += rhs.mTraits;
+      mConstructs   += rhs.mConstructs;
       mAnythingElse += rhs.mAnythingElse;
 
       // Rehash                                                         
