@@ -496,6 +496,7 @@ SCENARIO("Iterating containers", "[iteration]") {
       subpack3 << subpack1 << subpack2;
       pack << subpack1 << subpack2 << subpack3;
 
+      REQUIRE(pack.GetUses() == 1);
       REQUIRE(subpack1.GetUses() == 3);
       REQUIRE(subpack2.GetUses() == 3);
       REQUIRE(subpack3.GetUses() == 2);
@@ -509,6 +510,7 @@ SCENARIO("Iterating containers", "[iteration]") {
 
          Many resultingPack;
          resultingPack << subpack3;
+         REQUIRE(pack.GetUses() == 1);
          REQUIRE(pack == resultingPack);
          REQUIRE(subpack1.GetUses() == 2);
          REQUIRE(subpack2.GetUses() == 2);
