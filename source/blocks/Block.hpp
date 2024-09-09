@@ -1123,8 +1123,15 @@ namespace Langulus::Anyness
       NOD() constexpr bool operator == (const TBlockIterator&) const noexcept;
       NOD() constexpr bool operator == (A::IteratorEnd) const noexcept;
 
-      NOD() constexpr decltype(auto) operator *  () const noexcept;
-      NOD() constexpr decltype(auto) operator -> () const noexcept;
+      NOD() constexpr decltype(auto) operator *  () const noexcept {
+         if constexpr (CT::Typed<B>) return *mValue;
+         else return (mValue);
+      }
+
+      NOD() constexpr decltype(auto) operator -> () const noexcept {
+         if constexpr (CT::Typed<B>) return *mValue;
+         else return &mValue;
+      }
 
       // Prefix operator                                                
       constexpr TBlockIterator& operator ++ () noexcept;

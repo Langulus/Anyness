@@ -363,7 +363,7 @@ namespace Langulus::Anyness
    ///   @return true if the contents are static (size-constrained)           
    template<class TYPE> LANGULUS(INLINED)
    constexpr bool Block<TYPE>::IsStatic() const noexcept {
-      return mRaw and /*(mState.IsStatic() or*/ not mEntry/*)*/;
+      return mRaw and not mEntry;
    }
    
    /// Check if block is inhibitory (or) container                            

@@ -338,8 +338,8 @@ namespace Langulus::Anyness
                      IndexBack, SS::Nest(*item.mKey));
                }
 
-               const_cast<Allocation*>(coalescedKeys.mEntry)
-                  ->Keep(asFrom->GetCount());
+               //const_cast<Allocation*>(coalescedKeys.mEntry)
+               //   ->Keep(asFrom->GetCount());
 
                // Zero info bytes and insert pointers                   
                ZeroMemory(mInfo, mKeys.mReserved);
@@ -576,8 +576,8 @@ namespace Langulus::Anyness
                   IndexBack, SS::Nest(*item.mValue));
             }
 
-            const_cast<Allocation*>(coalescedValues.mEntry)
-               ->Keep(asFrom->GetCount());
+            //const_cast<Allocation*>(coalescedValues.mEntry)
+            //   ->Keep(asFrom->GetCount());
 
             auto ptrVal = coalescedValues.mRaw;
             const Size valstride = coalescedValues.GetStride();

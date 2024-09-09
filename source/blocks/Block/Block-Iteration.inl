@@ -712,26 +712,6 @@ namespace Langulus::Anyness
       else
          return mValue >= mEnd;
    }
-   
-   /// Iterator access operator                                               
-   ///   @return a reference to the element at the current iterator position  
-   template<class T> LANGULUS(ALWAYS_INLINED)
-   constexpr decltype(auto) TBlockIterator<T>::operator * () const noexcept {
-      if constexpr (CT::Typed<T>)
-         return *mValue;
-      else
-         return (mValue);
-   }
-
-   /// Iterator access operator                                               
-   ///   @return a reference to the element at the current iterator position  
-   template<class T> LANGULUS(ALWAYS_INLINED)
-   constexpr decltype(auto) TBlockIterator<T>::operator -> () const noexcept {
-      if constexpr (CT::Typed<T>)
-         return *mValue;
-      else
-         return &mValue;
-   }
 
    /// Prefix increment operator                                              
    ///   @attention assumes iterator points to a valid element                

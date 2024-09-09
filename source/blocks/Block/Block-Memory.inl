@@ -751,7 +751,7 @@ namespace Langulus::Anyness
          }
          else {
             // Count all handles that match the current entry           
-            auto matches = 0;
+            Count matches = 0;
             for_each_match([&matches](const Handle<void*>&) {
                ++matches;
             });
