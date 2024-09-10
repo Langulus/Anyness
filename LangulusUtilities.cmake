@@ -15,7 +15,6 @@ function(fetch_langulus_module NAME GIT_TAG TAG)
         SOURCE_DIR      "${LANGULUS_EXTERNAL_DIRECTORY}/${NAME}-src"
         SUBBUILD_DIR    "${CMAKE_BINARY_DIR}/external/${NAME}-subbuild"
         ${ARGN}
-		EXCLUDE_FROM_ALL
     )
     FetchContent_MakeAvailable(Langulus${NAME})
 endfunction()
