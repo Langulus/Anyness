@@ -13,7 +13,7 @@ jobs:
         build: [Debug, Release]
         arch: [x86, x64]
         managed: [ON, OFF]
-        cxx: [g++, clang++-16, ClangCl, v143]
+        cxx: [g++, clang++-17, ClangCl, v143]
 
         exclude:
           - os: ubuntu-22.04
@@ -23,12 +23,12 @@ jobs:
           - os: windows-latest
             cxx: g++
           - os: windows-latest
-            cxx: clang++-16
+            cxx: clang++-17
 
         include:
           - cxx: g++
             c: gcc
-          - cxx: clang++-16
+          - cxx: clang++-17
             c: clang-16
           - os: ubuntu-22.04
             arch: x86
@@ -59,13 +59,13 @@ jobs:
           sudo apt update
           sudo apt install g++-multilib
 
-      - if: matrix.cxx == 'clang++-16'
-        name: Installing Clang 16
+      - if: matrix.cxx == 'clang++-17'
+        name: Installing Clang 17
         run: |
           wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
-          sudo apt-add-repository "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-16 main"
+          sudo apt-add-repository "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-17 main"
           sudo apt update
-          sudo apt install clang-16
+          sudo apt install clang-17
 
       - if: matrix.os == 'ubuntu-22.04'
         name: Configure (Linux)
