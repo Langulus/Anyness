@@ -29,7 +29,7 @@ jobs:
           - cxx: g++
             c: gcc
           - cxx: clang++-17
-            c: clang-16
+            c: clang-17
           - os: ubuntu-22.04
             arch: x86
             cmake_args: "-DCMAKE_CXX_FLAGS=-m32"
