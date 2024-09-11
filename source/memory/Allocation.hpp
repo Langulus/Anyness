@@ -32,7 +32,9 @@ namespace Langulus::Anyness
    /// This is a single allocation record                                     
    ///                                                                        
    struct Allocation final {
-   IF_LANGULUS_MANAGED_MEMORY(friend class Pool);
+   #if LANGULUS_FEATURE(MANAGED_MEMORY)
+      friend class Pool;
+   #endif
    friend struct Allocator;
    protected:
       // Allocated bytes for this chunk                                 
@@ -51,7 +53,9 @@ namespace Langulus::Anyness
       };
 
       // Acts like a timestamp of when the allocation happened          
-      IF_LANGULUS_MEMORY_STATISTICS(Count mStep);
+      #if LANGULUS_FEATURE(MEMORY_STATISTICS)
+         Count mStep;
+      #endif
 
    public:
       Allocation() = delete;
