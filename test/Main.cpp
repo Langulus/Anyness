@@ -18,5 +18,11 @@ TMany<Many> BANK {};
 
 int main(int argc, char* argv[]) {
 	Catch::Session session;
-	return session.run(argc, argv);
+	const auto result = session.run(argc, argv);
+
+   // Destroy BANK before static data - otherwise problems happen if    
+   // not using managed reflection                                      
+   BANK.Reset();
+
+   return result;
 }
