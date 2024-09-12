@@ -132,10 +132,10 @@ SCENARIO("Pushing one sparse container, and then two more, one being the first",
    #if LANGULUS_FEATURE(MANAGED_MEMORY)
       REQUIRE(entry1->GetUses() == 1);
       REQUIRE(entry2->GetUses() == 1);
-   #endif
 
-   DestroyElement<true>(p1);
-   DestroyElement<true>(p2);
+      DestroyElement<true>(p1);
+      DestroyElement<true>(p2);
+   #endif
 
    REQUIRE(memoryState.Assert());
 }
