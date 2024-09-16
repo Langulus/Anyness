@@ -180,6 +180,7 @@ namespace Langulus::Anyness
    ///   @return the number of successful f() executions                      
    template<bool REVERSE, CT::Set THIS, class...F> LANGULUS(INLINED)
    Count BlockSet::ForEach(F&&...f) const {
+      static_assert(sizeof...(F) > 0, "No iterators in ForEach");
       if (IsEmpty())
          return 0;
 
@@ -196,6 +197,7 @@ namespace Langulus::Anyness
    ///   @return the number of successful f() executions                      
    template<bool REVERSE, bool SKIP, CT::Set THIS, class...F>
    LANGULUS(INLINED) Count BlockSet::ForEachDeep(F&&...calls) const {
+      static_assert(sizeof...(F) > 0, "No iterators in ForEachDeep");
       Count result = 0;
       (void)(... or (Loop::Break != 
          ForEachDeepInner<THIS, REVERSE, SKIP>(Forward<F>(calls), result)

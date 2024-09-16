@@ -825,11 +825,13 @@ namespace Langulus::Anyness
    ///   @return the number of successful call() executions                   
    TEMPLATE() template<bool REVERSE, class...F> LANGULUS(INLINED)
    Count TABLE()::ForEachKey(F&&...calls) const {
+      static_assert(sizeof...(F) > 0, "No iterators in ForEachKey");
       return BlockMap::ForEachKey<REVERSE, const TMap>(Forward<F>(calls)...);
    }
 
    TEMPLATE() template<bool REVERSE, class...F> LANGULUS(INLINED)
    Count TABLE()::ForEachKey(F&&...calls) {
+      static_assert(sizeof...(F) > 0, "No iterators in ForEachKey");
       return BlockMap::ForEachKey<REVERSE, TMap>(Forward<F>(calls)...);
    }
 
@@ -841,11 +843,13 @@ namespace Langulus::Anyness
    ///   @return the number of successful call() executions                   
    TEMPLATE() template<bool REVERSE, class...F> LANGULUS(INLINED)
    Count TABLE()::ForEachValue(F&&...calls) const {
+      static_assert(sizeof...(F) > 0, "No iterators in ForEachValue");
       return BlockMap::ForEachValue<REVERSE, const TMap>(Forward<F>(calls)...);
    }
 
    TEMPLATE() template<bool REVERSE, class...F> LANGULUS(INLINED)
    Count TABLE()::ForEachValue(F&&...calls) {
+      static_assert(sizeof...(F) > 0, "No iterators in ForEachValue");
       return BlockMap::ForEachValue<REVERSE, TMap>(Forward<F>(calls)...);
    }
 
@@ -858,11 +862,13 @@ namespace Langulus::Anyness
    ///   @return the number of successful call() executions                   
    TEMPLATE() template<bool REVERSE, bool SKIP, class...F> LANGULUS(INLINED)
    Count TABLE()::ForEachKeyDeep(F&&...calls) const {
+      static_assert(sizeof...(F) > 0, "No iterators in ForEachKeyDeep");
       return BlockMap::ForEachKeyDeep<REVERSE, SKIP, const TMap>(Forward<F>(calls)...);
    }
 
    TEMPLATE() template<bool REVERSE, bool SKIP, class...F> LANGULUS(INLINED)
    Count TABLE()::ForEachKeyDeep(F&&...calls) {
+      static_assert(sizeof...(F) > 0, "No iterators in ForEachKeyDeep");
       return BlockMap::ForEachKeyDeep<REVERSE, SKIP, TMap>(Forward<F>(calls)...);
    }
 
@@ -875,11 +881,13 @@ namespace Langulus::Anyness
    ///   @return the number of successful call() executions                   
    TEMPLATE() template<bool REVERSE, bool SKIP, class...F> LANGULUS(INLINED)
    Count TABLE()::ForEachValueDeep(F&&...calls) const {
+      static_assert(sizeof...(F) > 0, "No iterators in ForEachValueDeep");
       return BlockMap::ForEachValueDeep<REVERSE, SKIP, const TMap>(Forward<F>(calls)...);
    }
 
    TEMPLATE() template<bool REVERSE, bool SKIP, class...F> LANGULUS(INLINED)
    Count TABLE()::ForEachValueDeep(F&&...calls) {
+      static_assert(sizeof...(F) > 0, "No iterators in ForEachValueDeep");
       return BlockMap::ForEachValueDeep<REVERSE, SKIP, TMap>(Forward<F>(calls)...);
    }
 
