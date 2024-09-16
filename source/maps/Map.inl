@@ -209,48 +209,56 @@ namespace Langulus::Anyness
 
    TEMPLATE() template<bool REVERSE> LANGULUS(INLINED)
    Count TABLE()::ForEachKey(auto&&...call) const {
+      static_assert(sizeof...(call) > 0, "No iterators in ForEachKey");
       return BlockMap::ForEachKey<REVERSE, const Map>(
          Forward<Deref<decltype(call)>>(call)...);
    }
 
    TEMPLATE() template<bool REVERSE> LANGULUS(INLINED)
    Count TABLE()::ForEachKey(auto&&...call) {
+      static_assert(sizeof...(call) > 0, "No iterators in ForEachKey");
       return BlockMap::ForEachKey<REVERSE, Map>(
          Forward<Deref<decltype(call)>>(call)...);
    }
 
    TEMPLATE() template<bool REVERSE> LANGULUS(INLINED)
    Count TABLE()::ForEachValue(auto&&...call) const {
+      static_assert(sizeof...(call) > 0, "No iterators in ForEachValue");
       return BlockMap::ForEachValue<REVERSE, const Map>(
          Forward<Deref<decltype(call)>>(call)...);
    }
 
    TEMPLATE() template<bool REVERSE> LANGULUS(INLINED)
    Count TABLE()::ForEachValue(auto&&...call) {
+      static_assert(sizeof...(call) > 0, "No iterators in ForEachValue");
       return BlockMap::ForEachValue<REVERSE, Map>(
          Forward<Deref<decltype(call)>>(call)...);
    }
 
    TEMPLATE() template<bool REVERSE, bool SKIP> LANGULUS(INLINED)
    Count TABLE()::ForEachKeyDeep(auto&&...call) const {
+      static_assert(sizeof...(call) > 0, "No iterators in ForEachKeyDeep");
       return BlockMap::ForEachKeyDeep<REVERSE, SKIP, const Map>(
          Forward<Deref<decltype(call)>>(call)...);
    }
 
    TEMPLATE() template<bool REVERSE, bool SKIP> LANGULUS(INLINED)
    Count TABLE()::ForEachKeyDeep(auto&&...call) {
+      static_assert(sizeof...(call) > 0, "No iterators in ForEachKeyDeep");
       return BlockMap::ForEachKeyDeep<REVERSE, SKIP, Map>(
          Forward<Deref<decltype(call)>>(call)...);
    }
 
    TEMPLATE() template<bool REVERSE, bool SKIP> LANGULUS(INLINED)
    Count TABLE()::ForEachValueDeep(auto&&...call) const {
+      static_assert(sizeof...(call) > 0, "No iterators in ForEachValueDeep");
       return BlockMap::ForEachValueDeep<REVERSE, SKIP, const Map>(
          Forward<Deref<decltype(call)>>(call)...);
    }
 
    TEMPLATE() template<bool REVERSE, bool SKIP> LANGULUS(INLINED)
    Count TABLE()::ForEachValueDeep(auto&&...call) {
+      static_assert(sizeof...(call) > 0, "No iterators in ForEachValueDeep");
       return BlockMap::ForEachValueDeep<REVERSE, SKIP, Map>(
          Forward<Deref<decltype(call)>>(call)...);
    }

@@ -151,12 +151,14 @@ namespace Langulus::Anyness
    ///   @return the number of successful f() executions                      
    TEMPLATE() template<bool REVERSE> LANGULUS(INLINED)
    Count TABLE()::ForEach(auto&&...f) const {
+      static_assert(sizeof...(f) > 0, "No iterators in ForEach");
       return BlockSet::ForEach<REVERSE, const Set>(
          Forward<Deref<decltype(f)>>(f)...);
    }
 
    TEMPLATE() template<bool REVERSE> LANGULUS(INLINED)
    Count TABLE()::ForEach(auto&&...f) {
+      static_assert(sizeof...(f) > 0, "No iterators in ForEach");
       return BlockSet::ForEach<REVERSE, Set>(
          Forward<Deref<decltype(f)>>(f)...);
    }
@@ -183,12 +185,14 @@ namespace Langulus::Anyness
    ///   @return the number of successful f() executions                      
    TEMPLATE() template<bool REVERSE, bool SKIP> LANGULUS(INLINED)
    Count TABLE()::ForEachDeep(auto&&...f) const {
+      static_assert(sizeof...(f) > 0, "No iterators in ForEachDeep");
       return BlockSet::ForEachDeep<REVERSE, const Set>(
          Forward<Deref<decltype(f)>>(f)...);
    }
 
    TEMPLATE() template<bool REVERSE, bool SKIP> LANGULUS(INLINED)
    Count TABLE()::ForEachDeep(auto&&...f) {
+      static_assert(sizeof...(f) > 0, "No iterators in ForEachDeep");
       return BlockSet::ForEachDeep<REVERSE, Set>(
          Forward<Deref<decltype(f)>>(f)...);
    }

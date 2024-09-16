@@ -94,6 +94,7 @@ namespace Langulus::Anyness
    template<class TYPE>
    template<bool REVERSE, bool MUTABLE, class...F> LANGULUS(INLINED)
    Count Block<TYPE>::ForEach(F&&...calls) const {
+      static_assert(sizeof...(F) > 0, "No iterators in ForEach");
       if (IsEmpty())
          return 0;
 
@@ -106,6 +107,7 @@ namespace Langulus::Anyness
 
    template<class TYPE> template<bool REVERSE, class...F> LANGULUS(INLINED)
    Count Block<TYPE>::ForEach(F&&...calls) {
+      static_assert(sizeof...(F) > 0, "No iterators in ForEach");
       return const_cast<const Block*>(this)->template
          ForEach<REVERSE, true>(Forward<F>(calls)...);
    }
@@ -124,6 +126,7 @@ namespace Langulus::Anyness
    template<class TYPE>
    template<bool REVERSE, bool SKIP, bool MUTABLE, class...F> LANGULUS(INLINED)
    Count Block<TYPE>::ForEachDeep(F&&...calls) const {
+      static_assert(sizeof...(F) > 0, "No iterators in ForEachDeep");
       Count result = 0;
       (void)(... or (Loop::Break ==
          ForEachDeepInner<MUTABLE, REVERSE, SKIP>(Forward<F>(calls), result)
@@ -134,6 +137,7 @@ namespace Langulus::Anyness
    template<class TYPE>
    template<bool REVERSE, bool SKIP, class...F> LANGULUS(INLINED)
    Count Block<TYPE>::ForEachDeep(F&&...calls) {
+      static_assert(sizeof...(F) > 0, "No iterators in ForEachDeep");
       return const_cast<const Block*>(this)->template
          ForEachDeep<REVERSE, SKIP, true>(Forward<F>(calls)...);
    }
@@ -141,22 +145,26 @@ namespace Langulus::Anyness
    /// Same as ForEachElement, but in reverse                                 
    template<class TYPE> template<bool MUTABLE, class...F> LANGULUS(INLINED)
    Count Block<TYPE>::ForEachElementRev(F&&...f) const {
+      static_assert(sizeof...(f) > 0, "No iterators in ForEachElementRev");
       return ForEachElement<true, MUTABLE>(Forward<F>(f)...);
    }
 
    template<class TYPE> template<class...F> LANGULUS(INLINED)
    Count Block<TYPE>::ForEachElementRev(F&&...f) {
+      static_assert(sizeof...(f) > 0, "No iterators in ForEachElementRev");
       return ForEachElement<true, true>(Forward<F>(f)...);
    }
 
    /// Same as ForEach, but in reverse                                        
    template<class TYPE> template<bool MUTABLE, class...F> LANGULUS(INLINED)
    Count Block<TYPE>::ForEachRev(F&&...f) const {
+      static_assert(sizeof...(f) > 0, "No iterators in ForEachRev");
       return ForEach<true, MUTABLE>(Forward<F>(f)...);
    }
 
    template<class TYPE> template<class...F> LANGULUS(INLINED)
    Count Block<TYPE>::ForEachRev(F&&...f) {
+      static_assert(sizeof...(f) > 0, "No iterators in ForEachRev");
       return ForEach<true, true>(Forward<F>(f)...);
    }
 
@@ -164,11 +172,13 @@ namespace Langulus::Anyness
    template<class TYPE>
    template<bool SKIP, bool MUTABLE, class...F> LANGULUS(INLINED)
    Count Block<TYPE>::ForEachDeepRev(F&&...f) const {
+      static_assert(sizeof...(f) > 0, "No iterators in ForEachDeepRev");
       return ForEachDeep<true, SKIP, MUTABLE>(Forward<F>(f)...);
    }
 
    template<class TYPE> template<bool SKIP, class...F> LANGULUS(INLINED)
    Count Block<TYPE>::ForEachDeepRev(F&&...f) {
+      static_assert(sizeof...(f) > 0, "No iterators in ForEachDeepRev");
       return ForEachDeep<true, SKIP, true>(Forward<F>(f)...);
    }
 
