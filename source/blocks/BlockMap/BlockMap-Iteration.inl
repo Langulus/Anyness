@@ -365,6 +365,7 @@ namespace Langulus::Anyness
    ///   @return the number of successful call() executions                   
    template<bool REVERSE, CT::Map THIS, class...F> LANGULUS(INLINED)
    Count BlockMap::ForEachKey(F&&...call) const {
+      static_assert(sizeof...(F) > 0, "No iterators in ForEachKey");
       if (IsEmpty())
          return 0;
 
@@ -383,6 +384,7 @@ namespace Langulus::Anyness
    ///   @return the number of successful f() executions                      
    template<bool REVERSE, CT::Map THIS, class...F> LANGULUS(INLINED)
    Count BlockMap::ForEachValue(F&&...call) const {
+      static_assert(sizeof...(F) > 0, "No iterators in ForEachValue");
       if (IsEmpty())
          return 0;
 
@@ -400,6 +402,7 @@ namespace Langulus::Anyness
    ///   @return the number of successful f() executions                      
    template<bool REVERSE, bool SKIP, CT::Map THIS, class...F> LANGULUS(INLINED)
    Count BlockMap::ForEachKeyDeep(F&&...call) const {
+      static_assert(sizeof...(F) > 0, "No iterators in ForEachKeyDeep");
       if (IsEmpty())
          return 0;
 
@@ -419,6 +422,7 @@ namespace Langulus::Anyness
    ///   @return the number of successful f() executions                      
    template<bool REVERSE, bool SKIP, CT::Map THIS, class...F> LANGULUS(INLINED)
    Count BlockMap::ForEachValueDeep(F&&...call) const {
+      static_assert(sizeof...(F) > 0, "No iterators in ForEachValueDeep");
       if (IsEmpty())
          return 0;
 

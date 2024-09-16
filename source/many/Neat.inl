@@ -817,6 +817,7 @@ namespace Langulus::Anyness
    ///   @return the number of executions of 'call'                           
    template<bool MUTABLE> LANGULUS(INLINED)
    Count Neat::ForEach(auto&&...call) {
+      static_assert(sizeof...(call) > 0, "No iterators in ForEach");
       if (IsEmpty())
          return 0;
 
@@ -830,7 +831,8 @@ namespace Langulus::Anyness
    ///                                                                        
    LANGULUS(INLINED)
    Count Neat::ForEach(auto&&...call) const {
-      return const_cast<Neat*>(this)->template 
+      static_assert(sizeof...(call) > 0, "No iterators in ForEach");
+      return const_cast<Neat*>(this)->template
          ForEach<false>(Forward<Deref<decltype(call)>>(call)...);
    }
    
@@ -844,6 +846,7 @@ namespace Langulus::Anyness
    ///   @return the number of executions of all calls                        
    template<bool MUTABLE> LANGULUS(INLINED)
    Count Neat::ForEachDeep(auto&&...call) {
+      static_assert(sizeof...(call) > 0, "No iterators in ForEachDeep");
       Count executions = 0;
       ((executions += ForEachInner<MUTABLE>(
          Forward<Deref<decltype(call)>>(call))), ...);
@@ -853,6 +856,7 @@ namespace Langulus::Anyness
    /// Neat containers are always flat, so deep iteration is same as flat one 
    LANGULUS(INLINED)
    Count Neat::ForEachDeep(auto&&...call) const {
+      static_assert(sizeof...(call) > 0, "No iterators in ForEachDeep");
       return const_cast<Neat*>(this)->template
          ForEachDeep<false>(Forward<Deref<decltype(call)>>(call)...);
    }
