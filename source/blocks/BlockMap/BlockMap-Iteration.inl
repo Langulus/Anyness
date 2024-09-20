@@ -88,6 +88,7 @@ namespace Langulus::Anyness
          }
          else {
             R loop;
+
             if constexpr (CT::TypedPair<A>) {
                // The pair is statically typed, so we need to access    
                // the elements by the provided types                    
@@ -110,14 +111,14 @@ namespace Langulus::Anyness
             }
             else if constexpr (CT::Exact<R, LoopControl>) {
                switch (loop) {
-               case Loop::Break:
+               case LoopControl::Break:
                   return executions;
-               case Loop::Continue:
+               case LoopControl::Continue:
                   next();
                   break;
-               case Loop::Repeat:
+               case LoopControl::Repeat:
                   break;
-               case Loop::Discard:
+               case LoopControl::Discard:
                   if constexpr (CT::Mutable<THIS>) {
                      // Discard is allowed only if THIS is mutable      
                      const_cast<BlockMap*>(this)
@@ -178,7 +179,8 @@ namespace Langulus::Anyness
             next();
          }
          else if constexpr (CT::Exact<R, LoopControl>) {
-            const auto loop = call(DecvqCast(part).template Get<A>(inf - mInfo));
+            const R loop = call(DecvqCast(part).template Get<A>(inf - mInfo));
+
             switch (loop.mControl) {
             case LoopControl::Break:
             case LoopControl::NextLoop:
@@ -254,16 +256,16 @@ namespace Langulus::Anyness
          else if constexpr (CT::Exact<R, LoopControl>) {
             const R loop = call(part.GetElement(info - mInfo));
 
-            switch (loop) {
+            switch (loop.mControl) {
             case LoopControl::Break:
             case LoopControl::NextLoop:
                return loop;
-            case Loop::Continue:
+            case LoopControl::Continue:
                next();
                break;
-            case Loop::Repeat:
+            case LoopControl::Repeat:
                break;
-            case Loop::Discard:
+            case LoopControl::Discard:
                if constexpr (CT::Mutable<THIS>) {
                   // Discard is allowed only if THIS is mutable         
                   const_cast<BlockMap*>(this)

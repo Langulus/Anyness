@@ -119,12 +119,12 @@ namespace Langulus::Anyness
             case LoopControl::Break:
             case LoopControl::NextLoop:
                return counter;
-            case Loop::Continue:
+            case LoopControl::Continue:
                next();
                break;
-            case Loop::Repeat:
+            case LoopControl::Repeat:
                break;
-            case Loop::Discard:
+            case LoopControl::Discard:
                if constexpr (CT::Mutable<THIS>) {
                   // Discard is allowed only if THIS is mutable         
                   const_cast<BlockSet*>(this)
