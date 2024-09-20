@@ -49,15 +49,15 @@ namespace Langulus::Anyness
             // Do things depending on the F's return                    
             const R loop = call(block);
 
-            switch (loop) {
-            case Loop::Break:
+            switch (loop.mControl) {
+            case LoopControl::Break:
                return REVERSE ? mCount - index : index + 1;
-            case Loop::Continue:
+            case LoopControl::Continue:
                next();
                break;
-            case Loop::Repeat:
+            case LoopControl::Repeat:
                break;
-            case Loop::Discard:
+            case LoopControl::Discard:
                if constexpr (MUTABLE) {
                   // Discard is allowed only if THIS is mutable         
                   const_cast<Block*>(this)->RemoveIndex(index);
@@ -297,12 +297,14 @@ namespace Langulus::Anyness
                   while (loop == Loop::Repeat)
                      loop = call(*b);
 
-                  switch (loop) {
-                  case Loop::Break:
-                     return Loop::Break;
-                  case Loop::Continue:
+                  switch (loop.mControl) {
+                  case LoopControl::Break:
+                  case LoopControl::NextLoop:
+                     return loop;
+                  case LoopControl::Continue:
+                  case LoopControl::Repeat:
                      break;
-                  case Loop::Discard:
+                  case LoopControl::Discard:
                      if constexpr (MUTABLE) {
                         // Discard is allowed only if THIS is mutable   
                         // You can't fully discard the topmost block,   
@@ -368,12 +370,14 @@ namespace Langulus::Anyness
                while (loop == Loop::Repeat)
                   loop = call(*b);
 
-               switch (loop) {
-               case Loop::Break:
-                  return Loop::Break;
-               case Loop::Continue:
+               switch (loop.mControl) {
+               case LoopControl::Break:
+               case LoopControl::NextLoop:
+                  return loop;
+               case LoopControl::Continue:
+               case LoopControl::Repeat:
                   break;
-               case Loop::Discard:
+               case LoopControl::Discard:
                   if constexpr (MUTABLE) {
                      // Discard is allowed only if THIS is mutable      
                      // You can't fully discard the topmost block,      
@@ -484,7 +488,7 @@ namespace Langulus::Anyness
          }
          else if constexpr (CT::Exact<R, LoopControl>) {
             // Do things depending on the F's return                    
-            const LoopControl loop = f(*data);
+            const R loop = f(*data);
 
             switch (loop.mControl) {
             case LoopControl::Break:
