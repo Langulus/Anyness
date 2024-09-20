@@ -113,13 +113,16 @@ namespace Langulus::Anyness
             next();
          }
          else if constexpr (CT::Exact<R, LoopControl>) {
-            const auto loop = call(mKeys.GetElement(info - mInfo));
+            const R loop = call(mKeys.GetElement(info - mInfo));
+
             switch (loop) {
             case LoopControl::Break:
             case LoopControl::NextLoop:
                return counter;
             case Loop::Continue:
                next();
+               break;
+            case Loop::Repeat:
                break;
             case Loop::Discard:
                if constexpr (CT::Mutable<THIS>) {
