@@ -47,12 +47,15 @@ namespace Langulus::Anyness
          }
          else if constexpr (CT::Exact<R, LoopControl>) {
             // Do things depending on the F's return                    
-            const auto loop = call(block);
+            const R loop = call(block);
+
             switch (loop) {
             case Loop::Break:
                return REVERSE ? mCount - index : index + 1;
             case Loop::Continue:
                next();
+               break;
+            case Loop::Repeat:
                break;
             case Loop::Discard:
                if constexpr (MUTABLE) {
@@ -289,7 +292,11 @@ namespace Langulus::Anyness
                }
                else if constexpr (CT::Exact<R, LoopControl>) {
                   // Do things depending on the F's return              
-                  const auto loop = call(*b);
+                  R loop = call(*b);
+
+                  while (loop == Loop::Repeat)
+                     loop = call(*b);
+
                   switch (loop) {
                   case Loop::Break:
                      return Loop::Break;
@@ -356,7 +363,11 @@ namespace Langulus::Anyness
             }
             else if constexpr (CT::Exact<R, LoopControl>) {
                // Do things depending on the F's return                 
-               const auto loop = call(*b);
+               R loop = call(*b);
+
+               while (loop == Loop::Repeat)
+                  loop = call(*b);
+
                switch (loop) {
                case Loop::Break:
                   return Loop::Break;
@@ -473,13 +484,16 @@ namespace Langulus::Anyness
          }
          else if constexpr (CT::Exact<R, LoopControl>) {
             // Do things depending on the F's return                    
-            const auto loop = f(*data);
+            const LoopControl loop = f(*data);
+
             switch (loop.mControl) {
             case LoopControl::Break:
             case LoopControl::NextLoop:
                return loop;
             case LoopControl::Continue:
                next();
+               break;
+            case LoopControl::Repeat:
                break;
             case LoopControl::Discard:
                if constexpr (MUTABLE) {
