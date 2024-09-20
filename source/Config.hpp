@@ -36,8 +36,9 @@ namespace Langulus
       enum Command : int {
          Break = 0,     // Break the loop                               
          Continue = 1,  // Continue the loop                            
-         Discard = 2,   // Remove the current element                   
-         NextLoop = 3   // Skip to next function in the visitor pattern 
+         Repeat = 2,    // Repeat the current element                   
+         Discard = 3,   // Remove the current element                   
+         NextLoop = 4   // Skip to next function in the visitor pattern 
       } mControl;
 
       LoopControl() = delete;
@@ -48,7 +49,7 @@ namespace Langulus
          : mControl {a} {}
 
       explicit constexpr operator bool() const noexcept {
-         return mControl == Continue;
+         return mControl == Continue or mControl == Repeat;
       }
 
       constexpr bool operator == (const LoopControl& rhs) const noexcept {
@@ -61,6 +62,7 @@ namespace Langulus
 
       constexpr LoopControl Break      = LoopControl::Break;
       constexpr LoopControl Continue   = LoopControl::Continue;
+      constexpr LoopControl Repeat     = LoopControl::Repeat;
       constexpr LoopControl Discard    = LoopControl::Discard;
       constexpr LoopControl NextLoop   = LoopControl::NextLoop;
 

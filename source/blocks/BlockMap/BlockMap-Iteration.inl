@@ -115,6 +115,8 @@ namespace Langulus::Anyness
                case Loop::Continue:
                   next();
                   break;
+               case Loop::Repeat:
+                  break;
                case Loop::Discard:
                   if constexpr (CT::Mutable<THIS>) {
                      // Discard is allowed only if THIS is mutable      
@@ -184,6 +186,8 @@ namespace Langulus::Anyness
             case LoopControl::Continue:
                next();
                break;
+            case LoopControl::Repeat:
+               break;
             case LoopControl::Discard:
                if constexpr (CT::Mutable<THIS>) {
                   // Discard is allowed only if THIS is mutable         
@@ -248,13 +252,16 @@ namespace Langulus::Anyness
             next();
          }
          else if constexpr (CT::Exact<R, LoopControl>) {
-            const auto loop = call(part.GetElement(info - mInfo));
+            const R loop = call(part.GetElement(info - mInfo));
+
             switch (loop) {
             case LoopControl::Break:
             case LoopControl::NextLoop:
                return loop;
             case Loop::Continue:
                next();
+               break;
+            case Loop::Repeat:
                break;
             case Loop::Discard:
                if constexpr (CT::Mutable<THIS>) {
