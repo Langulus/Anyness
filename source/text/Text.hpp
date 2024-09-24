@@ -223,6 +223,7 @@ namespace Langulus::Anyness
       static constexpr bool CTTI_TextTrait = true;
       static constexpr bool Ownership = true;
 
+      LANGULUS(NAME) "Text";
       LANGULUS(DEEP) false;
       LANGULUS(POD) false;
       LANGULUS(FILES) "txt";
@@ -429,6 +430,7 @@ namespace Langulus
       ///   Abstract code container                                           
       ///                                                                     
       struct Code : Anyness::Text {
+         LANGULUS(NAME) "A::Code";
          LANGULUS_BASES(Anyness::Text);
          LANGULUS(FILES) "";
 
