@@ -765,6 +765,7 @@ namespace Langulus::Anyness
    ///   @attention assumes block elements are not initialized, despite having
    ///      mCount set                                                        
    ///   @param desc - the descriptor to pass on to constructors              
+   ///      each new element will use the same descriptor                     
    template<class TYPE> template<class...A>
    void Block<TYPE>::CreateDescribe(A&&...arguments) {
       static_assert(sizeof...(A) > 0, "Bad number of arguments");
@@ -773,23 +774,15 @@ namespace Langulus::Anyness
       LANGULUS_ASSUME(DevAssumes, GetUses() == 1,
          "Data is referenced from multiple locations");
 
-      const auto getNeat = [&] {
-         if constexpr (sizeof...(A) == 1) {
-            using A1 = FirstOf<A...>;
-            if constexpr (CT::Similar<A1, Describe>) {
-               const Neat* t;
-               (t = ... = &*arguments);
-               return *t;
-            }
-            else if constexpr (CT::Similar<A1, Neat>) {
-               const Neat* t;
-               (t = ... = &arguments);
-               return *t;
-            }
-            else return Neat {Forward<A>(arguments)...};
-         }
-         else return Neat {Forward<A>(arguments)...};
-      };
+      Many descriptor;
+      if constexpr (sizeof...(A) == 1) {
+         using A1 = FirstOf<A...>;
+         if constexpr (CT::Similar<A1, Describe>)
+            (descriptor = ... = *arguments);
+         else
+            descriptor = Many {Forward<A>(arguments)...};
+      }
+      else descriptor = Many {Forward<A>(arguments)...};
 
       if constexpr (not TypeErased) {
          using DT = Decay<TYPE>;
@@ -808,7 +801,7 @@ namespace Langulus::Anyness
 
             auto rhs = allocation->template As<DT*>();
             while (lhsPtr != lhsEnd) {
-               new (rhs) DT (Describe(getNeat()));
+               new (rhs) DT (Describe(descriptor));
                *(lhsPtr++) = rhs;
                *(lhsEnt++) = allocation;
                ++rhs;
@@ -819,7 +812,7 @@ namespace Langulus::Anyness
             auto lhs = GetRaw();
             const auto lhsEnd = lhs + mCount;
             while (lhs != lhsEnd)
-               new (lhs++) DT (Describe(getNeat()));
+               new (lhs++) DT (Describe(descriptor));
          }
       }
       else {
@@ -845,7 +838,7 @@ namespace Langulus::Anyness
 
                auto rhs = allocation->GetBlockStart();
                while (lhsPtr != lhsEnd) {
-                  mType->mOrigin->mDescriptorConstructor(rhs, getNeat());
+                  mType->mOrigin->mDescriptorConstructor(rhs, Describe(descriptor));
                   *(lhsPtr++) = rhs;
                   const_cast<const Allocation*&>(*(lhsEnt++)) = allocation;
                   rhs += mType->mOrigin->mSize;
@@ -861,7 +854,7 @@ namespace Langulus::Anyness
             auto lhs = mRaw;
             const auto lhsEnd = lhs + mCount * mType->mSize;
             while (lhs != lhsEnd) {
-               mType->mDescriptorConstructor(lhs, getNeat());
+               mType->mDescriptorConstructor(lhs, Describe(descriptor));
                lhs += mType->mSize;
             }
          }

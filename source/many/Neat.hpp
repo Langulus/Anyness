@@ -9,34 +9,13 @@
 #pragma once
 #include "TMany.hpp"
 #include "Trait.hpp"
+#include "Construct.hpp"
 #include "../maps/TMap.hpp"
-#include "../Charge.inl"
+#include <Core/Sequences.hpp>
 
 
 namespace Langulus::Anyness
 {
-   namespace Inner
-   {
-
-      /// Constructs pushed to Neat are deconstructed, because Construct      
-      /// itself uses Neat as base, and that's a circular dependency          
-      struct DeConstruct {
-         Hash mHash;
-         Charge mCharge;
-         Many mData;
-
-         template<template<class> class S>
-         DeConstruct(Hash, const Charge&, S<Neat>&&);
-         template<template<class> class S>
-         DeConstruct(S<DeConstruct>&&);
-
-         Hash GetHash() const noexcept;
-
-         bool operator == (const DeConstruct&) const;
-      };
-
-   } // namespace Langulus::Anyness::Inner
-
 
    ///                                                                        
    ///   Neat - a normalized data container                                   
@@ -45,13 +24,15 @@ namespace Langulus::Anyness
    /// that are very fast on compare/search/insert/remove, albeit quite a bit 
    /// larger.                                                                
    ///   Neats are extensively used as descriptors in factories, to check     
-   /// whether an element with the same signature already exists. This is why 
-   /// traits like Traits::Parent are never actually considered, when taking  
-   /// the hash of the Neat, or when comparing two Neat containers.           
+   /// whether an element with the same signature already exists.             
+   ///   Elements that are marked missing are never considered part of the    
+   /// descriptor, and are filled by the context (i.e. Traits::Parent(?))     
    ///                                                                        
    class Neat {
    protected:
-      friend class Construct;
+      using TraitList     = TMany<Trait>;
+      using ConstructList = TMany<Construct>;
+      using TailList      = TMany<Messy>;
 
       // The hash of the container                                      
       // Kept as first member, in order to quickly access it            
@@ -60,17 +41,17 @@ namespace Langulus::Anyness
       // Traits are ordered first by their trait type, then by their    
       // order of appearance. Duplicate trait types are allowed         
       // Trait contents are also normalized all the way through         
-      TUnorderedMap<TMeta, TMany<Many>> mTraits;
+      TUnorderedMap<TMeta, TraitList> mTraits;
 
       // Subconstructs are sorted first by the construct type, and then 
       // by their order of appearance. Their contents are also          
       // nest-normalized all the way through                            
-      TUnorderedMap<DMeta, TMany<Inner::DeConstruct>> mConstructs;
+      TUnorderedMap<DMeta, ConstructList> mConstructs;
 
       // Any other block type that doesn't fit in the above is sorted   
       // first by the block type, then by the order of appearance       
       // These sub-blocks won't contain Neat elements                   
-      TUnorderedMap<DMeta, TMany<Messy>> mAnythingElse;
+      TUnorderedMap<DMeta, TailList> mAnythingElse;
 
    public:
       LANGULUS(DEEP) true;
@@ -118,32 +99,32 @@ namespace Langulus::Anyness
       NOD() explicit operator bool() const noexcept;
 
       template<CT::Trait>
-      TMany<Many>* GetTraits();
+      auto GetTraits() -> TraitList*;
 
       template<CT::Trait>
-      const TMany<Many>* GetTraits() const;
-            TMany<Many>* GetTraits(TMeta);
-      const TMany<Many>* GetTraits(TMeta) const;
+      auto GetTraits() const      -> const TraitList*;
+      auto GetTraits(TMeta)       ->       TraitList*;
+      auto GetTraits(TMeta) const -> const TraitList*;
 
       template<CT::Data>
-      TMany<Messy>* GetData();
+      auto GetData() -> TailList*;
 
       template<CT::Data>
-      const TMany<Messy>* GetData() const;
-            TMany<Messy>* GetData(DMeta);
-      const TMany<Messy>* GetData(DMeta) const;
+      auto GetData() const      -> const TailList*;
+      auto GetData(DMeta)       ->       TailList*;
+      auto GetData(DMeta) const -> const TailList*;
       
       template<CT::Data>
-      TMany<Inner::DeConstruct>* GetConstructs();
+      auto GetConstructs() -> ConstructList*;
 
       template<CT::Data>
-      DMeta FindType() const;
-      DMeta FindType(DMeta) const;
+      auto FindType()      const -> DMeta;
+      auto FindType(DMeta) const -> DMeta;
 
       template<CT::Data>
-      const TMany<Inner::DeConstruct>* GetConstructs() const;
-            TMany<Inner::DeConstruct>* GetConstructs(DMeta);
-      const TMany<Inner::DeConstruct>* GetConstructs(DMeta) const;
+      auto GetConstructs() const      -> const ConstructList*;
+      auto GetConstructs(DMeta)       ->       ConstructList*;
+      auto GetConstructs(DMeta) const -> const ConstructList*;
 
       template<CT::Trait>
       void SetDefaultTrait(CT::Data auto&&);
@@ -162,8 +143,8 @@ namespace Langulus::Anyness
       Count ExtractDataAs(CT::Data auto&) const;
 
       template<CT::Trait>
-      NOD() const Many* Get(Offset = 0) const;
-      NOD() const Many* Get(TMeta, Offset = 0) const;
+      NOD() auto Get(Offset = 0)        const -> const Trait*;
+      NOD() auto Get(TMeta, Offset = 0) const -> const Trait*;
 
    protected:
       template<CT::Trait>
@@ -204,14 +185,11 @@ namespace Langulus::Anyness
       ///                                                                     
       template<class T1, class...TN>
       Count Insert(T1&&, TN&&...);
-
-      Neat& operator << (auto&&);
-
-      void Merge(const Neat&);
-
-      Neat& operator <<= (auto&&);
-
+      void  Merge(const Neat&);
       Neat& Set(CT::TraitBased auto&&, Offset = 0);
+
+      Neat& operator <<  (auto&&);
+      Neat& operator <<= (auto&&);
 
    protected:
       Count UnfoldInsert(auto&&);
@@ -221,10 +199,10 @@ namespace Langulus::Anyness
       void AddConstruct(CT::Intent auto&&);
       void AddVerb(CT::Intent auto&&);
 
-      template<Offset... IDX>
-      bool ExtractTraitInner(const TMany<Many>&, ::std::integer_sequence<Offset, IDX...>, CT::Data auto&...) const;
+      template<Offset...IDX>
+      bool ExtractTraitInner(const TraitList&, ExpandedSequence<IDX...>, CT::Data auto&...) const;
       template<Offset>
-      bool ExtractTraitInnerInner(const TMany<Many>&, CT::Data auto&) const;
+      bool ExtractTraitInnerInner(const TraitList&, CT::Data auto&) const;
 
    public:
       ///                                                                     

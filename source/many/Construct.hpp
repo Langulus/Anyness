@@ -7,7 +7,8 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #pragma once
-#include "Neat.hpp"
+#include "Many.hpp"
+#include "../Charge.hpp"
 
 
 namespace Langulus::Anyness
@@ -17,7 +18,7 @@ namespace Langulus::Anyness
    ///   Construct                                                            
    ///                                                                        
    ///   Used to contain constructor arguments for any type. It is just a     
-   /// type-erased Neat, but also carries a charge and a type. It is often    
+   /// type-erased Many, but also carries a charge and a type. It is often    
    /// used in Verbs::Create to provide instructions on how to instantiate a  
    /// data type.                                                             
    ///                                                                        
@@ -25,10 +26,12 @@ namespace Langulus::Anyness
    private:
       // What are we constructing?                                      
       DMeta  mType {};
-      // What properties does the thing have?                           
-      Neat   mDescriptor;
+      // Precomputed hash                                               
+      mutable Hash mHash {};
       // How many things, when, at what frequency/priority?             
       Charge mCharge;
+      // What properties does the thing have?                           
+      Many   mDescriptor;
 
    public:
       static constexpr bool Ownership = true;
@@ -86,10 +89,10 @@ namespace Langulus::Anyness
       void SetType();
       void SetType(DMeta) noexcept;
 
-      NOD() Neat const& GetDescriptor() const noexcept;
-      NOD() Neat&       GetDescriptor()       noexcept;
-      NOD() Charge const& GetCharge() const noexcept;
-      NOD() Charge&       GetCharge()       noexcept;
+      NOD() auto GetDescriptor() const noexcept -> Many const&;
+      NOD() auto GetDescriptor()       noexcept -> Many&;
+      NOD() auto GetCharge() const noexcept -> Charge const&;
+      NOD() auto GetCharge()       noexcept -> Charge&;
 
       NOD() DMeta GetType() const noexcept;
       NOD() Token GetToken() const noexcept;
