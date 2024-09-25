@@ -8,7 +8,6 @@
 ///                                                                           
 #pragma once
 #include "Construct.hpp"
-#include "Neat.inl"
 #include "../text/Text.hpp"
 
 
@@ -19,24 +18,26 @@ namespace Langulus::Anyness
    ///   @param other - construct to refer to                                 
    LANGULUS(INLINED)
    Construct::Construct(const Construct& other) noexcept
-      : Construct {Refer(other)} {}
+      : Construct    {Refer(other)} {}
 
    /// Move constructor                                                       
    ///   @param other - construct to move                                     
    LANGULUS(INLINED)
    Construct::Construct(Construct&& other) noexcept
-      : Construct {Move(other)} {}
+      : Construct    {Move(other)} {}
 
    /// Intent constructor                                                     
    ///   @param other - the construct and intent                              
    template<template<class> class S> requires CT::Intent<S<Construct>>
    LANGULUS(INLINED) Construct::Construct(S<Construct>&& other)   
       : mType        {other->mType}
-      , mDescriptor  {S<Neat> {other->mDescriptor}}
-      , mCharge      {other->mCharge} {
-      if constexpr (S<Construct>::Move and S<Construct>::Keep) {
-         other->ResetCharge();
+      , mHash        {other->mHash}
+      , mCharge      {other->mCharge}
+      , mDescriptor  {other.Nest(other->mDescriptor)} {
+      if constexpr (other.ResetsOnMove()) {
          other->mType = {};
+         other->mHash = {};
+         other->ResetCharge();
       }
    }
 
@@ -44,7 +45,7 @@ namespace Langulus::Anyness
    ///   @param type - the type of the content                                
    LANGULUS(INLINED)
    Construct::Construct(DMeta type)
-      : mType {type ? type->mOrigin : nullptr} {}
+      : mType        {type ? type->mOrigin : nullptr} {}
 
    /// Manual constructor                                                     
    ///   @param type - the type of the construct                              
@@ -53,15 +54,15 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    Construct::Construct(DMeta type, auto&& args, const Charge& charge)
       : mType        {type ? type->mOrigin : nullptr}
-      , mDescriptor  {Forward<Deref<decltype(args)>>(args)}
-      , mCharge      {charge} { }
+      , mCharge      {charge}
+      , mDescriptor  {Forward<Deref<decltype(args)>>(args)} {}
 
 #if LANGULUS_FEATURE(MANAGED_REFLECTION)
    /// Construct from a type token                                            
    ///   @param type - the type of the content                                
    LANGULUS(INLINED)
    Construct::Construct(const Token& token)
-      : mType {RTTI::GetMetaData(token)->mOrigin} {}
+      : mType        {RTTI::GetMetaData(token)->mOrigin} {}
 
    LANGULUS(INLINED)
    Construct::Construct(const Token& token, auto&& args, const Charge& charge)
@@ -94,13 +95,16 @@ namespace Langulus::Anyness
    template<template<class> class S> requires CT::Intent<S<Construct>>
    LANGULUS(INLINED) Construct& Construct::operator = (S<Construct>&& rhs) {
       mType       = rhs->mType;
-      mDescriptor = S<Neat> {rhs->mDescriptor};
+      mHash       = rhs->mHash;
       mCharge     = rhs->mCharge;
+      mDescriptor = rhs.Nest(rhs->mDescriptor);
 
-      if constexpr (S<Construct>::Move and S<Construct>::Keep) {
-         rhs->ResetCharge();
+      if constexpr (rhs.ResetsOnMove()) {
          rhs->mType = {};
+         rhs->mHash = {};
+         rhs->ResetCharge();
       }
+
       return *this;
    }
 
@@ -154,21 +158,30 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    Hash Construct::GetHash() const {
       // Hash is the same as the Neat base, but with the type on top    
-      return mType ? HashOf(mType->mDecvq, mDescriptor) : mDescriptor.GetHash();
+      if (mHash)
+         return mHash;
+
+      if (mType)
+         mHash = HashOf(mType->mDecvq, mDescriptor);
+      else
+         mHash = mDescriptor.GetHash();
+      return mHash;
    }
 
    /// Clears arguments and charge, but doesn't deallocate                    
    LANGULUS(INLINED)
    void Construct::Clear() {
-      mDescriptor.Clear();
+      mHash = {};
       mCharge.Reset();
+      mDescriptor.Clear();
    }
    
    /// Clears and deallocates arguments and charge                            
    LANGULUS(INLINED)
    void Construct::Reset() {
-      mDescriptor.Reset();
+      mHash = {};
       mCharge.Reset();
+      mDescriptor.Reset();
    }
 
    /// Reset charge                                                           
@@ -231,12 +244,13 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    void Construct::SetType(DMeta type) noexcept {
       mType = type;
+      mHash = {};
    }
 
    /// Get the argument for the construct                                     
    ///   @return the constant arguments container                             
    LANGULUS(INLINED)
-   const Neat& Construct::GetDescriptor() const noexcept {
+   auto Construct::GetDescriptor() const noexcept -> const Many& {
       return mDescriptor;
    }
 
@@ -246,24 +260,24 @@ namespace Langulus::Anyness
    ///      GetHash() request                                                 
    ///   @return the mutable arguments container                              
    LANGULUS(INLINED)
-   Neat& Construct::GetDescriptor() noexcept {
+   auto Construct::GetDescriptor() noexcept -> Many& {
       // Reset hash preventively, because we're exposing a mutable ref, 
       // which is likely to change, and thus a rehash will be needed    
-      mDescriptor.mHash = {};
+      mHash = {};
       return mDescriptor;
    }
 
    /// Get construct's charge                                                 
    ///   @return the charge                                                   
    LANGULUS(INLINED)
-   Charge& Construct::GetCharge() noexcept {
+   auto Construct::GetCharge() noexcept -> Charge& {
       return mCharge;
    }
 
    /// Get construct's charge (const)                                         
    ///   @return the charge                                                   
    LANGULUS(INLINED)
-   const Charge& Construct::GetCharge() const noexcept {
+   auto Construct::GetCharge() const noexcept -> const Charge& {
       return mCharge;
    }
 
@@ -316,6 +330,7 @@ namespace Langulus::Anyness
    Construct& Construct::operator << (T&& rhs) {
       if constexpr (requires {mDescriptor << Forward<T>(rhs); }) {
          mDescriptor << Forward<T>(rhs);
+         mHash = {};
          return *this;
       }
       else LANGULUS_ERROR("Can't push that into descriptor");
@@ -329,6 +344,7 @@ namespace Langulus::Anyness
    Construct& Construct::operator <<= (T&& rhs) {
       if constexpr (requires {mDescriptor <<= Forward<T>(rhs); }) {
          mDescriptor <<= Forward<T>(rhs);
+         mHash = {};
          return *this;
       }
       else LANGULUS_ERROR("Can't merge that into descriptor");
