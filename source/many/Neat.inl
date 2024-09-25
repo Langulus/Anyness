@@ -10,7 +10,7 @@
 #include "Neat.hpp"
 #include "TMany.inl"
 #include "TTrait.inl"
-#include "Construct.hpp"
+#include "Construct.inl"
 #include "../maps/TMap.inl"
 #include "../one/Ref.inl"
 #include "../verbs/Verb.hpp"
@@ -38,11 +38,11 @@ namespace Langulus::Anyness
    requires CT::Intent<S<Neat>> LANGULUS(INLINED)
    Neat::Neat(S<Neat>&& other)
       : mHash         {other->mHash}
-      , mTraits       {S<Neat>::Nest(other->mTraits)}
-      , mConstructs   {S<Neat>::Nest(other->mConstructs)}
-      , mAnythingElse {S<Neat>::Nest(other->mAnythingElse)} {
+      , mTraits       {other.Nest(other->mTraits)}
+      , mConstructs   {other.Nest(other->mConstructs)}
+      , mAnythingElse {other.Nest(other->mAnythingElse)} {
       // Reset remote hash if moving                                    
-      if constexpr (S<Neat>::Move and S<Neat>::Keep)
+      if constexpr (other.ResetsOnMove())
          other->mHash = {};
    }
 
@@ -62,14 +62,13 @@ namespace Langulus::Anyness
    template<template<class> class S>
    requires CT::Intent<S<Neat>> LANGULUS(INLINED)
    Neat& Neat::operator = (S<Neat>&& other) {
-      using SS = S<Neat>;
-      mTraits       = SS::Nest(other->mTraits);
-      mConstructs   = SS::Nest(other->mConstructs);
-      mAnythingElse = SS::Nest(other->mAnythingElse);
+      mTraits       = other.Nest(other->mTraits);
+      mConstructs   = other.Nest(other->mConstructs);
+      mAnythingElse = other.Nest(other->mAnythingElse);
       mHash         = other->mHash;
 
       // Reset remote hash if moving                                    
-      if constexpr (SS::Move and SS::Keep)
+      if constexpr (other.ResetsOnMove())
          other->mHash = {};
       return *this;
    }
@@ -91,23 +90,14 @@ namespace Langulus::Anyness
    }
 
    /// Get the hash of a neat container (and cache it)                        
-   ///   @attention Traits::Parent never participate in hashing/comparison    
+   ///   @attention missing elements never participate in hashing/comparison  
    ///   @return the hash                                                     
    LANGULUS(INLINED)
    Hash Neat::GetHash() const {
       if (mHash)
          return mHash;
 
-      // Traits::Parent never participates in the hash                  
-      Hash traitHash;
-      for (auto pair : mTraits) {
-         if (pair.mKey->Is<Traits::Parent>())
-            continue;
-         traitHash.mHash ^= Trait::From(pair.mKey, pair.mValue).GetHash().mHash;
-      }
-
-      // Cache hash so we don't recompute it all the time               
-      mHash = HashOf(traitHash, mConstructs, mAnythingElse);
+      mHash = HashOf(mTraits, mConstructs, mAnythingElse);
       return mHash;
    }
 
@@ -197,7 +187,7 @@ namespace Langulus::Anyness
    ///   @attention the list can be empty, if trait was provided with no      
    ///              contents                                                  
    template<CT::Trait T> LANGULUS(INLINED)
-   TMany<Many>* Neat::GetTraits() {
+   auto Neat::GetTraits() -> TraitList* {
       return GetTraits(MetaTraitOf<T>());
    }
 
@@ -207,7 +197,7 @@ namespace Langulus::Anyness
    ///   @attention the list can be empty, if trait was provided with no      
    ///              contents                                                  
    template<CT::Trait T> LANGULUS(INLINED)
-   const TMany<Many>* Neat::GetTraits() const {
+   auto Neat::GetTraits() const -> const TraitList* {
       return GetTraits(MetaTraitOf<T>());
    }
    
@@ -217,7 +207,7 @@ namespace Langulus::Anyness
    ///   @attention the list can be empty, if trait was provided with no      
    ///              contents                                                  
    LANGULUS(INLINED)
-   TMany<Many>* Neat::GetTraits(TMeta t) {
+   auto Neat::GetTraits(TMeta t) -> TraitList* {
       LANGULUS_ASSUME(UserAssumes, t, "Can't get invalid trait");
       auto found = mTraits.Find(t);
       return found ? &mTraits.GetValue(found) : nullptr;
@@ -229,7 +219,7 @@ namespace Langulus::Anyness
    ///   @attention the list can be empty, if trait was provided with no      
    ///              contents                                                  
    LANGULUS(INLINED)
-   const TMany<Many>* Neat::GetTraits(TMeta t) const {
+   auto Neat::GetTraits(TMeta t) const -> const TraitList* {
       return const_cast<Neat*>(this)->GetTraits(t);
    }
    
@@ -237,7 +227,7 @@ namespace Langulus::Anyness
    ///   @tparam T - type to search for                                       
    ///   @return the data list, or nullptr if no such list exists             
    template<CT::Data T> LANGULUS(INLINED)
-   TMany<Messy>* Neat::GetData() {
+   auto Neat::GetData() -> TailList* {
       return GetData(MetaDataOf<Decay<T>>());
    }
 
@@ -245,7 +235,7 @@ namespace Langulus::Anyness
    ///   @tparam T - type to search for                                       
    ///   @return the data list, or nullptr if no such list exists             
    template<CT::Data T> LANGULUS(INLINED)
-   const TMany<Messy>* Neat::GetData() const {
+   auto Neat::GetData() const -> const TailList* {
       return GetData(MetaDataOf<Decay<T>>());
    }
       
@@ -253,7 +243,7 @@ namespace Langulus::Anyness
    ///   @param d - type to search for                                        
    ///   @return the data list, or nullptr if no such list exists             
    LANGULUS(INLINED)
-   TMany<Messy>* Neat::GetData(DMeta d) {
+   auto Neat::GetData(DMeta d) -> TailList* {
       auto found = mAnythingElse.Find(d ? d->mOrigin : nullptr);
       return found ? &mAnythingElse.GetValue(found) : nullptr;
    }
@@ -262,7 +252,7 @@ namespace Langulus::Anyness
    ///   @param d - type to search for                                        
    ///   @return the data list, or nullptr if no such list exists             
    LANGULUS(INLINED)
-   const TMany<Messy>* Neat::GetData(DMeta d) const {
+   auto Neat::GetData(DMeta d) const -> const TailList* {
       return const_cast<Neat*>(this)->GetData(d);
    }
 
@@ -270,7 +260,7 @@ namespace Langulus::Anyness
    ///   @tparam T - type to search for                                       
    ///   @return the construct list, or nullptr if no such list exists        
    template<CT::Data T> LANGULUS(INLINED)
-   TMany<Inner::DeConstruct>* Neat::GetConstructs() {
+   auto Neat::GetConstructs() -> ConstructList* {
       return GetConstructs(MetaDataOf<Decay<T>>());
    }
 
@@ -278,7 +268,7 @@ namespace Langulus::Anyness
    ///   @tparam T - type to search for                                       
    ///   @return the construct list, or nullptr if no such list exists        
    template<CT::Data T> LANGULUS(INLINED)
-   const TMany<Inner::DeConstruct>* Neat::GetConstructs() const {
+   auto Neat::GetConstructs() const -> const ConstructList* {
       return GetConstructs(MetaDataOf<Decay<T>>());
    }
    
@@ -286,7 +276,7 @@ namespace Langulus::Anyness
    ///   @param d - type to search for                                        
    ///   @return the construct list, or nullptr if no such list exists        
    LANGULUS(INLINED)
-   TMany<Inner::DeConstruct>* Neat::GetConstructs(DMeta d) {
+   auto Neat::GetConstructs(DMeta d) -> ConstructList* {
       auto found = mConstructs.Find(d ? d->mOrigin : nullptr);
       return found ? &mConstructs.GetValue(found) : nullptr;
    }
@@ -295,7 +285,7 @@ namespace Langulus::Anyness
    ///   @param d - type to search for                                        
    ///   @return the construct list, or nullptr if no such list exists        
    LANGULUS(INLINED)
-   const TMany<Inner::DeConstruct>* Neat::GetConstructs(DMeta d) const {
+   auto Neat::GetConstructs(DMeta d) const -> const ConstructList* {
       return const_cast<Neat*>(this)->GetConstructs(d);
    }
 
@@ -344,7 +334,6 @@ namespace Langulus::Anyness
       return primitive;
    }
 
-
    /// Set a default trait, if such wasn't already set                        
    //TODO isn't this like simply merge?? also make merge test only by trait id when merging traits!
    ///   @tparam T - trait to set                                             
@@ -385,9 +374,7 @@ namespace Langulus::Anyness
       auto found = GetTraits<T>();
       if (found) {
          return ExtractTraitInner(
-            *found,
-            ::std::make_integer_sequence<Offset, sizeof...(values)> {},
-            values...
+            *found, Sequence<sizeof...(values)> {}, values...
          );
       }
       return false;
@@ -396,16 +383,14 @@ namespace Langulus::Anyness
    ///                                                                        
    template<Offset...IDX>
    bool Neat::ExtractTraitInner(
-      const TMany<Many>& found,
-      ::std::integer_sequence<Offset, IDX...>, 
-      CT::Data auto&...values
+      const TraitList& found, ExpandedSequence<IDX...>, CT::Data auto&...values
    ) const {
       return (ExtractTraitInnerInner<IDX>(found, values) or ...);
    }
    
    ///                                                                        
    template<Offset IDX>
-   bool Neat::ExtractTraitInnerInner(const TMany<Many>& found, CT::Data auto& value) const {
+   bool Neat::ExtractTraitInnerInner(const TraitList& found, CT::Data auto& value) const {
       if (IDX >= found.GetCount())
          return false;
 
@@ -763,23 +748,14 @@ namespace Langulus::Anyness
 
       if constexpr (CT::Construct<T>) {
          const auto meta = messy->GetType()
-            ? messy->GetType()->mOrigin : nullptr;
+            ? messy->GetType()->mOrigin
+            : nullptr;
          const auto found = mConstructs.BranchOut().FindIt(meta);
 
-         if (found) {
-            found.GetValue() << Inner::DeConstruct {
-               messy->GetHash(),
-               messy->GetCharge(),
-               S::Nest(messy->GetDescriptor())
-            };
-         }
-         else {
-            mConstructs.Insert(meta, Inner::DeConstruct {
-               messy->GetHash(),
-               messy->GetCharge(),
-               S::Nest(messy->GetDescriptor())
-            });
-         }
+         if (found)
+            found.GetValue() << messy;
+         else
+            mConstructs.Insert(meta, messy);
       }
       else LANGULUS_ERROR("Can't insert construct");
    }
@@ -789,7 +765,7 @@ namespace Langulus::Anyness
    ///   @param index - the index we're interested in, if repeated            
    ///   @return selected data or nullptr if none was found                   
    ///   @attention if not nullptr, returned Many might contain a Neat        
-   inline const Many* Neat::Get(TMeta meta, Offset index) const {
+   inline auto Neat::Get(TMeta meta, Offset index) const -> const Trait* {
       const auto found = mTraits.FindIt(meta);
       if (found and found.GetValue().GetCount() > index)
          return &(found.GetValue()[index]);
@@ -801,7 +777,7 @@ namespace Langulus::Anyness
    ///   @return selected data or nullptr if none was found                   
    ///   @attention if not nullptr, returned Many might contain a Neat        
    template<CT::Trait T> LANGULUS(INLINED)
-   const Many* Neat::Get(Offset index) const {
+   auto Neat::Get(Offset index) const -> const Trait* {
       return Get(MetaTraitOf<T>(), index);
    }
 
@@ -864,10 +840,6 @@ namespace Langulus::Anyness
    /// Iterate through all relevant bucketed items                            
    /// Depending on F's arguments, different portions of the container will   
    /// be iterated. Use a generic Block/Many type to iterate everything.      
-   ///   @attention since Trait and Construct are disassembled when inserted  
-   ///      in this container, temporary instances will be created on the     
-   ///      stack when iterated. If MUTABLE is true, any changes to these     
-   ///      temporary instances will be used to overwite the real contents.   
    ///   @tparam MUTABLE - whether changes inside container are allowed       
    ///   @tparam F - the function signature (deducible)                       
    ///   @param call - the function to execute for each element               
@@ -911,10 +883,6 @@ namespace Langulus::Anyness
    /// You can provide a static Trait iterator, to filter based on trait type 
    ///   @attention if F's argument is a generic Block/Many type, the trait   
    ///      will be wrapped in it                                             
-   ///   @attention since Trait is disassembled upon insertion in this        
-   ///      container, temporary instances will be created on the stack when  
-   ///      iterated. If iterator is mutable, any changes to these temporary  
-   ///      instances will be used to overwite the real contents.             
    ///   @tparam MUTABLE - whether changes inside container are allowed       
    ///   @tparam F - the function signature (deducible)                       
    ///   @param call - the function to execute for each trait                 
@@ -939,28 +907,13 @@ namespace Langulus::Anyness
 
          // Iterate all relevant traits                                 
          for (auto& data : found.GetValue()) {
-            // Create a temporary trait                                 
-            Decay<A> temporaryTrait {data};
-
             if constexpr (CT::Bool<R>) {
                // If F returns bool, you can decide when to break the   
                // loop by simply returning Flow::Break (or just false)  
-               if (not call(temporaryTrait)) {
-                  if constexpr (CT::Mutable<A> and not CT::Slab<A>) {
-                     // Make sure change is commited before proceeding  
-                     data = static_cast<const Many&>(temporaryTrait);
-                  }
+               if (not call(data))
                   return index + 1;
-               }
             }
-            else {
-               call(temporaryTrait);
-
-               if constexpr (CT::Mutable<A> and not CT::Slab<A>) {
-                  // Make sure change is commited before proceeding     
-                  data = static_cast<const Many&>(temporaryTrait);
-               }
-            }
+            else call(data);
 
             ++index;
          }
@@ -969,35 +922,13 @@ namespace Langulus::Anyness
          // Iterate all traits                                          
          for (auto group : mTraits) {
             for (auto& data : group.mValue) {
-               // Create a temporary trait                              
-               Conditional<CT::Deep<A>, Many, Trait> temporaryTrait
-                  = Trait::From(group.mKey, data);
-
                if constexpr (CT::Bool<R>) {
                   // If F returns bool, you can decide when to break    
                   // the loop by simply returning Flow::Break           
-                  if (not call(temporaryTrait)) {
-                     if constexpr (CT::Mutable<A> and not CT::Slab<A>) {
-                        // Make sure change is committed                
-                        if constexpr (CT::Deep<A>)
-                           data = static_cast<const Many&>(temporaryTrait.template Get<Trait>());
-                        else
-                           data = static_cast<const Many&>(temporaryTrait);
-                     }
+                  if (not call(data))
                      return index + 1;
-                  }
                }
-               else {
-                  call(temporaryTrait);
-
-                  if constexpr (CT::Mutable<A> and not CT::Slab<A>) {
-                     // Make sure change is commited before proceeding  
-                     if constexpr (CT::Deep<A>)
-                        data = static_cast<const Many&>(temporaryTrait.template Get<Trait>());
-                     else
-                        data = static_cast<const Many&>(temporaryTrait);
-                  }
-               }
+               else call(data);
 
                ++index;
             }
@@ -1017,10 +948,6 @@ namespace Langulus::Anyness
    /// Iterate all constructs                                                 
    ///   @attention if F's argument is a generic Block/Many type, construct   
    ///      will be wrapped in it                                             
-   ///   @attention since Construct is disassembled upon insertion in this    
-   ///      container, temporary instances will be created on the stack when  
-   ///      iterated. If iterator is mutable, any changes to these temporary  
-   ///      instances will be used to overwite the real contents.             
    ///   @tparam F - the function signature (deducible)                       
    ///   @tparam MUTABLE - whether changes inside container are allowed       
    ///   @param call - the function to execute for each construct             
@@ -1036,57 +963,16 @@ namespace Langulus::Anyness
          "Non constant iterator for constant Neat block");
 
       // Iterate all constructs                                         
-      Count index {};
+      Count index = 0;
       for (auto group : mConstructs) {
          for (auto& data : group.mValue) {
-            // Create a temporary construct                             
-            Conditional<CT::Deep<A>, Many, Construct> temporaryConstruct
-               = Construct {group.mKey, data.mData, data.mCharge};
-
             if constexpr (CT::Bool<R>) {
                // If F returns bool, you can decide when to break the   
                // loop by simply returning Flow::Break (or just false)  
-               if (not call(temporaryConstruct)) {
-                  if constexpr (CT::Mutable<A> and not CT::Slab<A>) {
-                     // Make sure change is commited before proceeding  
-                     if constexpr (CT::Deep<A>) {
-                        data.mHash = temporaryConstruct.template
-                           Get<Construct>().GetHash();
-                        data.mData = temporaryConstruct.template
-                           Get<Construct>().GetDescriptor();
-                        data.mCharge = temporaryConstruct.template
-                           Get<Construct>().GetCharge();
-                     }
-                     else {
-                        data.mHash = temporaryConstruct.GetHash();
-                        data.mData = temporaryConstruct.GetDescriptor();
-                        data.mCharge = temporaryConstruct.GetCharge();
-                     }
-                  }
-
+               if (not call(data))
                   return index + 1;
-               }
             }
-            else {
-               call(temporaryConstruct);
-
-               if constexpr (CT::Mutable<A> and not CT::Slab<A>) {
-                  // Make sure change is commited before proceeding     
-                  if constexpr (CT::Deep<A>) {
-                     data.mHash = temporaryConstruct.template
-                        Get<Construct>().GetHash();
-                     data.mData = temporaryConstruct.template
-                        Get<Construct>().GetDescriptor();
-                     data.mCharge = temporaryConstruct.template
-                        Get<Construct>().GetCharge();
-                  }
-                  else {
-                     data.mHash = temporaryConstruct.GetHash();
-                     data.mData = temporaryConstruct.GetDescriptor();
-                     data.mCharge = temporaryConstruct.GetCharge();
-                  }
-               }
-            }
+            else call(data);
 
             ++index;
          }
@@ -1333,7 +1219,7 @@ namespace Langulus::Anyness
                to += ", ";
 
             if (trait.IsValid())
-               Trait::From(pair.mKey, trait).Serialize(to);
+               trait.Serialize(to);
             else
                to += static_cast<OUT>(pair.mKey);
             separator = true;
@@ -1345,41 +1231,16 @@ namespace Langulus::Anyness
             if (separator)
                to += ", ";
 
-            if (construct.mData.IsValid() or not construct.mCharge.IsDefault()) {
-               Construct(pair.mKey, construct.mData, construct.mCharge)
-                  .Serialize(to);
-            }
-            else to += static_cast<OUT>(pair.mKey);
+            if (construct.GetDescriptor().IsValid()
+            or not construct.GetCharge().IsDefault())
+               construct.Serialize(to);
+            else
+               to += static_cast<OUT>(pair.mKey);
             separator = true;
          }
       }
 
       return to.GetCount() - initial;
-   }
-
-
-   template<template<class> class S>
-   Inner::DeConstruct::DeConstruct(Hash hash, const Charge& charge, S<Neat>&& data)
-      : mHash   {hash}
-      , mCharge {charge}
-      , mData   {data.Forward()} {}
-
-   template<template<class> class S> LANGULUS(INLINED)
-   Inner::DeConstruct::DeConstruct(S<DeConstruct>&& other)
-      : mHash   {other->mHash}
-      , mCharge {other->mCharge}
-      , mData   {S<Many> {other->mData}} {}
-
-   LANGULUS(INLINED)
-   Hash Inner::DeConstruct::GetHash() const noexcept {
-      return mHash;
-   }
-
-   LANGULUS(INLINED)
-   bool Inner::DeConstruct::operator == (const DeConstruct& rhs) const {
-      return mHash == rhs.mHash
-         and mCharge == rhs.mCharge
-         and mData == rhs.mData;
    }
 
 } // namespace Langulus::Anyness
