@@ -3,8 +3,7 @@
 /// Copyright (c) 2012 Dimo Markov <team@langulus.com>                        
 /// Part of the Langulus framework, see https://langulus.com                  
 ///                                                                           
-/// Distributed under GNU General Public License v3+                          
-/// See LICENSE file, or https://www.gnu.org/licenses                         
+/// SPDX-License-Identifier: GPL-3.0-or-later                                 
 ///                                                                           
 #pragma once
 #include "../DataState.hpp"
@@ -497,6 +496,23 @@ namespace Langulus::Anyness
       
       NOD() auto GetEntries() const IF_UNSAFE(noexcept) -> Allocation const* const*;
       NOD() auto GetEntries()       IF_UNSAFE(noexcept) -> Allocation const**;
+
+      ///                                                                     
+      ///   Descriptor interface                                              
+      ///                                                                     
+      template<class...>
+      bool ExtractTrait(CT::Data auto&...) const;
+      auto ExtractData(CT::Data auto&) const -> Count;
+
+      // Intentionally undefined, because it requires Langulus::Flow    
+      // and relies on Verbs::Interpret                                 
+      // If you receive missing externals, include the following:       
+      //    #include <Flow/Verbs/Interpret.hpp>                         
+      auto ExtractDataAs(CT::Data auto&) const -> Count;
+
+      template<CT::Data>
+      auto FindType()      const -> DMeta;
+      auto FindType(DMeta) const -> DMeta;
 
       ///                                                                     
       ///   Indexing                                                          
