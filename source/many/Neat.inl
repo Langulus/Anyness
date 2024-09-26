@@ -969,8 +969,19 @@ namespace Langulus::Anyness
             if constexpr (CT::Bool<R>) {
                // If F returns bool, you can decide when to break the   
                // loop by simply returning Flow::Break (or just false)  
-               if (not call(data))
-                  return index + 1;
+               if constexpr (CT::Deep<A>) {
+                  auto wrapper = MakeBlock<Decay<A>>(data);
+                  if (not call(wrapper))
+                     return index + 1;
+               }
+               else {
+                  if (not call(data))
+                     return index + 1;
+               }
+            }
+            else if constexpr (CT::Deep<A>) {
+               auto wrapper = MakeBlock<Decay<A>>(data);
+               call(wrapper);
             }
             else call(data);
 
