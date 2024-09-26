@@ -3,8 +3,7 @@
 /// Copyright (c) 2012 Dimo Markov <team@langulus.com>                        
 /// Part of the Langulus framework, see https://langulus.com                  
 ///                                                                           
-/// Distributed under GNU General Public License v3+                          
-/// See LICENSE file, or https://www.gnu.org/licenses                         
+/// SPDX-License-Identifier: GPL-3.0-or-later                                 
 ///                                                                           
 #pragma once
 #include "Many.hpp"
@@ -20,6 +19,7 @@
 #include "../blocks/Block/Block-Insert.inl"
 #include "../blocks/Block/Block-Convert.inl"
 #include "../blocks/Block/Block-Compare.inl"
+#include "../blocks/Block/Block-Describe.inl"
 
 
 namespace Langulus::Anyness

@@ -3,8 +3,7 @@
 /// Copyright (c) 2012 Dimo Markov <team@langulus.com>                        
 /// Part of the Langulus framework, see https://langulus.com                  
 ///                                                                           
-/// Distributed under GNU General Public License v3+                          
-/// See LICENSE file, or https://www.gnu.org/licenses                         
+/// SPDX-License-Identifier: GPL-3.0-or-later                                 
 ///                                                                           
 #pragma once
 #include "Neat.hpp"
@@ -374,7 +373,7 @@ namespace Langulus::Anyness
       auto found = GetTraits<T>();
       if (found) {
          return ExtractTraitInner(
-            *found, Sequence<sizeof...(values)> {}, values...
+            *found, Sequence<sizeof...(values)>::Expand, values...
          );
       }
       return false;
@@ -910,8 +909,19 @@ namespace Langulus::Anyness
             if constexpr (CT::Bool<R>) {
                // If F returns bool, you can decide when to break the   
                // loop by simply returning Flow::Break (or just false)  
-               if (not call(data))
-                  return index + 1;
+               if constexpr (CT::Deep<A>) {
+                  auto wrapper = MakeBlock<Decay<A>>(data);
+                  if (not call(wrapper))
+                     return index + 1;
+               }
+               else {
+                  if (not call(data))
+                     return index + 1;
+               }
+            }
+            else if constexpr (CT::Deep<A>) {
+               auto wrapper = MakeBlock<Decay<A>>(data);
+               call(wrapper);
             }
             else call(data);
 
@@ -925,8 +935,19 @@ namespace Langulus::Anyness
                if constexpr (CT::Bool<R>) {
                   // If F returns bool, you can decide when to break    
                   // the loop by simply returning Flow::Break           
-                  if (not call(data))
-                     return index + 1;
+                  if constexpr (CT::Deep<A>) {
+                     auto wrapper = MakeBlock<Decay<A>>(data);
+                     if (not call(wrapper))
+                        return index + 1;
+                  }
+                  else {
+                     if (not call(data))
+                        return index + 1;
+                  }
+               }
+               else if constexpr (CT::Deep<A>) {
+                  auto wrapper = MakeBlock<Decay<A>>(data);
+                  call(wrapper);
                }
                else call(data);
 

@@ -3,8 +3,7 @@
 /// Copyright (c) 2012 Dimo Markov <team@langulus.com>                        
 /// Part of the Langulus framework, see https://langulus.com                  
 ///                                                                           
-/// Distributed under GNU General Public License v3+                          
-/// See LICENSE file, or https://www.gnu.org/licenses                         
+/// SPDX-License-Identifier: GPL-3.0-or-later                                 
 ///                                                                           
 #pragma once
 #include "../Block.hpp"
@@ -838,7 +837,7 @@ namespace Langulus::Anyness
 
                auto rhs = allocation->GetBlockStart();
                while (lhsPtr != lhsEnd) {
-                  mType->mOrigin->mDescriptorConstructor(rhs, Describe(descriptor));
+                  mType->mOrigin->mDescriptorConstructor(rhs, descriptor);
                   *(lhsPtr++) = rhs;
                   const_cast<const Allocation*&>(*(lhsEnt++)) = allocation;
                   rhs += mType->mOrigin->mSize;
@@ -854,7 +853,7 @@ namespace Langulus::Anyness
             auto lhs = mRaw;
             const auto lhsEnd = lhs + mCount * mType->mSize;
             while (lhs != lhsEnd) {
-               mType->mDescriptorConstructor(lhs, Describe(descriptor));
+               mType->mDescriptorConstructor(lhs, descriptor);
                lhs += mType->mSize;
             }
          }
