@@ -12,6 +12,7 @@
 #include "../Iterator.hpp"
 #include "../one/Handle.hpp"
 #include "../one/Own.hpp"
+#include <Core/Sequences.hpp>
 
 
 namespace Langulus
@@ -500,6 +501,11 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Descriptor interface                                              
       ///                                                                     
+      template<class>
+      void SetDefaultTrait(CT::Data auto&&);
+      template<class>
+      void OverwriteTrait(CT::Data auto&&);
+
       template<class...>
       bool ExtractTrait(CT::Data auto&...) const;
       auto ExtractData(CT::Data auto&) const -> Count;
@@ -514,6 +520,15 @@ namespace Langulus::Anyness
       auto FindType()      const -> DMeta;
       auto FindType(DMeta) const -> DMeta;
 
+   protected:
+      template<class>
+      bool ExtractTraitInner(CT::Data auto&...) const;
+      template<class, Offset...IDX>
+      bool ExtractTraitInner(ExpandedSequence<IDX...>, CT::Data auto&...) const;
+      template<class, Offset>
+      bool ExtractTraitInnerInner(CT::Data auto&) const;
+
+   public:
       ///                                                                     
       ///   Indexing                                                          
       ///                                                                     
