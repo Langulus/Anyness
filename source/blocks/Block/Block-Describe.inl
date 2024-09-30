@@ -48,6 +48,7 @@ namespace Langulus::Anyness
 
       ForEachDeep([&](const Decay<D>& data) {
          if constexpr (CT::Array<D>) {
+            //TODO can be optimized-out for POD
             value[progress] = data;
             ++progress;
             return (progress >= ExtentOf<D>) ? Loop::Break : Loop::Continue;
@@ -62,11 +63,40 @@ namespace Langulus::Anyness
       return progress;
    }
 
-   ///                                                                        
+   /// Extract any data that is convertible to D                              
+   ///   @param value - [out] where to save the value, if found               
+   ///   @return the number of extracted values (always 1 if not an array)    
    template<class TYPE>
-   auto Block<TYPE>::ExtractDataAs(CT::Data auto&) const -> Count {
-      TODO();
-      return 0;
+   auto Block<TYPE>::ExtractDataAs(CT::Data auto& value) const -> Count {
+      using D = Deref<decltype(value)>;
+      Count progress = 0;
+
+      ForEachDeep([&](const Many& group) {
+         if constexpr (CT::Array<D>) {
+            const auto toscan = ::std::min(ExtentOf<D> - progress, group.GetCount());
+            for (Offset i = 0; i < toscan; ++i) {
+               //TODO can be optimized-out for POD
+               try {
+                  value[progress] = group.template AsCast<Deext<D>>(i);
+                  ++progress;
+               }
+               catch (...) {}
+            }
+
+            return (progress >= ExtentOf<D>) ? Loop::Break : Loop::Continue;
+         }
+         else {
+            try {
+               value = group.template AsCast<D>();
+               ++progress;
+               return Loop::Break;
+            }
+            catch (...) {}
+            return Loop::Continue;
+         }
+      });
+
+      return progress;
    }
 
    ///                                                                        
