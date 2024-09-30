@@ -263,7 +263,62 @@ namespace Langulus::Anyness
             );
          }
       }
-      else return Loop::NextLoop;
+      else {
+         if constexpr (CT::Trait<Decay<A>>) {
+            if (not CastsTo<Trait, true>())
+               return Loop::NextLoop;
+
+            // Container is type-erased and full of traits, iterator is 
+            // a static trait, so we iterate all traits, visiting only  
+            // those that match the trait type                          
+            if (mType->mIsSparse) {
+               // Iterate sparse container                              
+               using DA = Conditional<MUTABLE, Trait*&, const Trait* const&>;
+
+               return IterateInner<MUTABLE, REVERSE>(mCount,
+                  [&index, &f](DA element) noexcept(NOE) -> R {
+                     if constexpr (CT::Void<R>) {
+                        if (not element->template IsTrait<Decay<A>>())
+                           return;
+                     }
+                     else if (not element->template IsTrait<Decay<A>>())
+                        return Loop::Continue;
+
+                     ++index;
+                     if constexpr (CT::Dense<A>) {
+                        if constexpr (MUTABLE)
+                           return f(*reinterpret_cast<      Deref<A>*>(element));
+                        else
+                           return f(*reinterpret_cast<const Deref<A>*>(element));
+                     }
+                     else return  f( reinterpret_cast<A>(element));
+                  }
+               );
+            }
+            else {
+               // Iterate dense container                               
+               using DA = Conditional<MUTABLE, Trait&, const Trait&>;
+
+               return IterateInner<MUTABLE, REVERSE>(mCount,
+                  [&index, &f](DA element) noexcept(NOE) -> R {
+                     if constexpr (CT::Void<R>) {
+                        if (not element.template IsTrait<Decay<A>>())
+                           return;
+                     }
+                     else if (not element.template IsTrait<Decay<A>>())
+                        return Loop::Continue;
+
+                     ++index;
+                     if constexpr (CT::Dense<A>)
+                        return f(reinterpret_cast<Deref<A>&>( element));
+                     else
+                        return f(reinterpret_cast<Deref<A>*>(&element));
+                  }
+               );
+            }
+         }
+         else return Loop::NextLoop;
+      }
    }
    
    /// Iterate and execute call for each deep element                         
@@ -328,9 +383,20 @@ namespace Langulus::Anyness
 
             return ForEachInner<MUTABLE, REVERSE>(
                [&counter, &call](SubBlock group) {
-                  return DenseCast(group).template
-                     ForEachDeepInner<MUTABLE, REVERSE, SKIP>(
-                        ::std::move(call), counter);
+                  if constexpr (CT::Deep<Decay<A>>) {
+                     // Loop control is available only if iterator is   
+                     // deep, too...                                    
+                     return DenseCast(group).template
+                        ForEachDeepInner<MUTABLE, REVERSE, SKIP>(
+                           ::std::move(call), counter);
+                  }
+                  else {
+                     // ... otherwise we have to pass through all deep  
+                     // sub-blocks                                      
+                     DenseCast(group).template
+                        ForEachDeepInner<MUTABLE, REVERSE, SKIP>(
+                           ::std::move(call), counter);
+                  }
                },
                intermediateCounterSink
             );

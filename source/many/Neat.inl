@@ -96,7 +96,11 @@ namespace Langulus::Anyness
       if (mHash)
          return mHash;
 
-      mHash = HashOf(mTraits, mConstructs, mAnythingElse);
+      if (IsEmpty())
+         mHash = {};
+      else
+         mHash = HashOf(mTraits, mConstructs, mAnythingElse);
+
       return mHash;
    }
 
@@ -135,36 +139,15 @@ namespace Langulus::Anyness
    }
 
    /// Compare neat container                                                 
-   ///   @attention order matters only for data and traits of the same type   
-   ///   @attention Traits::Parent are never compared                         
    ///   @param rhs - the container to compare with                           
    ///   @return true if descriptors match                                    
    LANGULUS(INLINED)
    bool Neat::operator == (const Neat& rhs) const {
-      if (GetHash() != rhs.GetHash()
-      or mTraits.GetCount() != rhs.mTraits.GetCount())
+      if (GetHash() != rhs.GetHash())
          return false;
 
-      for (auto lp : mTraits) {
-         auto rp = rhs.mTraits.FindIt(lp.mKey);
-         if (not rp) {
-            // Early failure on key mismatch                            
-            return false;
-         }
-
-         // Traits::Parent never participate in the comparison          
-         //TODO change this to skip missing instead
-         if (lp.mKey->Is<Traits::Parent>())
-            continue;
-
-         if (lp.mValue != rp.GetValue())
-            // Early failure on value mismatch                          
-            //TODO if missing, compare only by value container type?
-            return false;
-      }
-
-      // If reached - traits match, so check the rest                   
-      return mConstructs == rhs.mConstructs
+      return mTraits == rhs.mTraits
+         and mConstructs == rhs.mConstructs
          and mAnythingElse == rhs.mAnythingElse;
    }
 
@@ -529,6 +512,7 @@ namespace Langulus::Anyness
       else if constexpr (CT::Neat<T>) {
          // Insert Neat, by inserting each element from it              
          Count inserted = 0;
+
          DeintCast(item).ForEach([&](const Many& subitem) {
             inserted += UnfoldInsert(
                S::Nest(const_cast<Many&>(subitem)));
@@ -670,13 +654,13 @@ namespace Langulus::Anyness
          // A group of similar traits was found                         
          auto& group = found->mValue;
          if (group.GetCount() > index)
-            group[index] = Forward<Many>(trait);
+            group[index] = Forward<Trait>(trait);
          else
-            group << Forward<Many>(trait);
+            group << Forward<Trait>(trait);
       }
       else {
          // If reached, a new trait group to be inserted                
-         mTraits.Insert(meta, Forward<Many>(trait));
+         mTraits.Insert(meta, Forward<Trait>(trait));
       }
 
       mHash = {};
@@ -692,28 +676,22 @@ namespace Langulus::Anyness
       using T = TypeOf<S>;
 
       if constexpr (CT::TraitBased<T>) {
-         // Insert a trait container                                    
-         Many wrapper;
-         if (messy->IsDeep())
-            wrapper = Neat {messy.template Forward<Many>()};
-         else
-            wrapper = messy.template Forward<Many>();
-
+         // Insert a trait with contents                                
          const auto meta = messy->GetTrait();
          auto found = mTraits.BranchOut().FindIt(meta);
          if (found)
-            found.GetValue() << Abandon(wrapper);
+            found.GetValue() << messy.template Forward<Trait>();
          else
-            mTraits.Insert(meta, Abandon(wrapper));
+            mTraits.Insert(meta, messy.template Forward<Trait>());
       }
       else if constexpr (CT::Exact<T, TMeta>) {
          // Insert trait without contents                               
          auto trait = DeintCast(messy);
          auto found = mTraits.BranchOut().FindIt(trait);
          if (found)
-            found.GetValue() << Many {};
+            found.GetValue() << Trait::FromMeta(trait);
          else
-            mTraits.Insert(trait, Many {});
+            mTraits.Insert(trait, Trait::FromMeta(trait));
       }
       else LANGULUS_ERROR("Can't insert trait");
    }
@@ -752,9 +730,9 @@ namespace Langulus::Anyness
          const auto found = mConstructs.BranchOut().FindIt(meta);
 
          if (found)
-            found.GetValue() << messy;
+            found.GetValue() << messy.Forward();
          else
-            mConstructs.Insert(meta, messy);
+            mConstructs.Insert(meta, messy.Forward());
       }
       else LANGULUS_ERROR("Can't insert construct");
    }
@@ -783,10 +761,6 @@ namespace Langulus::Anyness
    /// Iterate through all relevant bucketed items                            
    /// Depending on F's arguments, different portions of the container will   
    /// be iterated. Use a generic Block/Many type to iterate everything.      
-   ///   @attention since Trait and Construct are disassembled when inserted  
-   ///      in this container, temporary instances will be created on the     
-   ///      stack when iterated. If MUTABLE is true, any changes to these     
-   ///      temporary instances will be used to overwite the real contents.   
    ///   @tparam MUTABLE - whether changes inside container are allowed       
    ///   @param call - the function(s) to execute for each element            
    ///   @return the number of executions of 'call'                           
@@ -812,10 +786,6 @@ namespace Langulus::Anyness
    }
    
    /// Iterate through all relevant bucketed items, inclusively               
-   ///   @attention since Trait and Construct are disassembled when inserted  
-   ///      in this container, temporary instances will be created on the     
-   ///      stack when iterated. If MUTABLE is true, any changes to these     
-   ///      temporary instances will be used to overwite the real contents.   
    ///   @tparam MUTABLE - whether changes inside container are allowed       
    ///   @param call - the function(s) to execute for each element            
    ///   @return the number of executions of all calls                        
@@ -899,7 +869,8 @@ namespace Langulus::Anyness
       Count index = 0;
       if constexpr (CT::Trait<A>) {
          // Static trait provided, extract filter                       
-         const auto filter = MetaTraitOf<Decay<A>>();
+         using TraitType = Decay<A>;
+         const auto filter = MetaTraitOf<TraitType>();
          const auto found = mTraits.FindIt(filter);
          if (not found)
             return index;
@@ -909,27 +880,16 @@ namespace Langulus::Anyness
             if constexpr (CT::Bool<R>) {
                // If F returns bool, you can decide when to break the   
                // loop by simply returning Flow::Break (or just false)  
-               if constexpr (CT::Deep<A>) {
-                  auto wrapper = MakeBlock<Decay<A>>(data);
-                  if (not call(wrapper))
-                     return index + 1;
-               }
-               else {
-                  if (not call(data))
-                     return index + 1;
-               }
+               if (not call(reinterpret_cast<TraitType&>(data)))
+                  return index + 1;
             }
-            else if constexpr (CT::Deep<A>) {
-               auto wrapper = MakeBlock<Decay<A>>(data);
-               call(wrapper);
-            }
-            else call(data);
+            else call(reinterpret_cast<TraitType&>(data));
 
             ++index;
          }
       }
       else {
-         // Iterate all traits                                          
+         // Iterate all traits, either using type-erased trait, or deep 
          for (auto group : mTraits) {
             for (auto& data : group.mValue) {
                if constexpr (CT::Bool<R>) {

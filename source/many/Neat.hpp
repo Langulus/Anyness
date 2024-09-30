@@ -39,17 +39,17 @@ namespace Langulus::Anyness
 
       // Traits are ordered first by their trait type, then by their    
       // order of appearance. Duplicate trait types are allowed         
-      // Trait contents are also normalized all the way through         
+      // Trait contents may or may not also be normalized               
       TUnorderedMap<TMeta, TraitList> mTraits;
 
       // Subconstructs are sorted first by the construct type, and then 
-      // by their order of appearance. Their contents are also          
-      // nest-normalized all the way through                            
+      // by their order of appearance. Their contents may or may not    
+      // also be normalized                                             
       TUnorderedMap<DMeta, ConstructList> mConstructs;
 
       // Any other block type that doesn't fit in the above is sorted   
       // first by the block type, then by the order of appearance       
-      // These sub-blocks won't contain Neat elements                   
+      // These sub-blocks' contents may or may not be normalized        
       TUnorderedMap<DMeta, TailList> mAnythingElse;
 
    public:
@@ -101,7 +101,7 @@ namespace Langulus::Anyness
       auto GetTraits() -> TraitList*;
 
       template<CT::Trait>
-      auto GetTraits() const      -> const TraitList*;
+      auto GetTraits()      const -> const TraitList*;
       auto GetTraits(TMeta)       ->       TraitList*;
       auto GetTraits(TMeta) const -> const TraitList*;
 
@@ -109,7 +109,7 @@ namespace Langulus::Anyness
       auto GetData() -> TailList*;
 
       template<CT::Data>
-      auto GetData() const      -> const TailList*;
+      auto GetData()      const -> const TailList*;
       auto GetData(DMeta)       ->       TailList*;
       auto GetData(DMeta) const -> const TailList*;
       
@@ -121,7 +121,7 @@ namespace Langulus::Anyness
       auto FindType(DMeta) const -> DMeta;
 
       template<CT::Data>
-      auto GetConstructs() const      -> const ConstructList*;
+      auto GetConstructs()      const -> const ConstructList*;
       auto GetConstructs(DMeta)       ->       ConstructList*;
       auto GetConstructs(DMeta) const -> const ConstructList*;
 
@@ -148,6 +148,10 @@ namespace Langulus::Anyness
    protected:
       template<CT::Trait>
       bool ExtractTraitInner(CT::Data auto&...) const;
+      template<Offset...IDX>
+      bool ExtractTraitInner(const TraitList&, ExpandedSequence<IDX...>, CT::Data auto&...) const;
+      template<Offset>
+      bool ExtractTraitInnerInner(const TraitList&, CT::Data auto&) const;
 
    public:
       ///                                                                     
@@ -197,11 +201,6 @@ namespace Langulus::Anyness
       void AddTrait(CT::Intent auto&&);
       void AddConstruct(CT::Intent auto&&);
       void AddVerb(CT::Intent auto&&);
-
-      template<Offset...IDX>
-      bool ExtractTraitInner(const TraitList&, ExpandedSequence<IDX...>, CT::Data auto&...) const;
-      template<Offset>
-      bool ExtractTraitInnerInner(const TraitList&, CT::Data auto&) const;
 
    public:
       ///                                                                     

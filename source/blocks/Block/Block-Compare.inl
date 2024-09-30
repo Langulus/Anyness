@@ -17,6 +17,7 @@
    #define VERBOSE_TAB(...) LANGULUS(NOOP)
 #endif
 
+
 namespace Langulus::Anyness
 {
    
