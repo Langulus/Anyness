@@ -58,12 +58,16 @@ namespace Langulus::Anyness
 
 #if LANGULUS_FEATURE(MANAGED_REFLECTION)
    /// Construct from a type token                                            
-   ///   @param type - the type of the content                                
+   ///   @param token - the type name of the content                          
    LANGULUS(INLINED)
    Construct::Construct(const Token& token)
       : mType        {RTTI::GetMetaData(token)->mOrigin} {}
 
    LANGULUS(INLINED)
+   /// Construct from a type token                                            
+   ///   @param token - the type name of the content                          
+   ///   @param args - the arguments for construction, with or without intent 
+   ///   @param charge - the charge for the construction                      
    Construct::Construct(const Token& token, auto&& args, const Charge& charge)
       : Construct {
          RTTI::GetMetaData(token),
@@ -253,6 +257,11 @@ namespace Langulus::Anyness
       return mDescriptor;
    }
 
+   LANGULUS(INLINED)
+   auto Construct::operator -> () const -> const Many* {
+      return &mDescriptor;
+   }
+
    /// Get the argument for the construct                                     
    ///   @attention this will force a rehash to guarantee that any changes    
    ///      made through the mutable Neat reference are accounted for on next 
@@ -264,6 +273,11 @@ namespace Langulus::Anyness
       // which is likely to change, and thus a rehash will be needed    
       mHash = {};
       return mDescriptor;
+   }
+
+   LANGULUS(INLINED)
+   auto Construct::operator -> () -> Many* {
+      return &mDescriptor;
    }
 
    /// Get construct's charge                                                 
@@ -332,7 +346,7 @@ namespace Langulus::Anyness
          mHash = {};
          return *this;
       }
-      else LANGULUS_ERROR("Can't push that into descriptor");
+      else LANGULUS_ERROR("Can't insert that into descriptor");
    }
 
    /// Merge anything to the descriptor                                       
@@ -350,6 +364,8 @@ namespace Langulus::Anyness
    }
 
    /// Serialize the construct to anything text-based                         
+   ///   @param to - [in/out] container to serialize into                     
+   ///   @return the number of elements that were written to 'to'             
    Count Construct::Serialize(CT::Serial auto& to) const {
       const auto initial = to.GetCount();
       using OUT = Deref<decltype(to)>;

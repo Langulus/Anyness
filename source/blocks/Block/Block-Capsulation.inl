@@ -660,6 +660,13 @@ namespace Langulus::Anyness
    constexpr void Block<TYPE>::MakeNow() noexcept {
       mState -= DataState::MissingFuture;
    }
+   
+   /// Mark the block as missing. It will no longer participate in hashing    
+   /// and comparisons                                                        
+   template<class TYPE> LANGULUS(ALWAYS_INLINED)
+   constexpr void Block<TYPE>::MakeMissing() noexcept {
+      mState += DataState::Missing;
+   }
 
    /// Get entry array when block is sparse (const)                           
    ///   @attention entries exist only for sparse containers                  

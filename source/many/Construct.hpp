@@ -104,6 +104,9 @@ namespace Langulus::Anyness
       void Reset();
       void ResetCharge() noexcept;
 
+      auto operator -> () const -> const Many*;
+      auto operator -> ()       ->       Many*;
+
       Construct& operator <<  (auto&&);
       Construct& operator <<= (auto&&);
 

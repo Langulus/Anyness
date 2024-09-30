@@ -134,16 +134,11 @@ namespace Langulus::Anyness
       template<CT::Trait...>
       bool ExtractTrait(CT::Data auto&...) const;
       auto ExtractData(CT::Data auto&) const -> Count;
-
-      // Intentionally undefined, because it requires Langulus::Flow    
-      // and relies on Verbs::Interpret                                 
-      // If you receive missing externals, include the following:       
-      //    #include <Flow/Verbs/Interpret.hpp>                         
       auto ExtractDataAs(CT::Data auto&) const -> Count;
 
       template<CT::Trait>
-      NOD() auto Get(Offset = 0)        const -> const Trait*;
-      NOD() auto Get(TMeta, Offset = 0) const -> const Trait*;
+      NOD() auto GetTrait(Offset = 0)        const -> const Trait*;
+      NOD() auto GetTrait(TMeta, Offset = 0) const -> const Trait*;
 
    protected:
       template<CT::Trait>

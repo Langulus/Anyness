@@ -426,6 +426,50 @@ namespace Langulus::Anyness
 
       return 0;
    }
+   
+   /// Extract any data that is convertible to D                              
+   ///   @param value - [out] where to save the value, if found               
+   ///   @return the number of extracted values (always 1 if not an array)    
+   inline Count Neat::ExtractDataAs(CT::Data auto& value) const {
+      using D = Deref<decltype(value)>;
+
+      if constexpr (CT::Array<D>) {
+         // Fill a bounded array                                        
+         Count scanned = 0;
+         for (auto pair : mAnythingElse) {
+            for (auto& group : pair.mValue) {
+               const auto toscan = ::std::min(ExtentOf<D> - scanned, group.GetCount());
+               for (Offset i = 0; i < toscan; ++i) {
+                  //TODO can be optimized-out for POD
+                  try {
+                     value[scanned] = group.template AsCast<Deext<D>>(i);
+                     ++scanned;
+                  }
+                  catch (...) {}
+               }
+
+               if (scanned >= ExtentOf<D>)
+                  return ExtentOf<D>;
+            }
+         }
+
+         return scanned;
+      }
+      else {
+         // Fill a single value                                         
+         for (auto pair : mAnythingElse) {
+            for (auto& group : pair.mValue) {
+               try {
+                  value = group.template AsCast<D>();
+                  return 1;
+               }
+               catch (...) {}
+            }
+         }
+      }
+
+      return 0;
+   }
 
    /// Push and sort anything, with or without intents                        
    ///   @attention hash will be recomputed on demand                         
@@ -742,7 +786,7 @@ namespace Langulus::Anyness
    ///   @param index - the index we're interested in, if repeated            
    ///   @return selected data or nullptr if none was found                   
    ///   @attention if not nullptr, returned Many might contain a Neat        
-   inline auto Neat::Get(TMeta meta, Offset index) const -> const Trait* {
+   inline auto Neat::GetTrait(TMeta meta, Offset index) const -> const Trait* {
       const auto found = mTraits.FindIt(meta);
       if (found and found.GetValue().GetCount() > index)
          return &(found.GetValue()[index]);
@@ -754,7 +798,7 @@ namespace Langulus::Anyness
    ///   @return selected data or nullptr if none was found                   
    ///   @attention if not nullptr, returned Many might contain a Neat        
    template<CT::Trait T> LANGULUS(INLINED)
-   auto Neat::Get(Offset index) const -> const Trait* {
+   auto Neat::GetTrait(Offset index) const -> const Trait* {
       return Get(MetaTraitOf<T>(), index);
    }
 
@@ -1223,7 +1267,7 @@ namespace Langulus::Anyness
             if (separator)
                to += ", ";
 
-            if (construct.GetDescriptor().IsValid()
+            if (construct->IsValid()
             or not construct.GetCharge().IsDefault())
                construct.Serialize(to);
             else

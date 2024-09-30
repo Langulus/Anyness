@@ -478,7 +478,6 @@ namespace Langulus::Anyness
       NOD() bool IsExecutable() const noexcept;
       NOD() bool IsExecutableDeep() const noexcept;
 
-      //constexpr void MakeStatic(bool enable = true) noexcept;
       constexpr void MakeConst(bool enable = true) noexcept;
       constexpr void MakeTypeConstrained(bool enable = true) noexcept;
       constexpr void MakeOr() noexcept;
@@ -486,6 +485,7 @@ namespace Langulus::Anyness
       constexpr void MakePast() noexcept;
       constexpr void MakeFuture() noexcept;
       constexpr void MakeNow() noexcept;
+      constexpr void MakeMissing() noexcept;
       constexpr void ResetState() noexcept;
 	  
       template<class T = TYPE>
