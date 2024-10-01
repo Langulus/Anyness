@@ -33,7 +33,6 @@ struct Thing final : Resolvable {
 
    LANGULUS(ABSTRACT) false;
    LANGULUS(PRODUCER) Thing;
-   LANGULUS(UNINSERTABLE) false;
    LANGULUS_BASES(Resolvable);
 
    Thing();
