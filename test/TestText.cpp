@@ -482,6 +482,26 @@ TEMPLATE_TEST_CASE("Text container interoperability", "[text]",
    REQUIRE(memoryState.Assert());
 }
 
+TEMPLATE_TEST_CASE("Text container conversion at runtime", "[text]",
+   (TypePair<Text, Path>)
+) {
+   static Allocator::State memoryState;
+
+   using LHS = typename TestType::LHS;
+   using RHS = typename TestType::RHS;
+
+   GIVEN("Two types of text containers") {
+      WHEN("Reflected") {
+         auto lhs = MetaDataOf<LHS>();
+         auto rhs = MetaDataOf<RHS>();
+
+         REQUIRE(lhs->GetConverter(rhs) != nullptr);
+      }
+   }
+
+   REQUIRE(memoryState.Assert());
+}
+
 TEMPLATE_TEST_CASE("Containing literals", "[text]",
    Many, Trait
 ) {

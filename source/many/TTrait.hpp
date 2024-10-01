@@ -18,7 +18,7 @@ namespace Langulus::Anyness
    ///                                                                        
    template<class TRAIT>
    struct TTrait : Trait {
-      LANGULUS(TRAIT) RTTI::LastCppNameOf<TRAIT>();
+      LANGULUS(TRAIT) RTTI::CppNameOf<TRAIT>();
       LANGULUS_BASES(Trait);
 
       using TraitType = TRAIT;

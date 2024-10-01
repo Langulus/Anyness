@@ -238,7 +238,7 @@ public:
    LANGULUS(NULLIFIABLE) true;
    LANGULUS(POOL_TACTIC) RTTI::PoolTactic::Size;
    LANGULUS(CONCRETE) ImplicitlyReflectedData;
-   LANGULUS(UNINSERTABLE) true;
+   LANGULUS(INSERT_AS) void;
    LANGULUS(ALLOCATION_PAGE) 250;
    LANGULUS(ABSTRACT) true;
    LANGULUS_BASES(ImplicitlyReflectedData);
