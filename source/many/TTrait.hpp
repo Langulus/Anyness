@@ -13,7 +13,7 @@ namespace Langulus::Anyness
 {
 
    ///                                                                        
-   ///   A statically named trait, used for integrating any custom trait by   
+   /// A statically named trait, used for integrating any custom trait by     
    /// using it as a CRTP                                                     
    ///                                                                        
    template<class TRAIT>

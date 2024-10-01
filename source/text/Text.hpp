@@ -212,10 +212,11 @@ namespace Langulus::Anyness
    ///                                                                        
    ///   This is a general purpose text container. It can contain serialized  
    /// data, but converting to it is a one way process. While serialization   
-   /// aims at being isomorphic, converting to Text aims at readability only. 
-   /// Consider it a general day to day speech container, that may or may not 
-   /// be formal. If you want to serialize your data in a readable format,    
-   /// convert to Flow::Code, or other isomorphic representations.            
+   /// aims at being isomorphic, converting to Text implies readability only. 
+   /// Consider it a general day-to-day speech container, that may or may not 
+   /// be formal. If you want to serialize your data in a both readable and   
+   /// formal format, convert to Flow::Code (or other isomorphic format)      
+   /// instead.                                                               
    ///                                                                        
    struct Text : Block<Letter> {
       using Base = Block<Letter>;
@@ -226,6 +227,7 @@ namespace Langulus::Anyness
       LANGULUS(DEEP) false;
       LANGULUS(POD) false;
       LANGULUS(FILES) "txt";
+      LANGULUS(ACT_AS) Text;
       LANGULUS_BASES(A::Text, Base);
       LANGULUS_CONVERTS_FROM(
          Index, Byte, bool, float, double,
@@ -430,8 +432,9 @@ namespace Langulus
       ///                                                                     
       struct Code : Anyness::Text {
          LANGULUS(NAME) "A::Code";
-         LANGULUS_BASES(Anyness::Text);
+         LANGULUS(ACT_AS) A::Code;
          LANGULUS(FILES) "";
+         LANGULUS_BASES(Anyness::Text);
 
          using Anyness::Text::Text;
 

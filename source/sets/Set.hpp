@@ -17,10 +17,11 @@ namespace Langulus::Anyness
    ///                                                                        
    template<bool ORDERED = false>
    struct Set : BlockSet {
-      using BlockType = Many;
-
       LANGULUS(POD) false;
+      LANGULUS(ACT_AS) Set;
       LANGULUS_BASES(BlockSet);
+
+      using BlockType = Many;
 
       static constexpr bool Ownership = true;
       static constexpr bool Ordered = ORDERED;

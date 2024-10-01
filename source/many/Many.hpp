@@ -26,6 +26,7 @@ namespace Langulus::Anyness
    class Many : public Block<> {
       using Base = Block<>;
       LANGULUS(POD) false;
+      LANGULUS(ACT_AS) Many;
       LANGULUS_BASES(Base);
 
    protected:

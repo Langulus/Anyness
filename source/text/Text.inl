@@ -185,7 +185,10 @@ namespace Langulus::Anyness
    ///   @param from - the op to stringify                                    
    LANGULUS(INLINED)
    Text::Text(Operator from)
-      : Text {Disown(SerializationRules::Operators[from].mToken)} {}
+      : Text {from < Operator::OpCounter
+         ? Disown(SerializationRules::Operators[from].mToken)
+         : Disown(Token {"<nonexistent operator token>"})
+      } {}
 
    /// Convert anything that has named values reflected                       
    ///   @param number - the number to stringify                              

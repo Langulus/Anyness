@@ -48,8 +48,8 @@ namespace Langulus::Anyness
       using PairRef = TPair<const K&, V&>;
       using PairConstRef = TPair<const K&, const V&>;
 
-      LANGULUS(POD) false;
-      LANGULUS(TYPED) Pair;
+      LANGULUS(POD)       false;
+      LANGULUS(TYPED)     Pair;
       LANGULUS_BASES(Map<ORDERED>);
 
    protected:

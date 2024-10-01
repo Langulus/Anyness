@@ -28,7 +28,7 @@ namespace Langulus::Anyness
    /// Return the lowercase file extension (the part after the last '.')      
    ///   @return a cloned text container with the extension                   
    LANGULUS(INLINED)
-   Text Path::GetExtension() const {
+   auto Path::GetExtension() const -> Text {
       const auto found = Find<true>('.');
       return found ? Text::Select(found.GetOffsetUnsafe() + 1) : Text {};
    }
@@ -36,7 +36,7 @@ namespace Langulus::Anyness
    /// Return the directory part of the path                                  
    ///   @return the directory part, including the last '/'                   
    LANGULUS(INLINED)
-   Path Path::GetDirectory() const {
+   auto Path::GetDirectory() const -> Path {
       const auto found = Find<true>(Separator);
       return found ? Text::Select(0, found.GetOffsetUnsafe() + 1) : Path {};
    }
@@ -44,7 +44,7 @@ namespace Langulus::Anyness
    /// Return the filename part of the path                                   
    ///   @return the filename part (after the last '/')                       
    LANGULUS(INLINED)
-   Path Path::GetFilename() const {
+   auto Path::GetFilename() const -> Path {
       const auto found = Find<true>(Separator);
       return found ? Text::Select(found + 1) : Path {*this};
    }
@@ -52,7 +52,7 @@ namespace Langulus::Anyness
    /// Append a subdirectory or filename                                      
    ///   @param rhs - the text to append                                      
    ///   @return the combined directory name                                  
-   inline Path Path::operator / (const Text& rhs) const {
+   inline auto Path::operator / (const Text& rhs) const -> Path {
       if (IsEmpty())
          return rhs;
 
@@ -76,7 +76,7 @@ namespace Langulus::Anyness
    /// Append a subdirectory or filename                                      
    ///   @param rhs - the text to append                                      
    ///   @return the combined directory name                                  
-   inline Path& Path::operator /= (const Text& rhs) {
+   inline auto Path::operator /= (const Text& rhs) -> Path& {
       if (IsEmpty())
          return operator = (rhs);
 
@@ -94,6 +94,7 @@ namespace Langulus::Anyness
             *this += rhs;
          }
       }
+
       return *this;
    }
 

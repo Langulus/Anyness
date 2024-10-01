@@ -34,7 +34,7 @@ namespace Langulus::Anyness
    template<DenseTypedBlock T>
    class Edit {
       LANGULUS(TYPED) TypeOf<T>;
-      LANGULUS(UNINSERTABLE) true;
+      LANGULUS(ACT_AS) void;
 
       // What are we editing?                                           
       T& mSource;

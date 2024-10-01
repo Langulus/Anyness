@@ -78,8 +78,9 @@ namespace Langulus::Anyness
       static constexpr bool Ownership = true;
 
       LANGULUS(DEEP) false;
-      LANGULUS_BASES(Base);
+      LANGULUS(ACT_AS) Bytes;
       LANGULUS(FILES) "lgls";
+      LANGULUS_BASES(Base);
 
       /// The presence of this structure makes Bytes a serializer             
       struct SerializationRules {

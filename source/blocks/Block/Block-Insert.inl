@@ -150,7 +150,6 @@ namespace Langulus::Anyness
    void Block<TYPE>::InsertInner(CT::Index auto index, auto&& item) {
       using S = IntentOf<decltype(item)>;
       using T = Conditional<TypeErased, TypeOf<S>, TYPE>;
-      static_assert(CT::Insertable<T>, "T is not insertable");
 
       if constexpr (CT::Similar<S, Describe>) {
          // We're using descriptor constructors                         

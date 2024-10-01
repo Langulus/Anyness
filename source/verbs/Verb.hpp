@@ -19,10 +19,10 @@ namespace Langulus::A
    /// Abstract verb, dictating canonical verb size, used in various concepts 
    ///                                                                        
    struct Verb : Anyness::Many, Anyness::Charge {
-      LANGULUS(NAME) "AVerb";
       LANGULUS(POD) false;
       LANGULUS(NULLIFIABLE) false;
       LANGULUS(DEEP) false;
+      LANGULUS(ACT_AS) Verb;
       LANGULUS_BASES(Anyness::Many, Anyness::Charge);
       LANGULUS_CONVERTS_TO(Anyness::Text);
       static constexpr bool CTTI_Container = true;

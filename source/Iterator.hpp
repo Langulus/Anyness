@@ -22,10 +22,9 @@ namespace Langulus
       /// safety features, mainly used silently in ranged-for loops           
       ///                                                                     
       struct Iterator {
-         LANGULUS(INSERT_AS)     void;
+         LANGULUS(ACT_AS) void;
          LANGULUS(UNALLOCATABLE) true;
-         LANGULUS(ABSTRACT)      true;
-         LANGULUS(REFLECTABLE)   false;
+         LANGULUS(ABSTRACT) true;
       };
 
       ///                                                                     
