@@ -38,7 +38,8 @@ namespace Langulus::Anyness
 
          if constexpr (CT::TraitBased<T>) {
             Base::BlockTransfer(S::Nest(t1).template Forward<Base>());
-            mTraitType = DeintCast(t1).GetTrait();
+            mTraitType = DeintCast(t1).
+               GetTrait();
          }
          else if constexpr (CT::Deep<T>)
             Base::BlockTransfer(S::Nest(t1));

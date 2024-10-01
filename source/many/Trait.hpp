@@ -66,6 +66,7 @@ namespace Langulus::Anyness
    /// global objects, or supply paremeters                                   
    ///                                                                        
    struct Trait : A::Trait {
+      LANGULUS(NAME) "Trait";
       LANGULUS(ABSTRACT) false;
       LANGULUS_BASES(A::Trait);
 
