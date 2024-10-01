@@ -22,6 +22,7 @@ namespace Langulus
       struct Trait : Anyness::Many {
          LANGULUS(ABSTRACT) true;
          LANGULUS(DEEP) false;
+         LANGULUS(ACT_AS) A::Trait;
          LANGULUS_BASES(Anyness::Many);
 
       protected:
@@ -68,6 +69,7 @@ namespace Langulus::Anyness
    struct Trait : A::Trait {
       LANGULUS(NAME) "Trait";
       LANGULUS(ABSTRACT) false;
+      LANGULUS(ACT_AS) Trait;
       LANGULUS_BASES(A::Trait);
 
       ///                                                                     

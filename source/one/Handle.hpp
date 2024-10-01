@@ -16,9 +16,7 @@ namespace Langulus
 
       /// An abstract handle                                                  
       struct Handle {
-         LANGULUS(ABSTRACT) true;
-         LANGULUS(UNALLOCATABLE) true;
-         LANGULUS(REFLECTABLE) false;
+         LANGULUS(ACT_AS) void;
       };
 
    } // namespace Langulus::A

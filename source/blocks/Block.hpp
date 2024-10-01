@@ -215,7 +215,7 @@ namespace Langulus
       /// Check if T is insertable to containers, either directly, or while   
       /// wrapped in an intent                                                
       template<class...TN>
-      concept UnfoldInsertable = Insertable<Deint<TN>...>;
+      concept UnfoldInsertable = Reflectable<Deint<TN>...>;
 
       namespace Inner
       {
@@ -333,8 +333,9 @@ namespace Langulus::Anyness
    ///                                                                        
    template<class TYPE>
    struct Block : A::Block {
-      LANGULUS(TYPED)    TYPE;
+      LANGULUS(TYPED) TYPE;
       LANGULUS(ABSTRACT) false;
+      LANGULUS(ACT_AS) Block<>;
       LANGULUS_BASES(A::Block);
 
       static constexpr bool Ownership  = false;
@@ -393,8 +394,8 @@ namespace Langulus::Anyness
       constexpr ~Block() {
          // A destructor is always compiled, so keep these here to      
          // avoid incomplete type errors on Block declaration           
-         static_assert(TypeErased or CT::Insertable<TYPE>,
-            "Contained type must be insertable");
+         static_assert(TypeErased or CT::Reflectable<TYPE>,
+            "Contained type must be reflectable");
          static_assert(TypeErased or CT::Allocatable<TYPE>,
             "Contained type must be allocatable");
          static_assert(not CT::Reference<TYPE>,
