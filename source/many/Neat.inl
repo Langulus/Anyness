@@ -746,17 +746,20 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    void Neat::AddVerb(CT::Intent auto&& verb) {
       using S = IntentOf<decltype(verb)>;
-      static_assert(CT::VerbBased<TypeOf<S>>);
-      if constexpr (CT::Verb<TypeOf<S>>)
+      using V = TypeOf<S>;
+      static_assert(CT::VerbBased<V>, "V isn't a verb");
+
+      // Make sure verb's ID is populated before pushing it             
+      if constexpr (CT::Verb<V>)
          (void) verb->GetVerb();
 
       // Insert deep data - we have to flatten it                       
-      static const auto meta = MetaDataOf<A::Verb>();
+      const auto meta = MetaDataOf<Decay<V>>();
       auto found = mAnythingElse.BranchOut().FindIt(meta);
       if (found)
-         found.GetValue() << verb.template Forward<A::Verb>();
+         found.GetValue() << verb.Forward();
       else
-         mAnythingElse.Insert(meta, verb.template Forward<A::Verb>());
+         mAnythingElse.Insert(meta, verb.Forward());
    }
 
    /// Push a construct to the appropriate bucket                             

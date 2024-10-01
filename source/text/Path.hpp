@@ -18,6 +18,7 @@ namespace Langulus::Anyness
    struct Path : Text {
       LANGULUS(NAME) "Path";
       LANGULUS(FILES) "";
+      LANGULUS(ACT_AS) Path;
       LANGULUS_BASES(Text);
       LANGULUS_CONVERTS_FROM(Text);
 
@@ -30,12 +31,12 @@ namespace Langulus::Anyness
       Path(const Text&);
       Path(Text&&);
 
-      NOD() Text GetExtension() const;
-      NOD() Path GetDirectory() const;
-      NOD() Path GetFilename() const;
+      NOD() auto GetExtension() const -> Text;
+      NOD() auto GetDirectory() const -> Path;
+      NOD() auto GetFilename()  const -> Path;
 
-      NOD() Path operator / (const Text&) const;
-      Path& operator /= (const Text&);
+      NOD() auto operator / (const Text&) const -> Path;
+      auto operator /= (const Text&) -> Path&;
 
    private:
       using Text::SerializationRules;

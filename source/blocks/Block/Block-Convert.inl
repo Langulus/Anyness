@@ -490,9 +490,13 @@ namespace Langulus::Anyness
          else if constexpr (RULE::sRule == Serial::Wrap) {
             // If reached, then the rule is compatible with the type    
             for (Offset i = 0; i < mCount; ++i) {
-               to += RULE::sStart;
+               if constexpr (RULE::sStart < Serial::Operator::OpCounter)
+                  to += RULE::sStart;
+
                to += static_cast<OUT>(As<Type>(i));
-               to += RULE::sEnd;
+
+               if constexpr (RULE::sEnd < Serial::Operator::OpCounter)
+                  to += RULE::sEnd;
 
                if (i < GetCount() - 1)
                   OUT::SerializationRules::Separate(*this, to);
@@ -515,9 +519,13 @@ namespace Langulus::Anyness
             else if constexpr (RULE::sRule == Serial::Wrap) {
                // If reached, then the rule is compatible with the type 
                for (Offset i = 0; i < mCount; ++i) {
-                  to += RULE::sStart;
+                  if constexpr (RULE::sStart < Serial::Operator::OpCounter)
+                     to += RULE::sStart;
+
                   to += static_cast<OUT>(As<Type>(i));
-                  to += RULE::sEnd;
+
+                  if constexpr (RULE::sEnd < Serial::Operator::OpCounter)
+                     to += RULE::sEnd;
 
                   if (i < GetCount() - 1)
                      OUT::SerializationRules::Separate(*this, to);
@@ -603,9 +611,8 @@ namespace Langulus::Anyness
                to += Bytes {bytes.mCount};
                to += bytes;
             },
-            [this,&to](const Trait& trait) {
-               if (IsSimilar<Trait>())
-                  to += Bytes {trait.GetTrait()};
+            [&to](const Trait& trait) {
+               to += Bytes {trait.GetTrait()};
                trait.SerializeToBinary<void>(to);
             }
          );

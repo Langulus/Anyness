@@ -310,7 +310,11 @@ TEMPLATE_TEST_CASE("Testing non-copy-makable types", "[intents]",
 
    auto meta = MetaDataOf<Conditional<CT::Complete<T>, T, T*>>();
    REQUIRE(meta);
-   REQUIRE_FALSE(meta->mCopyConstructor);
+   //REQUIRE_FALSE(meta->mCopyConstructor);
+   REQUIRE(meta->mCopyConstructor); 
+   // Since the introduction of LANGULUS(ACT_AS), these are still copy-constructible, because
+   // they're implicitly inserted as a plain Many type. You would still not be able to construct 
+   // such a container at compile-time, so it's completely fine
 }
 
 TEMPLATE_TEST_CASE("Testing copy-assignable types", "[intents]",
@@ -378,7 +382,11 @@ TEMPLATE_TEST_CASE("Testing non-copy-assignable types", "[intents]",
 
    auto meta = MetaDataOf<Conditional<CT::Complete<T>, T, T*>>();
    REQUIRE(meta);
-   REQUIRE_FALSE(meta->mCopyAssigner);
+   //REQUIRE_FALSE(meta->mCopyAssigner);
+   REQUIRE(meta->mCopyAssigner);
+   // Since the introduction of LANGULUS(ACT_AS), these are still copy-assignable, because
+   // they're implicitly inserted as a plain Many type. You would still not be able to assign 
+   // such a container at compile-time, so it's completely fine
 }
 
 
@@ -434,7 +442,11 @@ TEMPLATE_TEST_CASE("Testing non-clone-makable types", "[intents]",
 
    auto meta = MetaDataOf<Conditional<CT::Complete<T>, T, T*>>();
    REQUIRE(meta);
-   REQUIRE_FALSE(meta->mCloneConstructor);
+   //REQUIRE_FALSE(meta->mCloneConstructor);
+   REQUIRE(meta->mCloneConstructor);
+   // Since the introduction of LANGULUS(ACT_AS), these are still clone-constructible, because
+   // they're implicitly inserted as a plain Many type. You would still not be able to construct 
+   // such a container at compile-time, so it's completely fine
 }
 
 TEMPLATE_TEST_CASE("Testing clone-assignable types", "[intents]",
@@ -511,7 +523,11 @@ TEMPLATE_TEST_CASE("Testing non-clone-assignable types", "[intents]",
 
    auto meta = MetaDataOf<Conditional<CT::Complete<T>, T, T*>>();
    REQUIRE(meta);
-   REQUIRE_FALSE(meta->mCloneAssigner);
+   //REQUIRE_FALSE(meta->mCloneAssigner);
+   REQUIRE(meta->mCloneAssigner);
+   // Since the introduction of LANGULUS(ACT_AS), these are still clone-assignable, because
+   // they're implicitly inserted as a plain Many type. You would still not be able to assign 
+   // such a container at compile-time, so it's completely fine
 }
 
 
@@ -795,11 +811,16 @@ TEMPLATE_TEST_CASE("Testing descriptor-makable types", "[intents]",
 
    auto meta1 = MetaDataOf<T>();
    REQUIRE(meta1);
-   REQUIRE(meta1->mDescriptorConstructor);
+   //REQUIRE(meta1->mDescriptorConstructor);
+   REQUIRE_FALSE(meta1->mDescriptorConstructor);
 
    auto meta2 = MetaDataOf<T*>();
    REQUIRE(meta2);
-   REQUIRE(meta2->mDescriptorConstructor);
+   //REQUIRE(meta2->mDescriptorConstructor);
+   REQUIRE_FALSE(meta2->mDescriptorConstructor);
+
+   // Since the introduction of LANGULUS(ACT_AS), these are no longer describable, because
+   // they're implicitly inserted as a plain Many type
 }
 
 TEMPLATE_TEST_CASE("Testing non-descriptor-makable types", "[intents]",

@@ -19,6 +19,7 @@ namespace Langulus::Anyness
    template<bool ORDERED = false>
    struct Map : BlockMap {
       LANGULUS(POD) false;
+      LANGULUS(ACT_AS) Map;
       LANGULUS_BASES(BlockMap);
 
       friend struct BlockMap;
