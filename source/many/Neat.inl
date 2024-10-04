@@ -41,7 +41,7 @@ namespace Langulus::Anyness
       , mConstructs   {other.Nest(other->mConstructs)}
       , mAnythingElse {other.Nest(other->mAnythingElse)} {
       // Reset remote hash if moving                                    
-      if constexpr (other.ResetsOnMove())
+      if constexpr (ResetsOnMove<S>())
          other->mHash = {};
    }
 
@@ -67,7 +67,7 @@ namespace Langulus::Anyness
       mHash         = other->mHash;
 
       // Reset remote hash if moving                                    
-      if constexpr (other.ResetsOnMove())
+      if constexpr (ResetsOnMove<S>())
          other->mHash = {};
       return *this;
    }

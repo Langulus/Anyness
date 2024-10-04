@@ -71,7 +71,7 @@ namespace Langulus::Anyness
       mReusable = other->mReusable;
       mCount = other->mCount;
 
-      if constexpr (SS::Move and SS::Keep) {
+      if constexpr (ResetsOnMove<S>()) {
          other->mCount = 0;
          other->mReusable = nullptr;
       }
