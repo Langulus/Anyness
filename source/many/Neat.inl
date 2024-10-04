@@ -690,7 +690,7 @@ namespace Langulus::Anyness
    ///   @param trait - trait to set                                          
    ///   @param index - the index we're interested with if repeated           
    ///   @return a reference to this construct for chaining                   
-   inline Neat& Neat::Set(CT::TraitBased auto&& trait, Offset index) {
+   Neat& Neat::SetTrait(CT::TraitBased auto&& trait, Offset index) {
       const auto meta = trait.GetTrait();
       auto found = mTraits.BranchOut().FindIt(meta);
 
