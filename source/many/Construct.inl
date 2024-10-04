@@ -33,7 +33,7 @@ namespace Langulus::Anyness
       , mHash        {other->mHash}
       , mCharge      {other->mCharge}
       , mDescriptor  {other.Nest(other->mDescriptor)} {
-      if constexpr (other.ResetsOnMove()) {
+      if constexpr (ResetsOnMove<S>()) {
          other->mType = {};
          other->mHash = {};
          other->ResetCharge();
@@ -102,7 +102,7 @@ namespace Langulus::Anyness
       mCharge     = rhs->mCharge;
       mDescriptor = rhs.Nest(rhs->mDescriptor);
 
-      if constexpr (rhs.ResetsOnMove()) {
+      if constexpr (ResetsOnMove<S>()) {
          rhs->mType = {};
          rhs->mHash = {};
          rhs->ResetCharge();

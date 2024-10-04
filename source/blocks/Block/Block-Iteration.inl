@@ -227,7 +227,7 @@ namespace Langulus::Anyness
          else return Loop::NextLoop;
       }
       else if (not CT::Trait<Decay<A>> and ((CT::Deep<Decay<A>> and IsDeep())
-      or (not CT::Deep<Decay<A>> and CastsTo<A, true>()))) {
+      or      (not CT::Deep<Decay<A>>  and CastsTo<A, true>()))) {
          // Container is type-erased                                    
          if (mType->mIsSparse) {
             // Iterate sparse container                                 
