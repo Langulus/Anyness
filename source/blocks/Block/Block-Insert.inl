@@ -347,7 +347,7 @@ namespace Langulus::Anyness
 
       InsertBlockInner<FORCE, MOVE_ASIDE>(index, Forward<T>(other));
 
-      if constexpr (S::Move and S::Keep and TypeOf<S>::Ownership) {
+      if constexpr (ResetsOnMove<S>() and TypeOf<S>::Ownership) {
          // All elements were moved, only empty husks remain            
          // so destroy them, and discard ownership of 'other'           
          rhs.Free();
