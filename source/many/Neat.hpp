@@ -29,6 +29,9 @@ namespace Langulus::Anyness
    ///                                                                        
    class Neat {
    protected:
+      template<class TYPE>
+      friend struct Block;
+
       using TraitList     = TMany<Trait>;
       using ConstructList = TMany<Construct>;
       using TailList      = TMany<Messy>;
@@ -127,9 +130,6 @@ namespace Langulus::Anyness
 
       template<CT::Trait>
       void SetDefaultTrait(CT::Data auto&&);
-
-      template<CT::Trait>
-      void OverwriteTrait(CT::Data auto&&);
 
       template<CT::Trait...>
       bool ExtractTrait(CT::Data auto&...) const;

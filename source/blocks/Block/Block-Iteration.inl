@@ -203,8 +203,7 @@ namespace Langulus::Anyness
          // Container is not type-erased                                
          if constexpr (CT::Deep<Decay<A>, Decay<T>>
          or (not CT::Deep<Decay<A>> and CT::DerivedFrom<T, A>)
-         or (CT::Same<A, T>)
-         ) {
+         or (CT::Same<A, T>)) {
             using IT = Conditional<MUTABLE, T&, const T&>;
 
             return IterateInner<MUTABLE, REVERSE>(mCount,
@@ -227,9 +226,8 @@ namespace Langulus::Anyness
          }
          else return Loop::NextLoop;
       }
-      else if ((CT::Deep<Decay<A>> and IsDeep())
-      or   (not CT::Deep<Decay<A>> and CastsTo<A, true>())
-      ) {
+      else if (not CT::Trait<Decay<A>> and ((CT::Deep<Decay<A>> and IsDeep())
+      or (not CT::Deep<Decay<A>> and CastsTo<A, true>()))) {
          // Container is type-erased                                    
          if (mType->mIsSparse) {
             // Iterate sparse container                                 
