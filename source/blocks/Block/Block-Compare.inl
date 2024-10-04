@@ -226,7 +226,7 @@ namespace Langulus::Anyness
                else {
                   // Call the reflected == operator in baseForComparison
                   VERBOSE("Comparing using reflected operator == for ",
-                     baseForComparison.mType->mToken);
+                     baseForComparison.mType.GetToken());
 
                   for (Count i = 0; i < mCount; ++i) {
                      // Densify and compare all elements by the binary  
@@ -249,7 +249,7 @@ namespace Langulus::Anyness
             else {
                // Call the reflected == operator in baseForComparison   
                VERBOSE("Comparing using reflected operator == for ",
-                  baseForComparison.mType->mToken);
+                  baseForComparison.mType.GetToken());
 
                for (Count i = 0; i < mCount; ++i) {
                   // Compare all elements by the binary compatible base 
