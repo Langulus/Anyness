@@ -16,7 +16,7 @@ namespace Langulus::Anyness
 {
 
    /// Set a default trait, if such wasn't already set                        
-   ///   @tparam T - trait to set                                             
+   ///   @tparam TRAIT - trait to set                                         
    ///   @param value - the value to assign                                   
    template<class TYPE> template<class TRAIT, CT::Data D>
    void Block<TYPE>::SetDefaultTrait(D&& value) {
@@ -30,18 +30,20 @@ namespace Langulus::Anyness
          else return Loop::Continue;
       });
 
-      if (not satisfied) {
-         // Trait wasn't found - search for a Neat to create it in      
-         ForEachDeep([&](Neat& neat) {
-            neat.AddTrait(Abandon(TRAIT {Forward<D>(value)}));
-            satisfied = true;
-         });
-      }
+      if (satisfied)
+         return;
 
-      if (not satisfied) {
-         // No Neat was found, so just push                             
-         SmartPush(IndexBack, Abandon(TRAIT {Forward<D>(value)}));
-      }
+      // Trait wasn't found - search for a Neat to create it in         
+      ForEachDeep([&](Neat& neat) {
+         neat.AddTrait(Abandon(TRAIT {Forward<D>(value)}));
+         satisfied = true;
+      });
+
+      if (satisfied)
+         return;
+
+      // No Neat was found, so just push one containing the trait       
+      SmartPush(IndexBack, Neat {TRAIT {Forward<D>(value)}});
    }
 
    /// Extract a trait from the descriptor                                    
@@ -203,6 +205,46 @@ namespace Langulus::Anyness
       });
 
       return satisfied;
+   }
+   
+   /// Set a tagged argument inside descriptor                                
+   ///   @param trait - trait to set                                          
+   ///   @param index - the index we're interested with if repeated           
+   template<class TYPE> template<class TRAIT>
+   void Block<TYPE>::SetTrait(TRAIT&& trait, Offset index) {
+      using S = IntentOf<TRAIT>;
+      using T = TypeOf<S>;
+      static_assert(CT::TraitBased<T>, "T is not trait-based");
+
+      // First attempt setting an already existing trait at given index 
+      bool satisfied = false;
+      Offset counter = 0;
+      ForEachDeep([&](T& found) {
+         if (counter == index) {
+            found = Forward<TRAIT>(trait);
+            satisfied = true;
+            return Loop::Break;
+         }
+
+         ++counter;
+         return Loop::Continue;
+      });
+
+      if (satisfied)
+         return;
+
+      // Then try pushing a new trait into a contained Neat scope       
+      ForEachDeep([&](Neat& neat) {
+         neat.SetTrait(Forward<TRAIT>(trait));
+         satisfied = true;
+         return Loop::Break;
+      });
+
+      if (satisfied)
+         return;
+
+      // Finally, just push a Neat scope containing the trait           
+      SmartPush(IndexBack, Neat {Forward<TRAIT>(trait)});
    }
 
 } // namespace Langulus::Anyness

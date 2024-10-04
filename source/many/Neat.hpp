@@ -184,7 +184,7 @@ namespace Langulus::Anyness
       template<class T1, class...TN>
       Count Insert(T1&&, TN&&...);
       void  Merge(const Neat&);
-      Neat& Set(CT::TraitBased auto&&, Offset = 0);
+      Neat& SetTrait(CT::TraitBased auto&&, Offset = 0);
 
       Neat& operator <<  (auto&&);
       Neat& operator <<= (auto&&);
