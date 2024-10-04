@@ -352,17 +352,20 @@ namespace Langulus::Anyness
       else {
          if constexpr (not CT::Void<FORCE>) {
             LANGULUS_ASSERT(not IsTypeConstrained(), Mutate,
-               "Attempting to mutate type-locked container");
+               "Attempting to mutate type-locked container", 
+               " of type ", mType, " to type ", meta
+            );
 
             // Container is not type-constrained, so we can safely      
-            // deepen it, to incorporate the new data, unless it is     
-            // already deep, that is. We also make sure to deepen if    
+            // deepen it to incorporate the new data, unless it is      
+            // already deep that is. We also make sure to deepen if     
             // block is deep, but sparse.                               
             if (not IsDeep() or IsSparse())
                Deepen<FORCE, true>();
             return true;
          }
-         else LANGULUS_OOPS(Mutate, "Can't mutate to incompatible type");
+         else LANGULUS_OOPS(Mutate, "Can't mutate ", mType,
+            " to incompatible type ", meta);
       }
 
       // Block may have mutated, but it didn't happen                   
@@ -387,19 +390,22 @@ namespace Langulus::Anyness
       }
 
       LANGULUS_ASSERT(not IsTypeConstrained(), Mutate,
-         "Attempting to mutate type-locked container");
+         "Attempting to mutate type-locked container"
+         " of type ", mType, " to type ", type);
 
       if (mType->CastsTo(type)) {
          // Type is compatible, but only sparse data can mutate freely  
          // Dense containers can't mutate because their destructors     
          // might be wrong later                                        
-         LANGULUS_ASSERT(IsSparse(), Mutate, "Incompatible type");
+         LANGULUS_ASSERT(IsSparse(), Mutate, "Can't mutate ", mType,
+            " to incompatible type ", type);
          mType = type;
       }
       else {
          // Type is not compatible, but container is not typed, so if   
          // it has no constructed elements, we can still mutate it      
-         LANGULUS_ASSERT(IsEmpty(), Mutate, "Incompatible type");
+         LANGULUS_ASSERT(IsEmpty(), Mutate, "Can't mutate ", mType,
+            " to incompatible type ", type);
          mType = type;
       }
 
