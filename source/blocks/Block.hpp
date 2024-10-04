@@ -519,6 +519,8 @@ namespace Langulus::Anyness
       auto FindType()      const -> DMeta;
       auto FindType(DMeta) const -> DMeta;
 
+      void SetTrait(auto&&, Offset = 0);
+
    protected:
       template<class>
       bool ExtractTraitInner(CT::Data auto&...) const;
