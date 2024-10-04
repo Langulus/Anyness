@@ -332,11 +332,11 @@ namespace Langulus::Anyness
    /// Overwrite trait, or add a new one, if not already set                  
    ///   @tparam T - trait to set                                             
    ///   @param value - the value to assign                                   
-   template<CT::Trait T> LANGULUS(INLINED)
+   /*template<CT::Trait T> LANGULUS(INLINED)
    void Neat::OverwriteTrait(CT::Data auto&& value) {
       // Trait was found, overwrite it                                  
       mTraits[MetaTraitOf<T>()] = ::std::move(value);
-   }
+   }*/
 
    /// Extract a trait from the descriptor                                    
    ///   @tparam T... - trait(s) we're searching for                          

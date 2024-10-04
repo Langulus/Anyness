@@ -14,18 +14,33 @@
 namespace Langulus::Anyness
 {
 
-   ///                                                                        
-   template<class TYPE> template<class TRAIT>
-   void Block<TYPE>::SetDefaultTrait(CT::Data auto&&) {
+   /// Set a default trait, if such wasn't already set                        
+   ///   @tparam T - trait to set                                             
+   ///   @param value - the value to assign                                   
+   template<class TYPE> template<class TRAIT, CT::Data D>
+   void Block<TYPE>::SetDefaultTrait(D&& value) {
       static_assert(CT::Trait<TRAIT>, "TRAIT is not a trait type");
-      TODO();
-   }
+      bool satisfied = false;
+      ForEachDeep([&](const TRAIT& trait) {
+         if (trait) {
+            satisfied = true;
+            return Loop::Break;
+         }
+         else return Loop::Continue;
+      });
 
-   ///                                                                        
-   template<class TYPE> template<class TRAIT>
-   void Block<TYPE>::OverwriteTrait(CT::Data auto&&) {
-      static_assert(CT::Trait<TRAIT>, "TRAIT is not a trait type");
-      TODO();
+      if (not satisfied) {
+         // Trait wasn't found - search for a Neat to create it in      
+         ForEachDeep([&](Neat& neat) {
+            neat.AddTrait(Abandon(TRAIT {Forward<D>(value)}));
+            satisfied = true;
+         });
+      }
+
+      if (not satisfied) {
+         // No Neat was found, so just push                             
+         SmartPush(IndexBack, Abandon(TRAIT {Forward<D>(value)}));
+      }
    }
 
    /// Extract a trait from the descriptor                                    
@@ -99,18 +114,46 @@ namespace Langulus::Anyness
       return progress;
    }
 
-   ///                                                                        
-   template<class TYPE> template<CT::Data>
+   /// Find data in constructs or tail, that casts to T                       
+   ///   @tparam T - type requirement                                         
+   ///   @return the first type that matches                                  
+   template<class TYPE> template<CT::Data T>
    auto Block<TYPE>::FindType() const -> DMeta {
-      TODO();
-      return {};
+      return FindType(MetaDataOf<T>());
    }
 
-   ///                                                                        
+   /// Find data in constructs or tail, that casts to a type                  
+   ///   @param type - type requirement                                       
+   ///   @return the first type that matches                                  
    template<class TYPE>
-   auto Block<TYPE>::FindType(DMeta) const -> DMeta {
-      TODO();
-      return {};
+   auto Block<TYPE>::FindType(DMeta type) const -> DMeta {
+      bool  ambiguous = false;
+      DMeta found;
+
+      ForEachDeep([&](const Many& group) noexcept {
+         group.ForEach([&](const Construct& c) noexcept {
+            if (not c.CastsTo(type))
+               return;
+
+            if (not found) found = c.GetType();
+            else ambiguous = true;
+         });
+
+         if (not group.CastsToMeta(type))
+            return;
+
+         if (not found) found = group.GetType();
+         else ambiguous = true;
+      });
+
+      if (ambiguous) {
+         Logger::Warning(
+            "Multiple types found in block - all except the first `",
+            found, "` will be ignored on FindType"
+         );
+      }
+
+      return found;
    }
 
    ///                                                                        

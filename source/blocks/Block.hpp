@@ -502,10 +502,8 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Descriptor interface                                              
       ///                                                                     
-      template<class>
-      void SetDefaultTrait(CT::Data auto&&);
-      template<class>
-      void OverwriteTrait(CT::Data auto&&);
+      template<class, CT::Data D>
+      void SetDefaultTrait(D&&);
 
       template<class...>
       bool ExtractTrait(CT::Data auto&...) const;
