@@ -114,26 +114,26 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Assignment                                                        
       ///                                                                     
-      constexpr Own& operator = (const Own&)
+      constexpr auto operator = (const Own&) -> Own&
       requires (CT::Sparse<T> or CT::ReferAssignable<T>);
 
-      constexpr Own& operator = (Own&&)
+      constexpr auto operator = (Own&&) -> Own&
       requires (CT::Sparse<T> or CT::MoveAssignable<T>);
 
       template<template<class> class S>
       requires CT::IntentAssignable<S, T>
-      constexpr Own& operator = (S<Own>&&);
+      constexpr auto operator = (S<Own>&&) -> Own&;
 
       template<CT::NotOwned A> requires CT::AssignableFrom<T, A>
-      constexpr Own& operator = (A&&);
+      constexpr auto operator = (A&&) -> Own&;
 
       ///                                                                     
       ///   Capsulation                                                       
       ///                                                                     
       NOD() DMeta GetType() const;
       NOD() Hash  GetHash() const requires CT::Hashable<T>;
-      NOD() constexpr T const& Get() const noexcept;
-      NOD() constexpr T&       Get()       noexcept;
+      NOD() constexpr auto Get() const noexcept -> T const&;
+      NOD() constexpr auto Get()       noexcept -> T&;
 
       template<class>
       NOD() auto As() const noexcept requires CT::Sparse<T>;
@@ -149,7 +149,7 @@ namespace Langulus::Anyness
       NOD() auto GetHandle() const;
 
       /// Makes Own CT::Resolvable                                            
-      NOD() constexpr Block<T> GetBlock() const;
+      NOD() constexpr auto GetBlock() const -> Block<T>;
 
       ///                                                                     
       ///   Services                                                          

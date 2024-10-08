@@ -54,20 +54,20 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Assignment                                                        
       ///                                                                     
-      constexpr Ref& operator = (const Ref&);
-      constexpr Ref& operator = (Ref&&);
+      constexpr auto operator = (const Ref&) -> Ref&;
+      constexpr auto operator = (Ref&&) -> Ref&;
 
       template<template<class> class S> requires CT::IntentAssignable<S, T*>
-      Ref& operator = (S<Ref>&&);
+      auto operator = (S<Ref>&&) -> Ref&;
 
       template<CT::NotOwned A> requires CT::AssignableFrom<T*, A>
-      Ref& operator = (A&&);
+      auto operator = (A&&) -> Ref&;
 
       ///                                                                     
       ///   Capsulation                                                       
       ///                                                                     
-      NOD() Handle<T* const> GetHandle() const;
-      NOD() Handle<T*> GetHandle();
+      NOD() auto GetHandle() const -> Handle<T* const>;
+      NOD() auto GetHandle()       -> Handle<T*>;
       NOD() constexpr auto GetAllocation() const noexcept -> const Allocation*;
       NOD() constexpr Count GetUses() const noexcept;
       
@@ -76,7 +76,7 @@ namespace Langulus::Anyness
       using Base::operator *;
 
       /// Makes Ref CT::Resolvable                                            
-      NOD() Block<T*> GetBlock() const;
+      NOD() auto GetBlock() const -> Block<T*>;
 
       ///                                                                     
       ///   Services                                                          

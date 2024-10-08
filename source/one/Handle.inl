@@ -40,7 +40,8 @@ namespace Langulus::Anyness
    requires CT::IntentMakable<S, T> LANGULUS(INLINED)
    constexpr HAND()::Handle(S<H>&& other)
       : mValue (S<T>(other->Get()))
-      , mEntry {nullptr} {
+      , mEntry {nullptr}
+   {
       using HT = TypeOf<H>;
       static_assert(CT::Similar<T, HT>, "Type mismatch");
 
@@ -70,7 +71,8 @@ namespace Langulus::Anyness
    TEMPLATE() template<class A>
    constexpr HAND()::Handle(A&& argument) noexcept requires (not Embedded)
       : mValue (Forward<A>(argument))
-      , mEntry {nullptr} {
+      , mEntry {nullptr}
+   {
       using S = IntentOf<decltype(argument)>;
       using DT = Deptr<T>;
       if constexpr (S::Keep and CT::Sparse<T> and CT::Complete<DT>) {
@@ -117,7 +119,7 @@ namespace Langulus::Anyness
    /// Prefix increment operator                                              
    ///   @return the next handle                                              
    TEMPLATE() LANGULUS(INLINED)
-   HAND()& HAND()::operator ++ () noexcept requires Embedded {
+   auto HAND()::operator ++ () noexcept -> Handle& requires Embedded {
       ++mValue;
       if constexpr (CT::Sparse<T>)
          ++mEntry;
@@ -127,7 +129,7 @@ namespace Langulus::Anyness
    /// Prefix decrement operator                                              
    ///   @return the next handle                                              
    TEMPLATE() LANGULUS(INLINED)
-   HAND()& HAND()::operator -- () noexcept requires Embedded {
+   auto HAND()::operator -- () noexcept -> Handle& requires Embedded {
       --mValue;
       if constexpr (CT::Sparse<T>)
          --mEntry;
@@ -137,7 +139,7 @@ namespace Langulus::Anyness
    /// Suffix increment operator                                              
    ///   @return the previous value of the handle                             
    TEMPLATE() LANGULUS(INLINED)
-   HAND() HAND()::operator ++ (int) const noexcept requires Embedded {
+   auto HAND()::operator ++ (int) const noexcept -> Handle requires Embedded {
       auto backup = *this;
       return ++backup;
    }
@@ -145,7 +147,7 @@ namespace Langulus::Anyness
    /// Suffix decrement operator                                              
    ///   @return the previous value of the handle                             
    TEMPLATE() LANGULUS(INLINED)
-   HAND() HAND()::operator -- (int) const noexcept requires Embedded {
+   auto HAND()::operator -- (int) const noexcept -> Handle requires Embedded {
       auto backup = *this;
       return --backup;
    }
@@ -154,7 +156,7 @@ namespace Langulus::Anyness
    ///   @param offset - the offset to apply                                  
    ///   @return the offsetted handle                                         
    TEMPLATE() LANGULUS(INLINED)
-   HAND() HAND()::operator + (Offset offset) const noexcept requires Embedded {
+   auto HAND()::operator + (Offset offset) const noexcept -> Handle requires Embedded {
       auto backup = *this;
       return backup += offset;
    }
@@ -163,7 +165,7 @@ namespace Langulus::Anyness
    ///   @param offset - the offset to apply                                  
    ///   @return the offsetted handle                                         
    TEMPLATE() LANGULUS(INLINED)
-   HAND() HAND()::operator - (Offset offset) const noexcept requires Embedded {
+   auto HAND()::operator - (Offset offset) const noexcept -> Handle requires Embedded {
       auto backup = *this;
       return backup -= offset;
    }
@@ -171,7 +173,7 @@ namespace Langulus::Anyness
    /// Prefix increment operator                                              
    ///   @return the next handle                                              
    TEMPLATE() LANGULUS(INLINED)
-   HAND()& HAND()::operator += (Offset offset) noexcept requires Embedded {
+   auto HAND()::operator += (Offset offset) noexcept -> Handle& requires Embedded {
       mValue += offset;
       if constexpr (CT::Sparse<T>)
          mEntry += offset;
@@ -181,7 +183,7 @@ namespace Langulus::Anyness
    /// Prefix decrement operator                                              
    ///   @return the next handle                                              
    TEMPLATE() LANGULUS(INLINED)
-   HAND()& HAND()::operator -= (Offset offset) noexcept requires Embedded {
+   auto HAND()::operator -= (Offset offset) noexcept -> Handle& requires Embedded {
       mValue -= offset;
       if constexpr (CT::Sparse<T>)
          mEntry -= offset;
@@ -190,26 +192,26 @@ namespace Langulus::Anyness
 
    /// Get a reference to the contents                                        
    TEMPLATE() LANGULUS(INLINED)
-   typename HAND()::Type& HAND()::Get() noexcept {
+   auto HAND()::Get() noexcept -> Type& {
       if constexpr (Embedded) return *mValue;
       else                    return  mValue;
    }
    
    TEMPLATE() LANGULUS(INLINED)
-   typename HAND()::Type const& HAND()::Get() const noexcept {
+   auto HAND()::Get() const noexcept -> const Type& {
       if constexpr (Embedded) return *mValue;
       else                    return  mValue;
    }
    
    /// Get the entry                                                          
    TEMPLATE() LANGULUS(INLINED)
-   typename HAND()::AllocType& HAND()::GetEntry() noexcept {
+   auto HAND()::GetEntry() noexcept -> AllocType& {
       if constexpr (Embedded and Sparse)  return *mEntry;
       else                                return  mEntry;
    }
 
    TEMPLATE() LANGULUS(INLINED)
-   typename HAND()::AllocType const& HAND()::GetEntry() const noexcept {
+   auto HAND()::GetEntry() const noexcept -> AllocType const& {
       if constexpr (Embedded and Sparse)  return *mEntry;
       else                                return  mEntry;
    }
