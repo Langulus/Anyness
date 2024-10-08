@@ -264,6 +264,36 @@ namespace Langulus::Anyness
    /// Reset the factory                                                      
    TEMPLATE() LANGULUS(INLINED)
    void TME()::Reset() {
+      // First pass only detaches                                       
+      if constexpr (requires (T a) { a.Detach(); }) {
+         for (auto& frame : mFrames) {
+            if (frame.IsEmpty())
+               continue;
+
+            auto counter = frame.mCount;
+            auto raw = frame.GetRaw();
+            const auto rawEnd = frame.GetRaw() + frame.GetReserved();
+            while (raw != rawEnd and counter) {
+               if (not raw->mNextFreeCell) {
+                  // Even if the cell is still referenced, it no longer 
+                  // is part of the factory, and should be detached.    
+                  // Detachment is like pre-destruction, where all ties 
+                  // in a hierarchical element are severed, so that any 
+                  // circular dependencies are accounted for.           
+                  raw->mData.Detach();
+                  --counter;
+               }
+
+               ++raw;
+            }
+
+            LANGULUS_ASSUME(DevAssumes, counter == 0,
+               "Frame should be empty at this point");
+         }
+      }
+
+      // Second pass calls destructors on elements that are fully       
+      // dereferenced                                                   
       for (auto& frame : mFrames) {
          if (frame.IsEmpty())
             continue;
@@ -282,17 +312,10 @@ namespace Langulus::Anyness
                      "A populated cell must have references");
                   raw->~Cell();
                }
-               else if constexpr (requires (T a) { a.Detach(); }) {
-                  // Even if the cell is still referenced, it no longer 
-                  // is part of the factory, and should be detached.    
-                  // Detachment is like pre-destruction, where all ties 
-                  // in a hierarchical element are severed, so that any 
-                  // circular dependencies are accounted for.           
-                  raw->mData.Detach();
-               }
 
                --frame.mCount;
             }
+
             ++raw;
          }
 
@@ -304,7 +327,6 @@ namespace Langulus::Anyness
       mReusable = nullptr;
       mCount = 0;
    }
-
 
 
    /// Construct an iterator                                                  
