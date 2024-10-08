@@ -18,7 +18,7 @@ namespace Langulus::Anyness
    /// Get handle representation of the contained data                        
    TEMPLATE() LANGULUS(INLINED)
    auto TME()::GetHandle() const {
-      const auto mthis = const_cast<TME()*>(this);
+      const auto mthis = const_cast<Own*>(this);
       // Notice entry is missing, which means it will be sought         
       return Handle {mthis->mValue};
    }
@@ -47,7 +47,7 @@ namespace Langulus::Anyness
    TEMPLATE() template<template<class> class S>
    requires CT::IntentMakable<S, T> LANGULUS(INLINED)
    constexpr TME()::Own(S<Own>&& other)
-      : mValue {S<Own>::Nest(other->mValue)} {}
+      : mValue {other.Nest(other->mValue)} {}
 
    /// Argument forwarding constructor                                        
    TEMPLATE() template<CT::NotOwned...A>
@@ -58,7 +58,7 @@ namespace Langulus::Anyness
    /// Refer assignment                                                       
    ///   @param value - the value to reference                                
    TEMPLATE() LANGULUS(INLINED)
-   constexpr TME()& TME()::operator = (const Own& value)
+   constexpr auto TME()::operator = (const Own& value) -> Own&
    requires (CT::Sparse<T> or CT::ReferAssignable<T>) {
       return operator = (Refer(value));
    }
@@ -66,7 +66,7 @@ namespace Langulus::Anyness
    /// Move assignment                                                        
    ///   @param value - the value to move                                     
    TEMPLATE() LANGULUS(INLINED)
-   constexpr TME()& TME()::operator = (Own&& value)
+   constexpr auto TME()::operator = (Own&& value) -> Own&
    requires (CT::Sparse<T> or CT::MoveAssignable<T>) {
       return operator = (Move(value));
    }
@@ -74,15 +74,15 @@ namespace Langulus::Anyness
    /// Generic assignment                                                     
    TEMPLATE() template<template<class> class S>
    requires CT::IntentAssignable<S, T> LANGULUS(INLINED)
-   constexpr TME()& TME()::operator = (S<Own>&& rhs) {
-      mValue = S<Own>::Nest(rhs->mValue);
+   constexpr auto TME()::operator = (S<Own>&& rhs) -> Own& {
+      mValue = rhs.Nest(rhs->mValue);
       return *this;
    }
 
    /// Argument forwarding assignment                                         
    TEMPLATE() template<CT::NotOwned A>
    requires CT::AssignableFrom<T, A> LANGULUS(INLINED)
-   constexpr TME()& TME()::operator = (A&& rhs) {
+   constexpr auto TME()::operator = (A&& rhs) -> Own& {
       mValue = Forward<A>(rhs);
       return *this;
    }
@@ -91,7 +91,7 @@ namespace Langulus::Anyness
    /// Can be invoked by the reflected resolver                               
    ///   @return the type of the contained value                              
    TEMPLATE() LANGULUS(INLINED)
-   DMeta TME()::GetType() const {
+   auto TME()::GetType() const -> DMeta {
       return MetaDataOf<T>();
    }
 
@@ -101,7 +101,7 @@ namespace Langulus::Anyness
    ///      the block will have some memory search overhead                   
    ///   @return the value, interfaced by a static memory block               
    TEMPLATE() LANGULUS(INLINED)
-   constexpr Block<T> TME()::GetBlock() const {
+   constexpr auto TME()::GetBlock() const -> Block<T> {
       return {
          DataState::Typed, GetType(), 1, &mValue
          // Notice entry is missing, which means it will be sought if   
@@ -112,12 +112,12 @@ namespace Langulus::Anyness
    /// Get a reference to the contained value                                 
    ///   @return the contained value reference                                
    TEMPLATE() LANGULUS(INLINED)
-   constexpr const T& TME()::Get() const noexcept {
+   constexpr auto TME()::Get() const noexcept -> const T& {
       return mValue;
    }
    
    TEMPLATE() LANGULUS(INLINED)
-   constexpr T& TME()::Get() noexcept {
+   constexpr auto TME()::Get() noexcept -> T& {
       return mValue;
    }
 
@@ -197,7 +197,7 @@ namespace Langulus::Anyness
 
    /// Reset the value                                                        
    TEMPLATE() LANGULUS(INLINED)
-      void TME()::Reset() {
+   void TME()::Reset() {
       mValue = {};
    }
 

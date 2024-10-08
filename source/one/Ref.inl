@@ -19,12 +19,12 @@ namespace Langulus::Anyness
    /// Get handle representation of the contained pointer                     
    ///   @return a handle                                                     
    TEMPLATE() LANGULUS(INLINED)
-   Handle<T* const> TME()::GetHandle() const {
+   auto TME()::GetHandle() const -> Handle<T* const> {
       return {&mValue, &mEntry};
    }
 
    TEMPLATE() LANGULUS(INLINED)
-   Handle<T*> TME()::GetHandle() {
+   auto TME()::GetHandle() -> Handle<T*> {
       return {&mValue, &mEntry};
    }
 
@@ -122,7 +122,7 @@ namespace Langulus::Anyness
    ///   @param rhs - pointer to reference                                    
    ///   @return a reference to this shared pointer                           
    TEMPLATE() LANGULUS(INLINED)
-   constexpr TME()& TME()::operator = (const Ref& rhs) {
+   constexpr auto TME()::operator = (const Ref& rhs) -> Ref& {
       return operator = (Refer(rhs));
    }
 
@@ -130,7 +130,7 @@ namespace Langulus::Anyness
    ///   @param rhs - pointer to move                                         
    ///   @return a reference to this shared pointer                           
    TEMPLATE() LANGULUS(INLINED)
-   constexpr TME()& TME()::operator = (Ref&& rhs) {
+   constexpr auto TME()::operator = (Ref&& rhs) -> Ref& {
       return operator = (Move(rhs));
    }
 
@@ -139,7 +139,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this shared pointer                           
    TEMPLATE() template<template<class> class S>
    requires CT::IntentAssignable<S, T*> LANGULUS(INLINED)
-   TME()& TME()::operator = (S<Ref>&& rhs) {
+   auto TME()::operator = (S<Ref>&& rhs) -> Ref& {
       if (mEntry)
          ResetInner();
       new (this) Ref {rhs.Forward()};
@@ -151,7 +151,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this shared pointer                           
    TEMPLATE() template<CT::NotOwned A>
    requires CT::AssignableFrom<T*, A> LANGULUS(INLINED)
-   TME()& TME()::operator = (A&& rhs) {
+   auto TME()::operator = (A&& rhs) -> Ref& {
       using S  = IntentOf<decltype(rhs)>;
       using ST = TypeOf<S>;
 
@@ -195,7 +195,7 @@ namespace Langulus::Anyness
    /// Can be invoked by the reflected resolver                               
    ///   @return the pointer, interfaced via a memory block                   
    TEMPLATE() LANGULUS(INLINED)
-   Block<T*> TME()::GetBlock() const {
+   auto TME()::GetBlock() const -> Block<T*> {
       return {
          DataState::Constrained,
          Base::GetType(), 1, &(mValue),
