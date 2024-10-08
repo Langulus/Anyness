@@ -24,13 +24,6 @@ using UnitMap = TUnorderedMap<DMeta, TMany<Unit*>>;
 using TraitMap = TUnorderedMap<TMeta, TMany<Trait>>;
 
 struct Thing final : Resolvable {
-   static_assert(CT::Complete<Resolvable>);
-   static_assert(CT::Complete<Own<Thing*>>);
-   static_assert(CT::Complete<Ref<Thing>>);
-   static_assert(CT::Complete<TMany<Thing*>>);
-   static_assert(CT::Complete<UnitMap>);
-   static_assert(CT::Complete<TraitMap>);
-
    LANGULUS(ABSTRACT) false;
    LANGULUS(PRODUCER) Thing;
    LANGULUS_BASES(Resolvable);
@@ -47,6 +40,14 @@ struct Thing final : Resolvable {
 Thing::Thing() : Resolvable {MetaOf<Thing>()} {}
 
 SCENARIO("Testing incomplete type hierarchy", "[incomplete]") {
+   static_assert(CT::Complete<Resolvable>);
+   static_assert(CT::Complete<Own<Thing*>>);
+   static_assert(CT::Complete<Ref<Thing>>);
+   static_assert(CT::Complete<TMany<Thing*>>);
+   static_assert(CT::Complete<UnitMap>);
+   static_assert(CT::Complete<TraitMap>);
+   static_assert(CT::Complete<Thing>);
+
    GIVEN("A thing instance") {
       Thing thing;
    }
