@@ -64,7 +64,7 @@ namespace Langulus::Anyness
       using D = Deref<decltype(value)>;
       Count progress = 0;
 
-      ForEachDeep([&](const Decay<D>& data) {
+      ForEachDeep([&](const Deext<D>& data) {
          if constexpr (CT::Array<D>) {
             //TODO can be optimized-out for POD
             value[progress] = data;

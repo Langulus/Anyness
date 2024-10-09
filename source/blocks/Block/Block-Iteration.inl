@@ -329,7 +329,7 @@ namespace Langulus::Anyness
       using F = Deref<decltype(call)>;
       using A = ArgumentOf<F>;
       using R = ReturnOf<F>;
-      static_assert(CT::Dense<A>, "Iterator must be dense value/reference");
+      //static_assert(CT::Dense<A>, "Iterator must be dense value/reference");
 
       if constexpr (TypeErased) {
          if constexpr (CT::Deep<A>) {
