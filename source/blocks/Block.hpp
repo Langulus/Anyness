@@ -1149,8 +1149,8 @@ namespace Langulus::Anyness
       constexpr TBlockIterator(TBlockIterator&&) noexcept = default;
       constexpr TBlockIterator(A::IteratorEnd) noexcept;
 
-      constexpr TBlockIterator& operator = (const TBlockIterator&) noexcept = default;
-      constexpr TBlockIterator& operator = (TBlockIterator&&) noexcept = default;
+      constexpr auto operator = (const TBlockIterator&) noexcept -> TBlockIterator& = default;
+      constexpr auto operator = (TBlockIterator&&) noexcept -> TBlockIterator& = default;
 
       NOD() constexpr bool operator == (const TBlockIterator&) const noexcept;
       NOD() constexpr bool operator == (A::IteratorEnd) const noexcept;
@@ -1166,10 +1166,10 @@ namespace Langulus::Anyness
       }
 
       // Prefix operator                                                
-      constexpr TBlockIterator& operator ++ () noexcept;
+      constexpr auto operator ++ () noexcept -> TBlockIterator&;
 
       // Suffix operator                                                
-      NOD() constexpr TBlockIterator operator ++ (int) noexcept;
+      NOD() constexpr auto operator ++ (int) noexcept -> TBlockIterator;
 
       constexpr explicit operator bool() const noexcept;
 

@@ -197,6 +197,10 @@ namespace Langulus::Anyness
       using F = Deref<decltype(f)>;
       using A = ArgumentOf<F>;
       using R = ReturnOf<F>;
+
+      static_assert(CT::Slab<A> or CT::Constant<Deptr<A>> or MUTABLE,
+         "Non-constant iterator for constant memory is not allowed");
+
       UNUSED() static constexpr auto NOE = NoexceptIterator<decltype(f)>;
 
       if constexpr (not TypeErased) {
@@ -204,10 +208,8 @@ namespace Langulus::Anyness
          if constexpr (CT::Deep<Decay<A>, Decay<T>>
          or (not CT::Deep<Decay<A>> and CT::DerivedFrom<T, A>)
          or (CT::Same<A, T>)) {
-            using IT = Conditional<MUTABLE, T&, const T&>;
-
             return IterateInner<MUTABLE, REVERSE>(mCount,
-               [&index, &f](IT element) noexcept(NOE) -> R {
+               [&index, &f](T& element) noexcept(NOE) -> R {
                   ++index;
 
                   //TODO this does only one dereference if needed, but it should actually
@@ -231,27 +233,20 @@ namespace Langulus::Anyness
          // Container is type-erased                                    
          if (mType->mIsSparse) {
             // Iterate sparse container                                 
-            using DA = Conditional<MUTABLE, void*&, const void* const&>;
-
             return IterateInner<MUTABLE, REVERSE>(mCount,
-               [&index, &f](DA element) noexcept(NOE) -> R {
+               [&index, &f](void*& element) noexcept(NOE) -> R {
                   ++index;
-                  if constexpr (CT::Dense<A>) {
-                     if constexpr (MUTABLE)
-                        return f(*static_cast<      Deref<A>*>(element));
-                     else
-                        return f(*static_cast<const Deref<A>*>(element));
-                  }
-                  else return  f( static_cast<A>(element));
+                  if constexpr (CT::Dense<A>)
+                     return f(*reinterpret_cast<Deref<A>*>(element));
+                  else
+                     return f( reinterpret_cast<A>(element));
                }
             );
          }
          else {
             // Iterate dense container                                  
-            using DA = Conditional<MUTABLE, Decay<A>&, const Decay<A>&>;
-
             return IterateInner<MUTABLE, REVERSE>(mCount,
-               [&index, &f](DA element) noexcept(NOE) -> R {
+               [&index, &f](Decay<A>& element) noexcept(NOE) -> R {
                   ++index;
                   if constexpr (CT::Dense<A>)
                      return f( element);
@@ -271,10 +266,8 @@ namespace Langulus::Anyness
             // those that match the trait type                          
             if (mType->mIsSparse) {
                // Iterate sparse container                              
-               using DA = Conditional<MUTABLE, Trait*&, const Trait* const&>;
-
                return IterateInner<MUTABLE, REVERSE>(mCount,
-                  [&index, &f](DA element) noexcept(NOE) -> R {
+                  [&index, &f](Trait*& element) noexcept(NOE) -> R {
                      if constexpr (CT::Void<R>) {
                         if (not element->template IsTrait<Decay<A>>())
                            return;
@@ -283,22 +276,18 @@ namespace Langulus::Anyness
                         return Loop::Continue;
 
                      ++index;
-                     if constexpr (CT::Dense<A>) {
-                        if constexpr (MUTABLE)
-                           return f(*reinterpret_cast<      Deref<A>*>(element));
-                        else
-                           return f(*reinterpret_cast<const Deref<A>*>(element));
-                     }
-                     else return  f( reinterpret_cast<A>(element));
+
+                     if constexpr (CT::Dense<A>)
+                        return f(*reinterpret_cast<Deref<A>*>(element));
+                     else
+                        return f( reinterpret_cast<A>(element));
                   }
                );
             }
             else {
                // Iterate dense container                               
-               using DA = Conditional<MUTABLE, Trait&, const Trait&>;
-
                return IterateInner<MUTABLE, REVERSE>(mCount,
-                  [&index, &f](DA element) noexcept(NOE) -> R {
+                  [&index, &f](Trait& element) noexcept(NOE) -> R {
                      if constexpr (CT::Void<R>) {
                         if (not element.template IsTrait<Decay<A>>())
                            return;
@@ -329,7 +318,9 @@ namespace Langulus::Anyness
       using F = Deref<decltype(call)>;
       using A = ArgumentOf<F>;
       using R = ReturnOf<F>;
-      //static_assert(CT::Dense<A>, "Iterator must be dense value/reference");
+
+      static_assert(CT::Slab<A> or CT::Constant<Deptr<A>> or MUTABLE,
+         "Non-constant iterator for constant memory is not allowed");
 
       if constexpr (TypeErased) {
          if constexpr (CT::Deep<A>) {
@@ -507,8 +498,6 @@ namespace Langulus::Anyness
 
       static_assert(CT::Complete<Decay<A>> or CT::Sparse<A>,
          "Can't iterate with incomplete type, use pointer instead");
-      static_assert(CT::Slab<A> or CT::Constant<Deptr<A>> or MUTABLE,
-         "Non-constant iterator for constant memory is not allowed");
 
       LANGULUS_ASSUME(DevAssumes, IsTyped(),
          "Block is not typed");
@@ -526,12 +515,9 @@ namespace Langulus::Anyness
          );
       }
 
-      // These are used as detectors for block change while iterating   
-      // Should be optimized-out when !MUTABLE                          
+      // Prepare for the loop                                           
       using DA = Deref<A>;
       const auto raw = const_cast<Block*>(this)->GetRaw<DA>();
-
-      // Prepare for the loop                                           
       auto data = raw;
       if constexpr (REVERSE)
          data += count - 1;
@@ -627,7 +613,7 @@ namespace Langulus::Anyness
    
    /// Prefix increment - get next element by incrementing data pointer       
    template<class TYPE> LANGULUS(ALWAYS_INLINED)
-   Block<TYPE>& Block<TYPE>::operator ++ () IF_UNSAFE(noexcept) {
+   auto Block<TYPE>::operator ++ () IF_UNSAFE(noexcept) -> Block& {
       LANGULUS_ASSUME(DevAssumes, mRaw,
          "Block is not allocated");
 
@@ -648,13 +634,13 @@ namespace Langulus::Anyness
    }
 
    template<class TYPE> LANGULUS(ALWAYS_INLINED)
-   Block<TYPE> const& Block<TYPE>::operator ++ () const IF_UNSAFE(noexcept) {
+   auto Block<TYPE>::operator ++ () const IF_UNSAFE(noexcept) -> Block const& {
       return const_cast<Block&>(*this).operator++();
    }
 
    /// Prefix decrement - get previous element by decrementing data pointer   
    template<class TYPE> LANGULUS(ALWAYS_INLINED)
-   Block<TYPE>& Block<TYPE>::operator -- () IF_UNSAFE(noexcept) {
+   auto Block<TYPE>::operator -- () IF_UNSAFE(noexcept) -> Block& {
       LANGULUS_ASSUME(DevAssumes, mRaw,
          "Block is not allocated");
 
@@ -675,20 +661,20 @@ namespace Langulus::Anyness
    }
 
    template<class TYPE> LANGULUS(ALWAYS_INLINED)
-   Block<TYPE> const& Block<TYPE>::operator -- () const IF_UNSAFE(noexcept) {
+   auto Block<TYPE>::operator -- () const IF_UNSAFE(noexcept) -> Block const& {
       return const_cast<Block&>(*this).operator--();
    }
 
    /// Suffic increment - get next element by incrementing data pointer       
    template<class TYPE> LANGULUS(ALWAYS_INLINED)
-   Block<TYPE> Block<TYPE>::operator ++ (int) const IF_UNSAFE(noexcept) {
+   auto Block<TYPE>::operator ++ (int) const IF_UNSAFE(noexcept) -> Block {
       auto copy {*this};
       return ++copy;
    }
 
    /// Suffic decrement - get previous element by decrementing data pointer   
    template<class TYPE> LANGULUS(ALWAYS_INLINED)
-   Block<TYPE> Block<TYPE>::operator -- (int) const IF_UNSAFE(noexcept) {
+   auto Block<TYPE>::operator -- (int) const IF_UNSAFE(noexcept) -> Block {
       auto copy {*this};
       return --copy;
    }
@@ -697,7 +683,7 @@ namespace Langulus::Anyness
    ///   @param offset - the offset to apply                                  
    ///   @return the offsetted handle                                         
    template<class TYPE> LANGULUS(ALWAYS_INLINED)
-   Block<TYPE> Block<TYPE>::operator + (Offset offset) const IF_UNSAFE(noexcept) {
+   auto Block<TYPE>::operator + (Offset offset) const IF_UNSAFE(noexcept) -> Block {
       auto copy {*this};
       return copy += offset;
    }
@@ -706,7 +692,7 @@ namespace Langulus::Anyness
    ///   @param offset - the offset to apply                                  
    ///   @return the offsetted handle                                         
    template<class TYPE> LANGULUS(ALWAYS_INLINED)
-   Block<TYPE> Block<TYPE>::operator - (Offset offset) const IF_UNSAFE(noexcept) {
+   auto Block<TYPE>::operator - (Offset offset) const IF_UNSAFE(noexcept) -> Block {
       auto copy {*this};
       return copy -= offset;
    }
@@ -714,7 +700,7 @@ namespace Langulus::Anyness
    /// Prefix increment operator                                              
    ///   @return the next handle                                              
    template<class TYPE> LANGULUS(ALWAYS_INLINED)
-   Block<TYPE>& Block<TYPE>::operator += (Offset offset) IF_UNSAFE(noexcept) {
+   auto Block<TYPE>::operator += (Offset offset) IF_UNSAFE(noexcept) -> Block& {
       LANGULUS_ASSUME(DevAssumes, mRaw,
          "Block is not allocated");
 
@@ -735,14 +721,14 @@ namespace Langulus::Anyness
    }
 
    template<class TYPE> LANGULUS(ALWAYS_INLINED)
-   Block<TYPE> const& Block<TYPE>::operator += (Offset offset) const IF_UNSAFE(noexcept) {
+   auto Block<TYPE>::operator += (Offset offset) const IF_UNSAFE(noexcept) -> Block const& {
       return const_cast<Block&>(*this).operator+=(offset);
    }
 
    /// Prefix decrement operator                                              
    ///   @return the next handle                                              
    template<class TYPE> LANGULUS(ALWAYS_INLINED)
-   Block<TYPE>& Block<TYPE>::operator -= (Offset offset) IF_UNSAFE(noexcept) {
+   auto Block<TYPE>::operator -= (Offset offset) IF_UNSAFE(noexcept) -> Block& {
       LANGULUS_ASSUME(DevAssumes, mRaw,
          "Block is not allocated");
 
@@ -763,7 +749,7 @@ namespace Langulus::Anyness
    }
 
    template<class TYPE> LANGULUS(ALWAYS_INLINED)
-   Block<TYPE> const& Block<TYPE>::operator -= (Offset offset) const IF_UNSAFE(noexcept) {
+   auto Block<TYPE>::operator -= (Offset offset) const IF_UNSAFE(noexcept) -> Block const& {
       return const_cast<Block&>(*this).operator-=(offset);
    }
 
@@ -808,7 +794,7 @@ namespace Langulus::Anyness
    ///   @attention assumes iterator points to a valid element                
    ///   @return the modified iterator                                        
    template<class T> LANGULUS(ALWAYS_INLINED)
-   constexpr TBlockIterator<T>& TBlockIterator<T>::operator ++ () noexcept {
+   constexpr auto TBlockIterator<T>::operator ++ () noexcept -> TBlockIterator& {
       ++mValue;
       return *this;
    }
@@ -817,7 +803,7 @@ namespace Langulus::Anyness
    ///   @attention assumes iterator points to a valid element                
    ///   @return the previous value of the iterator                           
    template<class T> LANGULUS(ALWAYS_INLINED)
-   constexpr TBlockIterator<T> TBlockIterator<T>::operator ++ (int) noexcept {
+   constexpr auto TBlockIterator<T>::operator ++ (int) noexcept -> TBlockIterator {
       const auto backup = *this;
       operator ++ ();
       return backup;
