@@ -724,9 +724,9 @@ namespace Langulus::Anyness
          const auto meta = messy->GetTrait();
          auto found = mTraits.BranchOut().FindIt(meta);
          if (found)
-            found.GetValue() << messy.template Forward<Trait>();
+            found.GetValue() << messy.Forward();
          else
-            mTraits.Insert(meta, messy.template Forward<Trait>());
+            mTraits.Insert(meta, messy.Forward());
       }
       else if constexpr (CT::Exact<T, TMeta>) {
          // Insert trait without contents                               
