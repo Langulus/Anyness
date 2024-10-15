@@ -164,10 +164,13 @@ namespace Langulus::Anyness
       if (mHash)
          return mHash;
 
-      if (mType)
-         mHash = HashOf(mType->mDecvq, mDescriptor);
-      else
-         mHash = mDescriptor.GetHash();
+      if (mType) {
+         if (mDescriptor.IsEmpty())
+            mHash = HashOf(mType->mDecvq);
+         else
+            mHash = HashOf(mType->mDecvq, mDescriptor);
+      }
+      else mHash = mDescriptor.GetHash();
       return mHash;
    }
 

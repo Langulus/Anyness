@@ -100,7 +100,6 @@ namespace Langulus::Anyness
          mHash = {};
       else
          mHash = HashOf(mTraits, mConstructs, mAnythingElse);
-
       return mHash;
    }
 
@@ -155,12 +154,13 @@ namespace Langulus::Anyness
    ///   @param rhs - the container to merge                                  
    LANGULUS(INLINED)
    void Neat::Merge(const Neat& rhs) {
+      if (not rhs)
+         return;
+
       mTraits       += rhs.mTraits;
       mConstructs   += rhs.mConstructs;
       mAnythingElse += rhs.mAnythingElse;
-
-      // Rehash                                                         
-      mHash = HashOf(mTraits, mConstructs, mAnythingElse);
+      mHash = {};
    }
 
    /// Get list of traits, corresponding to a static trait                    
@@ -326,17 +326,9 @@ namespace Langulus::Anyness
       if (found and *found)
          return;
 
+      Logger::Warning("MARKER, MARKER, MARKER, MARKER, MARKER, MARKER, ");
       AddTrait(Abandon(T {Forward<Deref<decltype(value)>>(value)}));
    }
-
-   /// Overwrite trait, or add a new one, if not already set                  
-   ///   @tparam T - trait to set                                             
-   ///   @param value - the value to assign                                   
-   /*template<CT::Trait T> LANGULUS(INLINED)
-   void Neat::OverwriteTrait(CT::Data auto&& value) {
-      // Trait was found, overwrite it                                  
-      mTraits[MetaTraitOf<T>()] = ::std::move(value);
-   }*/
 
    /// Extract a trait from the descriptor                                    
    ///   @tparam T... - trait(s) we're searching for                          
@@ -594,9 +586,9 @@ namespace Langulus::Anyness
                [&](const A::Verb& verb) {
                   InsertInner(S::Nest(const_cast<A::Verb&>(verb)));
                },
-               [&](const DMeta& meta) {InsertInner(meta);},
-               [&](const TMeta& meta) {InsertInner(meta);},
-               [&](const CMeta& meta) {InsertInner(meta);}
+               [&](const DMeta& meta) { InsertInner(meta); },
+               [&](const TMeta& meta) { InsertInner(meta); },
+               [&](const CMeta& meta) { InsertInner(meta); }
             );
 
             if (not inserted) {
@@ -730,7 +722,7 @@ namespace Langulus::Anyness
       }
       else if constexpr (CT::Exact<T, TMeta>) {
          // Insert trait without contents                               
-         auto trait = DeintCast(messy);
+         const auto trait = *messy;
          auto found = mTraits.BranchOut().FindIt(trait);
          if (found)
             found.GetValue() << Trait::FromMeta(trait);
@@ -757,9 +749,9 @@ namespace Langulus::Anyness
       const auto meta = MetaDataOf<Decay<V>>();
       auto found = mAnythingElse.BranchOut().FindIt(meta);
       if (found)
-         found.GetValue() << verb.Forward();
+         found.GetValue() << Messy {verb.Forward()};
       else
-         mAnythingElse.Insert(meta, verb.Forward());
+         mAnythingElse.Insert(meta, Messy {verb.Forward()});
    }
 
    /// Push a construct to the appropriate bucket                             
@@ -900,8 +892,9 @@ namespace Langulus::Anyness
    ///   @attention if F's argument is a generic Block/Many type, the trait   
    ///      will be wrapped in it                                             
    ///   @tparam MUTABLE - whether changes inside container are allowed       
-   ///   @tparam F - the function signature (deducible)                       
    ///   @param call - the function to execute for each trait                 
+   ///      If `call` returns bool, you can decide when to break the loop by  
+   ///      simply returning Flow::Break (or just false)                      
    ///   @return the number of executions of 'call'                           
    template<bool MUTABLE, class F>
    Count Neat::ForEachTrait(F&& call) {
@@ -925,8 +918,6 @@ namespace Langulus::Anyness
          // Iterate all relevant traits                                 
          for (auto& data : found.GetValue()) {
             if constexpr (CT::Bool<R>) {
-               // If F returns bool, you can decide when to break the   
-               // loop by simply returning Flow::Break (or just false)  
                if (not call(reinterpret_cast<TraitType&>(data)))
                   return index + 1;
             }
@@ -939,24 +930,21 @@ namespace Langulus::Anyness
          // Iterate all traits, either using type-erased trait, or deep 
          for (auto group : mTraits) {
             for (auto& data : group.mValue) {
-               if constexpr (CT::Bool<R>) {
-                  // If F returns bool, you can decide when to break    
-                  // the loop by simply returning Flow::Break           
-                  if constexpr (CT::Deep<A>) {
-                     auto wrapper = MakeBlock<Decay<A>>(data);
+               if constexpr (CT::Deep<A>) {
+                  auto wrapper = MakeBlock<Decay<A>>(data);
+                  if constexpr (CT::Bool<R>) {
                      if (not call(wrapper))
                         return index + 1;
                   }
-                  else {
+                  else call(wrapper);
+               }
+               else {
+                  if constexpr (CT::Bool<R>) {
                      if (not call(data))
                         return index + 1;
                   }
+                  else call(data);
                }
-               else if constexpr (CT::Deep<A>) {
-                  auto wrapper = MakeBlock<Decay<A>>(data);
-                  call(wrapper);
-               }
-               else call(data);
 
                ++index;
             }
@@ -974,11 +962,12 @@ namespace Langulus::Anyness
    }
 
    /// Iterate all constructs                                                 
-   ///   @attention if F's argument is a generic Block/Many type, construct   
+   ///   @attention if call's argument is a generic Block/Many type, construct
    ///      will be wrapped in it                                             
-   ///   @tparam F - the function signature (deducible)                       
    ///   @tparam MUTABLE - whether changes inside container are allowed       
    ///   @param call - the function to execute for each construct             
+   ///      If `call` returns bool, you can decide when to break the loop by  
+   ///      simply returning Flow::Break (or just false)                      
    ///   @return the number of executions of 'call'                           
    template<bool MUTABLE, class F>
    Count Neat::ForEachConstruct(F&& call) {
@@ -994,24 +983,23 @@ namespace Langulus::Anyness
       Count index = 0;
       for (auto group : mConstructs) {
          for (auto& data : group.mValue) {
-            if constexpr (CT::Bool<R>) {
-               // If F returns bool, you can decide when to break the   
-               // loop by simply returning Flow::Break (or just false)  
-               if constexpr (CT::Deep<A>) {
-                  auto wrapper = MakeBlock<Decay<A>>(data);
+            if constexpr (CT::Deep<A>) {
+               // Iterate using deep A                                  
+               auto wrapper = MakeBlock<Decay<A>>(data);
+               if constexpr (CT::Bool<R>) {
                   if (not call(wrapper))
                      return index + 1;
                }
-               else {
+               else call(wrapper);
+            }
+            else {
+               // Iterate using construct                               
+               if constexpr (CT::Bool<R>) {
                   if (not call(data))
                      return index + 1;
                }
+               else call(data);
             }
-            else if constexpr (CT::Deep<A>) {
-               auto wrapper = MakeBlock<Decay<A>>(data);
-               call(wrapper);
-            }
-            else call(data);
 
             ++index;
          }
@@ -1030,8 +1018,9 @@ namespace Langulus::Anyness
    /// Iterate all other types of data                                        
    /// You can provide a TMany iterator, to filter based on data type         
    ///   @tparam MUTABLE - whether changes inside container are allowed       
-   ///   @tparam F - the function signature (deducible)                       
    ///   @param call - the function to execute for each block                 
+   ///      If `call` returns bool, you can decide when to break the loop by  
+   ///      simply returning Flow::Break (or just false)                      
    ///   @return the number of executions of 'call'                           
    template<bool MUTABLE, class F>
    Count Neat::ForEachTail(F&& call) {
@@ -1040,6 +1029,7 @@ namespace Langulus::Anyness
       static_assert(CT::Slab<A> or CT::Constant<Deptr<A>> or MUTABLE,
          "Non constant iterator for constant Neat block");
 
+      Count index = 0;
       if constexpr (CT::Deep<A> and CT::Typed<A>) {
          // Statically typed container provided, extract filter         
          const auto filter = MetaDataOf<Decay<TypeOf<A>>>;
@@ -1048,12 +1038,9 @@ namespace Langulus::Anyness
             return 0;
 
          // Iterate all relevant datas                                  
-         Count index = 0;
-         for (auto& data : found.mValue) {
+         for (auto& data : found.GetValue()) {
             auto& dataTyped = reinterpret_cast<Decay<A>&>(data);
             if constexpr (CT::Bool<R>) {
-               // If F returns bool, you can decide when to break the   
-               // loop by simply returning Flow::Break (or just false)  
                if (not call(dataTyped))
                   return index + 1;
             }
@@ -1061,17 +1048,12 @@ namespace Langulus::Anyness
 
             ++index;
          }
-
-         return index;
       }
       else if constexpr (CT::Deep<A>) {
-         // Iterate all datas                                           
-         Count index = 0;
+         // Type-erased container provided, iterate the entire tail     
          for (auto group : mAnythingElse) {
             for (auto& data : group.mValue) {
                if constexpr (CT::Bool<R>) {
-                  // If F returns bool, you can decide when to break    
-                  // the loop by returning Flow::Break (or just false)  
                   if (not call(data))
                      return index + 1;
                }
@@ -1080,8 +1062,6 @@ namespace Langulus::Anyness
                ++index;
             }
          }
-
-         return index;
       }
       else {
          // Anything else                                               
@@ -1091,12 +1071,9 @@ namespace Langulus::Anyness
             return 0;
 
          // Iterate all relevant datas                                  
-         Count index = 0;
          for (auto& data : found.GetValue()) {
             for (auto element : data) {
                if constexpr (CT::Bool<R>) {
-                  // If F returns bool, you can decide when to break    
-                  // the loop by returning Flow::Break (or just false)  
                   if (not call(element.template Get<A>()))
                      return index + 1;
                }
@@ -1105,9 +1082,9 @@ namespace Langulus::Anyness
 
             ++index;
          }
-
-         return index;
       }
+
+      return index;
    }
 
    ///                                                                        
@@ -1117,7 +1094,7 @@ namespace Langulus::Anyness
          ForEachTail<false>(Forward<F>(call));
    }
 
-   /// Remove data, that matches the given type                               
+   /// Remove data that matches the given type                                
    ///   @tparam T - type of data to remove                                   
    ///   @tparam EMPTY_TOO - use true, to remove all empty data entries, that 
    ///      are usually produced, by pushing DMeta (disabled by default)      
@@ -1158,7 +1135,7 @@ namespace Langulus::Anyness
       return count;
    }
 
-   /// Remove constructs, that match the given type                           
+   /// Remove constructs that match the given type                            
    ///   @tparam T - type of construct to remove                              
    ///   @return the number of removed constructs                             
    template<CT::Data T>
@@ -1189,7 +1166,7 @@ namespace Langulus::Anyness
       return count;
    }
 
-   /// Remove traits, that match the given trait type                         
+   /// Remove traits that match the given trait type                          
    ///   @tparam T - type of trait to remove                                  
    ///   @tparam EMPTY_TOO - use true, to remove all empty trait entries,     
    ///      that are usually made by pushing a TMeta (disabled by default)    
@@ -1220,7 +1197,7 @@ namespace Langulus::Anyness
          if (not *data)
             continue;
 
-         // Remove only matching trait entries, that aren't empty       
+         // Remove only matching trait entries which aren't empty       
          data = found.mValue->RemoveIt(data);
          ++count;
       }
