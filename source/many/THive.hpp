@@ -66,8 +66,6 @@ namespace Langulus::Anyness
       Cell* mReusable {};
       // Number of initialized elements across all frames               
       Count mCount = 0;
-      // Number of references, until elements are detached              
-      Count mReferences = 1;
 
    public:
       ///                                                                     
@@ -99,7 +97,6 @@ namespace Langulus::Anyness
       NOD() auto GetCount() const noexcept -> Count;
       NOD() bool IsEmpty() const noexcept;
       NOD() constexpr explicit operator bool() const noexcept;
-      auto Reference(int) -> Count;
 
    #if LANGULUS(TESTING)
       auto  GetReusable() const { return mReusable; }
@@ -119,9 +116,6 @@ namespace Langulus::Anyness
       NOD() constexpr auto last()  const noexcept -> Iterator<THive const>;
 
       constexpr A::IteratorEnd end() const noexcept { return {}; }
-
-      template<bool REVERSE = false>
-      auto ForEach(auto&&...) const -> Count;
 
       ///                                                                     
       ///   Insertion                                                         
