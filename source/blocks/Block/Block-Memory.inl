@@ -404,7 +404,7 @@ namespace Langulus::Anyness
 
                if (*entry) {
                   const_cast<Allocation*>(*entry)->Keep();
-                  GetRaw()[entry - GetEntries()]->Reference(1);
+                  DecvqCast(GetRaw()[entry - GetEntries()])->Reference(1);
                }
 
                ++entry;
@@ -530,7 +530,7 @@ namespace Langulus::Anyness
    ///   @tparam DESTROY - used only when GetUses() == 1                      
    ///   @param mask - internally used for destroying tables (tag dispatch)   
    template<class TYPE> template<bool DESTROY, class MASK>
-   void Block<TYPE>::FreeInner(MASK mask) const {
+   void Block<TYPE>::FreeInner(MASK mask) {
       LANGULUS_ASSUME(DevAssumes, not DESTROY or GetUses() == 1,
          "Attempting to destroy elements used from multiple locations");
       LANGULUS_ASSUME(DevAssumes, not IsEmpty(),
@@ -539,8 +539,6 @@ namespace Langulus::Anyness
          "Destroying elements in a static container is not allowed");
 
       constexpr bool MASKED = not CT::Nullptr<MASK>;
-      const auto mthis = const_cast<Block*>(this);
-
       if constexpr (not TypeErased) {
          using DT = Decay<TYPE>;
 
@@ -552,7 +550,7 @@ namespace Langulus::Anyness
          and (DESTROY or CT::Referencable<DT>)) {
             // Destroy every dense element                              
             const auto count = not MASKED ? mCount : mReserved;
-            auto data = mthis->GetRaw();
+            auto data = GetRaw();
             const auto begMarker = data;
             const auto endMarker = data + count;
             UNUSED() Count remaining;
@@ -595,7 +593,7 @@ namespace Langulus::Anyness
          and (DESTROY or mType->mReference)) {
             // Destroy every dense element                              
             const auto count = not MASKED ? mCount : mReserved;
-            auto data = mthis->mRaw;
+            auto data = mRaw;
             UNUSED() int index;
             UNUSED() Count remaining;
             if constexpr (MASKED) {
@@ -667,7 +665,7 @@ namespace Langulus::Anyness
    ///   @attention assumes block is not static                               
    ///   @param mask - internally used for destroying tables (tag dispatch)   
    template<class TYPE> template<class MASK>
-   void Block<TYPE>::FreeInnerSparse(MASK mask) const {
+   void Block<TYPE>::FreeInnerSparse(MASK mask) {
       LANGULUS_ASSUME(DevAssumes, IsSparse(), "Container must be sparse");
 
       // Destroy all indirection layers, if their references reach      
@@ -678,9 +676,7 @@ namespace Langulus::Anyness
       //    2. Destroy those groups, that are fully dereferenced        
       constexpr bool MASKED = not CT::Nullptr<MASK>;
       const auto count = not MASKED ? mCount : mReserved;
-      const auto mthis = const_cast<Block*>(this);
-
-      auto handle = mthis->template GetHandle<void*>(0);
+      auto handle = GetHandle<void*>(0);
       const auto begMarker = handle.mValue;
       const auto endMarker = handle.mValue + count;
       UNUSED() Count remaining;
@@ -738,7 +734,7 @@ namespace Langulus::Anyness
                if constexpr (CT::Referencable<Deptr<TYPE>>) {
                   // Statically typed and sparse                        
                   const_cast<Allocation*>(handle.GetEntry())->Free();
-                  static_cast<TYPE>(handle.Get())->Reference(-1);
+                  DecvqCast(static_cast<TYPE>(handle.Get()))->Reference(-1);
                }
             }
             else if (mType->mReference) {

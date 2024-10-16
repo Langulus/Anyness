@@ -118,10 +118,10 @@ namespace Langulus::Anyness
    template<CT::Data T, CT::Data T1, CT::Data...TN> LANGULUS(INLINED)
    Construct Construct::From(T1&& t1, TN&&...tn) {
       static_assert(CT::Decayed<T>, "T must be fully decayed");
-      Construct result {MetaDataOf<T>()};
-      result << Forward<T1>(t1);
-      (void)(result << ... << Forward<TN>(tn));
-      return result;
+      return {
+         MetaDataOf<T>(),
+         Many {Forward<T1>(t1), Forward<TN>(tn)...}
+      };
    }
 
    /// Create content descriptor from a static type (without arguments)       
@@ -140,10 +140,10 @@ namespace Langulus::Anyness
    ///   @return the request                                                  
    template<CT::Data T1, CT::Data...TN> LANGULUS(INLINED)
    Construct Construct::FromToken(const Token& token, T1&& t1, TN&&...tn) {
-      Construct result {RTTI::DisambiguateMeta(token)};
-      result << Forward<T1>(t1);
-      (void)(result << ... << Forward<TN>(tn));
-      return result;
+      return {
+         RTTI::DisambiguateMeta(token),
+         Many {Forward<T1>(t1), Forward<TN>(tn)...}
+      };
    }
 
    /// Create content descriptor from a type token (without arguments)        

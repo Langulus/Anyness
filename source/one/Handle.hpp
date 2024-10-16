@@ -121,7 +121,7 @@ namespace Langulus::Anyness
       NOD() bool Compare(const auto&, DMeta = {}) const;
 
       template<bool RESET = false, bool DEALLOCATE = true>
-      void FreeInner(DMeta = {}) const requires Mutable;
+      void FreeInner(DMeta = {}) requires Mutable;
 
       // Prefix operators                                               
       auto operator ++ () noexcept -> Handle& requires Embedded;

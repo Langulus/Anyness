@@ -66,6 +66,8 @@ namespace Langulus::Anyness
       Cell* mReusable {};
       // Number of initialized elements across all frames               
       Count mCount = 0;
+      // Number of references, until elements are detached              
+      Count mReferences = 1;
 
    public:
       ///                                                                     
@@ -83,20 +85,21 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Assignment                                                        
       ///                                                                     
-      THive& operator = (const THive&);
-      THive& operator = (THive&&);
+      auto operator = (const THive&) -> THive&;
+      auto operator = (THive&&) -> THive&;
 
       template<template<class> class S> requires CT::Intent<S<THive<T>>>
-      THive& operator = (S<THive>&&);
+      auto operator = (S<THive>&&) -> THive&;
 
       ///                                                                     
       ///   Capsulation                                                       
       ///                                                                     
-      NOD() const Frame* Owns(const void*) const noexcept;
-      NOD() DMeta GetType() const noexcept;
-      NOD() Count GetCount() const noexcept;
+      NOD() auto Owns(const void*) const noexcept -> const Frame*;
+      NOD() auto GetType() const noexcept -> DMeta;
+      NOD() auto GetCount() const noexcept -> Count;
       NOD() bool IsEmpty() const noexcept;
       NOD() constexpr explicit operator bool() const noexcept;
+      auto Reference(int) -> Count;
 
    #if LANGULUS(TESTING)
       auto  GetReusable() const { return mReusable; }
@@ -109,26 +112,26 @@ namespace Langulus::Anyness
       template<class>
       struct Iterator;
 
-      NOD() constexpr Iterator<THive>       begin() noexcept;
-      NOD() constexpr Iterator<THive const> begin() const noexcept;
+      NOD() constexpr auto begin()       noexcept -> Iterator<THive>;
+      NOD() constexpr auto begin() const noexcept -> Iterator<THive const>;
 
-      NOD() constexpr Iterator<THive>       last() noexcept;
-      NOD() constexpr Iterator<THive const> last() const noexcept;
+      NOD() constexpr auto last()        noexcept -> Iterator<THive>;
+      NOD() constexpr auto last()  const noexcept -> Iterator<THive const>;
 
       constexpr A::IteratorEnd end() const noexcept { return {}; }
 
       template<bool REVERSE = false>
-      Count ForEach(auto&&...) const;
+      auto ForEach(auto&&...) const -> Count;
 
       ///                                                                     
       ///   Insertion                                                         
       ///                                                                     
       template<class...A> requires ::std::constructible_from<T, A...>
-      T* New(A&&...);
+      auto New(A&&...) -> T*;
 
    protected:
       template<class...A> requires ::std::constructible_from<T, A...>
-      Cell* NewInner(A&&...);
+      auto NewInner(A&&...) -> Cell*;
 
    public:
       ///                                                                     
@@ -203,12 +206,12 @@ namespace Langulus::Anyness
 
    public:
       Iterator() noexcept = delete;
-      constexpr Iterator(const Iterator& other) noexcept = default;
-      constexpr Iterator(Iterator&& other) noexcept = default;
+      constexpr Iterator(const Iterator&) noexcept = default;
+      constexpr Iterator(Iterator&&) noexcept = default;
       constexpr Iterator(const A::IteratorEnd&) noexcept;
 
-      constexpr Iterator& operator = (const Iterator&) noexcept = default;
-      constexpr Iterator& operator = (Iterator&&) noexcept = default;
+      constexpr auto operator = (const Iterator&) noexcept -> Iterator& = default;
+      constexpr auto operator = (Iterator&&) noexcept -> Iterator& = default;
 
       NOD() constexpr bool operator == (const Iterator&) const noexcept;
       NOD() constexpr bool operator == (const A::IteratorEnd&) const noexcept;
@@ -217,10 +220,10 @@ namespace Langulus::Anyness
       NOD() constexpr decltype(auto) operator -> () const noexcept;
 
       // Prefix operator                                                
-      constexpr Iterator& operator ++ () noexcept;
+      constexpr auto operator ++ () noexcept -> Iterator&;
 
       // Suffix operator                                                
-      NOD() constexpr Iterator operator ++ (int) noexcept;
+      NOD() constexpr auto operator ++ (int) noexcept -> Iterator;
 
       constexpr explicit operator bool() const noexcept;
       constexpr operator Iterator<const HIVE>() const noexcept requires Mutable;
