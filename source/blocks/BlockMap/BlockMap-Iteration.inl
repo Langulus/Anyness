@@ -148,6 +148,7 @@ namespace Langulus::Anyness
    LoopControl BlockMap::ForEachInner(
       const CT::Block auto& part, auto&& call, Count& counter
    ) const {
+      auto& partLocal = DecvqCast(part);
       using F = Deref<decltype(call)>;
       using A = ArgumentOf<F>;
       using R = ReturnOf<F>;
@@ -173,12 +174,12 @@ namespace Langulus::Anyness
          ++counter;
 
          if constexpr (CT::Bool<R>) {
-            if (not call(DecvqCast(part).template Get<A>(inf - mInfo)))
+            if (not call(partLocal.template Get<A>(inf - mInfo)))
                return Loop::Break;
             next();
          }
          else if constexpr (CT::Exact<R, LoopControl>) {
-            const R loop = call(DecvqCast(part).template Get<A>(inf - mInfo));
+            const R loop = call(partLocal.template Get<A>(inf - mInfo));
 
             switch (loop.mControl) {
             case LoopControl::Break:
@@ -205,7 +206,7 @@ namespace Langulus::Anyness
             }
          }
          else {
-            call(DecvqCast(part).template Get<A>(inf - mInfo));
+            call(partLocal.template Get<A>(inf - mInfo));
             next();
          }
       }

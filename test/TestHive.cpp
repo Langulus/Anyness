@@ -22,8 +22,8 @@ struct Producible : Referenced {
 
 SCENARIO("Test hives", "[hive]") {
    static Allocator::State memoryState;
-   const auto one = Producible {1};
-   const auto two = Producible {2};
+   const Producible one {1};
+   const Producible two {2};
 
 	GIVEN("A hive instance") {
 		THive<Producible> hive;
@@ -51,8 +51,8 @@ SCENARIO("Test hives", "[hive]") {
 		}
    }
 
-   one.Reference(-1);
-   two.Reference(-1);
+   const_cast<Producible&>(one).Reference(-1);
+   const_cast<Producible&>(two).Reference(-1);
 
    REQUIRE(memoryState.Assert());
 }

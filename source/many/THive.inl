@@ -50,14 +50,14 @@ namespace Langulus::Anyness
    /// Refer assignment                                                       
    ///   @param other - the hive to refer to                                  
    TEMPLATE() LANGULUS(INLINED)
-   TME()& TME()::operator = (const THive& other) {
+   auto TME()::operator = (const THive& other) -> THive& {
       return operator = (Refer(other));
    }
 
    /// Move assignment                                                        
    ///   @param other - the hive to move                                      
    TEMPLATE() LANGULUS(INLINED)
-   TME()& TME()::operator = (THive&& other) {
+   auto TME()::operator = (THive&& other) -> THive& {
       return operator = (Move(other));
    }
 
@@ -65,9 +65,8 @@ namespace Langulus::Anyness
    ///   @param other - the hive to assign                                    
    TEMPLATE() template<template<class> class S> 
    requires CT::Intent<S<THive<T>>> LANGULUS(INLINED)
-   THive<T>& THive<T>::operator = (S<THive>&& other) {
-      using SS = S<THive>;
-      mFrames = SS::Nest(other->mFrames);
+   auto THive<T>::operator = (S<THive>&& other) -> THive& {
+      mFrames = other.Nest(other->mFrames);
       mReusable = other->mReusable;
       mCount = other->mCount;
 
@@ -96,7 +95,7 @@ namespace Langulus::Anyness
    ///   @param ptr - the pointer to check                                    
    ///   @return nullptr if not found, or a pointer to the owning frame       
    TEMPLATE() LANGULUS(INLINED)
-   const typename TME()::Frame* TME()::Owns(const void* ptr) const noexcept {
+   auto TME()::Owns(const void* ptr) const noexcept -> const Frame* {
       for (auto& frame : mFrames)
          if (frame.Owns(ptr))
             return &frame;
@@ -106,21 +105,21 @@ namespace Langulus::Anyness
    /// Get the type of the contained data                                     
    ///   @return the meta data                                                
    TEMPLATE() LANGULUS(INLINED)
-   DMeta TME()::GetType() const noexcept {
+   auto TME()::GetType() const noexcept -> DMeta {
       return MetaDataOf<T>();
    }
 
    /// Get the number of initialized cells                                    
    ///   @return the number of valid entries                                  
    TEMPLATE() LANGULUS(INLINED)
-   Count TME()::GetCount() const noexcept {
+   auto TME()::GetCount() const noexcept -> Count {
       return mCount;
    }
 
    /// Get iterator to first element                                          
    ///   @return an iterator to the first element, or end if empty            
    TEMPLATE() LANGULUS(INLINED)
-   constexpr typename THive<T>::template Iterator<THive<T>> THive<T>::begin() noexcept {
+   constexpr auto THive<T>::begin() noexcept -> Iterator<THive> {
       if (IsEmpty())
          return end();
 
@@ -131,15 +130,13 @@ namespace Langulus::Anyness
          ++cell;
 
       return {
-         cell,
-         cellEnd,
-         &firstFrame,
-         &firstFrame + mFrames.GetCount() - 1
+         cell, cellEnd,
+         &firstFrame, &firstFrame + mFrames.GetCount() - 1
       };
    }
 
    TEMPLATE() LANGULUS(INLINED)
-   constexpr typename THive<T>::template Iterator<const THive<T>> THive<T>::begin() const noexcept {
+   constexpr auto THive<T>::begin() const noexcept -> Iterator<const THive> {
       return const_cast<THive*>(this)->begin();
    }
 
@@ -157,15 +154,13 @@ namespace Langulus::Anyness
          --cell;
 
       return {
-         cell,
-         cell + lastFrame.GetReserved(),
-         &lastFrame,
-         &lastFrame
+         cell, cell + lastFrame.GetReserved(),
+         &lastFrame, &lastFrame
       };
    }
 
    TEMPLATE() LANGULUS(INLINED)
-   constexpr typename THive<T>::template Iterator<const THive<T>> THive<T>::last() const noexcept {
+   constexpr auto THive<T>::last() const noexcept -> Iterator<const THive> {
       return const_cast<THive*>(this)->last();
    }
 
@@ -174,7 +169,7 @@ namespace Langulus::Anyness
    ///   @return a pointer to the newly constructed instance of T             
    TEMPLATE()
    template<class...A> requires ::std::constructible_from<T, A...>
-   T* THive<T>::New(A&&...args) {
+   auto THive<T>::New(A&&...args) -> T* {
       return &(NewInner(Forward<A>(args)...)->mData);
    }
 
@@ -183,7 +178,7 @@ namespace Langulus::Anyness
    ///   @return a pointer to the newly constructed instance of T             
    TEMPLATE()
    template<class...A> requires ::std::constructible_from<T, A...>
-   typename THive<T>::Cell* THive<T>::NewInner(A&&...args) {
+   auto THive<T>::NewInner(A&&...args) -> Cell* {
       Cell* result;
 
       if (mReusable) {
@@ -264,36 +259,6 @@ namespace Langulus::Anyness
    /// Reset the factory                                                      
    TEMPLATE() LANGULUS(INLINED)
    void TME()::Reset() {
-      // First pass only detaches                                       
-      if constexpr (requires (T a) { a.Detach(); }) {
-         for (auto& frame : mFrames) {
-            if (frame.IsEmpty())
-               continue;
-
-            auto counter = frame.mCount;
-            auto raw = frame.GetRaw();
-            const auto rawEnd = frame.GetRaw() + frame.GetReserved();
-            while (raw != rawEnd and counter) {
-               if (not raw->mNextFreeCell) {
-                  // Even if the cell is still referenced, it no longer 
-                  // is part of the factory, and should be detached.    
-                  // Detachment is like pre-destruction, where all ties 
-                  // in a hierarchical element are severed, so that any 
-                  // circular dependencies are accounted for.           
-                  raw->mData.Detach();
-                  --counter;
-               }
-
-               ++raw;
-            }
-
-            LANGULUS_ASSUME(DevAssumes, counter == 0,
-               "Frame should be empty at this point");
-         }
-      }
-
-      // Second pass calls destructors on elements that are fully       
-      // dereferenced                                                   
       for (auto& frame : mFrames) {
          if (frame.IsEmpty())
             continue;
@@ -328,6 +293,46 @@ namespace Langulus::Anyness
       mCount = 0;
    }
 
+   /// Reference the factory and detach all elements if fully dereferenced    
+   /// Used as a first-stage destruction to solve circular references         
+   TEMPLATE() LANGULUS(INLINED)
+   Count TME()::Reference(int x) {
+      LANGULUS_ASSUME(DevAssumes, mReferences or x == 0,
+         "Dead instance resurrection/overkill");
+      LANGULUS_ASSUME(DevAssumes, x >= 0 or mReferences >= static_cast<Count>(-x),
+         "Live instance overkill");
+      mReferences += x;
+      if (mReferences)
+         return mReferences;
+
+      // If reached, then it's time to detach everything                
+      for (auto& frame : mFrames) {
+         if (frame.IsEmpty())
+            continue;
+
+         auto counter = frame.mCount;
+         auto raw = frame.GetRaw();
+         const auto rawEnd = frame.GetRaw() + frame.GetReserved();
+         while (raw != rawEnd and counter) {
+            if (not raw->mNextFreeCell) {
+               // Even if the cell is still referenced, it no longer    
+               // is part of the factory and should be detached.        
+               // Detachment is like pre-destruction, where all ties    
+               // in a hierarchical element are severed, so that any    
+               // circular dependencies are accounted for.              
+               raw->mData.Reference(x + 1);
+               --counter;
+            }
+
+            ++raw;
+         }
+
+         LANGULUS_ASSUME(DevAssumes, counter == 0,
+            "Frame should be empty at this point");
+      }
+
+      return 0;
+   }
 
    /// Construct an iterator                                                  
    ///   @param start - the current iterator position                         
@@ -336,17 +341,17 @@ namespace Langulus::Anyness
    constexpr THive<T>::Iterator<HIVE>::Iterator(
       Cell* start, Cell const* end, Frame* startf, Frame const* lastf
    ) noexcept
-      : mCell {start}
-      , mCellEnd {end}
-      , mFrame {startf}
+      : mCell      {start}
+      , mCellEnd   {end}
+      , mFrame     {startf}
       , mFrameLast {lastf} {}
 
    /// Construct an end iterator                                              
    TEMPLATE() template<class HIVE> LANGULUS(INLINED)
    constexpr THive<T>::Iterator<HIVE>::Iterator(const A::IteratorEnd&) noexcept
-      : mCell {nullptr}
-      , mCellEnd {nullptr}
-      , mFrame {nullptr}
+      : mCell      {nullptr}
+      , mCellEnd   {nullptr}
+      , mFrame     {nullptr}
       , mFrameLast {nullptr} {}
 
    /// Compare two iterators                                                  
@@ -383,7 +388,7 @@ namespace Langulus::Anyness
    ///   @attention assumes iterator points to a valid element                
    ///   @return the modified iterator                                        
    TEMPLATE() template<class HIVE> LANGULUS(INLINED)
-   constexpr THive<T>::Iterator<HIVE>& THive<T>::Iterator<HIVE>::operator ++ () noexcept {
+   constexpr auto THive<T>::Iterator<HIVE>::operator ++ () noexcept -> Iterator& {
       ++mCell;
 
       // Skip uninitialized cells                                       
@@ -408,7 +413,7 @@ namespace Langulus::Anyness
    ///   @attention assumes iterator points to a valid element                
    ///   @return the previous value of the iterator                           
    TEMPLATE() template<class HIVE> LANGULUS(INLINED)
-   constexpr THive<T>::Iterator<HIVE> THive<T>::Iterator<HIVE>::operator ++ (int) noexcept {
+   constexpr auto THive<T>::Iterator<HIVE>::operator ++ (int) noexcept -> Iterator {
       const auto backup = *this;
       operator ++ ();
       return backup;

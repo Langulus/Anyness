@@ -12,8 +12,8 @@
 
 ///                                                                           
 TEMPLATE_TEST_CASE("Shared pointer", "[Ref]",
-   Ref<Many>, Ref<int>, Ref<RT>,
-   Ref<const Many>, Ref<const int>, Ref<const RT>
+   Ref<const RT>, Ref<Many>, Ref<int>, Ref<RT>,
+   Ref<const Many>, Ref<const int>
 ) {
    static Allocator::State memoryState;
 
@@ -60,7 +60,7 @@ TEMPLATE_TEST_CASE("Shared pointer", "[Ref]",
          REQUIRE(pointer.GetAllocation());
          REQUIRE(pointer.GetUses() == 1);
          if constexpr (CT::Referencable<TT>)
-            REQUIRE(pointer->Reference(0) == 1);
+            REQUIRE(pointer->GetReferences() == 1);
       }
 
       WHEN("Create and copy an instance") {
@@ -75,7 +75,7 @@ TEMPLATE_TEST_CASE("Shared pointer", "[Ref]",
          REQUIRE(pointer.GetUses() == 2);
          REQUIRE(pointer2.GetUses() == 2);
          if constexpr (CT::Referencable<TT>)
-            REQUIRE(pointer->Reference(0) == 2);
+            REQUIRE(pointer->GetReferences() == 2);
       }
 
       WHEN("Create and move an instance") {
@@ -90,7 +90,7 @@ TEMPLATE_TEST_CASE("Shared pointer", "[Ref]",
          REQUIRE(pointer.GetUses() == 0);
          REQUIRE(pointer2.GetUses() == 1);
          if constexpr (CT::Referencable<TT>)
-            REQUIRE(pointer2->Reference(0) == 1);
+            REQUIRE(pointer2->GetReferences() == 1);
       }
 
       WHEN("Overwrite an instance") {
@@ -110,7 +110,7 @@ TEMPLATE_TEST_CASE("Shared pointer", "[Ref]",
          REQUIRE(pointer.GetAllocation());
          REQUIRE(pointer.GetUses() == 2);
          if constexpr (CT::Referencable<TT>)
-            REQUIRE(pointer->Reference(0) == 2);
+            REQUIRE(pointer->GetReferences() == 2);
       }
 
       auto raw = new Decay<TT> {3};
@@ -128,7 +128,7 @@ TEMPLATE_TEST_CASE("Shared pointer", "[Ref]",
          #else
             REQUIRE_FALSE(pointer.GetAllocation());
             if constexpr (CT::Referencable<TT>)
-               REQUIRE(pointer->Reference(0) == 1);
+               REQUIRE(pointer->GetReferences() == 1);
          #endif
       }
 
@@ -165,7 +165,7 @@ TEMPLATE_TEST_CASE("Shared pointer", "[Ref]",
          #else
             REQUIRE_FALSE(pointer.GetAllocation());
             if constexpr (CT::Referencable<TT>)
-               REQUIRE(pointer->Reference(0) == 1);
+               REQUIRE(pointer->GetReferences() == 1);
          #endif
       }
 
