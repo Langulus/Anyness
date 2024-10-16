@@ -351,7 +351,7 @@ namespace Langulus::Anyness
                   if (GetEntry()) {
                      const_cast<Allocation*>(GetEntry())->Keep();
                      if constexpr (CT::Referencable<Deptr<T>>)
-                        Get()->Reference(1);
+                        DecvqCast(Get())->Reference(1);
                   }
                }
             }
@@ -374,7 +374,7 @@ namespace Langulus::Anyness
                   if (GetEntry()) {
                      const_cast<Allocation*>(GetEntry())->Keep();
                      if constexpr (CT::Referencable<Deptr<T>>)
-                        Get()->Reference(1);
+                        DecvqCast(Get())->Reference(1);
                   }
                }
             }
@@ -498,7 +498,7 @@ namespace Langulus::Anyness
    ///   @param meta - type of the contained data, used only if handle is     
    ///      type-erased                                                       
    TEMPLATE() template<bool RESET, bool DEALLOCATE>
-   void HAND()::FreeInner(DMeta meta) const requires Mutable {
+   void HAND()::FreeInner(DMeta meta) requires Mutable {
       if constexpr (TypeErased) {
          LANGULUS_ASSUME(DevAssumes, meta,
             "Invalid type provided for type-erased handle");
@@ -574,7 +574,7 @@ namespace Langulus::Anyness
                      // Pointer to a complete, destroyable dense        
                      // Call the destructor                             
                      if constexpr (CT::Referencable<DT>) {
-                        if (Get()->Reference(-1) == 0)
+                        if (DecvqCast(Get())->Reference(-1) == 0)
                            Get()->~DT();
                      }
                      else Get()->~DT();
@@ -591,7 +591,7 @@ namespace Langulus::Anyness
                   // reached 1. This usually happens when elements from 
                   // a THive are referenced.                            
                   if constexpr (CT::Dense<Deptr<T>> and CT::Referencable<DT>) {
-                     if (Get()->Reference(-1) == 0)
+                     if (DecvqCast(Get())->Reference(-1) == 0)
                         Get()->~DT();
                   }
 

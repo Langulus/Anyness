@@ -69,7 +69,7 @@ namespace Langulus::Anyness
       NOD() auto GetHandle() const -> Handle<T* const>;
       NOD() auto GetHandle()       -> Handle<T*>;
       NOD() constexpr auto GetAllocation() const noexcept -> const Allocation*;
-      NOD() constexpr Count GetUses() const noexcept;
+      NOD() constexpr auto GetUses() const noexcept -> Count;
       
       using Base::operator bool;
       using Base::operator ->;

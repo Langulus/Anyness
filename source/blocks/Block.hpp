@@ -842,9 +842,9 @@ namespace Langulus::Anyness
 
       void Free();
       template<bool DESTROY = true, class MASK = std::nullptr_t>
-      void FreeInner(MASK = {}) const;
+      void FreeInner(MASK = {});
       template<class MASK>
-      void FreeInnerSparse(MASK) const;
+      void FreeInnerSparse(MASK);
 
       constexpr void ResetMemory() noexcept;
       /// @endcond                                                            

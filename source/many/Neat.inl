@@ -326,7 +326,6 @@ namespace Langulus::Anyness
       if (found and *found)
          return;
 
-      Logger::Warning("MARKER, MARKER, MARKER, MARKER, MARKER, MARKER, ");
       AddTrait(Abandon(T {Forward<Deref<decltype(value)>>(value)}));
    }
 
@@ -749,9 +748,9 @@ namespace Langulus::Anyness
       const auto meta = MetaDataOf<Decay<V>>();
       auto found = mAnythingElse.BranchOut().FindIt(meta);
       if (found)
-         found.GetValue() << Messy {verb.Forward()};
+         found.GetValue() << verb.Forward();
       else
-         mAnythingElse.Insert(meta, Messy {verb.Forward()});
+         mAnythingElse.Insert(meta, verb.Forward());
    }
 
    /// Push a construct to the appropriate bucket                             

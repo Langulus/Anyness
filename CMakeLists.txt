@@ -52,6 +52,6 @@ target_compile_definitions(LangulusAnyness
 )
 
 if(LANGULUS_TESTING)
-    #enable_testing()
-	#add_subdirectory(test)
+    enable_testing()
+	add_subdirectory(test)
 endif()
