@@ -267,14 +267,15 @@ namespace Langulus::Anyness
          const auto rawEnd = frame.GetRaw() + frame.GetReserved();
          while (raw != rawEnd and frame.mCount) {
             if (not raw->mNextFreeCell) {
+               UNUSED() const auto prevRefs = raw->mData.GetReferences();
                if (raw->mData.Reference(-1) == 0) {
                   // Safe to destroy the instance from here             
                   // Otherwise hive cell is in use somewhere else. It   
-                  // will continue to live as a Ref<T> somewhere, until 
-                  // the handle's destructor is called, and the last    
-                  // reference is released                              
+                  // will continue to live as a reference somewhere,    
+                  // until the handle's destructor is called, and the   
+                  // last reference is released                         
                   LANGULUS_ASSUME(DevAssumes, frame.GetUses() >= 1,
-                     "A populated cell must have references");
+                     "A populated frame must have references");
                   raw->~Cell();
                }
 
@@ -295,7 +296,7 @@ namespace Langulus::Anyness
 
    /// Reference the factory and detach all elements if fully dereferenced    
    /// Used as a first-stage destruction to solve circular references         
-   TEMPLATE() LANGULUS(INLINED)
+   /*TEMPLATE() LANGULUS(INLINED)
    Count TME()::Reference(int x) {
       LANGULUS_ASSUME(DevAssumes, mReferences or x == 0,
          "Dead instance resurrection/overkill");
@@ -332,7 +333,7 @@ namespace Langulus::Anyness
       }
 
       return 0;
-   }
+   }*/
 
    /// Construct an iterator                                                  
    ///   @param start - the current iterator position                         
