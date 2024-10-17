@@ -44,7 +44,7 @@ namespace Langulus::Anyness
       static_assert(CT::Data<T>,         "T can't be void");
       static_assert(CT::Referencable<T>, "T must be referencable");
       static_assert(not CT::Abstract<T>, "T can't be abstract");
-      Reset();
+      ResetInner();
    }
 
    /// Refer assignment                                                       
@@ -143,7 +143,7 @@ namespace Langulus::Anyness
    /// Get iterator to the last element                                       
    ///   @return an iterator to the last element, or end if empty             
    TEMPLATE() LANGULUS(INLINED)
-   constexpr typename THive<T>::template Iterator<THive<T>> THive<T>::last() noexcept {
+   constexpr auto THive<T>::last() noexcept -> Iterator<THive> {
       if (IsEmpty())
          return end();
 
@@ -255,10 +255,11 @@ namespace Langulus::Anyness
       mReusable = cell;
       --mCount;
    }
-   
-   /// Reset the factory                                                      
+
+   /// Free all valid cells and frames                                        
+   ///   @attention this doesn't modify any THive state                       
    TEMPLATE() LANGULUS(INLINED)
-   void TME()::Reset() {
+   void TME()::ResetInner() {
       for (auto& frame : mFrames) {
          if (frame.IsEmpty())
             continue;
@@ -267,7 +268,6 @@ namespace Langulus::Anyness
          const auto rawEnd = frame.GetRaw() + frame.GetReserved();
          while (raw != rawEnd and frame.mCount) {
             if (not raw->mNextFreeCell) {
-               UNUSED() const auto prevRefs = raw->mData.GetReferences();
                if (raw->mData.Reference(-1) == 0) {
                   // Safe to destroy the instance from here             
                   // Otherwise hive cell is in use somewhere else. It   
@@ -288,58 +288,29 @@ namespace Langulus::Anyness
          LANGULUS_ASSUME(DevAssumes, frame.mCount == 0,
             "Frame should be empty at this point");
       }
+   }
 
+   /// Reset the factory                                                      
+   TEMPLATE() LANGULUS(INLINED)
+   void TME()::Reset() {
+      ResetInner();
       mFrames.Reset();
       mReusable = nullptr;
       mCount = 0;
    }
 
-   /// Reference the factory and detach all elements if fully dereferenced    
-   /// Used as a first-stage destruction to solve circular references         
-   /*TEMPLATE() LANGULUS(INLINED)
-   Count TME()::Reference(int x) {
-      LANGULUS_ASSUME(DevAssumes, mReferences or x == 0,
-         "Dead instance resurrection/overkill");
-      LANGULUS_ASSUME(DevAssumes, x >= 0 or mReferences >= static_cast<Count>(-x),
-         "Live instance overkill");
-      mReferences += x;
-      if (mReferences)
-         return mReferences;
 
-      // If reached, then it's time to detach everything                
-      for (auto& frame : mFrames) {
-         if (frame.IsEmpty())
-            continue;
 
-         auto counter = frame.mCount;
-         auto raw = frame.GetRaw();
-         const auto rawEnd = frame.GetRaw() + frame.GetReserved();
-         while (raw != rawEnd and counter) {
-            if (not raw->mNextFreeCell) {
-               // Even if the cell is still referenced, it no longer    
-               // is part of the factory and should be detached.        
-               // Detachment is like pre-destruction, where all ties    
-               // in a hierarchical element are severed, so that any    
-               // circular dependencies are accounted for.              
-               raw->mData.Reference(x + 1);
-               --counter;
-            }
 
-            ++raw;
-         }
+#define TEMPLATE_IT() TEMPLATE() template<class HIVE>
+#define TME_IT() THive<T>::Iterator<HIVE>
 
-         LANGULUS_ASSUME(DevAssumes, counter == 0,
-            "Frame should be empty at this point");
-      }
-
-      return 0;
-   }*/
 
    /// Construct an iterator                                                  
    ///   @param start - the current iterator position                         
    ///   @param end - the ending marker                                       
-   TEMPLATE() template<class HIVE> LANGULUS(INLINED)
-   constexpr THive<T>::Iterator<HIVE>::Iterator(
+   TEMPLATE_IT() LANGULUS(INLINED)
+   constexpr TME_IT()::Iterator(
       Cell* start, Cell const* end, Frame* startf, Frame const* lastf
    ) noexcept
       : mCell      {start}
@@ -348,8 +319,8 @@ namespace Langulus::Anyness
       , mFrameLast {lastf} {}
 
    /// Construct an end iterator                                              
-   TEMPLATE() template<class HIVE> LANGULUS(INLINED)
-   constexpr THive<T>::Iterator<HIVE>::Iterator(const A::IteratorEnd&) noexcept
+   TEMPLATE_IT() LANGULUS(INLINED)
+   constexpr TME_IT()::Iterator(const A::IteratorEnd&) noexcept
       : mCell      {nullptr}
       , mCellEnd   {nullptr}
       , mFrame     {nullptr}
@@ -358,38 +329,38 @@ namespace Langulus::Anyness
    /// Compare two iterators                                                  
    ///   @param rhs - the other iterator                                      
    ///   @return true if iterators point to the same element                  
-   TEMPLATE() template<class HIVE> LANGULUS(INLINED)
-   constexpr bool THive<T>::Iterator<HIVE>::operator == (const Iterator& rhs) const noexcept {
+   TEMPLATE_IT() LANGULUS(INLINED)
+   constexpr bool TME_IT()::operator == (const Iterator& rhs) const noexcept {
       return mCell == rhs.mCell;
    }
 
    /// Compare iterator with an end marker                                    
    ///   @param rhs - the end iterator                                        
    ///   @return true element is at or beyond the end marker                  
-   TEMPLATE() template<class HIVE> LANGULUS(INLINED)
-   constexpr bool THive<T>::Iterator<HIVE>::operator == (const A::IteratorEnd&) const noexcept {
+   TEMPLATE_IT() LANGULUS(INLINED)
+   constexpr bool TME_IT()::operator == (const A::IteratorEnd&) const noexcept {
       return mCell ? mCell >= mFrameLast->GetRawEnd() : true;
    }
    
    /// Iterator access operator                                               
    ///   @return a reference to the element at the current iterator position  
-   TEMPLATE() template<class HIVE> LANGULUS(INLINED)
-   constexpr decltype(auto) THive<T>::Iterator<HIVE>::operator * () const noexcept {
+   TEMPLATE_IT() LANGULUS(INLINED)
+   constexpr decltype(auto) TME_IT()::operator * () const noexcept {
       return (mCell->mData);
    }
 
    /// Iterator access operator                                               
    ///   @return a reference to the element at the current iterator position  
-   TEMPLATE() template<class HIVE> LANGULUS(INLINED)
-   constexpr decltype(auto) THive<T>::Iterator<HIVE>::operator -> () const noexcept {
+   TEMPLATE_IT() LANGULUS(INLINED)
+   constexpr decltype(auto) TME_IT()::operator -> () const noexcept {
       return &(mCell->mData);
    }
 
    /// Prefix increment operator                                              
    ///   @attention assumes iterator points to a valid element                
    ///   @return the modified iterator                                        
-   TEMPLATE() template<class HIVE> LANGULUS(INLINED)
-   constexpr auto THive<T>::Iterator<HIVE>::operator ++ () noexcept -> Iterator& {
+   TEMPLATE_IT() LANGULUS(INLINED)
+   constexpr auto TME_IT()::operator ++ () noexcept -> Iterator& {
       ++mCell;
 
       // Skip uninitialized cells                                       
@@ -413,26 +384,29 @@ namespace Langulus::Anyness
    /// Suffix increment operator                                              
    ///   @attention assumes iterator points to a valid element                
    ///   @return the previous value of the iterator                           
-   TEMPLATE() template<class HIVE> LANGULUS(INLINED)
-   constexpr auto THive<T>::Iterator<HIVE>::operator ++ (int) noexcept -> Iterator {
+   TEMPLATE_IT() LANGULUS(INLINED)
+   constexpr auto TME_IT()::operator ++ (int) noexcept -> Iterator {
       const auto backup = *this;
       operator ++ ();
       return backup;
    }
 
    /// Check if iterator is valid                                             
-   TEMPLATE() template<class HIVE> LANGULUS(INLINED)
-   constexpr THive<T>::Iterator<HIVE>::operator bool() const noexcept {
+   TEMPLATE_IT() LANGULUS(INLINED)
+   constexpr TME_IT()::operator bool() const noexcept {
       return *this != A::IteratorEnd {};
    }
 
    /// Implicitly convert to a constant iterator                              
-   TEMPLATE() template<class HIVE> LANGULUS(INLINED)
-   constexpr THive<T>::Iterator<HIVE>::operator Iterator<const HIVE>() const noexcept requires Mutable {
+   TEMPLATE_IT() LANGULUS(INLINED)
+   constexpr TME_IT()::operator Iterator<const HIVE>() const noexcept requires Mutable {
       return {mCell, mCellEnd, mFrame, mFrameLast};
    }
 
 } // namespace Langulus::Flow
+
+#undef TEMPLATE_IT
+#undef TME_IT
 
 #undef TEMPLATE
 #undef TME
