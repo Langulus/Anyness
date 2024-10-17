@@ -570,6 +570,12 @@ namespace Langulus::Anyness
                      // Release all nested indirection layers           
                      HandleLocal<Deptr<T>> {*Get()}.FreeInner();
                   }
+                  else if constexpr (not CT::Complete<DT> and not CT::Function<DT>) {
+                     // CT::Destroyable<DT> will fail silently if DT    
+                     // isn't defined yet, causing nasty leaks. So make 
+                     // it not-so-silent...                             
+                     static_assert(false, "Attempting to destroy an incomplete type");
+                  }
                   else if constexpr (CT::Destroyable<DT>) {
                      // Pointer to a complete, destroyable dense        
                      // Call the destructor                             
@@ -603,6 +609,12 @@ namespace Langulus::Anyness
                const_cast<Type&>(Get()) = nullptr;
                const_cast<AllocType&>(GetEntry()) = nullptr;
             }
+         }
+         else if constexpr (not CT::Complete<DT> and not CT::Function<DT>) {
+            // CT::Destroyable<DT> will fail silently if DT isn't       
+            // defined yet, causing nasty leaks. So make it             
+            // not-so-silent...                                         
+            static_assert(false, "Attempting to destroy an incomplete type");
          }
          else if constexpr (EMBED and CT::Destroyable<DT>) {
             // Handle is dense and embedded, we should call the remote  

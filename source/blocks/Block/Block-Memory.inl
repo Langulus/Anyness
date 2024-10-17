@@ -546,6 +546,12 @@ namespace Langulus::Anyness
             // Destroy every sparse element                             
             FreeInnerSparse(mask);
          }
+         else if constexpr (not CT::Complete<TYPE> and not CT::Function<TYPE>) {
+            // CT::Destroyable<TYPE> will fail silently if TYPE isn't   
+            // defined yet, causing nasty leaks. So make it             
+            // not-so-silent...                                         
+            static_assert(false, "Attempting to destroy an incomplete type");
+         }
          else if constexpr (CT::Dense<TYPE> and CT::Destroyable<DT>
          and (DESTROY or CT::Referencable<DT>)) {
             // Destroy every dense element                              
