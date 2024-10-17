@@ -134,6 +134,9 @@ namespace Langulus::Anyness
       void Destroy(Cell*);
 
       void Reset();
+
+   protected:
+      void ResetInner();
    };
 
 
