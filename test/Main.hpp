@@ -214,7 +214,7 @@ void DestroyPair(auto& pair) {
             free(pair.second);
          }
       }
-      else LANGULUS_ERROR("What kind of pair is this? Are you making stuff up?");
+      else static_assert(false, "What kind of pair is this? Are you making stuff up?");
    }
    else BANK.Reset();
 }

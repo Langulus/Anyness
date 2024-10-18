@@ -24,7 +24,7 @@ TMany<T> CreateManagedElements(FROM&&...from) {
             sparse << &item;
          return sparse;
       }
-      else LANGULUS_ERROR("TODO sparser T");
+      else static_assert(false, "TODO sparser T");
    }
 #else
    if constexpr (CT::Dense<T>)
@@ -32,7 +32,7 @@ TMany<T> CreateManagedElements(FROM&&...from) {
    else if constexpr (CT::Sparse<T> and CT::Dense<Deptr<T>>)
       return {new Decay<T> {Forward<FROM>(from)}...};
    else
-      LANGULUS_ERROR("TODO sparser T");
+      static_assert(false, "TODO sparser T");
 #endif
 }
 
@@ -47,7 +47,7 @@ HandleLocal<T> CreateHandle(FROM&& from) {
       if constexpr (CT::Sparse<T> and CT::Dense<Deptr<T>>)
          return {new Decay<T> {Forward<FROM>(from)}};
       else
-         LANGULUS_ERROR("TODO sparser T");
+         static_assert(false, "TODO sparser T");
    }
 }
 
