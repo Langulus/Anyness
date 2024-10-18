@@ -169,7 +169,7 @@ namespace Langulus::Anyness
          if (other.GetCount() > GetLength()) {
             // Replacement is bigger, we need a bit more space          
             const auto surplus = (other.GetCount() + mStart) - mEnd;
-            mSource.AllocateMore<false, true>(mSource.GetCount() + surplus);
+            mSource.template AllocateMore<false, true>(mSource.GetCount() + surplus);
 
             MoveMemory(
                mSource.GetRaw() + offset + surplus,
