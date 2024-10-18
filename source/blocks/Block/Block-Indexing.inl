@@ -636,7 +636,7 @@ namespace Langulus::Anyness
                if (*data < *selection)
                   selection = data;
             }
-            else LANGULUS_ERROR("Unsupported index");
+            else static_assert(false, "Unsupported index");
 
             ++data;
          }

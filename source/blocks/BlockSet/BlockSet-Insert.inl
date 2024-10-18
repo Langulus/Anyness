@@ -72,7 +72,7 @@ namespace Langulus::Anyness
                   inserted += UnfoldInsert<THIS>(S::Nest(key));
                return inserted;
             }
-            else LANGULUS_ERROR("Array elements aren't insertable");
+            else static_assert(false, "Array elements aren't insertable");
          }
          else if constexpr (CT::StringLiteral<T>) {
             // Implicitly convert string literals to Text containers    
@@ -143,7 +143,7 @@ namespace Langulus::Anyness
                      inserted += UnfoldInsert<THIS>(S::Nest(key));
                   return inserted;
                }
-               else LANGULUS_ERROR("Sets aren't mappable to each other");
+               else static_assert(false, "Sets aren't mappable to each other");
             }
             else {
                // The rhs set is type-erased                            
@@ -160,7 +160,7 @@ namespace Langulus::Anyness
                return DeintCast(item).GetCount();
             }
          }
-         else LANGULUS_ERROR("Can't insert argument");
+         else static_assert(false, "Can't insert argument");
       }
       else {
          // This set is type-erased                                     

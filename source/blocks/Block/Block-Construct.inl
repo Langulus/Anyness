@@ -196,7 +196,7 @@ namespace Langulus::Anyness
                   }
                   else LANGULUS_OOPS(Meta, "Unable to absorb block");
                }
-               else LANGULUS_ERROR("Can't construct this TMany from this kind of Block");
+               else static_assert(false, "Can't construct this TMany from this kind of Block");
             }
             else Insert(IndexBack, Forward<T1>(t1));
          }
@@ -475,7 +475,7 @@ namespace Langulus::Anyness
                };
             }
             else {
-               LANGULUS_ERROR(
+               static_assert(false,
                   "Can't wrap a bounded array inside incompatible block:"
                   " types are not binary compatible");
             }
@@ -496,7 +496,7 @@ namespace Langulus::Anyness
                };
             }
             else {
-               LANGULUS_ERROR(
+               static_assert(false,
                   "Can't wrap a unbounded array inside incompatible block:"
                   " types are not binary compatible");
             }
@@ -515,7 +515,7 @@ namespace Langulus::Anyness
                };
             }
             else {
-               LANGULUS_ERROR(
+               static_assert(false,
                   "Can't wrap a dense element inside incompatible block:"
                   " types are not binary compatible");
             }

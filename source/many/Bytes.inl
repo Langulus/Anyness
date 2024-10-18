@@ -230,7 +230,7 @@ namespace Langulus::Anyness
                // We can concat directly                                
                return Base::ConcatBlock<THIS>(S::Nest(rhs));
             }
-            else LANGULUS_ERROR("Can't concatenate with this container");
+            else static_assert(false, "Can't concatenate with this container");
          }
          else {
             // Type-erased concat                                       
@@ -257,7 +257,7 @@ namespace Langulus::Anyness
                // We can concat directly                                
                Base::InsertBlock<void>(IndexBack, S::Nest(rhs));
             }
-            else LANGULUS_ERROR("Can't concatenate with this container");
+            else static_assert(false, "Can't concatenate with this container");
          }
          else {
             // Type-erased concat                                       
@@ -330,7 +330,7 @@ namespace Langulus::Anyness
          Base::InsertBlockInner<void, true>(IndexBack,
             MakeBlock<Block<Byte>>(S::Nest(item)));
       }
-      else LANGULUS_ERROR("Unable to insert as bytes");
+      else static_assert(false, "Unable to insert as bytes");
    }
    
    /// Deserialize a byte container to a desired type                         

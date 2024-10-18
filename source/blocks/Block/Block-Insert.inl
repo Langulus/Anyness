@@ -725,7 +725,7 @@ namespace Langulus::Anyness
             while (to != toEnd)
                new (to++) TYPE {};
          }
-         else LANGULUS_ERROR(
+         else static_assert(false,
             "Trying to default-construct elements that are "
             "incapable of default-construction");
       }
@@ -1127,7 +1127,7 @@ namespace Langulus::Anyness
                      ));
                      IntentNew(lhs, Move(*rhs));
                   }
-                  else LANGULUS_ERROR("T is not movable, nor abandon-constructible");
+                  else static_assert(false, "T is not movable, nor abandon-constructible");
                }
                else IntentNew(lhs, S::Nest(*rhs));
 
@@ -1526,7 +1526,7 @@ namespace Langulus::Anyness
                      ));
                      IntentAssign(*lhs, Move(*rhs));
                   }
-                  else LANGULUS_ERROR("T is not movable, nor abandon-assignable");
+                  else static_assert(false, "T is not movable, nor abandon-assignable");
                }
                else IntentAssign(*lhs, S::Nest(*rhs));
 
@@ -1687,7 +1687,7 @@ namespace Langulus::Anyness
                }
             }
          }
-         else LANGULUS_ERROR("Can't fill using that value "
+         else static_assert(false, "Can't fill using that value "
             "- contained type is not assignable by it");
       }
       else {

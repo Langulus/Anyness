@@ -215,9 +215,9 @@ namespace Langulus::Anyness
                   mCount / (sizeof(T) / sizeof(TYPE)), mRaw
                })};
             }
-            else LANGULUS_ERROR("Can't reinterpret POD types - not alignable");
+            else static_assert(false, "Can't reinterpret POD types - not alignable");
          }
-         else LANGULUS_ERROR("Can't reinterpret blocks - types are not binary compatible");
+         else static_assert(false, "Can't reinterpret blocks - types are not binary compatible");
          //TODO add imposed base reinterprets here too, by statically scanning reflected bases?
       }
       else {

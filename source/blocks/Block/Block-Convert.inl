@@ -483,7 +483,7 @@ namespace Langulus::Anyness
             if (not CastsTo<Type>())
                return 0;
          }
-         else LANGULUS_ERROR("Unimplemented matcher");
+         else static_assert(false, "Unimplemented matcher");
 
          if constexpr (RULE::sRule == Serial::Skip)
             return 0;
@@ -504,7 +504,7 @@ namespace Langulus::Anyness
 
             return to.GetCount() - initial;
          }
-         else LANGULUS_ERROR("Unimplemented rule");
+         else static_assert(false, "Unimplemented rule");
       }
       else {
          if constexpr (RULE::sMatch == Serial::Exact
@@ -533,7 +533,7 @@ namespace Langulus::Anyness
 
                return to.GetCount() - initial;
             }
-            else LANGULUS_ERROR("Unimplemented rule");
+            else static_assert(false, "Unimplemented rule");
          }
       }
    }
@@ -733,7 +733,7 @@ namespace Langulus::Anyness
          else if constexpr (CT::Same<META, CMeta>)
             result = RTTI::GetMetaConstant(token);
          else
-            LANGULUS_ERROR("Unsupported meta deserialization");
+            static_assert(false, "Unsupported meta deserialization");
 
          LANGULUS_ASSERT(result, Meta,
             "Deserialized meta for token `", token, "` doesn't exist");

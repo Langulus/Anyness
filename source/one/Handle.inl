@@ -113,7 +113,7 @@ namespace Langulus::Anyness
          else
             return  mValue == rhs;
       }
-      else LANGULUS_ERROR("Can't compare");
+      else static_assert(false, "Can't compare");
    }
          
    /// Prefix increment operator                                              
@@ -378,7 +378,7 @@ namespace Langulus::Anyness
                   }
                }
             }
-            else LANGULUS_ERROR("Can't initialize sparse T");
+            else static_assert(false, "Can't initialize sparse T");
          }
          else if constexpr (CT::Dense<T>) {
             // Do a copy/disown/abandon/move/clone inside a dense handle
@@ -387,7 +387,7 @@ namespace Langulus::Anyness
             else if constexpr (CT::MakableFrom<T, S>)
                new ((void*) &Get()) T(S::Nest(rhs));
             else
-               LANGULUS_ERROR("Can't initialize dense T");
+               static_assert(false, "Can't initialize dense T");
          }
          else if constexpr (CT::Dense<Deptr<T>>) {
             // Clone sparse/dense data                                  

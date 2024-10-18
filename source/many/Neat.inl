@@ -728,7 +728,7 @@ namespace Langulus::Anyness
          else
             mTraits.Insert(trait, Trait::FromMeta(trait));
       }
-      else LANGULUS_ERROR("Can't insert trait");
+      else static_assert(false, "Can't insert trait");
    }
    
    /// Push verbs to the appropriate bucket                                   
@@ -772,7 +772,7 @@ namespace Langulus::Anyness
          else
             mConstructs.Insert(meta, messy.Forward());
       }
-      else LANGULUS_ERROR("Can't insert construct");
+      else static_assert(false, "Can't insert construct");
    }
 
    /// Get a tagged argument inside constructor                               
