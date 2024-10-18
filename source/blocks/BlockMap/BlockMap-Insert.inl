@@ -93,7 +93,7 @@ namespace Langulus::Anyness
                for (auto& pair : DeintCast(item))
                   inserted += UnfoldInsert<THIS>(S::Nest(pair));
             }
-            else LANGULUS_ERROR("Array elements aren't insertable as pairs");
+            else static_assert(false, "Array elements aren't insertable as pairs");
          }
          else {
             // Insert the array                                         
@@ -139,7 +139,7 @@ namespace Langulus::Anyness
                   for (auto& pair : DeintCast(item))
                      inserted += UnfoldInsert<THIS>(S::Nest(pair));
                }
-               else LANGULUS_ERROR("Maps aren't mappable to each other");
+               else static_assert(false, "Maps aren't mappable to each other");
             }
             else {
                // The rhs map is type-erased                            
@@ -153,7 +153,7 @@ namespace Langulus::Anyness
                   inserted += InsertPairInner<THIS, true>(mask, S::Nest(pair));
             }
          }
-         else LANGULUS_ERROR("Can't insert argument");
+         else static_assert(false, "Can't insert argument");
       }
       else if constexpr (CT::Pair<T>) {
          // This map is type-erased                                     
@@ -167,7 +167,7 @@ namespace Langulus::Anyness
          const auto mask = GetReserved() - 1;
          inserted += InsertPairInner<THIS, true>(mask, S::Nest(item));
       }
-      else LANGULUS_ERROR("T isn't a pair/map, or an array of pairs/maps");
+      else static_assert(false, "T isn't a pair/map, or an array of pairs/maps");
 
       return inserted;
    }

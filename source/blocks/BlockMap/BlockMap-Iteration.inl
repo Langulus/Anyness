@@ -132,7 +132,7 @@ namespace Langulus::Anyness
                   break;
                }
             }
-            else LANGULUS_ERROR("Unknown loop control format");
+            else static_assert(false, "Unknown loop control format");
          }
       }
 

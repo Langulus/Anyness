@@ -308,7 +308,7 @@ namespace Langulus::Anyness
          memcpy(result.mRaw, temp, c);
          result.mCount = c;
       }
-      else LANGULUS_ERROR("Unsupported number type");
+      else static_assert(false, "Unsupported number type");
       return Abandon(result);
    }
 
@@ -821,7 +821,7 @@ namespace Langulus::Anyness
                // - do UTF conversions here                             
                TODO();
             }
-            else LANGULUS_ERROR("Can't concatenate with this container");
+            else static_assert(false, "Can't concatenate with this container");
          }
          else {
             // Type-erased concat                                       
@@ -853,7 +853,7 @@ namespace Langulus::Anyness
                // - do UTF conversions here                             
                TODO();
             }
-            else LANGULUS_ERROR("Can't concatenate with this container");
+            else static_assert(false, "Can't concatenate with this container");
          }
          else {
             // Type-erased concat                                       

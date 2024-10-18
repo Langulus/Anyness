@@ -349,7 +349,7 @@ namespace Langulus::Anyness
          mHash = {};
          return *this;
       }
-      else LANGULUS_ERROR("Can't insert that into descriptor");
+      else static_assert(false, "Can't insert that into descriptor");
    }
 
    /// Merge anything to the descriptor                                       
@@ -363,7 +363,7 @@ namespace Langulus::Anyness
          mHash = {};
          return *this;
       }
-      else LANGULUS_ERROR("Can't merge that into descriptor");
+      else static_assert(false, "Can't merge that into descriptor");
    }
 
    /// Serialize the construct to anything text-based                         
