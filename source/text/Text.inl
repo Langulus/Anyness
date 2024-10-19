@@ -886,7 +886,7 @@ namespace Langulus::Anyness
       auto from_bytes = reinterpret_cast<const std::byte*>(&from);
       auto to_bytes = result.GetRaw();
       for (Offset i = 0; i < sizeof(from); ++i)
-         fmt::format_to_n(to_bytes + i * 2, 2, "{:X}", from_bytes[i]);
+         fmt::format_to_n(to_bytes + i * 2, 2, "{:02X}", from_bytes[i]);
       result.mCount = sizeof(from) * 2;
       return result;
    }
