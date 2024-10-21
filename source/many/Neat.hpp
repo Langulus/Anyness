@@ -56,7 +56,7 @@ namespace Langulus::Anyness
       TUnorderedMap<DMeta, TailList> mAnythingElse;
 
    public:
-      LANGULUS(DEEP) true;
+      //LANGULUS(DEEP) true;
       static constexpr bool Ownership = true;
       static constexpr bool CTTI_Container = true;
 
