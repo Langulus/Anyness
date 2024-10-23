@@ -86,7 +86,7 @@ namespace Langulus::Anyness
          }
          else {
             // Insert the array                                         
-            Mutate<THIS, Deext<T>>();
+            Mutate<THIS, Decvq<Deext<T>>>();
             Reserve(GetCount() + ExtentOf<T>);
             Count inserted = 0;
             for (auto& e : DeintCast(item)) {

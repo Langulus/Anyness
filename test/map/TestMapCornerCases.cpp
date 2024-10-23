@@ -5,13 +5,7 @@
 ///                                                                           
 /// SPDX-License-Identifier: GPL-3.0-or-later                                 
 ///                                                                           
-#include <Anyness/Text.hpp>
-#include <Anyness/Trait.hpp>
-#include <Anyness/TMap.hpp>
-#include <Anyness/Map.hpp>
-#include <unordered_map>
-#include "../Common.hpp"
-
+#include "TestMapCommon.hpp"
 
 struct VulkanLayer {};
 struct VulkanRenderer {};
@@ -23,6 +17,7 @@ struct VulkanLight {};
 struct Monitor {};
 struct VulkanRenderable {};
 struct Cursor {};
+
 
 /// Testing some corner cases encountered during the use of the container     
 TEMPLATE_TEST_CASE("Map corner cases", "[map]",

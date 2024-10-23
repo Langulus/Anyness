@@ -110,6 +110,8 @@ namespace Langulus::Anyness
       template<CT::Set = UnorderedSet>
       NOD() DMeta GetType() const noexcept;
       template<CT::Set = UnorderedSet>
+      NOD() constexpr bool IsTyped() const noexcept;
+      template<CT::Set = UnorderedSet>
       NOD() constexpr bool IsUntyped() const noexcept;
       template<CT::Set = UnorderedSet>
       NOD() constexpr bool IsTypeConstrained() const noexcept;
@@ -127,8 +129,13 @@ namespace Langulus::Anyness
       NOD() Count GetCountElementsDeep() const noexcept;
       NOD() constexpr Count GetReserved() const noexcept;
       NOD() constexpr bool IsEmpty() const noexcept;
+      NOD() constexpr bool IsValid() const noexcept;
+      NOD() constexpr bool IsInvalid() const noexcept;
       NOD() constexpr bool IsAllocated() const noexcept;
 
+      NOD() bool IsConstant() const noexcept;
+      NOD() bool IsCompressed() const noexcept;
+      NOD() bool IsEncrypted() const noexcept;
       NOD() bool IsMissing() const noexcept;
       template<CT::Set = UnorderedSet>
       NOD() bool IsMissingDeep() const;

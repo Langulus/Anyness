@@ -15,6 +15,13 @@ namespace Langulus::Anyness
    /// Templated tables are always typed                                      
    ///   @return false                                                        
    template<CT::Set THIS> LANGULUS(INLINED)
+   constexpr bool BlockSet::IsTyped() const noexcept {
+      return GetValues<THIS>().IsTyped();
+   }
+   
+   /// Templated tables are always typed                                      
+   ///   @return false                                                        
+   template<CT::Set THIS> LANGULUS(INLINED)
    constexpr bool BlockSet::IsUntyped() const noexcept {
       return GetValues<THIS>().IsUntyped();
    }
@@ -119,14 +126,48 @@ namespace Langulus::Anyness
    constexpr bool BlockSet::IsEmpty() const noexcept {
       return mKeys.IsEmpty();
    }
+   
+   /// Check if set contains either created elements, or relevant state       
+   ///   @return true if block either contains state, or has inserted stuff   
+   LANGULUS(INLINED)
+   constexpr bool BlockSet::IsValid() const noexcept {
+      return mKeys.IsValid();
+   }
+   
+   /// Check if set contains no elements and no relevant state                
+   ///   @return true if this is an empty stateless container                 
+   LANGULUS(INLINED)
+   constexpr bool BlockSet::IsInvalid() const noexcept {
+      return mKeys.IsInvalid();
+   }
 
-   /// Check if the map has been allocated                                    
-   ///   @return true if the map uses dynamic memory                          
+   /// Check if the set has been allocated                                    
+   ///   @return true if the set uses dynamic memory                          
    LANGULUS(INLINED)
    constexpr bool BlockSet::IsAllocated() const noexcept {
       return mKeys.IsAllocated();
    }
 
+   /// Check if the set is marked as constant                                 
+   ///   @return true if the set is marked as constant                        
+   LANGULUS(INLINED)
+   bool BlockSet::IsConstant() const noexcept {
+      return mKeys.IsConstant();
+   }
+   
+   /// Check if the set is marked as compressed                               
+   ///   @return true if the set is marked as compressed                      
+   LANGULUS(INLINED)
+   bool BlockSet::IsCompressed() const noexcept {
+      return mKeys.IsCompressed();
+   }
+   /// Check if the set is marked as encrypted                                
+   ///   @return true if the set is marked as encrypted                       
+   LANGULUS(INLINED)
+   bool BlockSet::IsEncrypted() const noexcept {
+      return mKeys.IsEncrypted();
+   }
+   
    /// Check if the set is marked missing                                     
    ///   @return true if the set is marked as missing                         
    LANGULUS(INLINED)
