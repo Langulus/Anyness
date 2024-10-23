@@ -149,6 +149,13 @@ namespace Langulus::Anyness
    /// Templated tables are always typed                                      
    ///   @return false                                                        
    TEMPLATE() LANGULUS(INLINED)
+   constexpr bool TABLE()::IsTyped() const noexcept {
+      return true;
+   }
+   
+   /// Templated tables are always typed                                      
+   ///   @return false                                                        
+   TEMPLATE() LANGULUS(INLINED)
    constexpr bool TABLE()::IsUntyped() const noexcept {
       return false;
    }
@@ -163,7 +170,7 @@ namespace Langulus::Anyness
    /// Check if key type is deep                                              
    TEMPLATE() LANGULUS(INLINED)
    constexpr bool TABLE()::IsDeep() const noexcept {
-      return CT::Deep<T>;
+      return BlockSet::IsDeep<TSet>();
    }
 
    /// Check if the key type is a pointer                                     

@@ -44,6 +44,17 @@ struct MapTest {
    static constexpr bool Managed = MANAGED;
 };
 
+/// Used to configure a set test                                              
+///   @param C - the map type we're testing                                   
+///   @param K - the tested key type                                          
+///   @param MANAGED - true to contain memory allocated by our manager        
+template<class C, class K, bool MANAGED = false>
+struct SetTest {
+   using Container = C;
+   using Key = K;
+   static constexpr bool Managed = MANAGED;
+};
+
 /// Type for testing hashing consistency between two containers               
 ///   @tparam K - the left container                                          
 ///   @tparam V - the right container                                         

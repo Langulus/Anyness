@@ -20,58 +20,58 @@
 /// Possible states:                                                          
 ///   - uninitialized                                                         
 ///   - default                                                               
-template<class E>
-void CheckState_Default(const auto&);
+template<class K, class V>
+void Map_CheckState_Default(const auto&);
 ///   - invariant                                                             
-template<class E>
-void CheckState_Invariant(const auto&);
+template<class K, class V>
+void Map_CheckState_Invariant(const auto&);
 ///   - owned-full                                                            
-template<class E>
-void CheckState_OwnedFull(const auto&);
+template<class K, class V>
+void Map_CheckState_OwnedFull(const auto&);
 ///   - owned-full-const                                                      
-template<class E>
-void CheckState_OwnedFullConst(const auto&);
+template<class K, class V>
+void Map_CheckState_OwnedFullConst(const auto&);
 ///   - owned-empty                                                           
-template<class E>
-void CheckState_OwnedEmpty(const auto&);
+template<class K, class V>
+void Map_CheckState_OwnedEmpty(const auto&);
 ///   - disowned-full                                                         
-template<class E>
-void CheckState_DisownedFull(const auto&);
+template<class K, class V>
+void Map_CheckState_DisownedFull(const auto&);
 ///   - disowned-full-const                                                   
-template<class E>
-void CheckState_DisownedFullConst(const auto&);
+template<class K, class V>
+void Map_CheckState_DisownedFullConst(const auto&);
 ///   - abandoned                                                             
-template<class E>
-void CheckState_Abandoned(const auto&);
+template<class K, class V>
+void Map_CheckState_Abandoned(const auto&);
 
 
 
 template<class K, class V>
-void Helper_TestType(const auto& any) {
-   REQUIRE      (any.IsKeyTyped());
-   REQUIRE      (any.IsValueTyped());
-   REQUIRE_FALSE(any.IsKeyUntyped());
-   REQUIRE_FALSE(any.IsValueUntyped());
+void Map_Helper_TestType(const auto& map) {
+   REQUIRE      (map.IsKeyTyped());
+   REQUIRE      (map.IsValueTyped());
+   REQUIRE_FALSE(map.IsKeyUntyped());
+   REQUIRE_FALSE(map.IsValueUntyped());
 
-   REQUIRE      (any.GetKeyType() == MetaDataOf<K>());
-   REQUIRE      (any.GetKeyType()->template IsSimilar<const K>());
-   REQUIRE      (any.GetKeyType()->template IsExact<K>());
-   REQUIRE      (any.GetKeyType()->template Is<K*>());
-   REQUIRE      (any.IsKeyDense() == CT::Dense<K>);
-   REQUIRE      (any.IsKeySparse() == CT::Sparse<K>);
-   REQUIRE      (any.IsKeyDeep() == CT::Deep<Decay<K>>);
+   REQUIRE      (map.GetKeyType() == MetaDataOf<K>());
+   REQUIRE      (map.GetKeyType()->template IsSimilar<const K>());
+   REQUIRE      (map.GetKeyType()->template IsExact<K>());
+   REQUIRE      (map.GetKeyType()->template Is<K*>());
+   REQUIRE      (map.IsKeyDense() == CT::Dense<K>);
+   REQUIRE      (map.IsKeySparse() == CT::Sparse<K>);
+   REQUIRE      (map.IsKeyDeep() == CT::Deep<Decay<K>>);
 
-   REQUIRE      (any.GetValueType() == MetaDataOf<V>());
-   REQUIRE      (any.GetValueType()->template IsSimilar<const V>());
-   REQUIRE      (any.GetValueType()->template IsExact<V>());
-   REQUIRE      (any.GetValueType()->template Is<V*>());
-   REQUIRE      (any.IsValueDense() == CT::Dense<V>);
-   REQUIRE      (any.IsValueSparse() == CT::Sparse<V>);
-   REQUIRE      (any.IsValueDeep() == CT::Deep<Decay<V>>);
+   REQUIRE      (map.GetValueType() == MetaDataOf<V>());
+   REQUIRE      (map.GetValueType()->template IsSimilar<const V>());
+   REQUIRE      (map.GetValueType()->template IsExact<V>());
+   REQUIRE      (map.GetValueType()->template Is<V*>());
+   REQUIRE      (map.IsValueDense() == CT::Dense<V>);
+   REQUIRE      (map.IsValueSparse() == CT::Sparse<V>);
+   REQUIRE      (map.IsValueDeep() == CT::Deep<Decay<V>>);
 }
 
 template<CT::Map LHS, CT::Map RHS>
-void Helper_TestSame(const LHS& lhs, const RHS& rhs) {
+void Map_Helper_TestSame(const LHS& lhs, const RHS& rhs) {
    REQUIRE(lhs.GetRaw() == rhs.GetRaw());
    REQUIRE(lhs.IsKeyExact(rhs.GetKeyType()));
    REQUIRE(lhs.IsValueExact(rhs.GetValueType()));
@@ -84,13 +84,13 @@ void Helper_TestSame(const LHS& lhs, const RHS& rhs) {
 
 
 template<class K, class V>
-void CheckState_Default(const auto& map) {
+void Map_CheckState_Default(const auto& map) {
    using T = Decay<decltype(map)>;
 
    if constexpr (CT::Typed<T>) {
       static_assert(CT::Exact<typename T::Key, K>);
       static_assert(CT::Exact<typename T::Value, V>);
-      Helper_TestType<K, V>(map);
+      Map_Helper_TestType<K, V>(map);
       REQUIRE      (map.GetKeyState() == DataState::Typed);
       REQUIRE      (map.GetValueState() == DataState::Typed);
    }
@@ -135,4 +135,68 @@ void CheckState_Default(const auto& map) {
    REQUIRE      (map.GetRawValsMemory() == nullptr);
    REQUIRE_FALSE(map);
    REQUIRE      (not map);
+}
+
+template<class K, class V>
+void Map_CheckState_OwnedEmpty(const auto& map) {
+   using T = Decay<decltype(map)>;
+
+   Map_Helper_TestType<K, V>(map);
+
+   REQUIRE      (map.IsKeyTypeConstrained() == CT::Typed<T>);
+   REQUIRE      (map.IsValueTypeConstrained() == CT::Typed<T>);
+   REQUIRE_FALSE(map.IsKeyCompressed());
+   REQUIRE_FALSE(map.IsValueCompressed());
+   REQUIRE      (map.IsKeyConstant() == CT::Constant<K>);
+   REQUIRE      (map.IsValueConstant() == CT::Constant<V>);
+   REQUIRE_FALSE(map.IsKeyEncrypted());
+   REQUIRE_FALSE(map.IsValueEncrypted());
+   REQUIRE_FALSE(map.IsKeyMissing());
+   REQUIRE_FALSE(map.IsValueMissing());
+   REQUIRE_FALSE(map.IsValid());
+   REQUIRE      (map.IsInvalid());
+   REQUIRE      (map.IsAllocated());
+   REQUIRE      (map.GetKeys().GetAllocation());
+   REQUIRE      (map.GetVals().GetAllocation());
+   REQUIRE      (map.IsEmpty());
+   REQUIRE      (map.GetCount() == 0);
+   REQUIRE      (map.GetReserved() > 0);
+   REQUIRE      (map.GetKeys().GetUses() == 1);
+   REQUIRE      (map.GetVals().GetUses() == 1);
+   REQUIRE      (map.GetRawKeysMemory());
+   REQUIRE      (map.GetRawValsMemory());
+   REQUIRE_FALSE(map);
+   REQUIRE      (not map);
+}
+
+template<class K, class V>
+void Map_CheckState_OwnedFull(const auto& map) {
+   using T = Decay<decltype(map)>;
+
+   Map_Helper_TestType<K, V>(map);
+
+   REQUIRE      (map.IsKeyTypeConstrained() == CT::Typed<T>);
+   REQUIRE      (map.IsValueTypeConstrained() == CT::Typed<T>);
+   REQUIRE_FALSE(map.IsKeyCompressed());
+   REQUIRE_FALSE(map.IsValueCompressed());
+   REQUIRE      (map.IsKeyConstant() == CT::Constant<K>);
+   REQUIRE      (map.IsValueConstant() == CT::Constant<V>);
+   REQUIRE_FALSE(map.IsKeyEncrypted());
+   REQUIRE_FALSE(map.IsValueEncrypted());
+   REQUIRE_FALSE(map.IsKeyMissing());
+   REQUIRE_FALSE(map.IsValueMissing());
+   REQUIRE      (map.IsValid());
+   REQUIRE_FALSE(map.IsInvalid());
+   REQUIRE      (map.IsAllocated());
+   REQUIRE      (map.GetKeys().GetAllocation());
+   REQUIRE      (map.GetVals().GetAllocation());
+   REQUIRE_FALSE(map.IsEmpty());
+   REQUIRE      (map.GetCount() > 0);
+   REQUIRE      (map.GetReserved() > 0);
+   REQUIRE      (map.GetKeys().GetUses() > 0);
+   REQUIRE      (map.GetVals().GetUses() > 0);
+   REQUIRE      (map.GetRawKeysMemory());
+   REQUIRE      (map.GetRawValsMemory());
+   REQUIRE      (map);
+   REQUIRE_FALSE(not map);
 }

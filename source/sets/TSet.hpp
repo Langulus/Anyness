@@ -84,6 +84,7 @@ namespace Langulus::Anyness
       ///   Capsulation                                                       
       ///                                                                     
       NOD() DMeta GetType() const;
+      NOD() constexpr bool IsTyped() const noexcept;
       NOD() constexpr bool IsUntyped() const noexcept;
       NOD() constexpr bool IsTypeConstrained() const noexcept;
       NOD() constexpr bool IsDeep() const noexcept;
@@ -172,6 +173,8 @@ namespace Langulus::Anyness
 
       template<CT::NoIntent T1> requires CT::Comparable<T, T1>
       NOD() bool Contains(T1 const&) const;
+      template<CT::NoIntent T1> requires (not CT::Comparable<T, T1>)
+      static consteval bool Contains(T1 const&) { return false; }
 
       template<CT::NoIntent T1> requires CT::Comparable<T, T1>
       NOD() auto Find(T1 const&) const -> Index;
