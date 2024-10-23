@@ -460,9 +460,20 @@ namespace Langulus::Anyness
 
          if constexpr (not Embedded and RHS::Embedded) {
             if (rhs.GetEntry()) {
-               const_cast<Allocation*>(rhs.GetEntry())->Keep();
+               //if (rhs.GetEntry() != GetEntry())
+                  const_cast<Allocation*>(rhs.GetEntry())->Keep();
+
                if constexpr (CT::Referencable<Deptr<T>>)
                   rhs.Get()->Reference(1);
+            }
+         }
+         else if constexpr (Embedded and not RHS::Embedded) {
+            if (GetEntry()) {
+               //if (rhs.GetEntry() != GetEntry())
+                  const_cast<Allocation*>(GetEntry())->Keep();
+
+               if constexpr (CT::Referencable<Deptr<T>>)
+                  Get()->Reference(1);
             }
          }
       }
