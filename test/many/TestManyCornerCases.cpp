@@ -47,6 +47,8 @@ SCENARIO("Pushing one sparse container, and then two more, one being the first",
             #if LANGULUS_FEATURE(MANAGED_MEMORY)
                REQUIRE(pack.GetEntries()[0] == entry1);
                REQUIRE(pack.GetEntries()[1] == entry1);
+               REQUIRE(entry1->GetUses() == 3);
+               REQUIRE(entry2->GetUses() == 1);
             #endif
 
             pack << p2;
@@ -55,17 +57,14 @@ SCENARIO("Pushing one sparse container, and then two more, one being the first",
                REQUIRE(pack.GetEntries()[0] == entry1);
                REQUIRE(pack.GetEntries()[1] == entry1);
                REQUIRE(pack.GetEntries()[2] == entry2);
+               REQUIRE(entry1->GetUses() == 3);
+               REQUIRE(entry2->GetUses() == 2);
             #endif
 
             REQUIRE(pack.GetCount() == 3);
             REQUIRE(pack.IsExact<Many*>());
             REQUIRE(p1->GetUses() == 1);
             REQUIRE(p2->GetUses() == 1);
-
-            #if LANGULUS_FEATURE(MANAGED_MEMORY)
-               REQUIRE(entry1->GetUses() == 3);
-               REQUIRE(entry2->GetUses() == 2);
-            #endif
          }
 
          THEN("Push-front the first again and then the second") {

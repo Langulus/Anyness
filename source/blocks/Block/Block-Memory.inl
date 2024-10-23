@@ -770,14 +770,32 @@ namespace Langulus::Anyness
                   });
                }
                else {
-                  // Just dereference once more, but also reset         
-                  // the matching handle entries                        
-                  for_each_match([](Handle<void*>& h) {
+                  // We're not allowed to destroy anything, just deref  
+                  // and reset all matching handles                     
+                  for_each_match([&](Handle<void*>& h) {
+                     // We still have to make sure that per-instance    
+                     // references are also affected                    
+                     UNUSED() Count remaining_refs = 0;
+                     if constexpr (TypeErased) {
+                        if (mType->mReference)
+                           remaining_refs = mType->mReference(h.Get(), -1);
+                     }
+                     else {
+                        if constexpr (CT::Referencable<Deptr<TYPE>>)
+                           remaining_refs = DecvqCast(static_cast<TYPE>(h.Get()))->Reference(-1);
+                     }
+
+                     /*LANGULUS_ASSUME(DevAssumes, remaining_refs,
+                        "At least one instance ref should remain, "
+                        "otherwise we forgot to reference element on insertion"
+                     );*/
+
                      h.GetEntry() = nullptr;
                   });
                }
             }
          
+            // Deref the last element                                   
             handle.FreeInner(mType);
          }
 

@@ -59,3 +59,64 @@ TEMPLATE_TEST_CASE("Set corner cases", "[set]",
       }
    }
 }
+
+/// Testing some corner cases encountered during the use of the container     
+TEMPLATE_TEST_CASE("Set of outside-referenced elements", "[set]",
+   TUnorderedSet<RT*>,
+   TOrderedSet<RT*>,
+   UnorderedSet,
+   OrderedSet
+) {
+   IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
+   static Allocator::State memoryState;
+   using T = TestType;
+   TMany<RT> factory {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+
+   for (int iii = 0; iii < 100; ++iii) {
+   GIVEN(std::string("A set of externally produced elements #") + std::to_string(iii)) {
+      T set;
+
+      for (auto& element : factory) {
+         REQUIRE(element.GetReferences() == 1);
+         set << &element;
+         REQUIRE(element.GetReferences() == 2);
+      }
+
+      WHEN("Elements are inserted") {
+         for (auto& element : factory) {
+            REQUIRE(set.Contains(&element));
+            REQUIRE(element.GetReferences() == 2);
+            REQUIRE(factory.GetUses() == 11);
+         }
+      }
+
+      WHEN("An element is removed from the set") {
+         REQUIRE(set.Remove(&factory[5]) == 1);
+
+         for (auto& element : factory) {
+            if (element == RT {6}) {
+               REQUIRE_FALSE(set.Contains(&element));
+               REQUIRE(element.GetReferences() == 1);
+            }
+            else {
+               REQUIRE(set.Contains(&element));
+               REQUIRE(element.GetReferences() == 2);
+            }
+
+            REQUIRE(factory.GetUses() == 10);
+         }
+      }
+
+      WHEN("The set is reset") {
+         set.Reset();
+
+         for (auto& element : factory) {
+            REQUIRE_FALSE(set.Contains(&element));
+            REQUIRE(element.GetReferences() == 1);
+            REQUIRE(factory.GetUses() == 1);
+         }
+      }
+   }}
+
+   REQUIRE(memoryState.Assert());
+}

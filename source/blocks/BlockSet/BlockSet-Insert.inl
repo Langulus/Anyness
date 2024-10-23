@@ -456,6 +456,7 @@ namespace Langulus::Anyness
       BranchOut<THIS>();
       using S = IntentOf<decltype(key)>;
       auto keyswapper = CreateValHandle<THIS>(S::Nest(key));
+      bool swappedAtLeastOnce = false;
 
       // Get the starting index based on the key hash                   
       auto psl = GetInfo() + start;
@@ -475,6 +476,7 @@ namespace Langulus::Anyness
          if (attempts > *psl) {
             // The value we're inserting is closer to bucket, so swap   
             GetHandle<THIS>(index).Swap(keyswapper);
+            swappedAtLeastOnce = true;
             ::std::swap(attempts, *psl);
             if (insertedAt == mKeys.mReserved)
                insertedAt = index;
@@ -493,7 +495,7 @@ namespace Langulus::Anyness
       // Might not seem like it, but we gave a guarantee, that this is  
       // eventually reached, unless key exists and returns early        
       const auto index = psl - GetInfo();
-      if constexpr (CT::Sparse<TypeOf<decltype(keyswapper)>>)
+      if (CT::Sparse<TypeOf<decltype(keyswapper)>> and not swappedAtLeastOnce)
          GetHandle<THIS>(index).CreateWithIntent(Refer(keyswapper));
       else
          GetHandle<THIS>(index).CreateWithIntent(Abandon(keyswapper));
