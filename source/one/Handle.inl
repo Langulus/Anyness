@@ -75,9 +75,21 @@ namespace Langulus::Anyness
    {
       using S = IntentOf<decltype(argument)>;
       using DT = Deptr<T>;
-      if constexpr (S::Keep and CT::Sparse<T> and CT::Complete<DT>) {
+      if constexpr (S::Keep and Sparse and CT::Complete<DT>) {
          if constexpr (CT::Allocatable<DT>)
             mEntry = Allocator::Find(MetaDataOf<DT>(), mValue);
+      }
+
+      if constexpr (Sparse) {
+         // Always add a reference when we transition a pointer from    
+         // an embedded handle, to a non-embedded one, because otherwise
+         // we'll lose the data                                         
+         // THIS IS THE ONLY CASE WHERE A HANDLE EXERCISES OWNERSHIP    
+         if (mEntry) {
+            const_cast<Allocation*>(mEntry)->Keep();
+            if constexpr (CT::Referencable<DT>)
+               DecvqCast(mValue)->Reference(1);
+         }
       }
    }
 
@@ -87,7 +99,16 @@ namespace Langulus::Anyness
       if constexpr (not Embedded and not Sparse and CT::Referencable<T>) {
          // Will call value destructor at end of scope, just suppress   
          // the reference warning                                       
-         IF_SAFE(mValue.Reference(-1));
+         IF_SAFE(DecvqCast(mValue).Reference(-1));
+      }
+
+      if constexpr (Sparse and not Embedded) {
+         // THIS IS THE ONLY CASE WHERE A HANDLE EXERCISES OWNERSHIP    
+         if (mEntry) {
+            const_cast<Allocation*>(mEntry)->Free();
+            if constexpr (CT::Referencable<Deptr<T>>)
+               DecvqCast(mValue)->Reference(-1);
+         }
       }
    }
 
@@ -246,13 +267,13 @@ namespace Langulus::Anyness
                      GetEntry() = nullptr;
 
                   if constexpr (S::Move) {
-                     if constexpr (ST::Embedded) {
+                     //if constexpr (ST::Embedded) {
                         // We're moving from an embedded RHS, so we need
                         // to clear it up - we're transferring ownership
                         if constexpr (S::Keep)
                            rhs->Get() = nullptr;
                         rhs->GetEntry() = nullptr;
-                     }
+                     //}
                   }
                   else if constexpr (S::Keep and Embedded) {
                      // Copying RHS, but keep it only if not disowning  
@@ -338,13 +359,13 @@ namespace Langulus::Anyness
                   GetEntry() = nullptr;
 
                if constexpr (S::Move) {
-                  if constexpr (ST::Embedded) {
+                  //if constexpr (ST::Embedded) {
                      // We're moving from an embedded RHS, so we need   
                      // to clear it up - we're transferring ownership   
                      if constexpr (S::Keep)
                         rhs->Get() = nullptr;
                      rhs->GetEntry() = nullptr;
-                  }
+                  //}
                }
                else if constexpr (S::Keep and Embedded) {
                   // Copying RHS, but keep it only if not disowning it  
@@ -446,7 +467,8 @@ namespace Langulus::Anyness
       CreateWithIntent(S::Nest(rhs), type);
    }
    
-   /// Swap any two handles, often this is embedded, while rhs is not         
+   /// Swap any two handles, gracefully handling transitions between embedded 
+   /// and unembedded handles                                                 
    ///   @param rhs - right hand side                                         
    ///   @param type - type of the contained data, used only if handle is     
    ///      type-erased                                                       
@@ -458,22 +480,25 @@ namespace Langulus::Anyness
          std::swap(Get(), rhs.Get());
          std::swap(GetEntry(), rhs.GetEntry());
 
-         if constexpr (not Embedded and RHS::Embedded) {
-            if (rhs.GetEntry()) {
-               //if (rhs.GetEntry() != GetEntry())
-                  const_cast<Allocation*>(rhs.GetEntry())->Keep();
-
+         // Always add a reference when we transition a pointer from    
+         // embedded to a non-embedded handle - otherwise we'll lose    
+         // the data while swapping!                                    
+         // Always remove a reference when we transition a pointer from 
+         // a non-embedded to an embedded handle - otherwise we'll get  
+         // a leak when handle goes out of scope!                       
+         // THIS IS THE ONLY CASE WHERE A HANDLE EXERCISES OWNERSHIP    
+         if constexpr (RHS::Embedded and not Embedded) {
+            if (rhs.GetEntry() and GetEntry() != rhs.GetEntry()) {
+               const_cast<Allocation*>(rhs.GetEntry())->Keep();
                if constexpr (CT::Referencable<Deptr<T>>)
-                  rhs.Get()->Reference(1);
+                  DecvqCast(rhs.Get())->Reference(1);
             }
          }
          else if constexpr (Embedded and not RHS::Embedded) {
-            if (GetEntry()) {
-               //if (rhs.GetEntry() != GetEntry())
-                  const_cast<Allocation*>(GetEntry())->Keep();
-
+            if (GetEntry() and GetEntry() != rhs.GetEntry()) {
+               const_cast<Allocation*>(GetEntry())->Keep();
                if constexpr (CT::Referencable<Deptr<T>>)
-                  Get()->Reference(1);
+                  DecvqCast(Get())->Reference(1);
             }
          }
       }

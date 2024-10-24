@@ -495,9 +495,9 @@ namespace Langulus::Anyness
       // Might not seem like it, but we gave a guarantee, that this is  
       // eventually reached, unless key exists and returns early        
       const auto index = psl - GetInfo();
-      if (CT::Sparse<TypeOf<decltype(keyswapper)>> and not swappedAtLeastOnce)
-         GetHandle<THIS>(index).CreateWithIntent(Refer(keyswapper));
-      else
+      //if (CT::Sparse<TypeOf<decltype(keyswapper)>> and not swappedAtLeastOnce)
+      //   GetHandle<THIS>(index).CreateWithIntent(Refer(keyswapper));
+      //else
          GetHandle<THIS>(index).CreateWithIntent(Abandon(keyswapper));
 
       if (insertedAt == mKeys.mReserved)

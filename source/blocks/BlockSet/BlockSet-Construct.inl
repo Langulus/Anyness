@@ -241,8 +241,8 @@ namespace Langulus::Anyness
                      IndexBack, SS::Nest(*item));
                }
 
-               //const_cast<Allocation*>(coalesced.mEntry)
-               //   ->Keep(asFrom->GetCount());
+               const_cast<Allocation*>(coalesced.mEntry)
+                  ->Keep(asFrom->GetCount());
 
                // Zero info bytes and insert pointers                   
                ZeroMemory(mInfo, mKeys.mReserved);
@@ -253,7 +253,7 @@ namespace Langulus::Anyness
                while (ptr != ptrEnd) {
                   InsertInner<B, false>(
                      GetBucket(GetReserved() - 1, ptr),
-                     HandleLocal<TypeOf<B>> {ptr, coalesced.mEntry}
+                     Abandon(HandleLocal<TypeOf<B>> {ptr, coalesced.mEntry})
                   );
                   ++ptr;
                }
@@ -319,7 +319,7 @@ namespace Langulus::Anyness
                while (ptr != ptrEnd) {
                   InsertInner<B, false>(
                      GetBucket(GetReserved() - 1, ptr),
-                     HandleLocal<void*> {ptr, coalesced.mEntry}
+                     Abandon(HandleLocal<void*> {ptr, coalesced.mEntry})
                   );
                   ptr += stride.mSize;
                }

@@ -610,9 +610,9 @@ namespace Langulus::Anyness
          if constexpr (CHECK_FOR_MATCH) {
             if (keyswapper.Compare(GetKeyRef<THIS>(index))) {
                // Neat, the key already exists - just set value and go  
-               if constexpr (CT::Sparse<TypeOf<decltype(valswapper)>>)
-                  GetValHandle<THIS>(index).AssignWithIntent(Refer(valswapper));
-               else
+               //if constexpr (CT::Sparse<TypeOf<decltype(valswapper)>>)
+               //   GetValHandle<THIS>(index).AssignWithIntent(Refer(valswapper));
+               //else
                   GetValHandle<THIS>(index).AssignWithIntent(Abandon(valswapper));
                return index;
             }
@@ -641,14 +641,14 @@ namespace Langulus::Anyness
       // Might not seem like it, but we gave a guarantee, that this is  
       // eventually reached, unless key exists and returns early        
       const auto index = psl - GetInfo();
-      if constexpr (CT::Sparse<TypeOf<decltype(keyswapper)>>)
-         GetKeyHandle<THIS>(index).CreateWithIntent(Refer(keyswapper));
-      else
+      //if constexpr (CT::Sparse<TypeOf<decltype(keyswapper)>>)
+      //   GetKeyHandle<THIS>(index).CreateWithIntent(Refer(keyswapper));
+      //else
          GetKeyHandle<THIS>(index).CreateWithIntent(Abandon(keyswapper));
 
-      if constexpr (CT::Sparse<TypeOf<decltype(valswapper)>>)
-         GetValHandle<THIS>(index).CreateWithIntent(Refer(valswapper));
-      else
+      //if constexpr (CT::Sparse<TypeOf<decltype(valswapper)>>)
+      //   GetValHandle<THIS>(index).CreateWithIntent(Refer(valswapper));
+      //else
          GetValHandle<THIS>(index).CreateWithIntent(Abandon(valswapper));
 
       //GetKeyHandle<THIS>(index).CreateWithIntent(Abandon(keyswapper));
