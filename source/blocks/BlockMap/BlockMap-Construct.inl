@@ -463,7 +463,7 @@ namespace Langulus::Anyness
             while (info != infoEnd) {
                if (*info) {
                   GetValHandle<B>(info - GetInfo()).CreateWithIntent(
-                     HandleLocal<void*> {ptrVal, coalescedValues.mEntry}
+                     Abandon(HandleLocal<void*> {ptrVal, coalescedValues.mEntry})
                   );
                   ptrVal += valstride.mSize;
                }
