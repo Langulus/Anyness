@@ -300,7 +300,7 @@ TEMPLATE_TEST_CASE("Handles from sequential containers", "[handle]",
 
          // After the swap, n now holds h0, and will result in a leak   
          // This is by design - we have to manually free h0             
-         n.FreeInner();
+         //n.FreeInner(); //this was automated
 
          if constexpr (CT::Referencable<T>)
             REQUIRE(const_cast<T&>(n0p).Reference(-1) == 0);
@@ -375,7 +375,7 @@ TEMPLATE_TEST_CASE("Handles from sequential containers", "[handle]",
 
          // After the swap, n now holds h0, and will result in a leak   
          // This is by design - we have to manually free h0             
-         n.FreeInner();
+         //n.FreeInner(); //this was automated
 
          if constexpr (CT::Referencable<T>)
             REQUIRE(const_cast<T&>(n0p).Reference(-1) == 0);
@@ -429,11 +429,113 @@ TEMPLATE_TEST_CASE("Handles from sequential containers", "[handle]",
 
          // After the move, local now holds h0, and will result in a    
          // leak. This is by design - we have to manually free h0       
-         local.FreeInner();
+         //local.FreeInner(); //this was automated
       }
 
       if constexpr (CT::Referencable<T>)
          REQUIRE(const_cast<T&>(h0p).Reference(-1) == 0);
+   }
+
+   REQUIRE(memoryState.Assert());
+}
+
+
+///                                                                           
+TEMPLATE_TEST_CASE("Managed handle swapping", "[handle]", RT*, RT, int, int*) {
+   static Allocator::State memoryState;
+   using T = TestType;
+   TMany<T> factory1 = CreateManagedElements<T>(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+   REQUIRE(factory1.GetAllocation()->GetUses() == 1);
+
+   GIVEN("A stack-based swapper") {
+      TMany<T> factory2 = CreateManagedElements<T>(100);
+      REQUIRE(factory2.GetAllocation()->GetUses() == 1);
+
+      factory1.Reserve(factory1.GetCount() + 1);
+
+      HandleLocal<T> swapper {factory2[0]};
+
+      if constexpr (CT::Sparse<T>)
+         REQUIRE(swapper.GetEntry()->GetUses() == 1);
+
+      if constexpr (CT::Referencable<T>)
+         REQUIRE(DenseCast(swapper.Get()).GetReferences() == 1);
+
+      WHEN("Swap through all elements and insert at the end") {
+         for (int i = 0; i < factory1.GetCount(); ++i) {
+            auto h = factory1.GetHandle(i);
+            REQUIRE(h.GetEntry()->GetUses() == (CT::Sparse<T> ? 10 : 1));
+            h.Swap(swapper);
+         }
+
+         if constexpr (CT::Sparse<T>)
+            REQUIRE(swapper.GetEntry()->GetUses() == 10);
+
+         REQUIRE(DenseCast(swapper.Get()) == 10);
+
+         // we should never EVER insert by Refer in maps/sets??
+         /*THEN("Appending the leftover by Refer") {
+            auto last = factory1.GetHandle(factory1.GetCount());
+            last.CreateWithIntent(Refer(swapper));
+
+            REQUIRE(DenseCast(factory1.GetHandle(0).Get()) == 100);
+            REQUIRE(factory1.GetHandle(0).GetEntry()->GetUses() == (CT::Sparse<T> ? 2 : 1));
+
+            for (int i = 1; i <= 10; ++i) {
+               REQUIRE(DenseCast(factory1.GetHandle(i).Get()) == i);
+
+               if constexpr (CT::Sparse<T>)
+                  REQUIRE(factory1.GetHandle(i).GetEntry()->GetUses() == 11);
+            }
+
+            if constexpr (CT::Referencable<T>) {
+               REQUIRE(DenseCast(swapper.Get()).GetReferences() == 1);
+               REQUIRE(DenseCast(factory1.GetHandle(0).Get()).GetReferences() == (CT::Sparse<T> ? 2 : 1));
+
+               for (int i = 1; i <= 10; ++i)
+                  REQUIRE(DenseCast(factory1.GetHandle(i).Get()).GetReferences() == 1);
+            }
+         }*/
+
+         THEN("Appending the leftover by Abandon") {
+            auto last = factory1.GetHandle(factory1.GetCount());
+            last.CreateWithIntent(Abandon(swapper));
+
+            REQUIRE(DenseCast(factory1.GetHandle(0).Get()) == 100);
+            REQUIRE(factory1.GetHandle(0).GetEntry()->GetUses() == (CT::Sparse<T> ? 2 : 1));
+
+            for (int i = 1; i <= 10; ++i) {
+               REQUIRE(DenseCast(factory1.GetHandle(i).Get()) == i);
+
+               if constexpr (CT::Sparse<T>)
+                  REQUIRE(factory1.GetHandle(i).GetEntry()->GetUses() == 10);
+            }
+
+            if constexpr (CT::Referencable<T>) {
+               REQUIRE(DenseCast(swapper.Get()).GetReferences() == 1);
+               REQUIRE(DenseCast(factory1.GetHandle(0).Get()).GetReferences() == (CT::Sparse<T> ? 2 : 1));
+
+               for (int i = 1; i <= 10; ++i)
+                  REQUIRE(DenseCast(factory1.GetHandle(i).Get()).GetReferences() == 1);
+            }
+         }
+      }
+   }
+
+   REQUIRE(factory1.GetAllocation()->GetUses() == 1);
+
+   auto start = factory1.GetHandle(0);
+   REQUIRE(start.GetEntry()->GetUses() == 1);
+   REQUIRE(DenseCast(start.Get()) == 100);
+   if constexpr (CT::Referencable<T>)
+      REQUIRE(DenseCast(start.Get()).GetReferences() == 1);
+
+   for (int i = 1; i < factory1.GetCount(); ++i) {
+      auto h = factory1.GetHandle(i);
+      REQUIRE(h.GetEntry()->GetUses() == (CT::Sparse<T> ? 10 : 1));
+      REQUIRE(DenseCast(h.Get()) == i);
+      if constexpr (CT::Referencable<T>)
+         REQUIRE(DenseCast(h.Get()).GetReferences() == 1);
    }
 
    REQUIRE(memoryState.Assert());
