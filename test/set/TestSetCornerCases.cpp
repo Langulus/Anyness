@@ -79,14 +79,14 @@ TEMPLATE_TEST_CASE("Set of outside-referenced elements", "[set]",
       for (auto& element : factory) {
          REQUIRE(element.GetReferences() == 1);
          set << &element;
-         REQUIRE(element.GetReferences() == 2);
+         REQUIRE(element.GetReferences() == (LANGULUS_FEATURE_MANAGED_MEMORY() ? 2 : 1));
       }
 
       WHEN("Elements are inserted") {
          for (auto& element : factory) {
             REQUIRE(set.Contains(&element));
-            REQUIRE(element.GetReferences() == 2);
-            REQUIRE(factory.GetUses() == 11);
+            REQUIRE(element.GetReferences() == (LANGULUS_FEATURE_MANAGED_MEMORY() ? 2 : 1));
+            REQUIRE(factory.GetUses() == (LANGULUS_FEATURE_MANAGED_MEMORY() ? 11 : 1));
          }
       }
 
@@ -100,10 +100,10 @@ TEMPLATE_TEST_CASE("Set of outside-referenced elements", "[set]",
             }
             else {
                REQUIRE(set.Contains(&element));
-               REQUIRE(element.GetReferences() == 2);
+               REQUIRE(element.GetReferences() == (LANGULUS_FEATURE_MANAGED_MEMORY() ? 2 : 1));
             }
 
-            REQUIRE(factory.GetUses() == 10);
+            REQUIRE(factory.GetUses() == (LANGULUS_FEATURE_MANAGED_MEMORY() ? 10 : 1));
          }
       }
 
