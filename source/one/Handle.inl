@@ -267,13 +267,11 @@ namespace Langulus::Anyness
                      GetEntry() = nullptr;
 
                   if constexpr (S::Move) {
-                     //if constexpr (ST::Embedded) {
-                        // We're moving from an embedded RHS, so we need
-                        // to clear it up - we're transferring ownership
-                        if constexpr (S::Keep)
-                           rhs->Get() = nullptr;
-                        rhs->GetEntry() = nullptr;
-                     //}
+                     // We're moving from an embedded RHS, so we need   
+                     // to clear it up - we're transferring ownership   
+                     if constexpr (S::Keep)
+                        rhs->Get() = nullptr;
+                     rhs->GetEntry() = nullptr;
                   }
                   else if constexpr (S::Keep and Embedded) {
                      // Copying RHS, but keep it only if not disowning  
@@ -359,13 +357,11 @@ namespace Langulus::Anyness
                   GetEntry() = nullptr;
 
                if constexpr (S::Move) {
-                  //if constexpr (ST::Embedded) {
-                     // We're moving from an embedded RHS, so we need   
-                     // to clear it up - we're transferring ownership   
-                     if constexpr (S::Keep)
-                        rhs->Get() = nullptr;
-                     rhs->GetEntry() = nullptr;
-                  //}
+                  // We're moving from an embedded RHS, so we need      
+                  // to clear it up - we're transferring ownership      
+                  if constexpr (S::Keep)
+                     rhs->Get() = nullptr;
+                  rhs->GetEntry() = nullptr;
                }
                else if constexpr (S::Keep and Embedded) {
                   // Copying RHS, but keep it only if not disowning it  

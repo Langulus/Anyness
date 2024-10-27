@@ -128,7 +128,7 @@ namespace Langulus::Anyness
       }
       else {
          static_assert(CT::Deep<Decay<TYPE>>, "Block is not deep");
-         return DenseCast(GetRaw(idx));
+         return DenseCast(GetRaw() + idx);
       }
    }
 
@@ -140,7 +140,7 @@ namespace Langulus::Anyness
       }
       else {
          static_assert(CT::Deep<Decay<TYPE>>, "Block is not deep");
-         return DenseCast(GetRaw(idx));
+         return DenseCast(GetRaw() + idx);
       }
    }
 
@@ -292,8 +292,9 @@ namespace Langulus::Anyness
          return Abandon(result);
       }
 
-      THIS result {Disown(reinterpret_cast<const THIS&>(*this))};
-      result.mCount = result.mReserved = count;
+      THIS result {reinterpret_cast<const THIS&>(*this)};
+      result.mCount = count;
+      result.mReserved -= start;
       result.mRaw  += start * GetStride();
       return Abandon(result);
    }

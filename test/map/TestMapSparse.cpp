@@ -9,6 +9,7 @@
 
 
 #define MAP_TESTS(MANAGED) \
+   (MapTest<UnorderedMap, Trait*, RT*, MANAGED>), \
    (MapTest<UnorderedMap, Text, int*, MANAGED>), \
    (MapTest<TUnorderedMap<Text, Trait*>, Text, Trait*, MANAGED>), \
  \
@@ -38,7 +39,6 @@
    (MapTest<UnorderedMap, Text, Many*, MANAGED>), \
    (MapTest<UnorderedMap, Text, RT*, MANAGED>), \
  \
-   (MapTest<UnorderedMap, Trait*, RT*, MANAGED>), \
    (MapTest<UnorderedMap, Traits::Count*, RT*, MANAGED>), \
    (MapTest<UnorderedMap, Many*, RT*, MANAGED>), \
    (MapTest<UnorderedMap, RT*, RT*, MANAGED>), \
