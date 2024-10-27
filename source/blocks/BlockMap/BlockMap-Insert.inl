@@ -8,6 +8,7 @@
 #pragma once
 #include "../BlockMap.hpp"
 #include "../../blocks/Block/Block-Insert.inl"
+#include "../../blocks/Block/Block-Construct.inl"
 
 
 namespace Langulus::Anyness
