@@ -439,7 +439,6 @@ namespace Langulus::Anyness
       return not IsEmpty();
    }
 
-#if LANGULUS(DEBUG)
    template<CT::Map THIS>
    void BlockMap::Dump() const {
       const auto tab = Logger::InfoTab("BlockMap::Dump");
@@ -464,6 +463,5 @@ namespace Langulus::Anyness
          ++info;
       }
    }
-#endif
 
 } // namespace Langulus::Anyness
