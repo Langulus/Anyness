@@ -225,9 +225,8 @@ namespace Langulus::Anyness
 
       NOD() constexpr explicit operator bool() const noexcept;
 
-      #if LANGULUS(DEBUG)
-         template<CT::Map> void Dump() const;
-      #endif
+      template<CT::Map>
+      void Dump() const;
 
       template<CT::Map = UnorderedMap>
       NOD() auto& GetKeys() const noexcept;
