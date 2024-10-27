@@ -49,19 +49,19 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Assignment                                                        
       ///                                                                     
-      Map& operator = (const Map&);
-      Map& operator = (Map&&);
-      Map& operator = (CT::UnfoldInsertable auto&&);
+      auto operator = (const Map&) -> Map&;
+      auto operator = (Map&&) -> Map&;
+      auto operator = (CT::UnfoldInsertable auto&&) -> Map&;
 
       ///                                                                     
       ///   Indexing                                                          
       ///                                                                     
-      NOD() Block<> GetKey  (CT::Index auto);
-      NOD() Block<> GetKey  (CT::Index auto) const;
-      NOD() Block<> GetValue(CT::Index auto);
-      NOD() Block<> GetValue(CT::Index auto) const;
-      NOD() Pair    GetPair (CT::Index auto);
-      NOD() Pair    GetPair (CT::Index auto) const;
+      NOD() auto GetKey  (CT::Index auto) -> Block<>;
+      NOD() auto GetKey  (CT::Index auto) const -> Block<>;
+      NOD() auto GetValue(CT::Index auto) -> Block<>;
+      NOD() auto GetValue(CT::Index auto) const -> Block<>;
+      NOD() auto GetPair (CT::Index auto) -> Pair;
+      NOD() auto GetPair (CT::Index auto) const -> Pair;
 
       ///                                                                     
       ///   Iteration                                                         
@@ -69,10 +69,10 @@ namespace Langulus::Anyness
       using Iterator      = BlockMap::Iterator<Map>;
       using ConstIterator = BlockMap::Iterator<const Map>;
 
-      NOD() Iterator      begin() noexcept;
-      NOD() Iterator      last() noexcept;
-      NOD() ConstIterator begin() const noexcept;
-      NOD() ConstIterator last() const noexcept;
+      NOD() auto begin() noexcept -> Iterator;
+      NOD() auto last() noexcept -> Iterator;
+      NOD() auto begin() const noexcept -> ConstIterator;
+      NOD() auto last() const noexcept -> ConstIterator;
 
       template<bool REVERSE = false>
       Count ForEach(auto&&) const;
@@ -141,9 +141,9 @@ namespace Langulus::Anyness
       ///                                                                     
       using BlockMap::operator ==;
 
-      NOD() Index Find(const CT::NoIntent auto&) const;
-      NOD() Iterator FindIt(const CT::NoIntent auto&);
-      NOD() ConstIterator FindIt(const CT::NoIntent auto&) const;
+      NOD() auto Find(const CT::NoIntent auto&) const -> Index;
+      NOD() auto FindIt(const CT::NoIntent auto&) -> Iterator;
+      NOD() auto FindIt(const CT::NoIntent auto&) const -> ConstIterator;
 
       NOD() decltype(auto) At(const CT::NoIntent auto&);
       NOD() decltype(auto) At(const CT::NoIntent auto&) const;
@@ -167,16 +167,16 @@ namespace Langulus::Anyness
       template<class T1, class...TN>
       Count InsertPair(T1&&, TN&&...);
 
-      Map& operator << (CT::UnfoldInsertable auto&&);
-      Map& operator >> (CT::UnfoldInsertable auto&&);
+      auto operator << (CT::UnfoldInsertable auto&&) -> Map&;
+      auto operator >> (CT::UnfoldInsertable auto&&) -> Map&;
 
       ///                                                                     
       ///   Removal                                                           
       ///                                                                     
-      Count RemoveKey(const CT::NoIntent auto&);
-      Count RemoveValue(const CT::NoIntent auto&);
-      Count RemovePair(const CT::Pair auto&);
-      Iterator RemoveIt(const Iterator&);
+      auto RemoveKey(const CT::NoIntent auto&) -> Count;
+      auto RemoveValue(const CT::NoIntent auto&) -> Count;
+      auto RemovePair(const CT::Pair auto&) -> Count;
+      auto RemoveIt(const Iterator&) -> Iterator;
 
       void Clear();
       void Reset();

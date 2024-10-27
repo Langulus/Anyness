@@ -382,7 +382,7 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Conversion                                                        
       ///                                                                     
-      operator Many& () const noexcept;
+      explicit operator Many& () noexcept;
 
    protected:
       template<CT::TextBased THIS, class T>

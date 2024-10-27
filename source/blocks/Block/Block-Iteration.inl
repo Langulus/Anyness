@@ -552,6 +552,11 @@ namespace Langulus::Anyness
                if constexpr (MUTABLE) {
                   // Discard is allowed only if THIS is mutable         
                   const_cast<Block*>(this)->RemoveIndex(raw - data);
+                  if (IsEmpty()) {
+                     // This was fully emptied, so propagate the discard
+                     return Loop::Discard;
+                  }
+
                   if constexpr (REVERSE)
                      next();
                   else

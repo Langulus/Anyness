@@ -77,14 +77,13 @@ namespace Langulus::Anyness
 
       ~TMap();
 
-      TMap& operator = (const TMap&);
-      TMap& operator = (TMap&&);
+      auto operator = (const TMap&) -> TMap&;
+      auto operator = (TMap&&) -> TMap&;
 
-      template<class T1>
-      requires CT::DeepMapAssignable<K, V, T1>
-      TMap& operator = (T1&&);
+      template<class T1> requires CT::DeepMapAssignable<K, V, T1>
+      auto operator = (T1&&) -> TMap&;
 
-      TMap& BranchOut();
+      auto BranchOut() -> TMap&;
 
       ///                                                                     
       ///   Capsulation                                                       
@@ -178,10 +177,10 @@ namespace Langulus::Anyness
       using Iterator = BlockMap::Iterator<TMap>;
       using ConstIterator = BlockMap::Iterator<const TMap>;
 
-      NOD() Iterator begin() noexcept;
-      NOD() Iterator last() noexcept;
-      NOD() ConstIterator begin() const noexcept;
-      NOD() ConstIterator last() const noexcept;
+      NOD() auto begin() noexcept -> Iterator;
+      NOD() auto last() noexcept -> Iterator;
+      NOD() auto begin() const noexcept -> ConstIterator;
+      NOD() auto last() const noexcept -> ConstIterator;
 
       template<bool REVERSE = false>
       Count ForEach(auto&&) const;
@@ -236,13 +235,13 @@ namespace Langulus::Anyness
       NOD() bool ContainsPair(P const&) const;
 
       template<CT::NoIntent K1> requires CT::Comparable<K, K1>
-      NOD() Index Find(K1 const&) const;
+      NOD() auto Find(K1 const&) const -> Index;
 
       template<CT::NoIntent K1> requires CT::Comparable<K, K1>
-      NOD() Iterator FindIt(K1 const&);
+      NOD() auto FindIt(K1 const&) -> Iterator;
 
       template<CT::NoIntent K1> requires CT::Comparable<K, K1>
-      NOD() ConstIterator FindIt(K1 const&) const;
+      NOD() auto FindIt(K1 const&) const -> ConstIterator;
 
       template<CT::NoIntent K1> requires CT::Comparable<K, K1>
       NOD() decltype(auto) At(K1 const&);
@@ -280,25 +279,25 @@ namespace Langulus::Anyness
 
       template<class T1>
       requires CT::UnfoldMakableFrom<TPair<K, V>, T1>
-      TMap& operator << (T1&&);
+      auto operator << (T1&&) -> TMap&;
 
       template<class T1>
       requires CT::UnfoldMakableFrom<TPair<K, V>, T1>
-      TMap& operator >> (T1&&);
+      auto operator >> (T1&&) -> TMap&;
 
-      TMap& operator += (const TMap&);
+      auto operator += (const TMap&) -> TMap&;
 
       ///                                                                     
       ///   Removal                                                           
       ///                                                                     
       template<CT::NoIntent K1> requires CT::Comparable<K, K1>
-      Count RemoveKey(const K1&);
+      auto RemoveKey(const K1&) -> Count;
       template<CT::NoIntent V1> requires CT::Comparable<V, V1>
-      Count RemoveValue(const V1&);
+      auto RemoveValue(const V1&) -> Count;
       template<CT::Pair P> requires CT::Comparable<TPair<K, V>, P>
-      Count RemovePair(const P&);
+      auto RemovePair(const P&) -> Count;
 
-      Iterator RemoveIt(const Iterator&);
+      auto RemoveIt(const Iterator&) -> Iterator;
 
       void Clear();
       void Reset();

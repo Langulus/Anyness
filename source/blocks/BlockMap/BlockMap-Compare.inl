@@ -276,7 +276,7 @@ namespace Langulus::Anyness
          ++info;
 
          auto infoEnd = GetInfoEnd();
-         while (info != infoEnd) {
+         while (info < infoEnd) {
             if (not *info)
                return InvalidOffset;
 
@@ -299,7 +299,7 @@ namespace Langulus::Anyness
          ++info;
 
          infoEnd = GetInfo() + start;
-         while (info != infoEnd) {
+         while (info < infoEnd) {
             if (not *info)
                return InvalidOffset;
 

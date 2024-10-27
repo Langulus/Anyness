@@ -90,7 +90,7 @@ namespace Langulus::Anyness
    ///   @param pair - the table to move                                      
    ///   @return a reference to this table                                    
    TEMPLATE() LANGULUS(INLINED)
-   TABLE()& TABLE()::operator = (TMap&& pair) {
+   auto TABLE()::operator = (TMap&& pair) -> TMap& {
       return operator = (Move(pair));
    }
 
@@ -98,7 +98,7 @@ namespace Langulus::Anyness
    ///   @param pair - the table to reference                                 
    ///   @return a reference to this table                                    
    TEMPLATE() LANGULUS(INLINED)
-   TABLE()& TABLE()::operator = (const TMap& pair) {
+   auto TABLE()::operator = (const TMap& pair) -> TMap& {
       return operator = (Refer(pair));
    }
    
@@ -107,7 +107,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container                                
    TEMPLATE() template<class T1>
    requires CT::DeepMapAssignable<K, V, T1> LANGULUS(INLINED)
-   TABLE()& TABLE()::operator = (T1&& rhs) {
+   auto TABLE()::operator = (T1&& rhs) -> TMap& {
       using S  = IntentOf<decltype(rhs)>;
       using ST = TypeOf<S>;
        
@@ -142,7 +142,7 @@ namespace Langulus::Anyness
    /// Branch the map, by doing a shallow copy                                
    ///   @return a reference to this instance                                 
    TEMPLATE() LANGULUS(INLINED)
-   TABLE()& TABLE()::BranchOut() {
+   auto TABLE()::BranchOut() -> TMap& {
       BlockMap::BranchOut<TMap>();
       return *this;
    }
@@ -451,14 +451,14 @@ namespace Langulus::Anyness
    ///   @param val - the value and intent to insert                          
    ///   @return 1 if pair was inserted, zero otherwise                       
    TEMPLATE() template<class K1, class V1>
-   requires (CT::MakableFrom<K, K1> and CT::MakableFrom<V, V1>)
-   LANGULUS(INLINED) Count TABLE()::Insert(K1&& key, V1&& val) {
+   requires (CT::MakableFrom<K, K1> and CT::MakableFrom<V, V1>) LANGULUS(INLINED)
+   Count TABLE()::Insert(K1&& key, V1&& val) {
       return BlockMap::Insert<TMap>(Forward<K1>(key), Forward<V1>(val));
    }
    
    TEMPLATE() template<class K1>
-   requires (CT::MakableFrom<K, K1> and CT::Defaultable<V>)
-   LANGULUS(INLINED) Count TABLE()::Insert(K1&& key) {
+   requires (CT::MakableFrom<K, K1> and CT::Defaultable<V>) LANGULUS(INLINED)
+   Count TABLE()::Insert(K1&& key) {
       return BlockMap::Insert<TMap>(Forward<K1>(key), V {});
    }
    
@@ -476,8 +476,8 @@ namespace Langulus::Anyness
    ///   @param t1, tn... - pairs, or arrays of pairs, to insert              
    ///   @return the number of inserted pairs                                 
    TEMPLATE() template<class T1, class...TN>
-   requires CT::UnfoldMakableFrom<TPair<K, V>, T1, TN...>
-   LANGULUS(INLINED) Count TABLE()::InsertPair(T1&& t1, TN&&...tn) {
+   requires CT::UnfoldMakableFrom<TPair<K, V>, T1, TN...> LANGULUS(INLINED)
+   Count TABLE()::InsertPair(T1&& t1, TN&&...tn) {
       Count inserted = 0;
         inserted += BlockMap::UnfoldInsert<TMap>(Forward<T1>(t1));
       ((inserted += BlockMap::UnfoldInsert<TMap>(Forward<TN>(tn))), ...);
@@ -489,7 +489,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this map for chaining                         
    TEMPLATE() template<class T1>
    requires CT::UnfoldMakableFrom<TPair<K, V>, T1> LANGULUS(INLINED)
-   TABLE()& TABLE()::operator << (T1&& pair) {
+   auto TABLE()::operator << (T1&& pair) -> TMap& {
       InsertPair(Forward<T1>(pair));
       return *this;
    }
@@ -499,7 +499,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this map for chaining                         
    TEMPLATE() template<class T1>
    requires CT::UnfoldMakableFrom<TPair<K, V>, T1> LANGULUS(INLINED)
-   TABLE()& TABLE()::operator >> (T1&& pair) {
+   auto TABLE()::operator >> (T1&& pair) -> TMap& {
       InsertPair(Forward<T1>(pair));
       return *this;
    }
@@ -508,7 +508,7 @@ namespace Langulus::Anyness
    ///   @param rhs - the map to concatenate                                  
    ///   @return a reference to this table for chaining                       
    TEMPLATE() LANGULUS(INLINED)
-   TABLE()& TABLE()::operator += (const TABLE()& rhs) {
+   auto TABLE()::operator += (const TABLE()& rhs) -> TMap& {
       for (auto pair : rhs) {
          auto found = Find(pair.mKey);
          if (found) {
@@ -519,6 +519,7 @@ namespace Langulus::Anyness
          }
          else Insert(pair.mKey, pair.mValue);
       }
+
       return *this;
    }
 
@@ -568,7 +569,7 @@ namespace Langulus::Anyness
    ///   @return the iterator of the previous element, unless index is the    
    ///           first, or at the end already                                 
    TEMPLATE() LANGULUS(INLINED)
-   typename TABLE()::Iterator TABLE()::RemoveIt(const Iterator& index) {
+   auto TABLE()::RemoveIt(const Iterator& index) -> Iterator {
       return BlockMap::RemoveIt<TMap>(index);
    }
 
@@ -638,8 +639,8 @@ namespace Langulus::Anyness
    ///   @param pair - the pair to search for                                 
    ///   @return true if pair is found, false otherwise                       
    TEMPLATE() template<CT::Pair P>
-   requires CT::Comparable<TPair<K, V>, P>
-   LANGULUS(INLINED) bool TABLE()::ContainsPair(P const& pair) const {
+   requires CT::Comparable<TPair<K, V>, P> LANGULUS(INLINED)
+   bool TABLE()::ContainsPair(P const& pair) const {
       return BlockMap::ContainsPair<TMap>(pair);
    }
 
@@ -657,13 +658,13 @@ namespace Langulus::Anyness
    ///   @return the iterator                                                 
    TEMPLATE() template<CT::NoIntent K1>
    requires CT::Comparable<K, K1> LANGULUS(INLINED)
-   typename TABLE()::Iterator TABLE()::FindIt(K1 const& key) {
+   auto TABLE()::FindIt(K1 const& key) -> Iterator {
       return BlockMap::FindIt<TMap>(key);
    }
 
    TEMPLATE() template<CT::NoIntent K1>
    requires CT::Comparable<K, K1> LANGULUS(INLINED)
-   typename TABLE()::ConstIterator TABLE()::FindIt(K1 const& key) const {
+   auto TABLE()::FindIt(K1 const& key) const -> ConstIterator {
       return BlockMap::FindIt<TMap>(key);
    }
    
@@ -703,12 +704,12 @@ namespace Langulus::Anyness
    ///   @param index - the index                                             
    ///   @return the mutable key reference                                    
    TEMPLATE() LANGULUS(INLINED)
-   K& TABLE()::GetKey(CT::Index auto index) {
+   auto TABLE()::GetKey(CT::Index auto index) -> K& {
       return BlockMap::GetKey<TMap>(index);
    }
 
    TEMPLATE() LANGULUS(INLINED)
-   const K& TABLE()::GetKey(CT::Index auto index) const {
+   auto TABLE()::GetKey(CT::Index auto index) const -> const K& {
       return BlockMap::GetKey<TMap>(index);
    }
 
@@ -717,12 +718,12 @@ namespace Langulus::Anyness
    ///   @param i - the index                                                 
    ///   @return the mutable value reference                                  
    TEMPLATE() LANGULUS(INLINED)
-   V& TABLE()::GetValue(CT::Index auto index) {
+   auto TABLE()::GetValue(CT::Index auto index) -> V& {
       return BlockMap::GetValue<TMap>(index);
    }
 
    TEMPLATE() LANGULUS(INLINED)
-   const V& TABLE()::GetValue(CT::Index auto index) const {
+   auto TABLE()::GetValue(CT::Index auto index) const -> const V& {
       return BlockMap::GetValue<TMap>(index);
    }
 
@@ -731,36 +732,36 @@ namespace Langulus::Anyness
    ///   @param index - the index                                             
    ///   @return the mutable pair reference                                   
    TEMPLATE() LANGULUS(INLINED)
-   typename TABLE()::PairRef TABLE()::GetPair(CT::Index auto index) {
+   auto TABLE()::GetPair(CT::Index auto index) -> PairRef {
       return BlockMap::GetPair<TMap>(index);
    }
 
    TEMPLATE() LANGULUS(INLINED)
-   typename TABLE()::PairConstRef TABLE()::GetPair(CT::Index auto index) const {
+   auto TABLE()::GetPair(CT::Index auto index) const -> PairConstRef {
       return BlockMap::GetPair<TMap>(index);
    }
 
    /// Get iterator to first element                                          
    ///   @return an iterator to the first element, or end if empty            
    TEMPLATE() LANGULUS(INLINED)
-   typename TABLE()::Iterator TABLE()::begin() noexcept {
+   auto TABLE()::begin() noexcept -> Iterator {
       return BlockMap::begin<TMap>();
    }
 
    TEMPLATE()
-   typename TABLE()::ConstIterator TABLE()::begin() const noexcept {
+   auto TABLE()::begin() const noexcept -> ConstIterator {
       return BlockMap::begin<TMap>();
    }
 
    /// Get iterator to the last element                                       
    ///   @return an iterator to the last element, or end if empty             
    TEMPLATE() LANGULUS(INLINED)
-   typename TABLE()::Iterator TABLE()::last() noexcept {
+   auto TABLE()::last() noexcept -> Iterator {
       return BlockMap::last<TMap>();
    }
 
    TEMPLATE()
-   typename TABLE()::ConstIterator TABLE()::last() const noexcept {
+   auto TABLE()::last() const noexcept -> ConstIterator {
       return BlockMap::last<TMap>();
    }
 

@@ -61,16 +61,16 @@ namespace Langulus::Anyness
    ///   @param items... - items to insert                                    
    ///   @returns the new container containing the data                       
    TEMPLATE() template<CT::Data...TN> LANGULUS(ALWAYS_INLINED)
-   TMany<T> TMany<T>::Wrap(TN&&...items) {
-      return WrapBlock<TMany<T>>(Forward<TN>(items)...);
+   auto TMany<T>::Wrap(TN&&...items) -> TMany {
+      return WrapBlock<TMany>(Forward<TN>(items)...);
    }
 
    /// Refer assignment                                                       
    ///   @param rhs - the container to refer to                               
    ///   @return a reference to this container                                
    TEMPLATE() LANGULUS(INLINED)
-   TMany<T>& TMany<T>::operator = (const TMany& rhs) {
-      static_assert(CT::DeepAssignable<T, Referred<TMany<T>>>);
+   auto TMany<T>::operator = (const TMany& rhs) -> TMany& {
+      static_assert(CT::DeepAssignable<T, Referred<TMany>>);
       return operator = (Refer(rhs));
    }
 
@@ -78,8 +78,8 @@ namespace Langulus::Anyness
    ///   @param rhs - the container to move                                   
    ///   @return a reference to this container                                
    TEMPLATE() LANGULUS(INLINED)
-   TMany<T>& TMany<T>::operator = (TMany&& rhs) {
-      static_assert(CT::DeepAssignable<T, Moved<TMany<T>>>);
+   auto TMany<T>::operator = (TMany&& rhs) -> TMany& {
+      static_assert(CT::DeepAssignable<T, Moved<TMany>>);
       return operator = (Move(rhs));
    }
 
@@ -88,7 +88,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container                                
    TEMPLATE() template<class T1>
    requires CT::DeepAssignable<T, T1> LANGULUS(INLINED)
-   TMany<T>& TMany<T>::operator = (T1&& rhs) {
+   auto TMany<T>::operator = (T1&& rhs) -> TMany& {
       return Base::template BlockAssign<TMany>(Forward<T1>(rhs));
    }
 
@@ -97,7 +97,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container for chaining                   
    TEMPLATE() template<class T1>
    requires CT::UnfoldMakableFrom<T, T1> LANGULUS(INLINED)
-   TMany<T>& TMany<T>::operator << (T1&& rhs) {
+   auto TMany<T>::operator << (T1&& rhs) -> TMany& {
       Base::Insert(IndexBack, Forward<T1>(rhs));
       return *this;
    }
@@ -107,7 +107,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container for chaining                   
    TEMPLATE() template<class T1>
    requires CT::UnfoldMakableFrom<T, T1> LANGULUS(INLINED)
-   TMany<T>& TMany<T>::operator >> (T1&& rhs) {
+   auto TMany<T>::operator >> (T1&& rhs) -> TMany& {
       Base::Insert(IndexFront, Forward<T1>(rhs));
       return *this;
    }
@@ -117,7 +117,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container for chaining                   
    TEMPLATE() template<class T1>
    requires CT::UnfoldMakableFrom<T, T1> LANGULUS(INLINED)
-   TMany<T>& TMany<T>::operator <<= (T1&& rhs) {
+   auto TMany<T>::operator <<= (T1&& rhs) -> TMany& {
       Base::Merge(IndexBack, Forward<T1>(rhs));
       return *this;
    }
@@ -127,7 +127,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container for chaining                   
    TEMPLATE() template<class T1>
    requires CT::UnfoldMakableFrom<T, T1> LANGULUS(INLINED)
-   TMany<T>& TMany<T>::operator >>= (T1&& rhs) {
+   auto TMany<T>::operator >>= (T1&& rhs) -> TMany& {
       Base::Merge(IndexFront, Forward<T1>(rhs));
       return *this;
    }
@@ -137,12 +137,12 @@ namespace Langulus::Anyness
    ///   @param count - number of elements                                    
    ///   @return the container                                                
    TEMPLATE() LANGULUS(INLINED)
-   TMany<T> TMany<T>::Select(Offset start, Count count) const IF_UNSAFE(noexcept) {
+   auto TMany<T>::Select(Offset start, Count count) const IF_UNSAFE(noexcept) -> TMany {
       return Base::template Select<TMany>(start, count);
    }
    
    TEMPLATE() LANGULUS(INLINED)
-   TMany<T> TMany<T>::Select(Offset start, Count count) IF_UNSAFE(noexcept) {
+   auto TMany<T>::Select(Offset start, Count count) IF_UNSAFE(noexcept) -> TMany {
       return Base::template Select<TMany>(start, count);
    }
    
@@ -150,7 +150,7 @@ namespace Langulus::Anyness
    ///   @param count - the number of elements to extend by                   
    ///   @return a container that represents only the extended part           
    TEMPLATE() LANGULUS(INLINED)
-   TMany<T> TMany<T>::Extend(const Count count) {
+   auto TMany<T>::Extend(const Count count) -> TMany {
       return Base::template Extend<TMany>(count);
    }
   
@@ -159,9 +159,12 @@ namespace Langulus::Anyness
    ///   @return a new container, containing both blocks                      
    TEMPLATE() template<class T1>
    requires CT::DeepMakable<T, T1> LANGULUS(INLINED)
-   TMany<T> TMany<T>::operator + (T1&& rhs) const {
+   auto TMany<T>::operator + (T1&& rhs) const -> TMany {
       using S = IntentOf<decltype(rhs)>;
-      return Base::template ConcatBlock<TMany>(S::Nest(rhs));
+      if constexpr (CT::Block<TypeOf<S>>)
+         return Base::template ConcatBlock<TMany>(S::Nest(rhs));
+      else
+         return Base::template ConcatBlock<TMany>(Abandon(TMany {S::Nest(rhs)}));
    }
 
    /// Concatenate destructively, with or without intents                     
@@ -169,9 +172,12 @@ namespace Langulus::Anyness
    ///   @return a reference to this container                                
    TEMPLATE() template<class T1>
    requires CT::DeepMakable<T, T1> LANGULUS(INLINED)
-   TMany<T>& TMany<T>::operator += (T1&& rhs) {
+   auto TMany<T>::operator += (T1&& rhs) -> TMany& {
       using S = IntentOf<decltype(rhs)>;
-      Base::template InsertBlock<void>(IndexBack, S::Nest(rhs));
+      if constexpr (CT::Block<TypeOf<S>>)
+         Base::template InsertBlock<void>(IndexBack, S::Nest(rhs));
+      else
+         Base::template Insert<void>(IndexBack, S::Nest(rhs));
       return *this;
    }
 
