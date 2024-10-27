@@ -30,6 +30,7 @@ namespace Langulus
          static constexpr bool Sequential = false;
          static constexpr Offset InvalidOffset = -1;
          static constexpr Count MinimalAllocation = 8;
+         static constexpr Count AllowedMisses = 128;
 
       protected:
          // A precomputed pointer for the info/ordering bytes           
@@ -479,11 +480,13 @@ namespace Langulus::Anyness
       NOD() Size RequestValuesSize(Count) const IF_UNSAFE(noexcept);
       
       template<CT::Map>
-      void Rehash(Count);
+      void RehashBoth(Count);
       template<CT::Map>
       void RehashKeys(BlockMap&);
       template<CT::Map>
       void RehashVals(BlockMap&);
+      template<CT::Map>
+      void RehashInner(const Count hashmask, const Offset current, Offset& moveTo, auto& key, auto& val);
       template<CT::Map>
       void ShiftPairs();
 

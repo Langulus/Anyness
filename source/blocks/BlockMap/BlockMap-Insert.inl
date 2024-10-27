@@ -17,6 +17,8 @@ namespace Langulus::Anyness
    ///   @attention if key is a type-erased handle or void*, we assume that   
    ///      the pointer always points to a valid instance of the current      
    ///      key type                                                          
+   ///   @attention make sure this isn't used like:                           
+   ///      CreateKeyHandle(GetKeyHandle()) when map is type-erased           
    ///   @param key - the key to wrap, with or without intent                 
    ///   @return the handle object                                            
    template<CT::Map THIS>
@@ -41,6 +43,8 @@ namespace Langulus::Anyness
    ///   @attention if value is a type-erased handle or void*, we assume that 
    ///      the pointer always points to a valid instance of the current      
    ///      value type                                                        
+   ///   @attention make sure this isn't used like:                           
+   ///      CreateValHandle(GetValHandle()) when map is type-erased           
    ///   @param val - the value to wrap, with or without intent               
    ///   @return the handle object                                            
    template<CT::Map THIS>
@@ -299,12 +303,89 @@ namespace Langulus::Anyness
       return valueByteSize;
    }
 
+   ///                                                                        
+   template<CT::Map THIS>
+   void BlockMap::RehashInner(const Count hashmask, const Offset current, Offset& moveTo, auto& key, auto& val) {
+      Offset attempt = 0;
+      Offset wrapped = moveTo + attempt >= GetReserved()
+         ? (moveTo + attempt) - GetReserved()
+         : moveTo + attempt;
+
+      while (mInfo[wrapped]) {
+         if (wrapped == current)
+            break; // Don't swap with self                              
+
+         // While there's something on the rehashed slot - swap         
+         // with it and continue swapping                               
+         auto nextKey = GetKeyHandle<THIS>(wrapped);
+         if constexpr (CT::TypedMap<THIS>) {
+            LANGULUS_ASSUME(DevAssumes, key.Get() != nextKey.Get(),
+               "Duplicated key - are map keys interfaced as static and change outside the map?"
+               " You should clone them when inserting!"
+            );
+         }
+         else {
+            LANGULUS_ASSUME(DevAssumes, key != nextKey,
+               "Duplicated key - are map keys interfaced as static and change outside the map?"
+               " You should clone them when inserting!"
+            );
+         }
+
+         nextKey.Swap(key);
+         GetValHandle<THIS>(wrapped).Swap(val);
+         mInfo[wrapped] = attempt + 1;
+
+         // Where does the next element want to go?                     
+         Offset moveTo2 = 0;
+         if constexpr (CT::TypedMap<THIS>)
+            moveTo2 = GetBucket(hashmask, key.Get());
+         else
+            moveTo2 = GetBucketUnknown(hashmask, key);
+
+         // Does it want to return here again?                          
+         // If so, continuously insert next to it                       
+         if ((moveTo2 >= moveTo and moveTo2 <= moveTo + attempt)
+         or (moveTo2 + GetReserved() >= moveTo
+            and moveTo2 + GetReserved() <= moveTo + attempt)) {
+            ++attempt;
+
+            wrapped = moveTo + attempt >= GetReserved()
+               ? (moveTo + attempt) - GetReserved()
+               : moveTo + attempt;
+
+            if (attempt == AllowedMisses) {
+               // Attempts go beyond the allowed count - the map        
+               // has to be widened further                             
+               throw Except::Overflow();
+            }
+         }
+         else {
+            moveTo = moveTo2;
+            attempt = 0;
+            wrapped = moveTo;
+         }
+      }
+
+      if (wrapped != current) {
+         // This is reached when an empty desired slot was found        
+         GetKeyHandle<THIS>(wrapped).CreateWithIntent(Abandon(key));
+         key.FreeInner();
+
+         GetValHandle<THIS>(wrapped).CreateWithIntent(Abandon(val));
+         val.FreeInner();
+
+         mInfo[current] = 0;
+      }
+
+      mInfo[wrapped] = attempt + 1;
+   }
+
    /// Rehashes and reinserts each pair in the same block                     
    ///   @attention assumes count and oldCount are power-of-two               
    ///   @attention assumes count > oldCount                                  
    ///   @param oldCount - the old number of pairs                            
    template<CT::Map THIS>
-   void BlockMap::Rehash(const Count oldCount) {
+   void BlockMap::RehashBoth(const Count oldCount) {
       LANGULUS_ASSUME(DevAssumes, mKeys.mReserved > oldCount,
          "New count is not larger than oldCount");
       LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(mKeys.mReserved),
@@ -312,77 +393,55 @@ namespace Langulus::Anyness
       LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(oldCount),
          "Old count is not a power-of-two");
 
-      auto oldKey = GetKeyHandle<THIS>(0);
-      auto oldInfo = GetInfo();
-      const auto oldInfoEnd = oldInfo + oldCount;
-      const auto hashmask = mKeys.mReserved - 1;
+      // Keys were reused, but their entries shift forward              
+      if (IsKeySparse<THIS>()) {
+         MoveMemory(
+            mKeys.mRawSparse + GetReserved(),
+            mKeys.mRawSparse + oldCount,
+            oldCount
+         );
+      };
 
-      // First run: move elements closer to their new buckets           
-      while (oldInfo != oldInfoEnd) {
-         if (*oldInfo) {
-            // Rehash and check if hashes match                         
-            const Offset oldIndex = oldInfo - GetInfo();
-            const Offset oldBucket = (oldCount + oldIndex) - *oldInfo + 1;
-            Offset newBucket = 0;
-            if constexpr (CT::Typed<THIS>)
-               newBucket += GetBucket(hashmask, oldKey.Get());
+      // Vals were reused, but their entries shift forward              
+      if (IsValueSparse<THIS>()) {
+         MoveMemory(
+            mValues.mRawSparse + GetReserved(),
+            mValues.mRawSparse + oldCount,
+            oldCount
+         );
+      };
+            
+      auto info = mInfo;
+      const auto infoend = info + oldCount;
+      const auto hashmask = GetReserved() - 1;
+
+      while (info != infoend) {
+         if (*info) {
+            // Use the 'current' slot as a swapper                      
+            const Offset current = info - mInfo;
+            auto key = GetKeyHandle<THIS>(current);
+
+            // Where does the pair want to move after a rehash?         
+            Offset moveTo = 0;
+            if constexpr (CT::TypedMap<THIS>)
+               moveTo = GetBucket(hashmask, key.Get());
             else
-               newBucket += GetBucketUnknown(hashmask, oldKey);
+               moveTo = GetBucketUnknown(hashmask, key);
 
-            if (oldBucket < oldCount or oldBucket - oldCount != newBucket) {
-               // Move pair only if it won't end up in same bucket      
-               if constexpr (CT::Typed<THIS>) {
-                  using K = typename THIS::Key;
-                  using V = typename THIS::Value;
-
-                  auto oldValue = GetValHandle<THIS>(oldIndex);
-                  HandleLocal<K> keyswap {Abandon(oldKey)};
-                  HandleLocal<V> valswap {Abandon(oldValue)};
-
-                  // Destroy the key, info and value                    
-                  oldKey.FreeInner();
-                  oldValue.FreeInner();
-                  *oldInfo = 0;
-                  --mKeys.mCount;
-
-                  // Reinsert at the new bucket                         
-                  InsertInner<THIS, false>(
-                     newBucket, Abandon(keyswap), Abandon(valswap)
-                  );
-               }
-               else {
-                  Block<> keyswap {mKeys.GetState(), GetKeyType<THIS>(), 1};
-                  keyswap.AllocateFresh(keyswap.RequestSize(1));
-                  keyswap.CreateWithIntent(Abandon(oldKey));
-
-                  auto oldValue = GetValHandle<THIS>(oldIndex);
-                  Block<> valswap {mValues.GetState(), GetValueType<THIS>(), 1};
-                  valswap.AllocateFresh(valswap.RequestSize(1));
-                  valswap.CreateWithIntent(Abandon(oldValue));
-
-                  // Destroy the pair and info at old index             
-                  oldKey.FreeInner();
-                  oldValue.FreeInner();
-                  *oldInfo = 0;
-                  --mKeys.mCount;
-
-                  InsertBlockInner<THIS, false>(
-                     newBucket, Abandon(keyswap), Abandon(valswap)
-                  );
-
-                  keyswap.Free();
-                  valswap.Free();
-               }
+            // If it's the same position then we just move on, just     
+            // make sure that info has been set to 1                    
+            if (moveTo == current) {
+               mInfo[moveTo] = 1;
+               ++info;
+               continue;
             }
+
+            auto val = GetValHandle<THIS>(current);
+            RehashInner<THIS>(hashmask, current, moveTo, key, val);
          }
 
-         ++oldKey;
-         ++oldInfo;
+         ++info;
       }
-
-      // First run might cause gaps                                     
-      // Second run: shift elements left, where possible                
-      ShiftPairs<THIS>();
    }
    
    /// Rehashes and reinserts each key in the same block, and moves all       
@@ -397,67 +456,59 @@ namespace Langulus::Anyness
       LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(GetReserved()),
          "New count is not a power-of-two");
 
-      auto oldKey = old.GetKeyHandle<THIS>(0);
-      auto oldInfo = old.GetInfo();
-      const auto oldInfoEnd = old.GetInfoEnd();
+      // Keys were reused, but their entries shift forward              
+      if (IsKeySparse<THIS>()) {
+         MoveMemory(
+            mKeys.mRawSparse + GetReserved(),
+            mKeys.mRawSparse + old.GetReserved(),
+            old.GetReserved()
+         );
+      };
+
+      // Reusing keys means reusing info, but we still have to mark     
+      // which values have been initialized. So we move the info array  
+      // to a temporary, and rebuild the one in the map.                
+      TMany<InfoType> temp_info {Copy(MakeBlock(old.mInfo, old.GetReserved()))};
+      ZeroMemory(mInfo, GetReserved());
+
+      auto info = temp_info.GetRaw();
+      const auto infoend = info + old.GetReserved();
       const auto hashmask = GetReserved() - 1;
 
-      // First run: move elements closer to their new buckets           
-      while (oldInfo != oldInfoEnd) {
-         if (*oldInfo) {
-            // Rehash and check if hashes match                         
-            const Offset oldIndex = oldInfo - GetInfo();
-            const Offset oldBucket = (old.GetReserved() + oldIndex) - *oldInfo + 1;
-            Offset newBucket = 0;
-            if constexpr (CT::Typed<THIS>)
-               newBucket += GetBucket(hashmask, oldKey.Get());
+      while (info != infoend) {
+         if (*info) {
+            const Offset current = info - temp_info.GetRaw();
+            auto key = GetKeyHandle<THIS>(current);
+            auto val = GetValHandle<THIS>(current);
+            auto oldVal = old.GetValHandle<THIS>(current);
+            val.CreateWithIntent(Abandon(oldVal));
+            oldVal.FreeInner();
+
+            // Where does the pair want to move after a rehash?         
+            Offset moveTo = 0;
+            if constexpr (CT::TypedMap<THIS>)
+               moveTo = GetBucket(hashmask, key.Get());
             else
-               newBucket += GetBucketUnknown(hashmask, oldKey);
+               moveTo = GetBucketUnknown(hashmask, key);
 
-            if (oldBucket < old.GetReserved() or oldBucket - old.GetReserved() != newBucket) {
-               // Move pair only if it won't end up in same bucket      
-               if constexpr (CT::Typed<THIS>) {
-                  using K = typename THIS::Key;
-                  HandleLocal<K> keyswap {Abandon(oldKey)};
-
-                  // Destroy the key, info and value                    
-                  oldKey.FreeInner();
-                  *oldInfo = 0;
-                  --mKeys.mCount;
-
-                  // Reinsert at the new bucket                         
-                  InsertInner<THIS, false>(newBucket,
-                     Abandon(keyswap),
-                     Abandon(old.GetValHandle<THIS>(oldIndex))
-                  );
-               }
-               else {
-                  Block<> keyswap {mKeys.GetState(), GetKeyType<THIS>(), 1};
-                  keyswap.AllocateFresh(keyswap.RequestSize(1));
-                  keyswap.CreateWithIntent(Abandon(oldKey));
-
-                  // Destroy the pair and info at old index             
-                  oldKey.FreeInner();
-                  *oldInfo = 0;
-                  --mKeys.mCount;
-
-                  InsertBlockInner<THIS, false>(newBucket,
-                     Abandon(keyswap),
-                     Abandon(old.GetValHandle<THIS>(oldIndex))
-                  );
-
-                  keyswap.Free();
-               }
+            // If it's the same position, then just initialize value,   
+            // and make sure that info has been reset to 1              
+            if (moveTo == current) {
+               mInfo[moveTo] = 1;
+               ++info;
+               continue;
             }
+
+            RehashInner<THIS>(hashmask, current, moveTo, key, val);
          }
 
-         ++oldKey;
-         ++oldInfo;
+         ++info;
       }
 
-      // First run might cause gaps                                     
-      // Second run: shift elements left, where possible                
-      ShiftPairs<THIS>();
+      // We can discard the old values                                  
+      LANGULUS_ASSUME(DevAssumes, old.mValues.mEntry->GetUses() == 1,
+         "Deallocating old values data that is still in use");
+      Allocator::Deallocate(const_cast<Allocation*>(old.mValues.mEntry));
    }
    
    /// Rehashes and reinserts each value in the same block, and moves all     
@@ -472,66 +523,56 @@ namespace Langulus::Anyness
       LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(GetReserved()),
          "New count is not a power-of-two");
 
-      auto oldKey = old.GetKeyHandle<THIS>(0);
-      auto oldInfo = old.GetInfo();
-      const auto oldInfoEnd = old.GetInfoEnd();
+      // Vals were reused, but their entries shift forward              
+      if (IsValueSparse<THIS>()) {
+         MoveMemory(
+            mValues.mRawSparse + GetReserved(),
+            mValues.mRawSparse + old.GetReserved(),
+            old.GetReserved()
+         );
+      };
+
+      // Not reusing keys means not reusing info                        
+      ZeroMemory(mInfo, GetReserved());
+
+      auto info = old.GetInfo();
+      const auto infoend = old.GetInfoEnd();
       const auto hashmask = GetReserved() - 1;
 
-      // First run: move elements closer to their new buckets           
-      while (oldInfo != oldInfoEnd) {
-         if (*oldInfo) {
-            // Rehash and check if hashes match                         
-            const Offset oldIndex  = oldInfo - GetInfo();
-            const Offset oldBucket = (old.GetReserved() + oldIndex) - *oldInfo + 1;
-            Offset newBucket = 0;
-            if constexpr (CT::Typed<THIS>)
-               newBucket += GetBucket(hashmask, oldKey.Get());
+      while (info != infoend) {
+         if (*info) {
+            const Offset current = info - old.GetInfo();
+            auto key = GetKeyHandle<THIS>(current);
+            auto val = GetValHandle<THIS>(current);
+            auto oldKey = old.GetKeyHandle<THIS>(current);
+            key.CreateWithIntent(Abandon(oldKey));
+            oldKey.FreeInner();
+
+            // Where does the pair want to move after a rehash?         
+            Offset moveTo = 0;
+            if constexpr (CT::TypedMap<THIS>)
+               moveTo = GetBucket(hashmask, key.Get());
             else
-               newBucket += GetBucketUnknown(hashmask, oldKey);
+               moveTo = GetBucketUnknown(hashmask, key);
 
-            if (oldBucket < old.GetReserved() or oldBucket - old.GetReserved() != newBucket) {
-               // Move pair only if it won't end up in same bucket      
-               if constexpr (CT::Typed<THIS>) {
-                  using V = typename THIS::Value;
-
-                  auto oldValue = old.GetValHandle<THIS>(oldIndex);
-                  HandleLocal<V> valswap {Abandon(oldValue)};
-
-                  // Destroy the key, info and value                    
-                  oldValue.FreeInner();
-                  *oldInfo = 0;
-                  --mKeys.mCount;
-
-                  // Reinsert at the new bucket                         
-                  InsertInner<THIS, false>(
-                     newBucket, Abandon(oldKey), Abandon(valswap));
-               }
-               else {
-                  auto oldValue = old.GetValHandle<THIS>(oldIndex);
-                  Block<> valswap {mValues.GetState(), GetValueType<THIS>(), 1};
-                  valswap.AllocateFresh(valswap.RequestSize(1));
-                  valswap.CreateWithIntent(Abandon(oldValue));
-
-                  // Destroy the pair and info at old index             
-                  oldValue.FreeInner();
-                  *oldInfo = 0;
-                  --mKeys.mCount;
-
-                  InsertBlockInner<THIS, false>(
-                     newBucket, Abandon(oldKey), Abandon(valswap));
-
-                  valswap.Free();
-               }
+            // If it's the same position, then just initialize key, and 
+            // make sure that info has been set to 1                    
+            if (moveTo == current) {
+               mInfo[moveTo] = 1;
+               ++info;
+               continue;
             }
+
+            RehashInner<THIS>(hashmask, current, moveTo, key, val);
          }
 
-         ++oldKey;
-         ++oldInfo;
+         ++info;
       }
 
-      // First run might cause gaps                                     
-      // Second run: shift elements left, where possible                
-      ShiftPairs<THIS>();
+      // We can discard the old keys                                    
+      LANGULUS_ASSUME(DevAssumes, old.mKeys.mEntry->GetUses() == 1,
+         "Deallocating old keys data that is still in use");
+      Allocator::Deallocate(const_cast<Allocation*>(old.mKeys.mEntry));
    }
    
    /// Shift elements left where possible                                     
@@ -580,6 +621,7 @@ namespace Langulus::Anyness
 
             ++oldInfo;
          }
+
       } while (moves_performed);
    }
    
@@ -610,10 +652,7 @@ namespace Langulus::Anyness
          if constexpr (CHECK_FOR_MATCH) {
             if (keyswapper.Compare(GetKeyRef<THIS>(index))) {
                // Neat, the key already exists - just set value and go  
-               //if constexpr (CT::Sparse<TypeOf<decltype(valswapper)>>)
-               //   GetValHandle<THIS>(index).AssignWithIntent(Refer(valswapper));
-               //else
-                  GetValHandle<THIS>(index).AssignWithIntent(Abandon(valswapper));
+               GetValHandle<THIS>(index).AssignWithIntent(Abandon(valswapper));
                return index;
             }
          }
@@ -630,6 +669,12 @@ namespace Langulus::Anyness
 
          ++attempts;
 
+         if (attempts == AllowedMisses) {
+            // Attempts go beyond the allowed count - the map has to    
+            // be widened further                                       
+            throw Except::Overflow();
+         }
+
          // Wrap around and start from the beginning if we have to      
          if (psl < pslEnd - 1)
             ++psl;
@@ -639,20 +684,12 @@ namespace Langulus::Anyness
 
       // If reached, empty slot reached, so put the pair there          
       // Might not seem like it, but we gave a guarantee, that this is  
-      // eventually reached, unless key exists and returns early        
+      // eventually reached, unless key exists and returns early, or    
+      // attempts go beyond the info byte capacity                      
       const auto index = psl - GetInfo();
-      //if constexpr (CT::Sparse<TypeOf<decltype(keyswapper)>>)
-      //   GetKeyHandle<THIS>(index).CreateWithIntent(Refer(keyswapper));
-      //else
-         GetKeyHandle<THIS>(index).CreateWithIntent(Abandon(keyswapper));
+      GetKeyHandle<THIS>(index).CreateWithIntent(Abandon(keyswapper));
+      GetValHandle<THIS>(index).CreateWithIntent(Abandon(valswapper));
 
-      //if constexpr (CT::Sparse<TypeOf<decltype(valswapper)>>)
-      //   GetValHandle<THIS>(index).CreateWithIntent(Refer(valswapper));
-      //else
-         GetValHandle<THIS>(index).CreateWithIntent(Abandon(valswapper));
-
-      //GetKeyHandle<THIS>(index).CreateWithIntent(Abandon(keyswapper));
-      //GetValHandle<THIS>(index).CreateWithIntent(Abandon(valswapper));
       if (insertedAt == mKeys.mReserved)
          insertedAt = index;
 

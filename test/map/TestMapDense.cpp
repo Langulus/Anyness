@@ -13,6 +13,8 @@
 /// to complex, from flat to deep                                             
 TEMPLATE_TEST_CASE(
    "Dense TOrderedMap/TUnorderedMap/OrderedMap/UnorderedMap", "[map]",
+   (MapTest<UnorderedMap, Text, int>),
+
    (MapTest<TUnorderedMap<Text, int>, Text, int>),
    (MapTest<TUnorderedMap<Text, Trait>, Text, Trait>),
    (MapTest<TUnorderedMap<Text, Traits::Count>, Text, Traits::Count>),
@@ -23,7 +25,6 @@ TEMPLATE_TEST_CASE(
    (MapTest<TOrderedMap<Text, Traits::Count>, Text, Traits::Count>),
    (MapTest<TOrderedMap<Text, Many>, Text, Many>),
 
-   (MapTest<UnorderedMap, Text, int>),
    (MapTest<UnorderedMap, Text, Trait>),
    (MapTest<UnorderedMap, Text, Traits::Count>),
    (MapTest<UnorderedMap, Text, Many>),

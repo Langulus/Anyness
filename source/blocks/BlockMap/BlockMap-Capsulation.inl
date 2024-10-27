@@ -442,22 +442,27 @@ namespace Langulus::Anyness
 #if LANGULUS(DEBUG)
    template<CT::Map THIS>
    void BlockMap::Dump() const {
-      Logger::Info("---------------- BlockMap::Dump start ----------------");
+      const auto tab = Logger::InfoTab("BlockMap::Dump");
       auto info = GetInfo();
       const auto infoEnd = GetInfoEnd();
       while (info != infoEnd) {
          const auto index = info - GetInfo();
          if (*info) {
-            Logger::Info('[', index, "] -", (*info - 1), " -> ",
-               HashOf(GetKeyRef<THIS>(index)), " | ",
-               HashOf(GetValRef<THIS>(index))
-            );
+            if constexpr (Logger::Formattable<typename THIS::Key, typename THIS::Value>) {
+               Logger::Info('[', index, "] ",
+                  GetKeyRef<THIS>(index), " -> ",
+                  GetValRef<THIS>(index)
+               );
+            }
+            else if constexpr (CT::TypeErased<THIS>) {
+               Logger::Info('[', index, "] ?? -> ??"/*,
+                  Logger::Hex(&GetKeyRef<THIS>(index)), " -> ",
+                  Logger::Hex(&GetValRef<THIS>(index))*/
+               );
+            }
          }
-         else Logger::Info('[', index, "] empty");
-
          ++info;
       }
-      Logger::Info("----------------  BlockMap::Dump end  ----------------");
    }
 #endif
 

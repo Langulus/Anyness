@@ -66,6 +66,8 @@ namespace Langulus::Anyness
       LANGULUS_ASSUME(DevAssumes, mKeys.mType and mValues.mType,
          "Key and value types haven't been set");
 
+      Dump<THIS>();
+
       Offset infoOffset;
       BlockMap old = *this;
 
@@ -106,47 +108,33 @@ namespace Langulus::Anyness
 
       // Zero or move the info array                                    
       if constexpr (REUSE) {
-         // Check if keys were reused                                   
-         if (mKeys.mEntry == old.mKeys.mEntry) {
-            // Data was reused, but info always moves (null the rest)   
-            MoveMemory(mInfo, old.mInfo, old.GetReserved());
-            ZeroMemory(mInfo + old.GetReserved(), count - old.GetReserved());
+         // Check if any data was reused                                
+         if (mKeys.mEntry == old.mKeys.mEntry
+         or mValues.mEntry == old.mValues.mEntry) {
+            // No escape from this scope                                
+            // Check if keys were reused                                
+            if (mKeys.mEntry == old.mKeys.mEntry) {
+               if (mValues.mEntry == old.mValues.mEntry) {
+                  // Both keys and values come from 'this'              
+                  // Reusing keys means reusing info, but it shifts     
+                  // Moving memory to account for potential overlap     
+                  //TODO is overlap really possible, if map always doubles??
+                  MoveMemory(mInfo, old.mInfo, old.GetReserved());
+                  // Make sure new info data is zeroed                  
+                  ZeroMemory(mInfo + old.GetReserved(), count - old.GetReserved());
 
-            // Data was reused, but entries always move if sparse keys  
-            if (IsKeySparse<THIS>()) {
-               MoveMemory(
-                  mKeys.mRawSparse + count,
-                  mKeys.mRawSparse + old.GetReserved(),
-                  old.GetReserved()
-               );
-            };
-
-            if (mValues.mEntry == old.mValues.mEntry) {
-               // Both keys and values remain in the same place         
-               // Data was reused, but entries always move if sparse val
-               if (IsValueSparse<THIS>()) {
-                  MoveMemory(
-                     mValues.mRawSparse + count,
-                     mValues.mRawSparse + old.GetReserved(),
-                     old.GetReserved()
-                  );
-               };
-
-               Rehash<THIS>(old.GetReserved());
+                  RehashBoth<THIS>(old.GetReserved());
+               }
+               else {
+                  // Keys come from 'this', values come from 'old'      
+                  RehashKeys<THIS>(old);
+               }
             }
             else {
-               // Only values moved, reinsert them, rehash the rest     
-               RehashKeys<THIS>(old);
-               Allocator::Deallocate(
-                  const_cast<Allocation*>(old.mValues.mEntry));
+               // Keys come from 'old', values come from 'this'         
+               RehashVals<THIS>(old);
             }
-            return;
-         }
-         else if (mValues.mEntry == old.mValues.mEntry) {
-            // Only keys moved, reinsert them, rehash the rest          
-            RehashVals<THIS>(old);
-            Allocator::Deallocate(
-               const_cast<Allocation*>(old.mKeys.mEntry));
+
             return;
          }
       }
