@@ -77,22 +77,22 @@ namespace Langulus::Anyness
       ~TMany();
 
       template<CT::Data...TN>
-      NOD() static TMany<T> Wrap(TN&&...);
+      NOD() static auto Wrap(TN&&...) -> TMany;
 
       ///                                                                     
       ///   Assignment                                                        
       ///                                                                     
-      TMany& operator = (const TMany&);
-      TMany& operator = (TMany&&);
+      auto operator = (const TMany&) -> TMany&;
+      auto operator = (TMany&&) -> TMany&;
 
       template<class T1> requires CT::DeepAssignable<T, T1>
-      TMany& operator = (T1&&);
+      auto operator = (T1&&) -> TMany&;
 
       ///                                                                     
       ///   Indexing                                                          
       ///                                                                     
-      NOD() TMany Select(Offset, Count) IF_UNSAFE(noexcept);
-      NOD() TMany Select(Offset, Count) const IF_UNSAFE(noexcept);
+      NOD() auto Select(Offset, Count) IF_UNSAFE(noexcept) -> TMany;
+      NOD() auto Select(Offset, Count) const IF_UNSAFE(noexcept) -> TMany;
 
       ///                                                                     
       ///   RTTI                                                              
@@ -113,26 +113,26 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Insertion                                                         
       ///                                                                     
-      NOD() TMany<T> Extend(Count);
+      NOD() auto Extend(Count) -> TMany;
 
       template<class T1> requires CT::UnfoldMakableFrom<T, T1>
-      TMany& operator << (T1&&);
+      auto operator << (T1&&) -> TMany&;
       template<class T1> requires CT::UnfoldMakableFrom<T, T1>
-      TMany& operator >> (T1&&);
+      auto operator >> (T1&&) -> TMany&;
 
       template<class T1> requires CT::UnfoldMakableFrom<T, T1>
-      TMany& operator <<= (T1&&);
+      auto operator <<= (T1&&) -> TMany&;
       template<class T1> requires CT::UnfoldMakableFrom<T, T1>
-      TMany& operator >>= (T1&&);
+      auto operator >>= (T1&&) -> TMany&;
 
       ///                                                                     
       ///   Concatenation                                                     
       ///                                                                     
-      template<class T1> requires CT::DeepMakable<T, T1>
-      NOD() TMany operator + (T1&&) const;
+      template<class T1> requires CT::DeepMakable<T, T1> NOD()
+      auto operator + (T1&&) const -> TMany;
 
       template<class T1> requires CT::DeepMakable<T, T1>
-      TMany& operator += (T1&&);
+      auto operator += (T1&&) -> TMany&;
 
       ///                                                                     
       ///   Conversion                                                        

@@ -66,8 +66,6 @@ namespace Langulus::Anyness
       LANGULUS_ASSUME(DevAssumes, mKeys.mType and mValues.mType,
          "Key and value types haven't been set");
 
-      Dump<THIS>();
-
       Offset infoOffset;
       BlockMap old = *this;
 

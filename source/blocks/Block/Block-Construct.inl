@@ -401,13 +401,29 @@ namespace Langulus::Anyness
       
       // Block is used from multiple locations, and we must branch out  
       // before changing it - only this copy will be affected           
-      if constexpr (not TypeErased and CT::ReferMakable<TYPE>) {
-         const auto backup = *this;
-         const_cast<Allocation*>(mEntry)->Free();
-         new (this) TMany<TYPE> {Copy(reinterpret_cast<const TMany<TYPE>&>(backup))};
+      if constexpr (not TypeErased) {
+         if constexpr (CT::ReferMakable<TYPE>) {
+            const auto backup = *this;
+            const_cast<Allocation*>(mEntry)->Free();
+            new (this) TMany<TYPE> {Copy(reinterpret_cast<const TMany<TYPE>&>(backup))};
+         }
+         else LANGULUS_THROW(Construct,
+            "Block needs to branch out, but type doesn't support Intent::Copy"
+         );
+         /*else static_assert(false,
+            "Block needs to branch out, but type doesn't support Intent::Copy"
+         );*/
       }
-      else LANGULUS_THROW(Construct,
-         "Block needs to branch out, but type don't support Intent::Copy");
+      else {
+         if (mType->mCopyConstructor) {
+            const auto backup = *this;
+            const_cast<Allocation*>(mEntry)->Free();
+            new (this) Many {Copy(reinterpret_cast<const Many&>(backup))};
+         }
+         else LANGULUS_THROW(Construct,
+            "Block needs to branch out, but type doesn't support Intent::Copy"
+         );
+      }
    }
 
    

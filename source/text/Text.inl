@@ -869,11 +869,13 @@ namespace Langulus::Anyness
    }
 
    /// Byte container can always be represented by a type-erased one          
+   /// This is however an explicit coverter, so that Text doesn't get         
+   /// silently treated as a Many when passed around as an argument           
    LANGULUS(ALWAYS_INLINED)
-   Text::operator Many& () const noexcept {
+   Text::operator Many& () noexcept {
       // Just make sure that type member has been populated             
       (void) Base::GetType();
-      return const_cast<Many&>(reinterpret_cast<const Many&>(*this));
+      return reinterpret_cast<Many&>(*this);
    }
 
    /// Generate hexadecimal string from a given value                         

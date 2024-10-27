@@ -66,7 +66,7 @@ namespace Langulus::Anyness
    ///   @param rhs - map to refer to                                         
    ///   @return a reference to this map                                      
    TEMPLATE() LANGULUS(INLINED)
-   TABLE()& TABLE()::operator = (const Map& rhs) {
+   auto TABLE()::operator = (const Map& rhs) -> Map& {
       return operator = (Refer(rhs));
    }
 
@@ -74,7 +74,7 @@ namespace Langulus::Anyness
    ///   @param rhs - unordered map to move over                              
    ///   @return a reference to this map                                      
    TEMPLATE() LANGULUS(INLINED)
-   TABLE()& TABLE()::operator = (Map&& rhs) {
+   auto TABLE()::operator = (Map&& rhs) -> Map& {
       return operator = (Move(rhs));
    }
 
@@ -82,7 +82,7 @@ namespace Langulus::Anyness
    ///   @param rhs - the pair, or map to assign                              
    ///   @return a reference to this container                                
    TEMPLATE() LANGULUS(INLINED)
-   TABLE()& TABLE()::operator = (CT::UnfoldInsertable auto&& rhs) {
+   auto TABLE()::operator = (CT::UnfoldInsertable auto&& rhs) -> Map& {
       using S = IntentOf<decltype(rhs)>;
       using T = TypeOf<S>;
 
@@ -109,12 +109,12 @@ namespace Langulus::Anyness
    ///   @param index - the index                                             
    ///   @return the mutable key reference                                    
    TEMPLATE() LANGULUS(INLINED)
-   Block<> TABLE()::GetKey(CT::Index auto index) {
+   auto TABLE()::GetKey(CT::Index auto index) -> Block<> {
       return BlockMap::GetKey<Map>(index);
    }
 
    TEMPLATE() LANGULUS(INLINED)
-   Block<> TABLE()::GetKey(CT::Index auto index) const {
+   auto TABLE()::GetKey(CT::Index auto index) const -> Block<> {
       return BlockMap::GetKey<Map>(index);
    }
 
@@ -123,12 +123,12 @@ namespace Langulus::Anyness
    ///   @param i - the index                                                 
    ///   @return the mutable value reference                                  
    TEMPLATE() LANGULUS(INLINED)
-   Block<> TABLE()::GetValue(CT::Index auto index) {
+   auto TABLE()::GetValue(CT::Index auto index) -> Block<> {
       return BlockMap::GetValue<Map>(index);
    }
 
    TEMPLATE() LANGULUS(INLINED)
-   Block<> TABLE()::GetValue(CT::Index auto index) const {
+   auto TABLE()::GetValue(CT::Index auto index) const -> Block<> {
       return BlockMap::GetValue<Map>(index);
    }
 
@@ -137,36 +137,36 @@ namespace Langulus::Anyness
    ///   @param index - the index                                             
    ///   @return the mutable pair reference                                   
    TEMPLATE() LANGULUS(INLINED)
-   typename TABLE()::Pair TABLE()::GetPair(CT::Index auto index) {
+   auto TABLE()::GetPair(CT::Index auto index) -> Pair {
       return BlockMap::GetPair<Map>(index);
    }
 
    TEMPLATE() LANGULUS(INLINED)
-   typename TABLE()::Pair TABLE()::GetPair(CT::Index auto index) const {
+   auto TABLE()::GetPair(CT::Index auto index) const -> Pair {
       return BlockMap::GetPair<Map>(index);
    }
 
    /// Get iterator to first element                                          
    ///   @return an iterator to the first element, or end if empty            
    TEMPLATE() LANGULUS(INLINED)
-   typename TABLE()::Iterator TABLE()::begin() noexcept {
+   auto TABLE()::begin() noexcept -> Iterator {
       return BlockMap::begin<Map>();
    }
 
    TEMPLATE() LANGULUS(INLINED)
-   typename TABLE()::ConstIterator TABLE()::begin() const noexcept {
+   auto TABLE()::begin() const noexcept -> ConstIterator {
       return BlockMap::begin<Map>();
    }
 
    /// Get iterator to the last element                                       
    ///   @return an iterator to the last element, or end if empty             
    TEMPLATE() LANGULUS(INLINED)
-   typename TABLE()::Iterator TABLE()::last() noexcept {
+   auto TABLE()::last() noexcept -> Iterator {
       return BlockMap::last<Map>();
    }
 
    TEMPLATE() LANGULUS(INLINED)
-   typename TABLE()::ConstIterator TABLE()::last() const noexcept {
+   auto TABLE()::last() const noexcept -> ConstIterator {
       return BlockMap::last<Map>();
    }
 
@@ -362,7 +362,7 @@ namespace Langulus::Anyness
    ///   @param key - the key to search for                                   
    ///   @return the index if key was found, or IndexNone if not              
    TEMPLATE() LANGULUS(INLINED)
-   Index TABLE()::Find(const CT::NoIntent auto& key) const {
+   auto TABLE()::Find(const CT::NoIntent auto& key) const -> Index {
       return BlockMap::Find<Map>(key);
    }
 
@@ -370,12 +370,12 @@ namespace Langulus::Anyness
    ///   @param key - the key to search for                                   
    ///   @return the iterator                                                 
    TEMPLATE() LANGULUS(INLINED)
-   typename TABLE()::Iterator TABLE()::FindIt(const CT::NoIntent auto& key) {
+   auto TABLE()::FindIt(const CT::NoIntent auto& key) -> Iterator {
       return BlockMap::FindIt<Map>(key);
    }
 
    TEMPLATE() LANGULUS(INLINED)
-   typename TABLE()::ConstIterator TABLE()::FindIt(const CT::NoIntent auto& key) const {
+   auto TABLE()::FindIt(const CT::NoIntent auto& key) const -> ConstIterator {
       return BlockMap::FindIt<Map>(key);
    }
 
@@ -418,7 +418,7 @@ namespace Langulus::Anyness
    ///   @param other - the data to insert                                    
    ///   @return a reference to this container for chaining                   
    TEMPLATE() LANGULUS(INLINED)
-   TABLE()& TABLE()::operator << (CT::UnfoldInsertable auto&& other) {
+   auto TABLE()::operator << (CT::UnfoldInsertable auto&& other) -> Map& {
       BlockMap::UnfoldInsert<Map>(Forward<decltype(other)>(other));
       return *this;
    }
@@ -427,7 +427,7 @@ namespace Langulus::Anyness
    ///   @param other - the data to insert                                    
    ///   @return a reference to this container for chaining                   
    TEMPLATE() LANGULUS(INLINED)
-   TABLE()& TABLE()::operator >> (CT::UnfoldInsertable auto&& other) {
+   auto TABLE()::operator >> (CT::UnfoldInsertable auto&& other) -> Map& {
       BlockMap::UnfoldInsert<Map>(Forward<decltype(other)>(other));
       return *this;
    }
@@ -463,7 +463,7 @@ namespace Langulus::Anyness
    ///   @return the iterator of the previous element, unless index is the    
    ///           first, or at the end already                                 
    TEMPLATE() LANGULUS(INLINED)
-   typename TABLE()::Iterator TABLE()::RemoveIt(const Iterator& index) {
+   auto TABLE()::RemoveIt(const Iterator& index) -> Iterator {
       return BlockMap::RemoveIt<Map>(index);
    }
 
