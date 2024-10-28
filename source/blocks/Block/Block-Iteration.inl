@@ -490,7 +490,7 @@ namespace Langulus::Anyness
    ///   @tparam REVERSE - direction we're iterating in                       
    ///   @param call - the constexpr noexcept function to call on each item   
    template<class TYPE> template<bool MUTABLE, bool REVERSE> LANGULUS(INLINED)
-   LoopControl Block<TYPE>::IterateInner(const Count count, auto&& f) const
+   LoopControl Block<TYPE>::IterateInner(Count count, auto&& f) const
    noexcept(NoexceptIterator<decltype(f)>) {
       using F = Deref<decltype(f)>;
       using A = ArgumentOf<F>;
@@ -517,7 +517,7 @@ namespace Langulus::Anyness
 
       // Prepare for the loop                                           
       using DA = Deref<A>;
-      const auto raw = const_cast<Block*>(this)->GetRaw<DA>();
+      auto raw = const_cast<Block*>(this)->GetRaw<DA>();
       auto data = raw;
       if constexpr (REVERSE)
          data += count - 1;
@@ -551,16 +551,24 @@ namespace Langulus::Anyness
             case LoopControl::Discard:
                if constexpr (MUTABLE) {
                   // Discard is allowed only if THIS is mutable         
-                  const_cast<Block*>(this)->RemoveIndex(raw - data);
+                  const Offset idx = raw - data;
+                  const_cast<Block*>(this)->RemoveIndex(idx);
+
                   if (IsEmpty()) {
                      // This was fully emptied, so propagate the discard
                      return Loop::Discard;
                   }
 
+                  // Block might BranchOut on RemoveIndex - make sure   
+                  // make sure 'raw', 'data' and 'dataEnd' are          
+                  // up-to-date with new block memory                   
+                  --count;
+                  raw = const_cast<Block*>(this)->GetRaw<DA>();
+                  data = raw + idx;
+                  dataEnd = REVERSE ? raw - 1 : raw + count;
+
                   if constexpr (REVERSE)
                      next();
-                  else
-                     --dataEnd;
                }
                else {
                   // ...otherwise it acts like a Loop::Continue         
