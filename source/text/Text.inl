@@ -1019,7 +1019,7 @@ namespace Langulus
 
    /// Make a text literal                                                    
    LANGULUS(INLINED)
-   Anyness::Text operator "" _text(const char* text, ::std::size_t size) {
+   Anyness::Text operator ""_text(const char* text, ::std::size_t size) {
       return Anyness::Text::From(Disown(text), size);
    }
 
