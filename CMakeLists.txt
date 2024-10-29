@@ -29,7 +29,7 @@ file(GLOB_RECURSE
 )
 
 # Build and install Anyness library                                         
-add_library(LangulusAnyness ${LANGULUS_LIBRARY_TYPE}
+add_langulus_library(LangulusAnyness
     $<TARGET_OBJECTS:LangulusLogger>
     $<TARGET_OBJECTS:LangulusRTTI>
     $<$<BOOL:${LANGULUS_FEATURE_MANAGED_MEMORY}>:$<TARGET_OBJECTS:LangulusFractalloc>>

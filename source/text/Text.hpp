@@ -422,7 +422,7 @@ namespace Langulus::Anyness
 namespace Langulus
 {
 
-   Anyness::Text operator "" _text(const char*, ::std::size_t);
+   Anyness::Text operator ""_text(const char*, ::std::size_t);
 
    namespace A
    {
