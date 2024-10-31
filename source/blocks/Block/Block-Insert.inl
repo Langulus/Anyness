@@ -54,6 +54,7 @@ namespace Langulus::Anyness
    template<class TYPE> LANGULUS(INLINED)
    Count Block<TYPE>::New(const Count count)
    requires (TypeErased or CT::Defaultable<TYPE>) {
+      BranchOut();
       AllocateMore(mCount + count);
       CropInner(mCount, count).CreateDefault();
       mCount += count;
@@ -70,6 +71,7 @@ namespace Langulus::Anyness
    Count Block<TYPE>::New(const Count count, A&&...arguments)
    requires (TypeErased or ::std::constructible_from<TYPE, A...>) {
       LANGULUS_ASSUME(UserAssumes, count, "Zero count not allowed");
+      BranchOut();
       AllocateMore(mCount + count);
       CropInner(mCount, count).Create(Forward<A>(arguments)...);
       mCount += count;
@@ -117,6 +119,7 @@ namespace Langulus::Anyness
       // If reached, then we have binary compatible type, so allocate   
       const auto count = DeintCast(data).GetCount();
       const auto idx   = SimplifyIndex<false>(index);
+      BranchOut();
 
       if constexpr (MOVE_ASIDE) {
          AllocateMore(mCount + count);
@@ -161,6 +164,7 @@ namespace Langulus::Anyness
             "Type is not descriptor-constructible");
 
          const auto idx = SimplifyIndex<false>(index);
+         BranchOut();
 
          if constexpr (MOVE_ASIDE) {
             AllocateMore(mCount + 1);
@@ -197,6 +201,7 @@ namespace Langulus::Anyness
          }
 
          const auto idx = SimplifyIndex<false>(index);
+         BranchOut();
 
          // If reached, we have compatible type, so allocate            
          if constexpr (MOVE_ASIDE) {
