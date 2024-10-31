@@ -66,6 +66,14 @@ namespace Langulus::Anyness
       LANGULUS_ASSUME(DevAssumes, mKeys.mType and mValues.mType,
          "Key and value types haven't been set");
 
+      if constexpr (REUSE) {
+         LANGULUS_ASSUME(DevAssumes,
+            mKeys.GetUses() == 1 and mValues.GetUses() == 1,
+            "Can't reuse memory of a map used from multiple places, "
+            "BranchOut should've been called prior to AllocateData"
+         );
+      }
+
       Offset infoOffset;
       BlockMap old = *this;
 

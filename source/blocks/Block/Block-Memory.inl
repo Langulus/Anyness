@@ -79,6 +79,11 @@ namespace Langulus::Anyness
             }
 
             // Reallocate                                               
+            LANGULUS_ASSUME(DevAssumes, mEntry->GetUses() == 1,
+               "Can't reuse memory of a block used from multiple places, "
+               "BranchOut should've been called prior to AllocateMore"
+            );
+
             Block previousBlock {*this};
             mEntry = Allocator::Reallocate(
                request.mByteSize * (Sparse ? 2 : 1),
@@ -96,7 +101,7 @@ namespace Langulus::Anyness
                else {
                   // Memory moved, and we should move all elements in it
                   // We're moving to new memory, so no reverse required 
-                  if (mEntry->GetUses() == 1) {
+                  //if (mEntry->GetUses() == 1) {
                      // Memory is used only once and it is safe to move 
                      // it. Make note, that Allocator::Reallocate       
                      // doesn't copy anything, it doesn't use realloc   
@@ -117,7 +122,7 @@ namespace Langulus::Anyness
                      }
                      else LANGULUS_THROW(Construct,
                         "Memory moved, but T is not move-constructible");
-                  }
+                  /*}
                   else {
                      // Memory is used from multiple locations, and we  
                      // must copy the memory for this block - we can't  
@@ -133,7 +138,7 @@ namespace Langulus::Anyness
                      }
                      else LANGULUS_THROW(Construct,
                         "Memory moved, but T is not refer/copy-constructible");
-                  }
+                  }*/
                }
             }
             else {
@@ -214,40 +219,46 @@ namespace Langulus::Anyness
          // Shrink the memory block                                     
          // Guaranteed that entry doesn't move                          
          const auto request = RequestSize(elements);
-         if (request.mElementCount != mReserved) {
-            if constexpr (not TypeErased) {
-               if constexpr (Sparse) {
-                  // Move entry data to its new place                   
-                  MoveMemory(
-                     GetEntries() - mReserved + request.mElementCount,
-                     GetEntries(), mCount
-                  );
-               }
+         if (request.mElementCount == mReserved)
+            return;
+         
+         LANGULUS_ASSUME(DevAssumes, mEntry->GetUses() == 1,
+            "Can't reuse memory of a block used from multiple places, "
+            "BranchOut should've been called prior to AllocateMore"
+         );
 
-               mEntry = Allocator::Reallocate(
-                  request.mByteSize * (Sparse ? 2 : 1),
-                  const_cast<Allocation*>(mEntry)
-               );
-            }
-            else {
-               LANGULUS_ASSUME(DevAssumes, mType, "Invalid type");
-
-               if (mType->mIsSparse) {
-                  // Move entry data to its new place                   
-                  MoveMemory(
-                     GetEntries() - mReserved + request.mElementCount,
-                     GetEntries(), mCount
-                  );
-               }
-
-               mEntry = Allocator::Reallocate(
-                  request.mByteSize * (mType->mIsSparse ? 2 : 1),
-                  const_cast<Allocation*>(mEntry)
+         if constexpr (not TypeErased) {
+            if constexpr (Sparse) {
+               // Move entry data to its new place                      
+               MoveMemory(
+                  GetEntries() - mReserved + request.mElementCount,
+                  GetEntries(), mCount
                );
             }
 
-            mReserved = request.mElementCount;
+            mEntry = Allocator::Reallocate(
+               request.mByteSize * (Sparse ? 2 : 1),
+               const_cast<Allocation*>(mEntry)
+            );
          }
+         else {
+            LANGULUS_ASSUME(DevAssumes, mType, "Invalid type");
+
+            if (mType->mIsSparse) {
+               // Move entry data to its new place                      
+               MoveMemory(
+                  GetEntries() - mReserved + request.mElementCount,
+                  GetEntries(), mCount
+               );
+            }
+
+            mEntry = Allocator::Reallocate(
+               request.mByteSize * (mType->mIsSparse ? 2 : 1),
+               const_cast<Allocation*>(mEntry)
+            );
+         }
+
+         mReserved = request.mElementCount;
       #endif
    }
 
@@ -291,6 +302,11 @@ namespace Langulus::Anyness
       // Allocate/reallocate                                            
       if (mEntry) {
          // Reallocate                                                  
+         LANGULUS_ASSUME(DevAssumes, mEntry->GetUses() == 1,
+            "Can't reuse memory of a block used from multiple places, "
+            "BranchOut should've been called prior to AllocateMore"
+         );
+
          Block previousBlock {*this};
          mEntry = Allocator::Reallocate(
             request.mByteSize * (mType->mIsSparse ? 2 : 1),
@@ -302,7 +318,7 @@ namespace Langulus::Anyness
          if (mEntry != previousBlock.mEntry) {
             // Memory moved, and we should call abandon-construction    
             // We're moving to a new allocation, so no reverse needed   
-            if (mEntry->GetUses() == 1) {
+            //if (mEntry->GetUses() == 1) {
                // Memory is used only once and it is safe to move it    
                // Make note, that Allocator::Reallocate doesn't copy    
                // anything, it doesn't use realloc for various reasons, 
@@ -314,14 +330,14 @@ namespace Langulus::Anyness
                // each pointer's entry, if managed memory is enabled    
                mRaw = const_cast<Byte*>(mEntry->GetBlockStart());
                CreateWithIntent(Abandon(previousBlock));
-            }
+            /*}
             else {
                // Memory is used from multiple locations, and we must   
                // copy the memory for this block - we can't move it!    
                AllocateFresh(request);
                CreateWithIntent(Refer(previousBlock));
                previousBlock.Free();
-            }
+            }*/
          }
          else {
             // Memory didn't move, but reserved count changed           

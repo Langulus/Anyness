@@ -410,9 +410,6 @@ namespace Langulus::Anyness
          else LANGULUS_THROW(Construct,
             "Block needs to branch out, but type doesn't support Intent::Copy"
          );
-         /*else static_assert(false,
-            "Block needs to branch out, but type doesn't support Intent::Copy"
-         );*/
       }
       else {
          if (mType->mCopyConstructor) {
