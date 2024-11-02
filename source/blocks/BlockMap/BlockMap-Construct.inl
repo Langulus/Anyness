@@ -272,9 +272,9 @@ namespace Langulus::Anyness
 
                // Coalesce all densified elements, to avoid multiple    
                // allocations                                           
-               for (auto& item : *asFrom) {
+               for (auto pair : *asFrom) {
                   coalescedKeys.template InsertInner<void, false>(
-                     IndexBack, SS::Nest(*item.mKey));
+                     IndexBack, SS::Nest(*pair.mKey));
                }
 
                const_cast<Allocation*>(coalescedKeys.mEntry)
@@ -332,13 +332,13 @@ namespace Langulus::Anyness
 
                // Coalesce all densified elements, to avoid multiple    
                // allocations                                           
-               for (auto item : *asFrom) {
+               for (auto pair : *asFrom) {
                   coalescedKeys.template InsertBlockInner<void, false>(
-                     IndexBack, SS::Nest(*item.mKey));
+                     IndexBack, SS::Nest(*pair.mKey));
                }
 
-               //const_cast<Allocation*>(coalescedKeys.mEntry)
-               //   ->Keep(asFrom->GetCount());
+               const_cast<Allocation*>(coalescedKeys.mEntry)
+                  ->Keep(asFrom->GetCount());
 
                // Zero info bytes and insert pointers                   
                ZeroMemory(mInfo, mKeys.mReserved);
@@ -376,15 +376,15 @@ namespace Langulus::Anyness
                // Data isn't pod, clone valid values one by one         
                auto info = GetInfo();
                const auto infoEnd = GetInfoEnd();
-               auto dstKey = GetValHandle<B>(0);
-               auto srcKey = asFrom->template GetValHandle<B>(0);
+               auto dstVal = GetValHandle<B>(0);
+               auto srcVal = asFrom->template GetValHandle<B>(0);
                while (info != infoEnd) {
                   if (*info)
-                     dstKey.CreateWithIntent(SS::Nest(srcKey));
+                     dstVal.CreateWithIntent(SS::Nest(srcVal));
 
                   ++info;
-                  ++dstKey;
-                  ++srcKey;
+                  ++dstVal;
+                  ++srcVal;
                }
             }
          }
@@ -392,26 +392,27 @@ namespace Langulus::Anyness
             // Values are sparse, too - treat them the same             
             TMany<Deptr<V>> coalescedValues;
             coalescedValues.Reserve(asFrom->GetCount());
-            for (auto item : *asFrom) {
+            for (auto pair : *asFrom) {
                coalescedValues.template InsertInner<void, false>(
-                  IndexBack, SS::Nest(*item.mValue));
+                  IndexBack, SS::Nest(*pair.mValue));
             }
 
             // We're using Handle::Create, instead of CreateWithIntent  
             // so we have to reference here                             
-            const_cast<Allocation*>(coalescedValues.mEntry)
-               ->Keep(asFrom->GetCount());
+            //const_cast<Allocation*>(coalescedValues.mEntry)
+            //   ->Keep(asFrom->GetCount());
 
-            auto ptrVal = coalescedValues.GetRaw();
+            auto srcVal = coalescedValues.GetRaw();
             auto info = GetInfo();
             const auto infoEnd = GetInfoEnd();
-            auto dstKey = GetValHandle<B>(0);
+            auto dstVal = GetValHandle<B>(0);
             while (info != infoEnd) {
                if (*info)
-                  dstKey.Assign(ptrVal++, coalescedValues.mEntry);
+                  dstVal.CreateWithIntent(Refer(srcVal));
 
                ++info;
-               ++dstKey;
+               ++dstVal;
+               ++srcVal;
             }
          }
       }
@@ -432,15 +433,15 @@ namespace Langulus::Anyness
                // Values aren't POD, clone valid keys one by one        
                auto info = GetInfo();
                const auto infoEnd = GetInfoEnd();
-               auto dstKey = GetValHandle<B>(0);
-               auto srcKey = asFrom->template GetValHandle<B>(0);
+               auto dstVal = GetValHandle<B>(0);
+               auto srcVal = asFrom->template GetValHandle<B>(0);
                while (info != infoEnd) {
                   if (*info)
-                     dstKey.CreateWithIntent(SS::Nest(srcKey));
+                     dstVal.CreateWithIntent(SS::Nest(srcVal));
 
                   ++info;
-                  ++dstKey;
-                  ++srcKey;
+                  ++dstVal;
+                  ++srcVal;
                }
             }
          }
@@ -448,9 +449,9 @@ namespace Langulus::Anyness
             // Values are sparse, too - treat them the same             
             auto coalescedValues = Many::FromMeta(asFrom->mValues.mType->mDeptr);
             coalescedValues.Reserve(asFrom->GetCount());
-            for (auto item : *asFrom) {
+            for (auto pair : *asFrom) {
                coalescedValues.template InsertBlockInner<void, false>(
-                  IndexBack, SS::Nest(*item.mValue));
+                  IndexBack, SS::Nest(*pair.mValue));
             }
 
             const_cast<Allocation*>(coalescedValues.mEntry)
@@ -463,8 +464,12 @@ namespace Langulus::Anyness
             while (info != infoEnd) {
                if (*info) {
                   GetValHandle<B>(info - GetInfo()).CreateWithIntent(
-                     Abandon(HandleLocal<void*> {ptrVal, coalescedValues.mEntry})
+                     Refer(HandleLocal<void*> {ptrVal, coalescedValues.mEntry})
                   );
+
+                  //if (coalescedValues.GetType()->mReference)
+                  //   coalescedValues.GetType()->mReference(ptrVal, 1);
+
                   ptrVal += valstride.mSize;
                }
 
@@ -506,6 +511,9 @@ namespace Langulus::Anyness
                   SS::Nest(asFrom->template GetValHandle<B>(valIdx))
                );
 
+               if constexpr (CT::Referencable<Deptr<K>>)
+                  ptr->Reference(1);
+
                ++ptr;
                ++valIdx;
 
@@ -515,23 +523,28 @@ namespace Langulus::Anyness
          }
          else {
             // Values are sparse, too - treat them the same             
-            TMany<Deptr<V>> coalescedValues;
-            coalescedValues.Reserve(asFrom->GetCount());
-            for (auto& item : *asFrom) {
-               coalescedValues.template InsertInner<void, false>(
-                  IndexBack, SS::Nest(*item.mValue));
+            TMany<Deptr<V>> coalescedVals;
+            coalescedVals.Reserve(asFrom->GetCount());
+            for (auto pair : *asFrom) {
+               coalescedVals.template InsertInner<void, false>(
+                  IndexBack, SS::Nest(*pair.mValue));
             }
 
-            const_cast<Allocation*>(coalescedValues.mEntry)
+            const_cast<Allocation*>(coalescedVals.mEntry)
                ->Keep(asFrom->GetCount());
 
-            auto ptrVal = coalescedValues.GetRaw();
+            auto ptrVal = coalescedVals.GetRaw();
             while (ptr != ptrEnd) {
                InsertInner<B, false>(
                   GetBucket(GetReserved() - 1, ptr),
                   Abandon(HandleLocal<K> {ptr,    coalescedKeys.mEntry}),
-                  Abandon(HandleLocal<V> {ptrVal, coalescedValues.mEntry})
+                  Abandon(HandleLocal<V> {ptrVal, coalescedVals.mEntry})
                );
+
+               if constexpr (CT::Referencable<Deptr<K>>)
+                  ptr->Reference(1);
+               if constexpr (CT::Referencable<Deptr<V>>)
+                  ptrVal->Reference(1);
 
                ++ptr;
                ++ptrVal;
@@ -560,6 +573,9 @@ namespace Langulus::Anyness
                   SS::Nest(asFrom->template GetValHandle<B>(valIdx))
                );
 
+               if (coalescedKeys.GetType()->mReference)
+                  coalescedKeys.GetType()->mReference(ptr, 1);
+
                ++ptr;
                ++valIdx;
                while (not asFrom->mInfo[valIdx])
@@ -568,24 +584,29 @@ namespace Langulus::Anyness
          }
          else {
             // Values are sparse, too - treat them the same             
-            auto coalescedValues = Many::FromMeta(asFrom->mValues.mType->mDeptr);
-            coalescedValues.Reserve(asFrom->GetCount());
-            for (auto item : *asFrom) {
-               coalescedValues.template InsertBlockInner<void, false>(
-                  IndexBack, SS::Nest(*item.mValue));
+            auto coalescedVals = Many::FromMeta(asFrom->mValues.mType->mDeptr);
+            coalescedVals.Reserve(asFrom->GetCount());
+            for (auto pair : *asFrom) {
+               coalescedVals.template InsertBlockInner<void, false>(
+                  IndexBack, SS::Nest(*pair.mValue));
             }
 
-            //const_cast<Allocation*>(coalescedValues.mEntry)
-            //   ->Keep(asFrom->GetCount());
+            const_cast<Allocation*>(coalescedVals.mEntry)
+               ->Keep(asFrom->GetCount());
 
-            auto ptrVal = coalescedValues.mRaw;
-            const Size valstride = coalescedValues.GetStride();
+            auto ptrVal = coalescedVals.mRaw;
+            const Size valstride = coalescedVals.GetStride();
             while (ptr != ptrEnd) {
                InsertInner<B, false>(
                   GetBucket(GetReserved() - 1, ptr),
                   Abandon(HandleLocal<void*> {ptr, coalescedKeys.mEntry}),
-                  Abandon(HandleLocal<void*> {ptrVal, coalescedValues.mEntry})
+                  Abandon(HandleLocal<void*> {ptrVal, coalescedVals.mEntry})
                );
+
+               if (coalescedKeys.GetType()->mReference)
+                  coalescedKeys.GetType()->mReference(ptr, 1);
+               if (coalescedVals.GetType()->mReference)
+                  coalescedVals.GetType()->mReference(ptrVal, 1);
 
                ptr += stride.mSize;
                ptrVal += valstride.mSize;

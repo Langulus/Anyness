@@ -11,10 +11,11 @@
 /// The main test for Many/TMany containers, with all kinds of items, from    
 /// sparse to dense, from trivial to complex, from flat to deep               
 TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
+   (TypePair<Trait, RT*>),
+
    (TypePair<TMany<Trait*>, Trait*>),
    (TypePair<Many, Traits::Count*>),
    (TypePair<Trait, Text*>),
-   (TypePair<Trait, RT*>),
 
    (TypePair<Traits::Name, Text*>),
    (TypePair<Traits::Name, RT*>),
@@ -2752,7 +2753,7 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
          REQUIRE(pack2 == memory1);
       }
 
-      if constexpr (CT::CloneAssignable<E>) {
+      if constexpr (CT::CloneMakable<E>) {
          WHEN("Clone-assign pack1 in pack2") {
             pack2 = Langulus::Clone(pack1);
 

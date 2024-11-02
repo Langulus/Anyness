@@ -5,16 +5,28 @@
 ///                                                                           
 /// SPDX-License-Identifier: GPL-3.0-or-later                                 
 ///                                                                           
-#include <Anyness/Text.hpp>
-#include <any>
-#include <vector>
-#include "Common.hpp"
+#include "TestManyCommon.hpp"
 
 
-SCENARIO("Deep sequential containers", "[any]") {
+TEMPLATE_TEST_CASE("Deep sequential containers", "[any]", int, RT, int*, RT*) {
    static Allocator::State memoryState;
 
    static_assert(sizeof(A::Block) == sizeof(Block<>));
+   using E = TestType;
+
+   const E darray[10] {
+      CreateElement<E, true>(1),
+      CreateElement<E, true>(2),
+      CreateElement<E, true>(3),
+      CreateElement<E, true>(4),
+      CreateElement<E, true>(5),
+      CreateElement<E, true>(6),
+      CreateElement<E, true>(7),
+      CreateElement<E, true>(8),
+      CreateElement<E, true>(9),
+      CreateElement<E, true>(10)
+   };
+
 
    GIVEN("Any with some deep items") {
       IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
@@ -23,15 +35,13 @@ SCENARIO("Deep sequential containers", "[any]") {
       Many subpack1;
       Many subpack2;
       Many subpack3;
-      subpack1 << int(1) << int(2) << int(3) << int(4) << int(5);
-      subpack2 << int(6) << int(7) << int(8) << int(9) << int(10);
+      subpack1 << darray[0] << darray[1] << darray[2] << darray[3] << darray[4];
+      subpack2 << darray[5] << darray[6] << darray[7] << darray[8] << darray[9];
       subpack3 << subpack1 << subpack2;
       pack << subpack1 << subpack2 << subpack3;
       pack.MakeTypeConstrained();
 
       auto memory = pack.GetRaw<Many>();
-      //auto& submemory4 = subpack3.As<Any>(0);
-      //auto& submemory5 = subpack3.As<Any>(1);
 
       REQUIRE(pack.GetCount() == 3);
       REQUIRE(pack.GetReserved() >= 3);
@@ -55,8 +65,8 @@ SCENARIO("Deep sequential containers", "[any]") {
          REQUIRE(*pack.GetBlockDeep(4) == subpack1);
          REQUIRE(*pack.GetBlockDeep(5) == subpack2);
          for (int i = 0; i < 10; ++i) {
-            REQUIRE(pack.GetElementDeep(i) == i + 1);
-            REQUIRE(pack.GetElementDeep(i + 10) == i + 1);
+            REQUIRE(pack.GetElementDeep(i) == darray[i]);
+            REQUIRE(pack.GetElementDeep(i + 10) == darray[i]);
          }
          REQUIRE(pack.GetElementDeep(666).IsEmpty());
       }
@@ -303,8 +313,8 @@ SCENARIO("Deep sequential containers", "[any]") {
          int it = 1;
          Count total = 0;
          const auto iterated = pack.ForEachDeep(
-            [&](const int& i) {
-               REQUIRE(i == it);
+            [&](Conditional<CT::Sparse<E>, E, const E&> i) {
+               REQUIRE(DenseCast(i) == it);
                ++total;
                if (++it == 11)
                   it = 1;
@@ -320,8 +330,8 @@ SCENARIO("Deep sequential containers", "[any]") {
          int it = 1;
          Count total = 0;
          const auto iterated = pack.ForEachDeep(
-            [&](int& i) {
-               REQUIRE(i == it);
+            [&](Conditional<CT::Sparse<E>, E, E&> i) {
+               REQUIRE(DenseCast(i) == it);
                ++total;
                if (++it == 11)
                   it = 1;
@@ -337,8 +347,8 @@ SCENARIO("Deep sequential containers", "[any]") {
          int it = 1;
          Count total = 0;
          const auto iterated = pack.template ForEachDeep<false, false>(
-            [&](const int& i) {
-               REQUIRE(i == it);
+            [&](Conditional<CT::Sparse<E>, E, const E&> i) {
+               REQUIRE(DenseCast(i) == it);
                ++total;
                if (++it == 11)
                   it = 1;
@@ -354,8 +364,8 @@ SCENARIO("Deep sequential containers", "[any]") {
          int it = 1;
          Count total = 0;
          const auto iterated = pack.template ForEachDeep<false, false>(
-            [&](int& i) {
-               REQUIRE(i == it);
+            [&](Conditional<CT::Sparse<E>, E, E&> i) {
+               REQUIRE(DenseCast(i) == it);
                ++total;
                if (++it == 11)
                   it = 1;
@@ -427,8 +437,8 @@ SCENARIO("Deep sequential containers", "[any]") {
       Many subpack1;
       Many subpack2;
       Many subpack3;
-      subpack1 << int(1) << int(2) << int(3) << int(4) << int(5);
-      subpack2 << int(6) << int(7) << int(8) << int(9) << int(10);
+      subpack1 << darray[0] << darray[1] << darray[2] << darray[3] << darray[4];
+      subpack2 << darray[5] << darray[6] << darray[7] << darray[8] << darray[9];
       subpack3 << subpack1;
       subpack3.MakeOr();
       pack << subpack1 << subpack2 << subpack3;
@@ -454,8 +464,8 @@ SCENARIO("Deep sequential containers", "[any]") {
       Many subpack1;
       Many subpack2;
       Many subpack3;
-      subpack1 << int(1) << int(2) << int(3) << int(4) << int(5);
-      subpack2 << int(6) << int(7) << int(8) << int(9) << int(10);
+      subpack1 << darray[0] << darray[1] << darray[2] << darray[3] << darray[4];
+      subpack2 << darray[5] << darray[6] << darray[7] << darray[8] << darray[9];
       subpack3 << subpack1;
       subpack3.MakeOr();
       pack << subpack1 << subpack2 << subpack3;
@@ -496,6 +506,8 @@ SCENARIO("Deep sequential containers", "[any]") {
          REQUIRE(subpack3.GetUses() == 1); // 2 if that functionality is added
       }
    }
+
+   BANK.Reset();
 
    REQUIRE(memoryState.Assert());
 }

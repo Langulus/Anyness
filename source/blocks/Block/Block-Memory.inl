@@ -614,6 +614,9 @@ namespace Langulus::Anyness
          else if (not mType->mIsSparse and mType->mDestructor
          and (DESTROY or mType->mReference)) {
             // Destroy every dense element                              
+            // Notice that fully dereferenced elements WILL be destroyed
+            // regardless if DESTROY has been request or not            
+            // This prevents leaks.                                     
             const auto count = not MASKED ? mCount : mReserved;
             auto data = mRaw;
             UNUSED() int index;

@@ -37,6 +37,12 @@ namespace Langulus::Anyness
          // And make sure that type is set to the contained value type  
          result.mType = mKeys.mType;
          return result;
+
+         /*auto result = Many::FromMeta(mKeys.mType);
+         result.AllocateFresh(result.RequestSize(1));
+         result.CreateWithIntent(S::Nest(key));
+         ++result.mCount;
+         return result;*/
       }
    }
 
@@ -63,6 +69,12 @@ namespace Langulus::Anyness
          // And make sure that type is set to the contained value type  
          result.mType = mValues.mType;
          return result;
+
+         /*auto result = Many::FromMeta(mValues.mType);
+         result.AllocateFresh(result.RequestSize(1));
+         result.CreateWithIntent(S::Nest(val));
+         ++result.mCount;
+         return result;*/
       }
    }
 
