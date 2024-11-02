@@ -215,7 +215,7 @@ namespace Langulus
       /// Check if T is insertable to containers, either directly, or while   
       /// wrapped in an intent                                                
       template<class...TN>
-      concept UnfoldInsertable = Reflectable<Deint<TN>...>;
+      concept UnfoldInsertable = ((Reflectable<Deint<TN>> or Handle<Deint<TN>>) and ...);
 
       namespace Inner
       {

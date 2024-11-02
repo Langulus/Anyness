@@ -53,7 +53,7 @@ namespace Langulus::Anyness
 
       if constexpr (not TypeErased and not RHS::TypeErased) {
          // Both blocks are statically typed - leverage it              
-         if constexpr (not CT::Similar<TYPE, TypeOf<RHS>>) {
+         if constexpr (not CT::Similar<TYPE, TypeOf<RHS>>) { //TODO but what if differently typed pointers to the same virtual objects?
             // Types are different                                      
             return false;
          }
@@ -85,7 +85,7 @@ namespace Langulus::Anyness
       else if constexpr (not TypeErased or not RHS::TypeErased) {
          // One of the blocks is statically typed - a runtime type      
          // check is required                                           
-         if ((mCount or right.mCount) and not IsSimilar(right))
+         if ((mCount or right.mCount) and not IsSimilar(right))  //TODO but what if differently typed pointers to the same virtual objects?
             return false;
 
          if constexpr (not TypeErased)
@@ -94,15 +94,46 @@ namespace Langulus::Anyness
             return right.template Compare<RESOLVE>(reinterpret_cast<const RHS&>(*this));
       }
       else {
+         if (not IsSimilar(right))  //TODO but what if differently typed pointers to the same virtual objects?
+            return false;
+
+         // Types are similar                                           
+         if (mRaw == right.mRaw)
+            return mCount == right.mCount;
+         else if (mCount != right.mCount)
+            return false;
+
+         if (mType->mIsPOD or mType->mIsSparse) {
+            // Batch-compare memory if POD or sparse                    
+            return 0 == memcmp(mRaw, right.mRaw, GetBytesize());
+         }
+         else if (mType->mComparer) {
+            // Call compare operator for each element pair              
+            auto lhs = mRaw;
+            auto rhs = right.mRaw;
+            const auto lhsEnd = GetRawEnd<Byte>();
+            while (lhs != lhsEnd) {
+               if (not mType->mComparer(lhs, rhs))
+                  return false;
+               lhs += mType->mSize;
+               rhs += mType->mSize;
+            }
+
+            return true;
+         }
+         else LANGULUS_OOPS(Compare, "No == operator reflected for type ", mType);
+
+
          // Type-erased blocks                                          
-         if (mCount != right.mCount) {
+         /*if (mCount != right.mCount) {
             // Cheap early return for differently sized blocks          
             VERBOSE(Logger::Red,
                "Data count is different: ", mCount, " != ", right.mCount);
             return false;
          }
 
-         if (mCount and not mType->IsSimilar(right.mType)) {
+         const bool sameTypes = mType->IsSimilar(right.mType);
+         if (mCount and not sameTypes) {
             if (IsUntyped() or right.IsUntyped()) {
                // Cheap early return if differing undefined types, when 
                // packs are not empty                                   
@@ -123,7 +154,7 @@ namespace Langulus::Anyness
             return false;
          }
 
-         if (mType->IsSimilar(right.mType)) {
+         if (sameTypes) {
             // Types are exactly the same                               
             if (mRaw == right.mRaw) {
                // Quickly return if memory is exactly the same          
@@ -151,9 +182,16 @@ namespace Langulus::Anyness
             }
             else LANGULUS_OOPS(Compare, "No == operator reflected for type ", mType);
          }
+         else if (not mType->mIsSparse or not right.mType->mIsSparse) {
+            VERBOSE(Logger::Red, "Data types differ in sparsity");
+            return false;
+         }*/
 
-         // If this is reached, then an advanced comparison commences   
-         RTTI::Base baseForComparison {};
+         // If this is reached, then types are different kind of sparse 
+         // and an advanced comparison commences - types may be         
+         // different pointers to the same virtual objects              
+         //TODO not done on the typed path above
+         /*RTTI::Base baseForComparison {};
          if constexpr (RESOLVE) {
             // We will test type for each resolved element, individually
             if (not IsResolvable() and not right.IsResolvable()
@@ -279,7 +317,7 @@ namespace Langulus::Anyness
             VERBOSE(Logger::Red,
                "Can't compare unrelated types ", mType, " and ", right.mType);
             return false;
-         }
+         }*/
 
          return true;
       }

@@ -9,16 +9,18 @@
 
 
 #define MAP_TESTS(MANAGED) \
+   (MapTest<UnorderedMap, Text, RT*, MANAGED>), \
+   (MapTest<TUnorderedMap<Trait*, RT*>, Trait*, RT*, MANAGED>), \
+   (MapTest<TUnorderedMap<Text, Trait*>, Text, Trait*, MANAGED>), \
+   (MapTest<TUnorderedMap<Text, RT*>, Text, RT*, MANAGED>), \
+ \
    (MapTest<UnorderedMap, Trait*, RT*, MANAGED>), \
    (MapTest<UnorderedMap, Text, int*, MANAGED>), \
-   (MapTest<TUnorderedMap<Text, Trait*>, Text, Trait*, MANAGED>), \
  \
    (MapTest<TUnorderedMap<Text, int*>, Text, int*, MANAGED>), \
    (MapTest<TUnorderedMap<Text, Traits::Count*>, Text, Traits::Count*, MANAGED>), \
    (MapTest<TUnorderedMap<Text, Many*>, Text, Many*, MANAGED>), \
-   (MapTest<TUnorderedMap<Text, RT*>, Text, RT*, MANAGED>), \
  \
-   (MapTest<TUnorderedMap<Trait*, RT*>, Trait*, RT*, MANAGED>), \
    (MapTest<TUnorderedMap<Traits::Count*, RT*>, Traits::Count*, RT*, MANAGED>), \
    (MapTest<TUnorderedMap<Many*, RT*>, Many*, RT*, MANAGED>), \
    (MapTest<TUnorderedMap<RT*, RT*>, RT*, RT*, MANAGED>), \
@@ -37,7 +39,6 @@
    (MapTest<UnorderedMap, Text, Trait*, MANAGED>), \
    (MapTest<UnorderedMap, Text, Traits::Count*, MANAGED>), \
    (MapTest<UnorderedMap, Text, Many*, MANAGED>), \
-   (MapTest<UnorderedMap, Text, RT*, MANAGED>), \
  \
    (MapTest<UnorderedMap, Traits::Count*, RT*, MANAGED>), \
    (MapTest<UnorderedMap, Many*, RT*, MANAGED>), \
@@ -745,14 +746,21 @@ TEMPLATE_TEST_CASE(
             REQUIRE(clone.GetRawKeysMemory() != map.GetRawKeysMemory());
             REQUIRE(clone.GetRawValsMemory() != map.GetRawValsMemory());
             for (auto& comparer : darray1) {
-               REQUIRE(clone[comparer.mKey] != comparer.mValue);
-               REQUIRE(map[comparer.mKey] != clone[comparer.mKey]);
-               REQUIRE(map[comparer.mKey] == comparer.mValue);
+               if constexpr (CT::Sparse<K>) {
+                  // Pointer changes, hence no longer findable          
+                  REQUIRE_THROWS(clone[comparer.mKey]);
+               }
+               else {
+                  REQUIRE(clone[comparer.mKey] != comparer.mValue);
+                  REQUIRE(map[comparer.mKey] != clone[comparer.mKey]);
 
-               if constexpr (CT::Typed<T>)
-                  REQUIRE(&map[comparer.mKey] != &clone[comparer.mKey]);
-               else
-                  REQUIRE(map[comparer.mKey].GetRaw() != clone[comparer.mKey].GetRaw());
+                  if constexpr (CT::Typed<T>)
+                     REQUIRE(&map[comparer.mKey] != &clone[comparer.mKey]);
+                  else
+                     REQUIRE(map[comparer.mKey].GetRaw() != clone[comparer.mKey].GetRaw());
+               }
+
+               REQUIRE(map[comparer.mKey] == comparer.mValue);
             }
          }
          else if constexpr (CT::Untyped<T>) {

@@ -255,6 +255,10 @@ namespace Langulus::Anyness
                      GetBucket(GetReserved() - 1, ptr),
                      Abandon(HandleLocal<TypeOf<B>> {ptr, coalesced.mEntry})
                   );
+
+                  if constexpr (CT::Referencable<Deptr<K>>)
+                     ptr->Reference(1);
+
                   ++ptr;
                }
             }
@@ -321,6 +325,10 @@ namespace Langulus::Anyness
                      GetBucket(GetReserved() - 1, ptr),
                      Abandon(HandleLocal<void*> {ptr, coalesced.mEntry})
                   );
+
+                  if (coalesced.GetType()->mReference)
+                     coalesced.GetType()->mReference(ptr, 1);
+
                   ptr += stride.mSize;
                }
             }

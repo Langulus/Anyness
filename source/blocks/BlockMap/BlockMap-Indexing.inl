@@ -246,7 +246,11 @@ namespace Langulus::Anyness
             "using type `", NameOf<K>(), "` instead of `", GetKeyType(), '`');
          return GetKeys<THIS>().GetHandle(i);
       }
-      else return GetKeys<THIS>().GetElementInner(i);
+      else {
+         auto e = GetKeys<THIS>().GetElementInner(i);
+         //IF_SAFE(e.mCount = mInfo[i] ? 1 : 0); //screws with some loops :(
+         return e;
+      }
    }
    
    template<CT::Map THIS> LANGULUS(ALWAYS_INLINED)
@@ -284,8 +288,7 @@ namespace Langulus::Anyness
          if constexpr (CT::Sparse<V>) {
             return Handle<V> {
                mValues.template GetRaw<V>() + i,
-               mValues.template GetRaw<const Allocation*>() + mKeys.mReserved + i,
-               //reinterpret_cast<const Allocation**>(mValues.mRawSparse) + mKeys.mReserved + i
+               mValues.template GetRaw<const Allocation*>() + mKeys.mReserved + i
             };
          }
          else return Handle<V> {
@@ -298,6 +301,7 @@ namespace Langulus::Anyness
          // have to compensate for that here                            
          auto e = GetVals<THIS>().GetElementInner(i);
          e.mReserved = mKeys.mReserved;
+         //IF_SAFE(e.mCount = mInfo[i] ? 1 : 0); //screws with some loops :(
          return e;
       }
    }

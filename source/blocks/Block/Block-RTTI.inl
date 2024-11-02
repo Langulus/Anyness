@@ -316,7 +316,7 @@ namespace Langulus::Anyness
 
       if constexpr (TypeErased) {
          // Do a runtime mutation                                       
-         return Mutate<FORCE>(MetaDataOf<TT>());
+         return Mutate<FORCE>(MetaDataOf<TT>()); //TODO handle<void*> force sparse block to become deep
       }
       else if constexpr (CT::Similar<TYPE, TT>) {
          // No need to mutate - types are compatible                    

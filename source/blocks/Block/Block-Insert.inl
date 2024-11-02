@@ -1298,19 +1298,21 @@ namespace Langulus::Anyness
       using S = IntentOf<decltype(source)>;
       using T = TypeOf<TypeOf<S>>;
 
-      static_assert(CT::Sparse<T>,
-         "Handle isn't sparse");
+      //static_assert(CT::Sparse<T>,
+      //   "Handle isn't sparse");
       LANGULUS_ASSUME(DevAssumes, 1 <= mReserved,
          "Count outside limits (1 > ", mReserved);
-      LANGULUS_ASSUME(DevAssumes, IsSparse(),
-         "Container is not sparse");
+      //LANGULUS_ASSUME(DevAssumes, IsSparse(),
+      //   "Container is not sparse");
       LANGULUS_ASSUME(DevAssumes, GetUses() == 1,
          "Data is referenced from multiple locations");
+      //LANGULUS_ASSUME(DevAssumes, GetCount() == 0, // doesn't work for maps
+      //   "Element is already initialized");
 
       // Type-erased pointers (void*) are acceptable, because they're   
       // required for some internal stuff, although not recommended     
       LANGULUS_ASSUME(DevAssumes, (
-         CT::Similar<T, void*> or IsSimilar<T>()),
+         (IsSparse() and CT::Similar<T, void*>) or IsSimilar<T>()),
          "Type mismatch on creation from handle", ": ", GetType(),
          " instead of ", MetaDataOf<T>());
 

@@ -360,6 +360,7 @@ struct RT : Referenced {
    const char* t;
    bool destroyed = false;
    bool copied_in = false;
+   bool cloned_in = false;
    bool moved_in = false;
    bool moved_out = false;
 
@@ -380,6 +381,11 @@ struct RT : Referenced {
       rhs.moved_in = false;
       rhs.moved_out = true;
    }
+
+   RT(Cloned<RT>&& rhs)
+      : data(rhs->data), t {rhs->t}, cloned_in {true} {
+   }
+
    ~RT() {
       destroyed = true;
    }

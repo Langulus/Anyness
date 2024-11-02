@@ -21,10 +21,10 @@ struct Cursor {};
 
 /// Testing some corner cases encountered during the use of the container     
 TEMPLATE_TEST_CASE("Map corner cases", "[map]",
+   (MapTest<OrderedMap, DMeta, Text>),
    (MapTest<UnorderedMap, DMeta, Text>),
    (MapTest<TUnorderedMap<DMeta, Text>, DMeta, Text>),
-   (MapTest<TOrderedMap<DMeta, Text>, DMeta, Text>),
-   (MapTest<OrderedMap, DMeta, Text>)
+   (MapTest<TOrderedMap<DMeta, Text>, DMeta, Text>)
 ) {
    using T = typename TestType::Container;
    using K = typename TestType::Key;
