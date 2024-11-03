@@ -13,13 +13,13 @@ if(PROJECT_IS_TOP_LEVEL OR NOT LANGULUS)
     include(LangulusUtilities.cmake)
 
     # Add Langulus::Core/Logger/RTTI/Fractalloc/SIMD libraries              
-    fetch_langulus_module(Core   GIT_TAG 8c77fc2752d1ab827c8f90584e83ccb5d916a946)
-    fetch_langulus_module(Logger GIT_TAG f32c2b76c2bcc32b6f36f1edda6c11378cb85b1d)
-    fetch_langulus_module(RTTI   GIT_TAG de87db12baccd7763f7188b2c2eec5ae620b6d04)
+    fetch_langulus_module(Core   GIT_TAG 180ee6a7202738417413388af442587b8acc92f6)
+    fetch_langulus_module(Logger GIT_TAG 92cc4b7bb449ba61c1c35c836f8db25451172ae1)
+    fetch_langulus_module(RTTI   GIT_TAG a2e2c0c6bb2cbd20062ba8e183337df87982062c)
     if(LANGULUS_FEATURE_MANAGED_MEMORY)
-        fetch_langulus_module(Fractalloc GIT_TAG c3dbd808c15f422ff3eba22c62b0114d3c6d0791)
+        fetch_langulus_module(Fractalloc GIT_TAG 30694b02e70dd1ed98af3927d688c108fb50977d)
     endif()
-    fetch_langulus_module(SIMD   GIT_TAG d96d5e19d64717f2d4e530606660f76b6cc1357e)
+    fetch_langulus_module(SIMD   GIT_TAG 9c24286e14df8a56fadcab8fd443a3070d6fd466)
 endif()
 
 file(GLOB_RECURSE
