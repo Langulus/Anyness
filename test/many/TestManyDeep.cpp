@@ -8,7 +8,7 @@
 #include "TestManyCommon.hpp"
 
 
-TEMPLATE_TEST_CASE("Deep sequential containers", "[any]", int, RT, int*, RT*) {
+TEMPLATE_TEST_CASE("Deep sequential containers 1", "[any]", int, RT, int*, RT*) {
    static Allocator::State memoryState;
 
    static_assert(sizeof(A::Block) == sizeof(Block<>));
@@ -462,7 +462,7 @@ TEMPLATE_TEST_CASE("Deep sequential containers", "[any]", int, RT, int*, RT*) {
    REQUIRE(memoryState.Assert());
 }
 
-TEMPLATE_TEST_CASE("Deep sequential containers", "[any]", int, RT, int*, RT*) {
+TEMPLATE_TEST_CASE("Deep sequential containers 2", "[any]", int, RT, int*, RT*) {
    static Allocator::State memoryState;
 
    static_assert(sizeof(A::Block) == sizeof(Block<>));
