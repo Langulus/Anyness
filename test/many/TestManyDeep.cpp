@@ -457,6 +457,31 @@ TEMPLATE_TEST_CASE("Deep sequential containers", "[any]", int, RT, int*, RT*) {
       }
    }
 
+   BANK.Reset();
+
+   REQUIRE(memoryState.Assert());
+}
+
+TEMPLATE_TEST_CASE("Deep sequential containers", "[any]", int, RT, int*, RT*) {
+   static Allocator::State memoryState;
+
+   static_assert(sizeof(A::Block) == sizeof(Block<>));
+   using E = TestType;
+
+   const E darray[10] {
+      CreateElement<E, true>(1),
+      CreateElement<E, true>(2),
+      CreateElement<E, true>(3),
+      CreateElement<E, true>(4),
+      CreateElement<E, true>(5),
+      CreateElement<E, true>(6),
+      CreateElement<E, true>(7),
+      CreateElement<E, true>(8),
+      CreateElement<E, true>(9),
+      CreateElement<E, true>(10)
+   };
+
+
    GIVEN("Any with some deep items, and their Blocks coalesced") {
       IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
 
