@@ -390,29 +390,36 @@ namespace Langulus::Anyness
          }
          else {
             // Values are sparse, too - treat them the same             
-            TMany<Deptr<V>> coalescedValues;
-            coalescedValues.Reserve(asFrom->GetCount());
+            TMany<Deptr<V>> coalescedVals;
+            coalescedVals.Reserve(asFrom->GetCount());
             for (auto pair : *asFrom) {
-               coalescedValues.template InsertInner<void, false>(
+               coalescedVals.template InsertInner<void, false>(
                   IndexBack, SS::Nest(*pair.mValue));
             }
 
             // We're using Handle::Create, instead of CreateWithIntent  
             // so we have to reference here                             
-            //const_cast<Allocation*>(coalescedValues.mEntry)
-            //   ->Keep(asFrom->GetCount());
+            const_cast<Allocation*>(coalescedVals.mEntry)
+               ->Keep(asFrom->GetCount());
 
-            auto srcVal = coalescedValues.GetRaw();
+            auto srcVal = coalescedVals.GetRaw();
             auto info = GetInfo();
             const auto infoEnd = GetInfoEnd();
             auto dstVal = GetValHandle<B>(0);
             while (info != infoEnd) {
-               if (*info)
-                  dstVal.CreateWithIntent(Refer(srcVal));
+               if (*info) {
+                  dstVal.CreateWithIntent(
+                     Abandon(HandleLocal<V> {srcVal, coalescedVals.mEntry})
+                  );
+
+                  if constexpr (CT::Referencable<Deptr<V>>)
+                     srcVal->Reference(1);
+
+                  ++srcVal;
+               }
 
                ++info;
                ++dstVal;
-               ++srcVal;
             }
          }
       }
@@ -447,30 +454,30 @@ namespace Langulus::Anyness
          }
          else {
             // Values are sparse, too - treat them the same             
-            auto coalescedValues = Many::FromMeta(asFrom->mValues.mType->mDeptr);
-            coalescedValues.Reserve(asFrom->GetCount());
+            auto coalescedVals = Many::FromMeta(asFrom->mValues.mType->mDeptr);
+            coalescedVals.Reserve(asFrom->GetCount());
             for (auto pair : *asFrom) {
-               coalescedValues.template InsertBlockInner<void, false>(
+               coalescedVals.template InsertBlockInner<void, false>(
                   IndexBack, SS::Nest(*pair.mValue));
             }
 
-            const_cast<Allocation*>(coalescedValues.mEntry)
+            const_cast<Allocation*>(coalescedVals.mEntry)
                ->Keep(asFrom->GetCount());
 
-            auto ptrVal = coalescedValues.mRaw;
-            const Size valstride = coalescedValues.GetStride();
+            auto srcVal = coalescedVals.mRaw;
+            const Size valstride = coalescedVals.GetStride();
             auto info = GetInfo();
             const auto infoEnd = GetInfoEnd();
             while (info != infoEnd) {
                if (*info) {
                   GetValHandle<B>(info - GetInfo()).CreateWithIntent(
-                     Refer(HandleLocal<void*> {ptrVal, coalescedValues.mEntry})
+                     Abandon(HandleLocal<void*> {srcVal, coalescedVals.mEntry})
                   );
 
-                  //if (coalescedValues.GetType()->mReference)
-                  //   coalescedValues.GetType()->mReference(ptrVal, 1);
+                  if (coalescedVals.GetType()->mReference)
+                     coalescedVals.GetType()->mReference(srcVal, 1);
 
-                  ptrVal += valstride.mSize;
+                  srcVal += valstride.mSize;
                }
 
                ++info;

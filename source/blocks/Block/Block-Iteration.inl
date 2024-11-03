@@ -59,6 +59,12 @@ namespace Langulus::Anyness
             case LoopControl::Discard:
                if constexpr (MUTABLE) {
                   // Discard is allowed only if THIS is mutable         
+                  // Why bother removing, when there's only one element?
+                  if (mCount == 1) {
+                     const_cast<Block*>(this)->Reset();
+                     return mCount;
+                  }
+
                   const_cast<Block*>(this)->RemoveIndex(index);
                   if constexpr (REVERSE)
                      next();
@@ -67,6 +73,7 @@ namespace Langulus::Anyness
                   // ...otherwise it acts like a Loop::Continue         
                   next();
                }
+
                break;
             }
          }
@@ -100,10 +107,14 @@ namespace Langulus::Anyness
       if (IsEmpty())
          return 0;
 
+      LoopControl loop = Loop::Break;
       Count result = 0;
-      (void) (... or (Loop::NextLoop !=
+      (void) (... or (Loop::NextLoop != (loop =
          ForEachInner<MUTABLE, REVERSE>(Forward<F>(calls), result)
-      ));
+      )));
+
+      if (loop == Loop::Discard)
+         const_cast<Block*>(this)->Reset();
       return result;
    }
 
@@ -129,10 +140,14 @@ namespace Langulus::Anyness
    template<bool REVERSE, bool SKIP, bool MUTABLE, class...F> LANGULUS(INLINED)
    Count Block<TYPE>::ForEachDeep(F&&...calls) const {
       static_assert(sizeof...(F) > 0, "No iterators in ForEachDeep");
+      LoopControl loop = Loop::Break;
       Count result = 0;
-      (void)(... or (Loop::Break ==
+      (void)(... or (Loop::Break == (loop = 
          ForEachDeepInner<MUTABLE, REVERSE, SKIP>(Forward<F>(calls), result)
-      ));
+      )));
+
+      if (loop == Loop::Discard)
+         const_cast<Block*>(this)->Reset();
       return result;
    }
 
@@ -202,13 +217,14 @@ namespace Langulus::Anyness
          "Non-constant iterator for constant memory is not allowed");
 
       UNUSED() static constexpr auto NOE = NoexceptIterator<decltype(f)>;
+      LoopControl loop = Loop::NextLoop;
 
       if constexpr (not TypeErased) {
          // Container is not type-erased                                
          if constexpr (CT::Deep<Decay<A>, Decay<T>>
          or (not CT::Deep<Decay<A>> and CT::DerivedFrom<T, A>)
          or (CT::Same<A, T>)) {
-            return IterateInner<MUTABLE, REVERSE>(mCount,
+            loop = IterateInner<MUTABLE, REVERSE>(mCount,
                [&index, &f](T& element) noexcept(NOE) -> R {
                   ++index;
 
@@ -233,7 +249,7 @@ namespace Langulus::Anyness
          // Container is type-erased                                    
          if (mType->mIsSparse) {
             // Iterate sparse container                                 
-            return IterateInner<MUTABLE, REVERSE>(mCount,
+            loop = IterateInner<MUTABLE, REVERSE>(mCount,
                [&index, &f](void*& element) noexcept(NOE) -> R {
                   ++index;
                   if constexpr (CT::Dense<A>)
@@ -245,7 +261,7 @@ namespace Langulus::Anyness
          }
          else {
             // Iterate dense container                                  
-            return IterateInner<MUTABLE, REVERSE>(mCount,
+            loop = IterateInner<MUTABLE, REVERSE>(mCount,
                [&index, &f](Decay<A>& element) noexcept(NOE) -> R {
                   ++index;
                   if constexpr (CT::Dense<A>)
@@ -266,7 +282,7 @@ namespace Langulus::Anyness
             // those that match the trait type                          
             if (mType->mIsSparse) {
                // Iterate sparse container                              
-               return IterateInner<MUTABLE, REVERSE>(mCount,
+               loop = IterateInner<MUTABLE, REVERSE>(mCount,
                   [&index, &f](Trait*& element) noexcept(NOE) -> R {
                      if constexpr (CT::Void<R>) {
                         if (not element->template IsTrait<Decay<A>>())
@@ -286,7 +302,7 @@ namespace Langulus::Anyness
             }
             else {
                // Iterate dense container                               
-               return IterateInner<MUTABLE, REVERSE>(mCount,
+               loop = IterateInner<MUTABLE, REVERSE>(mCount,
                   [&index, &f](Trait& element) noexcept(NOE) -> R {
                      if constexpr (CT::Void<R>) {
                         if (not element.template IsTrait<Decay<A>>())
@@ -306,6 +322,16 @@ namespace Langulus::Anyness
          }
          else return Loop::NextLoop;
       }
+
+      /*if (loop == Loop::Repeat)
+         return ForEachInner<MUTABLE, REVERSE>(Forward<F>(f), index);
+      else*/ /*if (loop == Loop::Discard) {
+         if constexpr (MUTABLE)
+            const_cast<Block*>(this)->Reset();
+         else
+            return Loop::NextLoop;
+      }*/
+      return loop;
    }
    
    /// Iterate and execute call for each deep element                         
@@ -321,6 +347,7 @@ namespace Langulus::Anyness
 
       static_assert(CT::Slab<A> or CT::Constant<Deptr<A>> or MUTABLE,
          "Non-constant iterator for constant memory is not allowed");
+      LoopControl loop = Loop::Continue;
 
       if constexpr (TypeErased) {
          if constexpr (CT::Deep<A>) {
@@ -351,8 +378,13 @@ namespace Langulus::Anyness
                      if constexpr (MUTABLE) {
                         // Discard is allowed only if THIS is mutable   
                         // You can't fully discard the topmost block,   
-                        // only reset it                                
-                        const_cast<Block*>(this)->Reset();
+                        // only reset it. Now, if we reset this block,  
+                        // and then remove it up the chain, if          
+                        // branching-out happens to occur, we'll end up 
+                        // with a branch that contains the empty element
+                        // and that is bad. So defer the reset up the   
+                        // chain instead!                               
+                        //const_cast<Block*>(this)->Reset();
                         return Loop::Discard;
                      }
                      else {
@@ -370,7 +402,7 @@ namespace Langulus::Anyness
             Count intermediateCounterSink = 0;
             using SubBlock = Conditional<MUTABLE, Block<>&, const Block<>&>;
 
-            return ForEachInner<MUTABLE, REVERSE>(
+            loop = ForEachInner<MUTABLE, REVERSE>(
                [&counter, &call](SubBlock group) {
                   if constexpr (CT::Deep<Decay<A>>) {
                      // Loop control is available only if iterator is   
@@ -394,7 +426,7 @@ namespace Langulus::Anyness
             // Iterate normalized subblocks                             
             using SubNeat = Conditional<MUTABLE, Neat&, const Neat&>;
 
-            return ForEachInner<MUTABLE, REVERSE>(
+            loop = ForEachInner<MUTABLE, REVERSE>(
                [&call](SubNeat neat) {
                   return neat.ForEachDeep(::std::move(call));
                },
@@ -403,7 +435,7 @@ namespace Langulus::Anyness
          }
          else if constexpr (not CT::Deep<A>) {
             // Equivalent to non-deep iteration                         
-            return ForEachInner<MUTABLE, REVERSE>(::std::move(call), counter);
+            loop = ForEachInner<MUTABLE, REVERSE>(::std::move(call), counter);
          }
       }
       else {
@@ -435,8 +467,13 @@ namespace Langulus::Anyness
                   if constexpr (MUTABLE) {
                      // Discard is allowed only if THIS is mutable      
                      // You can't fully discard the topmost block,      
-                     // only reset it                                   
-                     const_cast<Block*>(this)->Reset();
+                     // only reset it. Now, if we reset this block,     
+                     // and then remove it up the chain, if             
+                     // branching-out happens to occur, we'll end up    
+                     // with a branch that contains the empty element   
+                     // and that is bad. So defer the reset up the      
+                     // chain instead!                                  
+                     //const_cast<Block*>(this)->Reset();
                      return Loop::Discard;
                   }
                   else {
@@ -453,7 +490,7 @@ namespace Langulus::Anyness
             Count intermediateCounterSink = 0;
             using SubBlock = Conditional<MUTABLE, Decay<TYPE>&, const Decay<TYPE>&>;
 
-            return ForEachInner<MUTABLE, REVERSE>(
+            loop = ForEachInner<MUTABLE, REVERSE>(
                [&counter, &call](SubBlock group) {
                   return DenseCast(group).template
                      ForEachDeepInner<MUTABLE, REVERSE, SKIP>(
@@ -466,7 +503,7 @@ namespace Langulus::Anyness
             // Iterate normalized subblocks                             
             using SubNeat = Conditional<MUTABLE, Neat&, const Neat&>;
 
-            return ForEachInner<MUTABLE, REVERSE>(
+            loop = ForEachInner<MUTABLE, REVERSE>(
                [&call](SubNeat neat) {
                   return neat.ForEachDeep(::std::move(call));
                },
@@ -475,11 +512,19 @@ namespace Langulus::Anyness
          }
          else if constexpr (not CT::Deep<A>) {
             // Equivalent to non-deep iteration                         
-            return ForEachInner<MUTABLE, REVERSE>(::std::move(call), counter);
+            loop = ForEachInner<MUTABLE, REVERSE>(::std::move(call), counter);
          }
       }
 
-      return Loop::Continue;
+      /*if (loop == Loop::Repeat)
+         return ForEachDeepInner<MUTABLE, REVERSE, SKIP>(Forward<F>(call), counter);
+      else*/ /*if (loop == Loop::Discard) {
+         if constexpr (MUTABLE)
+            const_cast<Block*>(this)->Reset();
+         else
+            return Loop::Continue;
+      }*/
+      return loop;
    }
 
    /// Execute a function for each element inside container                   
@@ -551,24 +596,36 @@ namespace Langulus::Anyness
             case LoopControl::Discard:
                if constexpr (MUTABLE) {
                   // Discard is allowed only if THIS is mutable         
+                  // Why bother removing, when there's only one element?
+                  // Just propagate the discard instead! The pack       
+                  // should be reset from above.                        
+                  if (mCount == 1)
+                     return Loop::Discard;
+
                   const Offset idx = raw - data;
                   const_cast<Block*>(this)->RemoveIndex(idx);
 
-                  if (IsEmpty()) {
-                     // This was fully emptied, so propagate the discard
-                     return Loop::Discard;
+                  /*if (IsDeep() and mCount == 1) { //TODO this is quite experimental and not fully working right now. can be achieved by Optimize() after the loop for now
+                     // Is only one element remaining? Is that element  
+                     // deep? Then optimize this container away!        
+                     auto temporary = GetDeep();
+                     const_cast<Block*>(this)->GetDeep().ResetMemory();
+                     const_cast<Block*>(this)->Free();
+                     *const_cast<Block*>(this) = temporary;
+                     return Loop::Repeat;
                   }
+                  else {*/
+                     // Block might BranchOut on RemoveIndex - make sure
+                     // 'raw', 'data' and 'dataEnd' are up-to-date with 
+                     // new block memory                                
+                     --count;
+                     raw = const_cast<Block*>(this)->GetRaw<DA>();
+                     data = raw + idx;
+                     dataEnd = REVERSE ? raw - 1 : raw + count;
 
-                  // Block might BranchOut on RemoveIndex - make sure   
-                  // make sure 'raw', 'data' and 'dataEnd' are          
-                  // up-to-date with new block memory                   
-                  --count;
-                  raw = const_cast<Block*>(this)->GetRaw<DA>();
-                  data = raw + idx;
-                  dataEnd = REVERSE ? raw - 1 : raw + count;
-
-                  if constexpr (REVERSE)
-                     next();
+                     if constexpr (REVERSE)
+                        next();
+                  //}
                }
                else {
                   // ...otherwise it acts like a Loop::Continue         
