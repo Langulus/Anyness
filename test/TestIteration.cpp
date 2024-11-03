@@ -507,6 +507,8 @@ SCENARIO("Iterating containers", "[iteration]") {
             return Loop::Continue;
          });
 
+         //TODO REQUIRE(pack == subpack2); // this is the result when the discard optimization pipeline is implemented
+
          Many resultingPack;
          resultingPack << subpack3;
          REQUIRE(pack.GetUses() == 1);
@@ -516,22 +518,38 @@ SCENARIO("Iterating containers", "[iteration]") {
          REQUIRE(subpack3.GetUses() == 3);
       }
 
-      /*WHEN("CT::Deep-iterated with the intent to remove specific subpacks") {
-         pack.ForEachDeep(
-            [&](Any& subcontent) {
-               if (subcontent.Is<int>()) {
-                  subcontent.Reset();
-                  pack.Remove(&subcontent);
-               }
-            }
-         );
+      WHEN("Deep-iterated with the intent to remove specific subpacks") {
+         pack.ForEachDeep([&](Many& subcontent) {
+            if (subcontent == subpack1)
+               return Loop::Discard;
+            return Loop::Continue;
+         });
 
-         THEN("The resulting pack should be correct") {
-            REQUIRE(pack.IsEmpty());
-            REQUIRE(subpack1.GetBlockReferences() == 1);
-            REQUIRE(subpack2.GetBlockReferences() == 1);
-            REQUIRE(subpack3.GetBlockReferences() == 1);
-         }
-      }*/
+         Many resultingPack;
+         resultingPack << subpack2;
+         resultingPack << subpack2;
+         REQUIRE(pack.GetUses() == 1);
+         REQUIRE(pack == resultingPack);
+         REQUIRE(subpack1.GetUses() == 2);
+         REQUIRE(subpack2.GetUses() == 6);  //TODO 6 due to branch out? make sure this is correct
+         REQUIRE(subpack3.GetUses() == 1);
+      }
+
+      WHEN("Deep-iterated with the intent to remove specific subpacks (without skipping intermediate groups)") {
+         pack.template ForEachDeep<false, false>([&](Many& subcontent) {
+            if (subcontent == subpack1)
+               return Loop::Discard;
+            return Loop::Continue;
+         });
+
+         Many resultingPack;
+         resultingPack << subpack2;
+         resultingPack << subpack2;
+         REQUIRE(pack.GetUses() == 1);
+         REQUIRE(pack == resultingPack);
+         REQUIRE(subpack1.GetUses() == 2);
+         REQUIRE(subpack2.GetUses() == 6);  //TODO 6 due to branch out? make sure this is correct
+         REQUIRE(subpack3.GetUses() == 1);
+      }
    }
 }

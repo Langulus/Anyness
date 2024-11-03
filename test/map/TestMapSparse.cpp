@@ -9,9 +9,9 @@
 
 
 #define MAP_TESTS(MANAGED) \
+   (MapTest<TUnorderedMap<Text, Trait*>, Text, Trait*, MANAGED>), \
    (MapTest<UnorderedMap, Text, RT*, MANAGED>), \
    (MapTest<TUnorderedMap<Trait*, RT*>, Trait*, RT*, MANAGED>), \
-   (MapTest<TUnorderedMap<Text, Trait*>, Text, Trait*, MANAGED>), \
    (MapTest<TUnorderedMap<Text, RT*>, Text, RT*, MANAGED>), \
  \
    (MapTest<UnorderedMap, Trait*, RT*, MANAGED>), \
