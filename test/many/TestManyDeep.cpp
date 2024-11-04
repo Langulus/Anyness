@@ -9,6 +9,8 @@
 
 
 TEMPLATE_TEST_CASE("Deep sequential containers 1", "[any]", int, RT, int*, RT*) {
+   IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
+
    static Allocator::State memoryState;
 
    static_assert(sizeof(A::Block) == sizeof(Block<>));
@@ -29,8 +31,6 @@ TEMPLATE_TEST_CASE("Deep sequential containers 1", "[any]", int, RT, int*, RT*) 
 
 
    GIVEN("Any with some deep items") {
-      IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
-
       Many pack;
       Many subpack1;
       Many subpack2;
@@ -431,8 +431,6 @@ TEMPLATE_TEST_CASE("Deep sequential containers 1", "[any]", int, RT, int*, RT*) 
    }
 
    GIVEN("Any with some deep items for the purpose of optimization") {
-      IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
-
       Many pack;
       Many subpack1;
       Many subpack2;
@@ -463,8 +461,9 @@ TEMPLATE_TEST_CASE("Deep sequential containers 1", "[any]", int, RT, int*, RT*) 
 }
 
 TEMPLATE_TEST_CASE("Deep sequential containers 2", "[any]", int, RT, int*, RT*) {
-   static Allocator::State memoryState;
+   IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
 
+   static Allocator::State memoryState;
    static_assert(sizeof(A::Block) == sizeof(Block<>));
    using E = TestType;
 
@@ -483,8 +482,6 @@ TEMPLATE_TEST_CASE("Deep sequential containers 2", "[any]", int, RT, int*, RT*) 
 
 
    GIVEN("Any with some deep items, and their Blocks coalesced") {
-      IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
-
       Many pack;
       Many subpack1;
       Many subpack2;
