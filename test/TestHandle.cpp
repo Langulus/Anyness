@@ -233,7 +233,7 @@ TEMPLATE_TEST_CASE("Handles from sequential containers", "[handle]",
          const Allocation* const n0e = n.GetEntry();
 
          if constexpr (SPARSE)
-            IF_LANGULUS_MANAGED_MEMORY(REQUIRE(n0e->GetUses() == 1));
+            IF_LANGULUS_MANAGED_MEMORY(REQUIRE(n0e->GetUses() == 2));
          else
             REQUIRE(n0e == nullptr);
 
