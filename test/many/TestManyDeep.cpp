@@ -9,6 +9,7 @@
 
 
 TEMPLATE_TEST_CASE("Deep sequential containers 1", "[any]", int, RT, int*, RT*) {
+   BANK.Reset();
    IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
 
    static Allocator::State memoryState;
@@ -36,9 +37,22 @@ TEMPLATE_TEST_CASE("Deep sequential containers 1", "[any]", int, RT, int*, RT*) 
       Many subpack2;
       Many subpack3;
       subpack1 << darray[0] << darray[1] << darray[2] << darray[3] << darray[4];
+      REQUIRE(subpack1.GetUses() == 1);
+
       subpack2 << darray[5] << darray[6] << darray[7] << darray[8] << darray[9];
+      REQUIRE(subpack2.GetUses() == 1);
+
       subpack3 << subpack1 << subpack2;
+      REQUIRE(subpack1.GetUses() == 2);
+      REQUIRE(subpack2.GetUses() == 2);
+      REQUIRE(subpack3.GetUses() == 1);
+
       pack << subpack1 << subpack2 << subpack3;
+      REQUIRE(pack.GetUses() == 1);
+      REQUIRE(subpack1.GetUses() == 3);
+      REQUIRE(subpack2.GetUses() == 3);
+      REQUIRE(subpack3.GetUses() == 2);
+
       pack.MakeTypeConstrained();
 
       auto memory = pack.GetRaw<Many>();
