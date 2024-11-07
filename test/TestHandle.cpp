@@ -433,7 +433,7 @@ TEMPLATE_TEST_CASE("Managed handle swapping", "[handle]", RT*, RT, int, int*) {
    using T = TestType;
    static Allocator::State memoryState;
 
-   constexpr bool sparse = CT::Sparse<T>;
+   constexpr bool sparse = CT::Sparse<T> and LANGULUS_FEATURE(MANAGED_MEMORY);
    constexpr bool referenced = sparse and CT::Referencable<Deptr<T>>;
    constexpr Count refs1 = CT::Sparse<T> and LANGULUS_FEATURE(MANAGED_MEMORY) ? 10 : 1;
    constexpr Count refs1_1 = CT::Sparse<T> and LANGULUS_FEATURE(MANAGED_MEMORY) ? 11 : 1;
@@ -460,7 +460,8 @@ TEMPLATE_TEST_CASE("Managed handle swapping", "[handle]", RT*, RT, int, int*) {
       WHEN("Swap through all elements and insert at the end") {
          {
             auto h = factory1.GetHandle(0);
-            REQUIRE(h.GetEntry()->GetUses() == refs1);
+            if constexpr (LANGULUS_FEATURE(MANAGED_MEMORY))
+               REQUIRE(h.GetEntry()->GetUses() == refs1);
             REQUIRE(DenseCast(h.Get()) == 1);
             if constexpr (referenced)
                REQUIRE(DenseCast(h.Get()).GetReferences() == 1);
@@ -477,7 +478,8 @@ TEMPLATE_TEST_CASE("Managed handle swapping", "[handle]", RT*, RT, int, int*) {
                REQUIRE(DenseCast(swapper.Get()).GetReferences() == 1);
 
             // Embedded handle is a second ref of factory2              
-            REQUIRE(h.GetEntry()->GetUses() == refs2);
+            if constexpr (LANGULUS_FEATURE(MANAGED_MEMORY))
+               REQUIRE(h.GetEntry()->GetUses() == refs2);
             REQUIRE(DenseCast(h.Get()) == 100);
             if constexpr (referenced)
                REQUIRE(DenseCast(h.Get()).GetReferences() == 2);
@@ -485,55 +487,64 @@ TEMPLATE_TEST_CASE("Managed handle swapping", "[handle]", RT*, RT, int, int*) {
 
          {
             auto h = factory1.GetHandle(1);
-            REQUIRE(h.GetEntry()->GetUses() == refs1);
+            if constexpr (LANGULUS_FEATURE(MANAGED_MEMORY))
+               REQUIRE(h.GetEntry()->GetUses() == refs1);
             h.Swap(swapper);
          }
 
          {
             auto h = factory1.GetHandle(2);
-            REQUIRE(h.GetEntry()->GetUses() == refs1);
+            if constexpr (LANGULUS_FEATURE(MANAGED_MEMORY))
+               REQUIRE(h.GetEntry()->GetUses() == refs1);
             h.Swap(swapper);
          }
 
          {
             auto h = factory1.GetHandle(3);
-            REQUIRE(h.GetEntry()->GetUses() == refs1);
+            if constexpr (LANGULUS_FEATURE(MANAGED_MEMORY))
+               REQUIRE(h.GetEntry()->GetUses() == refs1);
             h.Swap(swapper);
          }
 
          {
             auto h = factory1.GetHandle(4);
-            REQUIRE(h.GetEntry()->GetUses() == refs1);
+            if constexpr (LANGULUS_FEATURE(MANAGED_MEMORY))
+               REQUIRE(h.GetEntry()->GetUses() == refs1);
             h.Swap(swapper);
          }
 
          {
             auto h = factory1.GetHandle(5);
-            REQUIRE(h.GetEntry()->GetUses() == refs1);
+            if constexpr (LANGULUS_FEATURE(MANAGED_MEMORY))
+               REQUIRE(h.GetEntry()->GetUses() == refs1);
             h.Swap(swapper);
          }
 
          {
             auto h = factory1.GetHandle(6);
-            REQUIRE(h.GetEntry()->GetUses() == refs1);
+            if constexpr (LANGULUS_FEATURE(MANAGED_MEMORY))
+               REQUIRE(h.GetEntry()->GetUses() == refs1);
             h.Swap(swapper);
          }
 
          {
             auto h = factory1.GetHandle(7);
-            REQUIRE(h.GetEntry()->GetUses() == refs1);
+            if constexpr (LANGULUS_FEATURE(MANAGED_MEMORY))
+               REQUIRE(h.GetEntry()->GetUses() == refs1);
             h.Swap(swapper);
          }
 
          {
             auto h = factory1.GetHandle(8);
-            REQUIRE(h.GetEntry()->GetUses() == refs1);
+            if constexpr (LANGULUS_FEATURE(MANAGED_MEMORY))
+               REQUIRE(h.GetEntry()->GetUses() == refs1);
             h.Swap(swapper);
          }
 
          {
             auto h = factory1.GetHandle(9);
-            REQUIRE(h.GetEntry()->GetUses() == refs1);
+            if constexpr (LANGULUS_FEATURE(MANAGED_MEMORY))
+               REQUIRE(h.GetEntry()->GetUses() == refs1);
             h.Swap(swapper);
          }
 
@@ -547,7 +558,8 @@ TEMPLATE_TEST_CASE("Managed handle swapping", "[handle]", RT*, RT, int, int*) {
          // First element in factory1 should be the first from factory2 
          auto h0 = factory1.GetHandle(0);
          REQUIRE(DenseCast(h0.Get()) == 100);
-         REQUIRE(h0.GetEntry()->GetUses() == refs2);
+         if constexpr (LANGULUS_FEATURE(MANAGED_MEMORY))
+            REQUIRE(h0.GetEntry()->GetUses() == refs2);
          if constexpr (referenced)
             REQUIRE(DenseCast(h0.Get()).GetReferences() == 2);
 
@@ -557,14 +569,16 @@ TEMPLATE_TEST_CASE("Managed handle swapping", "[handle]", RT*, RT, int, int*) {
             REQUIRE(swapper.GetEntry() == nullptr);
             auto last = factory1.GetHandle(factory1.GetCount() - 1);
             REQUIRE(DenseCast(last.Get()) == 10);
-            REQUIRE(last.GetEntry()->GetUses() == refs1);
+            if constexpr (LANGULUS_FEATURE(MANAGED_MEMORY))
+               REQUIRE(last.GetEntry()->GetUses() == refs1);
             if constexpr (referenced)
                REQUIRE(DenseCast(last.Get()).GetReferences() == 1);
 
             for (int i = 1; i <= 10; ++i) {
                auto hi = factory1.GetHandle(i);
                REQUIRE(DenseCast(hi.Get()) == i);
-               REQUIRE(hi.GetEntry()->GetUses() == refs1);
+               if constexpr (LANGULUS_FEATURE(MANAGED_MEMORY))
+                  REQUIRE(hi.GetEntry()->GetUses() == refs1);
                if constexpr (referenced)
                   REQUIRE(DenseCast(hi.Get()).GetReferences() == 1);
             }
@@ -577,14 +591,16 @@ TEMPLATE_TEST_CASE("Managed handle swapping", "[handle]", RT*, RT, int, int*) {
                REQUIRE(swapper.GetEntry());
             auto last = factory1.GetHandle(factory1.GetCount() - 1);
             REQUIRE(DenseCast(last.Get()) == 10);
-            REQUIRE(last.GetEntry()->GetUses() == refs1_1);
+            if constexpr (LANGULUS_FEATURE(MANAGED_MEMORY))
+               REQUIRE(last.GetEntry()->GetUses() == refs1_1);
             if constexpr (referenced)
                REQUIRE(DenseCast(last.Get()).GetReferences() == 2);
 
             for (int i = 1; i <= 9; ++i) {
                auto hi = factory1.GetHandle(i);
                REQUIRE(DenseCast(hi.Get()) == i);
-               REQUIRE(hi.GetEntry()->GetUses() == refs1_1);
+               if constexpr (LANGULUS_FEATURE(MANAGED_MEMORY))
+                  REQUIRE(hi.GetEntry()->GetUses() == refs1_1);
                if constexpr (referenced)
                   REQUIRE(DenseCast(hi.Get()).GetReferences() == 1);
             }
@@ -596,14 +612,16 @@ TEMPLATE_TEST_CASE("Managed handle swapping", "[handle]", RT*, RT, int, int*) {
             REQUIRE(swapper.GetEntry() == nullptr);
             auto last = factory1.GetHandle(factory1.GetCount() - 1);
             REQUIRE(DenseCast(last.Get()) == 10);
-            REQUIRE(last.GetEntry()->GetUses() == refs1);
+            if constexpr (LANGULUS_FEATURE(MANAGED_MEMORY))
+               REQUIRE(last.GetEntry()->GetUses() == refs1);
             if constexpr (referenced)
                REQUIRE(DenseCast(last.Get()).GetReferences() == 1);
 
             for (int i = 1; i <= 10; ++i) {
                auto hi = factory1.GetHandle(i);
                REQUIRE(DenseCast(hi.Get()) == i);
-               REQUIRE(hi.GetEntry()->GetUses() == refs1);
+               if constexpr (LANGULUS_FEATURE(MANAGED_MEMORY))
+                  REQUIRE(hi.GetEntry()->GetUses() == refs1);
                if constexpr (referenced)
                   REQUIRE(DenseCast(hi.Get()).GetReferences() == 1);
             }
@@ -614,15 +632,17 @@ TEMPLATE_TEST_CASE("Managed handle swapping", "[handle]", RT*, RT, int, int*) {
    REQUIRE(factory1.GetAllocation()->GetUses() == 1);
 
    auto start = factory1.GetHandle(0);
-   REQUIRE(start.GetEntry()->GetUses() == 1);
+   if constexpr (LANGULUS_FEATURE(MANAGED_MEMORY))
+      REQUIRE(start.GetEntry()->GetUses() == 1);
    REQUIRE(DenseCast(start.Get()) == 100);
    if constexpr (referenced)
       REQUIRE(DenseCast(start.Get()).GetReferences() == 1);
 
-   for (int i = 1; i < factory1.GetCount(); ++i) {
+   for (Count i = 1; i < factory1.GetCount(); ++i) {
       auto h = factory1.GetHandle(i);
-      REQUIRE(h.GetEntry()->GetUses() == refs1);
-      REQUIRE(DenseCast(h.Get()) == i);
+      if constexpr (LANGULUS_FEATURE(MANAGED_MEMORY))
+         REQUIRE(h.GetEntry()->GetUses() == refs1);
+      REQUIRE(DenseCast(h.Get()) == static_cast<int>(i));
       if constexpr (referenced)
          REQUIRE(DenseCast(h.Get()).GetReferences() == 1);
    }
