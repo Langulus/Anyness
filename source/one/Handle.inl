@@ -481,36 +481,9 @@ namespace Langulus::Anyness
    ///      type-erased                                                       
    TEMPLATE() LANGULUS(INLINED)
    void HAND()::Swap(CT::Handle auto& rhs, DMeta type) requires Mutable {
-      using RHS = Deref<decltype(rhs)>;
-
       if constexpr (Sparse) {
          std::swap(Get(), rhs.Get());
          std::swap(GetEntry(), rhs.GetEntry());
-
-         // Always add a reference when we transition a pointer from    
-         // embedded to a non-embedded handle - otherwise we'll lose    
-         // the data while swapping!                                    
-         // Always remove a reference when we transition a pointer from 
-         // a non-embedded to an embedded handle - otherwise we'll get  
-         // a leak when handle goes out of scope!                       
-         // THIS IS THE ONLY CASE WHERE A HANDLE EXERCISES OWNERSHIP    
-         if constexpr (RHS::Embedded and not Embedded) {
-            // Moving pointer to an embedded handle. Thing is, we've    
-            // already referenced it from here, so no point in deref    
-            // and then ref again.                                      
-            /*if (rhs.GetEntry() and GetEntry() != rhs.GetEntry()) {
-               const_cast<Allocation*>(rhs.GetEntry())->Keep();
-               if constexpr (CT::Referencable<Deptr<T>>)
-                  DecvqCast(rhs.Get())->Reference(1);
-            }*/
-         }
-         else if constexpr (Embedded and not RHS::Embedded) {
-            /*if (rhs.GetEntry() and GetEntry() != rhs.GetEntry()) {
-               const_cast<Allocation*>(rhs.GetEntry())->Keep();
-               if constexpr (CT::Referencable<Deptr<T>>)
-                  DecvqCast(rhs.Get())->Reference(1);
-            }*/
-         }
       }
       else {
          HandleLocal<T> tmp {Abandon(*this)};

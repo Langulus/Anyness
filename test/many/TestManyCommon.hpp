@@ -235,7 +235,7 @@ void Any_CheckState_Abandoned(const auto& any) {
 }
 
 
-void Any_CheckState_ContainsOne(const auto& pack, const auto& e, Allocation* entry = nullptr) {
+void Any_CheckState_ContainsOne(const auto& pack, const auto& e, UNUSED() Allocation* entry = nullptr) {
    using T = Deref<decltype(pack)>;
    using E = Deref<decltype(e)>;
 
@@ -264,7 +264,7 @@ void Any_CheckState_ContainsOne(const auto& pack, const auto& e, Allocation* ent
    }
 }
 
-void Any_CheckState_ContainsN(Count n, const auto& pack, const CT::Sparse auto& e, Allocation* entry = nullptr) {
+void Any_CheckState_ContainsN(Count n, const auto& pack, const CT::Sparse auto& e, UNUSED() Allocation* entry = nullptr) {
    using T = Deref<decltype(pack)>;
    using E = Deref<decltype(e)>;
 
@@ -289,7 +289,7 @@ void Any_CheckState_ContainsN(Count n, const auto& pack, const CT::Sparse auto& 
    }
 }
 
-void Any_CheckState_ContainsArray(const auto& pack, const CT::Array auto& e, Allocation* entry = nullptr) {
+void Any_CheckState_ContainsArray(const auto& pack, const CT::Array auto& e, UNUSED() Allocation* entry = nullptr) {
    using T = Deref<decltype(pack)>;
    using E = Deext<decltype(e)>;
    constexpr int n = ExtentOf<decltype(e)>;
