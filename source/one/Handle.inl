@@ -20,10 +20,21 @@ namespace Langulus::Anyness
    TEMPLATE() LANGULUS(INLINED)
    constexpr HAND()::Handle(ValueType v) noexcept requires (Embedded or Sparse)
       : mValue {v} {
-      if constexpr (TypeErased or CT::Allocatable<T>)
+      if constexpr (TypeErased or CT::Allocatable<T>) {
          mEntry = Allocator::Find(MetaDataOf<T>(), mValue);
-      else
-         mEntry = nullptr;
+
+         if constexpr (Sparse and not Embedded) {
+            // Always add a reference when we contain a pointer in a    
+            // local handle, because otherwise we might lose the data   
+            // THIS IS THE ONLY CASE WHERE A HANDLE EXERCISES OWNERSHIP 
+            if (mEntry) {
+               const_cast<Allocation*>(mEntry)->Keep();
+               if constexpr (CT::Referencable<Deptr<T>>)
+                  DecvqCast(mValue)->Reference(1);
+            }
+         }
+      }
+      else mEntry = nullptr;
    }
 
    /// Create an embedded handle by manually specifying entry                 
@@ -484,18 +495,21 @@ namespace Langulus::Anyness
          // a leak when handle goes out of scope!                       
          // THIS IS THE ONLY CASE WHERE A HANDLE EXERCISES OWNERSHIP    
          if constexpr (RHS::Embedded and not Embedded) {
-            if (rhs.GetEntry() and GetEntry() != rhs.GetEntry()) {
+            // Moving pointer to an embedded handle. Thing is, we've    
+            // already referenced it from here, so no point in deref    
+            // and then ref again.                                      
+            /*if (rhs.GetEntry() and GetEntry() != rhs.GetEntry()) {
                const_cast<Allocation*>(rhs.GetEntry())->Keep();
                if constexpr (CT::Referencable<Deptr<T>>)
                   DecvqCast(rhs.Get())->Reference(1);
-            }
+            }*/
          }
          else if constexpr (Embedded and not RHS::Embedded) {
-            if (GetEntry() and GetEntry() != rhs.GetEntry()) {
-               const_cast<Allocation*>(GetEntry())->Keep();
+            /*if (rhs.GetEntry() and GetEntry() != rhs.GetEntry()) {
+               const_cast<Allocation*>(rhs.GetEntry())->Keep();
                if constexpr (CT::Referencable<Deptr<T>>)
-                  DecvqCast(Get())->Reference(1);
-            }
+                  DecvqCast(rhs.Get())->Reference(1);
+            }*/
          }
       }
       else {

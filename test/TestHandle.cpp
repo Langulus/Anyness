@@ -430,8 +430,15 @@ TEMPLATE_TEST_CASE("Handles from sequential containers", "[handle]",
 
 ///                                                                           
 TEMPLATE_TEST_CASE("Managed handle swapping", "[handle]", RT*, RT, int, int*) {
-   static Allocator::State memoryState;
    using T = TestType;
+   static Allocator::State memoryState;
+
+   constexpr bool sparse = CT::Sparse<T>;
+   constexpr bool referenced = sparse and CT::Referencable<Deptr<T>>;
+   constexpr Count refs1 = CT::Sparse<T> and LANGULUS_FEATURE(MANAGED_MEMORY) ? 10 : 1;
+   constexpr Count refs1_1 = CT::Sparse<T> and LANGULUS_FEATURE(MANAGED_MEMORY) ? 11 : 1;
+   constexpr Count refs2 = CT::Sparse<T> and LANGULUS_FEATURE(MANAGED_MEMORY) ? 2 : 1;
+
    TMany<T> factory1 = CreateManagedElements<T>(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
    REQUIRE(factory1.GetAllocation()->GetUses() == 1);
 
@@ -439,66 +446,184 @@ TEMPLATE_TEST_CASE("Managed handle swapping", "[handle]", RT*, RT, int, int*) {
       TMany<T> factory2 = CreateManagedElements<T>(100);
       REQUIRE(factory2.GetAllocation()->GetUses() == 1);
 
-      factory1.Reserve(factory1.GetCount() + 1);
-
+      // Create a handle to an element inside factory2                  
+      // The entry will be searched for in the memory manager           
+      // Since we're using a local handle, the element will be reffed   
       HandleLocal<T> swapper {factory2[0]};
 
-      if constexpr (CT::Sparse<T>)
-         IF_LANGULUS_MANAGED_MEMORY(REQUIRE(swapper.GetEntry()->GetUses() == 1));
+      if constexpr (sparse)
+         REQUIRE(swapper.GetEntry()->GetUses() == refs2);
+      if constexpr (referenced)
+         REQUIRE(DenseCast(swapper.Get()).GetReferences() == 2);
 
-      if constexpr (CT::Referencable<T>)
-         REQUIRE(DenseCast(swapper.Get()).GetReferences() == 1);
 
       WHEN("Swap through all elements and insert at the end") {
-         for (int i = 0; i < factory1.GetCount(); ++i) {
-            auto h = factory1.GetHandle(i);
-            IF_LANGULUS_MANAGED_MEMORY(REQUIRE(h.GetEntry()->GetUses() == (CT::Sparse<T> ? 10 : 1)));
+         {
+            auto h = factory1.GetHandle(0);
+            REQUIRE(h.GetEntry()->GetUses() == refs1);
+            REQUIRE(DenseCast(h.Get()) == 1);
+            if constexpr (referenced)
+               REQUIRE(DenseCast(h.Get()).GetReferences() == 1);
+
+            // factory1[0] == 1                                         
+            // swapped with swapper (referring to factory2[0] == 100)   
+            h.Swap(swapper);
+
+            // Swapper now only thing that refers to factory1[0]        
+            REQUIRE(DenseCast(swapper.Get()) == 1);
+            if constexpr (sparse)
+               REQUIRE(swapper.GetEntry()->GetUses() == refs1);
+            if constexpr (referenced)
+               REQUIRE(DenseCast(swapper.Get()).GetReferences() == 1);
+
+            // Embedded handle is a second ref of factory2              
+            REQUIRE(h.GetEntry()->GetUses() == refs2);
+            REQUIRE(DenseCast(h.Get()) == 100);
+            if constexpr (referenced)
+               REQUIRE(DenseCast(h.Get()).GetReferences() == 2);
+         }
+
+         {
+            auto h = factory1.GetHandle(1);
+            REQUIRE(h.GetEntry()->GetUses() == refs1);
             h.Swap(swapper);
          }
 
-         if constexpr (CT::Sparse<T>)
-            IF_LANGULUS_MANAGED_MEMORY(REQUIRE(swapper.GetEntry()->GetUses() == 10));
+         {
+            auto h = factory1.GetHandle(2);
+            REQUIRE(h.GetEntry()->GetUses() == refs1);
+            h.Swap(swapper);
+         }
 
+         {
+            auto h = factory1.GetHandle(3);
+            REQUIRE(h.GetEntry()->GetUses() == refs1);
+            h.Swap(swapper);
+         }
+
+         {
+            auto h = factory1.GetHandle(4);
+            REQUIRE(h.GetEntry()->GetUses() == refs1);
+            h.Swap(swapper);
+         }
+
+         {
+            auto h = factory1.GetHandle(5);
+            REQUIRE(h.GetEntry()->GetUses() == refs1);
+            h.Swap(swapper);
+         }
+
+         {
+            auto h = factory1.GetHandle(6);
+            REQUIRE(h.GetEntry()->GetUses() == refs1);
+            h.Swap(swapper);
+         }
+
+         {
+            auto h = factory1.GetHandle(7);
+            REQUIRE(h.GetEntry()->GetUses() == refs1);
+            h.Swap(swapper);
+         }
+
+         {
+            auto h = factory1.GetHandle(8);
+            REQUIRE(h.GetEntry()->GetUses() == refs1);
+            h.Swap(swapper);
+         }
+
+         {
+            auto h = factory1.GetHandle(9);
+            REQUIRE(h.GetEntry()->GetUses() == refs1);
+            h.Swap(swapper);
+         }
+
+         // The swapper should contain the last element in factory1     
          REQUIRE(DenseCast(swapper.Get()) == 10);
+         if constexpr (sparse)
+            REQUIRE(swapper.GetEntry()->GetUses() == refs1);
+         if constexpr (referenced)
+            REQUIRE(DenseCast(swapper.Get()).GetReferences() == 1);
+
+         // First element in factory1 should be the first from factory2 
+         auto h0 = factory1.GetHandle(0);
+         REQUIRE(DenseCast(h0.Get()) == 100);
+         REQUIRE(h0.GetEntry()->GetUses() == refs2);
+         if constexpr (referenced)
+            REQUIRE(DenseCast(h0.Get()).GetReferences() == 2);
 
          THEN("Appending the leftover by Abandon") {
-            auto last = factory1.GetHandle(factory1.GetCount());
-            last.CreateWithIntent(Abandon(swapper));
+            factory1 << Abandon(swapper);
 
-            REQUIRE(DenseCast(factory1.GetHandle(0).Get()) == 100);
-            IF_LANGULUS_MANAGED_MEMORY(REQUIRE(factory1.GetHandle(0).GetEntry()->GetUses() == (CT::Sparse<T> ? 2 : 1)));
+            REQUIRE(swapper.GetEntry() == nullptr);
+            auto last = factory1.GetHandle(factory1.GetCount() - 1);
+            REQUIRE(DenseCast(last.Get()) == 10);
+            REQUIRE(last.GetEntry()->GetUses() == refs1);
+            if constexpr (referenced)
+               REQUIRE(DenseCast(last.Get()).GetReferences() == 1);
 
             for (int i = 1; i <= 10; ++i) {
-               REQUIRE(DenseCast(factory1.GetHandle(i).Get()) == i);
-
-               if constexpr (CT::Sparse<T>)
-                  IF_LANGULUS_MANAGED_MEMORY(REQUIRE(factory1.GetHandle(i).GetEntry()->GetUses() == 10));
-            }
-
-            if constexpr (CT::Referencable<T>) {
-               REQUIRE(DenseCast(swapper.Get()).GetReferences() == 1);
-               REQUIRE(DenseCast(factory1.GetHandle(0).Get()).GetReferences() == (CT::Sparse<T> ? 2 : 1));
-
-               for (int i = 1; i <= 10; ++i)
-                  REQUIRE(DenseCast(factory1.GetHandle(i).Get()).GetReferences() == 1);
+               auto hi = factory1.GetHandle(i);
+               REQUIRE(DenseCast(hi.Get()) == i);
+               REQUIRE(hi.GetEntry()->GetUses() == refs1);
+               if constexpr (referenced)
+                  REQUIRE(DenseCast(hi.Get()).GetReferences() == 1);
             }
          }
-      }
-   }
 
+         THEN("Appending the leftover by Refer") {
+            factory1 << Refer(swapper);
+
+            if constexpr (sparse)
+               REQUIRE(swapper.GetEntry());
+            auto last = factory1.GetHandle(factory1.GetCount() - 1);
+            REQUIRE(DenseCast(last.Get()) == 10);
+            REQUIRE(last.GetEntry()->GetUses() == refs1_1);
+            if constexpr (referenced)
+               REQUIRE(DenseCast(last.Get()).GetReferences() == 2);
+
+            for (int i = 1; i <= 9; ++i) {
+               auto hi = factory1.GetHandle(i);
+               REQUIRE(DenseCast(hi.Get()) == i);
+               REQUIRE(hi.GetEntry()->GetUses() == refs1_1);
+               if constexpr (referenced)
+                  REQUIRE(DenseCast(hi.Get()).GetReferences() == 1);
+            }
+         }
+
+         THEN("Appending the leftover by Move") {
+            factory1 << Move(swapper);
+
+            REQUIRE(swapper.GetEntry() == nullptr);
+            auto last = factory1.GetHandle(factory1.GetCount() - 1);
+            REQUIRE(DenseCast(last.Get()) == 10);
+            REQUIRE(last.GetEntry()->GetUses() == refs1);
+            if constexpr (referenced)
+               REQUIRE(DenseCast(last.Get()).GetReferences() == 1);
+
+            for (int i = 1; i <= 10; ++i) {
+               auto hi = factory1.GetHandle(i);
+               REQUIRE(DenseCast(hi.Get()) == i);
+               REQUIRE(hi.GetEntry()->GetUses() == refs1);
+               if constexpr (referenced)
+                  REQUIRE(DenseCast(hi.Get()).GetReferences() == 1);
+            }
+         }
+      } 
+   }
+   
    REQUIRE(factory1.GetAllocation()->GetUses() == 1);
 
    auto start = factory1.GetHandle(0);
-   IF_LANGULUS_MANAGED_MEMORY(REQUIRE(start.GetEntry()->GetUses() == 1));
+   REQUIRE(start.GetEntry()->GetUses() == 1);
    REQUIRE(DenseCast(start.Get()) == 100);
-   if constexpr (CT::Referencable<T>)
+   if constexpr (referenced)
       REQUIRE(DenseCast(start.Get()).GetReferences() == 1);
 
    for (int i = 1; i < factory1.GetCount(); ++i) {
       auto h = factory1.GetHandle(i);
-      IF_LANGULUS_MANAGED_MEMORY(REQUIRE(h.GetEntry()->GetUses() == (CT::Sparse<T> ? 10 : 1)));
+      REQUIRE(h.GetEntry()->GetUses() == refs1);
       REQUIRE(DenseCast(h.Get()) == i);
-      if constexpr (CT::Referencable<T>)
+      if constexpr (referenced)
          REQUIRE(DenseCast(h.Get()).GetReferences() == 1);
    }
 
