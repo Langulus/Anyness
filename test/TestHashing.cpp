@@ -33,12 +33,16 @@ SCENARIO("Hashing different kinds of containers", "[hash]") {
       REQUIRE(HashOf(same1) == HashOf(sape1arr));
       REQUIRE(HashOf(same1) == HashBytes("Same1", 5));
    }
+
+   BANK.Reset();
+   REQUIRE_FALSE(Allocator::CollectGarbage());
 }
 
 
 /// Cross-container consistency tests                                         
 TEMPLATE_TEST_CASE(
    "Cross-container consistency tests for TOrderedMap/TUnorderedMap/OrderedMap/UnorderedMap", "[map]",
+   (HashTest<Text, Trait*>),
 
    (HashTest<Text, int>),
    (HashTest<Text, Trait>),
@@ -46,16 +50,15 @@ TEMPLATE_TEST_CASE(
    (HashTest<Text, Many>),
 
    (HashTest<Text, int*>),
-   (HashTest<Text, Trait*>),
    (HashTest<Text, Traits::Count*>),
    (HashTest<Text, Many*>)
 ) {
+   using K = typename TestType::Key;
+   using V = typename TestType::Value;
+
    Allocator::State memoryState;
 
    GIVEN("A single element initialized maps of all kinds") {
-      using K = typename TestType::Key;
-      using V = typename TestType::Value;
-
       const auto pair = CreatePair<TPair<K, V>, K, V>(
          "five hundred", 555);
 
@@ -80,7 +83,12 @@ TEMPLATE_TEST_CASE(
 
       // Check for memory leaks after each cycle                        
       REQUIRE(memoryState.Assert());
+
+      DestroyPair(pair);
    }
+
+   BANK.Reset();
+   REQUIRE_FALSE(Allocator::CollectGarbage());
 }
 
 /// Cross-container consistency tests                                         
@@ -89,10 +97,12 @@ TEMPLATE_TEST_CASE(
    int,  Trait,  Traits::Count,  Many,
    int*, Trait*, Traits::Count*, Many*
 ) {
-   const auto element = CreateElement<TestType>(555);
-   const auto elementHash = HashOf(element);
+   Allocator::State memoryState;
 
    GIVEN("A single element initialized sets of all kinds") {
+      const auto element = CreateElement<TestType>(555);
+      const auto elementHash = HashOf(element);
+
       TUnorderedSet<TestType> uset1 {element};
       UnorderedSet uset2 {element};
       TOrderedSet<TestType> oset1 {element};
@@ -114,8 +124,13 @@ TEMPLATE_TEST_CASE(
          REQUIRE(uhash1 == ohash1);
          REQUIRE(uhash1 == elementHash);
       }
+
+      // Check for memory leaks after each cycle                        
+      REQUIRE(memoryState.Assert());
+
+      DestroyElement(element);
    }
 
-   if constexpr (CT::Sparse<TestType>)
-      delete element;
+   BANK.Reset();
+   REQUIRE_FALSE(Allocator::CollectGarbage());
 }

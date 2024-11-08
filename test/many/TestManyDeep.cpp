@@ -519,9 +519,9 @@ TEMPLATE_TEST_CASE("Deep sequential containers 2", "[any]", int, RT, int*, RT*) 
 
       WHEN("The Block bases from the subpacks are coalesced in a single container") {
          REQUIRE(pack.GetUses() == 1);
-         REQUIRE(subpack1.GetUses() == 3); //4 if that functionality is added
-         REQUIRE(subpack2.GetUses() == 2); //3 if that functionality is added
-         REQUIRE(subpack3.GetUses() == 2); //3 if that functionality is added
+         REQUIRE(subpack1.GetUses() == 3);
+         REQUIRE(subpack2.GetUses() == 2);
+         REQUIRE(subpack3.GetUses() == 2);
       }
 
       WHEN("The coalesced Block bases are freed") {
@@ -537,9 +537,9 @@ TEMPLATE_TEST_CASE("Deep sequential containers 2", "[any]", int, RT, int*, RT*) 
          pack.Reset();
 
          REQUIRE(pack.GetUses() == 0);
-         REQUIRE(subpack1.GetUses() == 2); // 3 if that functionality is added
-         REQUIRE(subpack2.GetUses() == 1); // 2 if that functionality is added
-         REQUIRE(subpack3.GetUses() == 1); // 2 if that functionality is added
+         REQUIRE(subpack1.GetUses() == 2);
+         REQUIRE(subpack2.GetUses() == 1);
+         REQUIRE(subpack3.GetUses() == 1);
       }
    }
 
