@@ -100,7 +100,7 @@ TEMPLATE_TEST_CASE("Testing text containers", "[text]",
    }
 
    GIVEN("Uninitialized text container") {
-      TestType* text;
+      TestType* text = nullptr;
 
       WHEN("Constructed with a null-terminated literal") {
          text = new TestType {"test1"};

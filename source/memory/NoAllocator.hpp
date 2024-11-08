@@ -56,7 +56,7 @@ namespace Langulus::Anyness
       }
 
       NOD() LANGULUS(INLINED)
-      static Allocation* Reallocate(Offset size, Allocation* previous) IF_UNSAFE(noexcept) {
+      static Allocation* Reallocate(Offset size, UNUSED() Allocation* previous) IF_UNSAFE(noexcept) {
          LANGULUS_ASSUME(DevAssumes, previous,
             "Reallocating nullptr");
          LANGULUS_ASSUME(DevAssumes, size != previous->GetAllocatedSize(),
