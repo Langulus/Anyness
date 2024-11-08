@@ -46,7 +46,7 @@ namespace Langulus::Anyness
    struct Allocator {
       /// No state when MANAGED_MEMORY feature is disabled                    
       struct State {
-         constexpr bool Assert() const noexcept { return true; }
+         consteval bool Assert() const noexcept { return true; }
       };
 
       NOD() LANGULUS(INLINED)
@@ -83,19 +83,20 @@ namespace Langulus::Anyness
          ::std::free(entry->mPool);
       }
 
-      NOD() LANGULUS(INLINED)
       static constexpr const Allocation* Find(DMeta, const void*) noexcept {
          return nullptr;
       }
 
-      NOD() LANGULUS(INLINED)
       static constexpr bool CheckAuthority(DMeta, const void*) noexcept {
          return false;
       }
 
+      static consteval bool CollectGarbage() noexcept {
+         return false;
+      }
+
       #if LANGULUS_FEATURE(MEMORY_STATISTICS)
-         LANGULUS(INLINED)
-         static void DumpPools() noexcept {}
+         static consteval void DumpPools() noexcept {}
       #endif
    };
 
