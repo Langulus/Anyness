@@ -49,7 +49,7 @@ namespace Langulus::Anyness
       constexpr ~Ref();
 
       template<class...A> requires ::std::constructible_from<T, A...>
-      void New(A&&...);
+      auto New(A&&...) -> Ref&;
 
       ///                                                                     
       ///   Assignment                                                        

@@ -88,7 +88,7 @@ namespace Langulus::Anyness
    ///   @return the new instance                                             
    TEMPLATE() template<class...A>
    requires ::std::constructible_from<T, A...> LANGULUS(INLINED)
-   void TME()::New(A&&...arguments) {
+   auto TME()::New(A&&...arguments) -> Ref& {
       Ref pointer;
       pointer.mEntry = Allocator::Allocate(MetaDataOf<T>(), sizeof(T));
       LANGULUS_ASSERT(pointer.mEntry, Allocate, "Out of memory");
@@ -97,6 +97,7 @@ namespace Langulus::Anyness
          Forward<A>(arguments)...
       };
       *this = Abandon(pointer);
+      return *this;
    }
 
    /// Reset the pointer                                                      
