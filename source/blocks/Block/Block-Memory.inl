@@ -101,44 +101,16 @@ namespace Langulus::Anyness
                else {
                   // Memory moved, and we should move all elements in it
                   // We're moving to new memory, so no reverse required 
-                  //if (mEntry->GetUses() == 1) {
-                     // Memory is used only once and it is safe to move 
-                     // it. Make note, that Allocator::Reallocate       
-                     // doesn't copy anything, it doesn't use realloc   
-                     // for various reasons, so we still have to call   
-                     // move construction for all elements if entry     
-                     // moved (enabling MANAGED_MEMORY feature          
-                     // significantly reduces the chance for a move).   
-                     // Sparse containers have additional memory        
-                     // allocated for each pointer's entry, if managed  
-                     // memory is enabled.                              
-                     if constexpr (CT::AbandonMakable<TYPE>
-                     or CT::MoveMakable<TYPE>
-                     or CT::ReferMakable<TYPE>
-                     or CT::CopyMakable<TYPE>) {
-                        mRaw = const_cast<Byte*>(mEntry->GetBlockStart());
-                        CreateWithIntent(Abandon(previousBlock));
-                        previousBlock.Free();
-                     }
-                     else LANGULUS_THROW(Construct,
-                        "Memory moved, but T is not move-constructible");
-                  /*}
-                  else {
-                     // Memory is used from multiple locations, and we  
-                     // must copy the memory for this block - we can't  
-                     // move it! This will throw, if data is not        
-                     // copiable/referable.                             
-                     if constexpr (CT::ReferMakable<TYPE>) {
-                        AllocateFresh(request);
-                        CreateWithIntent(Refer(previousBlock));
-                     }
-                     else if constexpr (CT::CopyMakable<TYPE>) {
-                        AllocateFresh(request);
-                        CreateWithIntent(Copy(previousBlock));
-                     }
-                     else LANGULUS_THROW(Construct,
-                        "Memory moved, but T is not refer/copy-constructible");
-                  }*/
+                  if constexpr (CT::AbandonMakable<TYPE>
+                  or CT::MoveMakable<TYPE>
+                  or CT::ReferMakable<TYPE>
+                  or CT::CopyMakable<TYPE>) {
+                     mRaw = const_cast<Byte*>(mEntry->GetBlockStart());
+                     CreateWithIntent(Abandon(previousBlock));
+                     previousBlock.Free();
+                  }
+                  else LANGULUS_THROW(Construct,
+                     "Memory moved, but T is not move-constructible");
                }
             }
             else {
@@ -318,26 +290,8 @@ namespace Langulus::Anyness
          if (mEntry != previousBlock.mEntry) {
             // Memory moved, and we should call abandon-construction    
             // We're moving to a new allocation, so no reverse needed   
-            //if (mEntry->GetUses() == 1) {
-               // Memory is used only once and it is safe to move it    
-               // Make note, that Allocator::Reallocate doesn't copy    
-               // anything, it doesn't use realloc for various reasons, 
-               // so we still have to call move construction for all    
-               // elements if entry moved (enabling MANAGED_MEMORY      
-               // feature significantly reduces the chance for a move)  
-               // Also, make sure to free the previous mEntry if moved  
-               // Sparse containers have additional memory allocated for
-               // each pointer's entry, if managed memory is enabled    
-               mRaw = const_cast<Byte*>(mEntry->GetBlockStart());
-               CreateWithIntent(Abandon(previousBlock));
-            /*}
-            else {
-               // Memory is used from multiple locations, and we must   
-               // copy the memory for this block - we can't move it!    
-               AllocateFresh(request);
-               CreateWithIntent(Refer(previousBlock));
-               previousBlock.Free();
-            }*/
+            mRaw = const_cast<Byte*>(mEntry->GetBlockStart());
+            CreateWithIntent(Abandon(previousBlock));
          }
          else {
             // Memory didn't move, but reserved count changed           
@@ -803,11 +757,6 @@ namespace Langulus::Anyness
                         if constexpr (CT::Referencable<Deptr<TYPE>>)
                            remaining_refs = DecvqCast(static_cast<TYPE>(h.Get()))->Reference(-1);
                      }
-
-                     /*LANGULUS_ASSUME(DevAssumes, remaining_refs,
-                        "At least one instance ref should remain, "
-                        "otherwise we forgot to reference element on insertion"
-                     );*/
 
                      h.GetEntry() = nullptr;
                   });

@@ -323,14 +323,6 @@ namespace Langulus::Anyness
          else return Loop::NextLoop;
       }
 
-      /*if (loop == Loop::Repeat)
-         return ForEachInner<MUTABLE, REVERSE>(Forward<F>(f), index);
-      else*/ /*if (loop == Loop::Discard) {
-         if constexpr (MUTABLE)
-            const_cast<Block*>(this)->Reset();
-         else
-            return Loop::NextLoop;
-      }*/
       return loop;
    }
    
@@ -384,7 +376,6 @@ namespace Langulus::Anyness
                         // with a branch that contains the empty element
                         // and that is bad. So defer the reset up the   
                         // chain instead!                               
-                        //const_cast<Block*>(this)->Reset();
                         return Loop::Discard;
                      }
                      else {
@@ -473,7 +464,6 @@ namespace Langulus::Anyness
                      // with a branch that contains the empty element   
                      // and that is bad. So defer the reset up the      
                      // chain instead!                                  
-                     //const_cast<Block*>(this)->Reset();
                      return Loop::Discard;
                   }
                   else {
@@ -516,14 +506,6 @@ namespace Langulus::Anyness
          }
       }
 
-      /*if (loop == Loop::Repeat)
-         return ForEachDeepInner<MUTABLE, REVERSE, SKIP>(Forward<F>(call), counter);
-      else*/ /*if (loop == Loop::Discard) {
-         if constexpr (MUTABLE)
-            const_cast<Block*>(this)->Reset();
-         else
-            return Loop::Continue;
-      }*/
       return loop;
    }
 

@@ -123,202 +123,6 @@ namespace Langulus::Anyness
          }
          else LANGULUS_OOPS(Compare, "No == operator reflected for type ", mType);
 
-
-         // Type-erased blocks                                          
-         /*if (mCount != right.mCount) {
-            // Cheap early return for differently sized blocks          
-            VERBOSE(Logger::Red,
-               "Data count is different: ", mCount, " != ", right.mCount);
-            return false;
-         }
-
-         const bool sameTypes = mType->IsSimilar(right.mType);
-         if (mCount and not sameTypes) {
-            if (IsUntyped() or right.IsUntyped()) {
-               // Cheap early return if differing undefined types, when 
-               // packs are not empty                                   
-               VERBOSE(Logger::Red,
-                  "One of the containers is untyped: ",
-                  GetToken(), " != ", right.GetToken());
-               return false;
-            }
-         }
-         else if (not mCount or IsUntyped()) {
-            // Both blocks are untyped or empty, just compare states    
-            return CompareStates(right);
-         }
-
-         if (not CompareStates(right)) {
-            // Cheap early return for blocks of differing states        
-            VERBOSE(Logger::Red, "Data states are not compatible");
-            return false;
-         }
-
-         if (sameTypes) {
-            // Types are exactly the same                               
-            if (mRaw == right.mRaw) {
-               // Quickly return if memory is exactly the same          
-               VERBOSE(Logger::Green,
-                  "Blocks are the same ", Logger::Cyan, "(optimal)");
-               return true;
-            }
-            else if (mType->mIsPOD or mType->mIsSparse) {
-               // Batch-compare memory if POD or sparse                 
-               return 0 == memcmp(mRaw, right.mRaw, GetBytesize());
-            }
-            else if (mType->mComparer) {
-               // Call compare operator for each element pair           
-               auto lhs = mRaw;
-               auto rhs = right.mRaw;
-               const auto lhsEnd = GetRawEnd<Byte>();
-               while (lhs != lhsEnd) {
-                  if (not mType->mComparer(lhs, rhs))
-                     return false;
-                  lhs += mType->mSize;
-                  rhs += mType->mSize;
-               }
-
-               return true;
-            }
-            else LANGULUS_OOPS(Compare, "No == operator reflected for type ", mType);
-         }
-         else if (not mType->mIsSparse or not right.mType->mIsSparse) {
-            VERBOSE(Logger::Red, "Data types differ in sparsity");
-            return false;
-         }*/
-
-         // If this is reached, then types are different kind of sparse 
-         // and an advanced comparison commences - types may be         
-         // different pointers to the same virtual objects              
-         //TODO not done on the typed path above
-         /*RTTI::Base baseForComparison {};
-         if constexpr (RESOLVE) {
-            // We will test type for each resolved element, individually
-            if (not IsResolvable() and not right.IsResolvable()
-            and not CompareTypes(right, baseForComparison)) {
-               // Types differ and are not resolvable                   
-               VERBOSE(Logger::Red,
-                  "Data types are not related: ",
-                  GetToken(), " != ", right.GetToken());
-               return false;
-            }
-         }
-         else {
-            // We won't be resolving, so we have only one global type   
-            if (not CompareTypes(right, baseForComparison)) {
-               // Types differ                                          
-               VERBOSE(Logger::Red,
-                  "Data types are not related: ",
-                  GetToken(), " != ", right.GetToken());
-               return false;
-            }
-         }
-
-         if ((IsSparse() and baseForComparison.mBinaryCompatible)
-         or (baseForComparison.mType and baseForComparison.mType->mIsPOD
-         and baseForComparison.mBinaryCompatible)) {
-            // Just compare the memory directly (optimization)          
-            // Regardless if types are sparse or dense, as long as they 
-            // are of the same density, of course                       
-            VERBOSE("Batch-comparing POD memory / pointers");
-            const auto code = memcmp(mRaw, right.mRaw, GetBytesize());
-            if (code != 0) {
-               VERBOSE(Logger::Red, "POD/pointers are not the same ",
-                  Logger::Yellow, "(fast)");
-               return false;
-            }
-
-            VERBOSE(Logger::Green, "POD/pointers memory is the same ",
-               Logger::Yellow, "(fast)");
-         }
-         else if (baseForComparison.mType and baseForComparison.mType->mComparer) {
-            if (IsSparse()) {
-               if constexpr (RESOLVE) {
-                  // Resolve all elements one by one and compare them by
-                  // their common resolved base                         
-                  for (Count i = 0; i < mCount; ++i) {
-                     auto lhs = GetElementResolved(i);
-                     auto rhs = right.GetElementResolved(i);
-                     if (not lhs.CompareTypes(rhs, baseForComparison)) {
-                        // Fail comparison on first mismatch            
-                        VERBOSE(Logger::Red,
-                           "Pointers at ", i, " have unrelated types: ",
-                           lhs.GetToken(), " != ", rhs.GetToken());
-                        return false;
-                     }
-
-                     // Compare pointers only                           
-                     if (lhs.mRaw != rhs.mRaw) {
-                        // Fail comparison on first mismatch            
-                        VERBOSE(Logger::Red,
-                           "Pointers at ", i, " differ: ",
-                           lhs.GetToken(), " != ", rhs.GetToken());
-                        return false;
-                     }
-                  }
-
-                  VERBOSE(Logger::Green,
-                     "Data is the same, all pointers match ",
-                     Logger::DarkYellow, "(slow)");
-               }
-               else {
-                  // Call the reflected == operator in baseForComparison
-                  VERBOSE("Comparing using reflected operator == for ",
-                     baseForComparison.mType.GetToken());
-
-                  for (Count i = 0; i < mCount; ++i) {
-                     // Densify and compare all elements by the binary  
-                     // compatible base                                 
-                     auto lhs = GetElementDense(i);
-                     auto rhs = right.GetElementDense(i);
-
-                     if (not lhs.CallComparer(rhs, baseForComparison)) {
-                        // Fail comparison on first mismatch            
-                        VERBOSE(Logger::Red, "Elements at ", i, " differ");
-                        return false;
-                     }
-                  }
-
-                  VERBOSE(Logger::Green,
-                     "Data is the same, all elements match ",
-                     Logger::Yellow, "(slow)");
-               }
-            }
-            else {
-               // Call the reflected == operator in baseForComparison   
-               VERBOSE("Comparing using reflected operator == for ",
-                  baseForComparison.mType.GetToken());
-
-               for (Count i = 0; i < mCount; ++i) {
-                  // Compare all elements by the binary compatible base 
-                  auto lhs = GetElementInner(i);
-                  auto rhs = right.GetElementInner(i);
-
-                  if (not lhs.CallComparer(rhs, baseForComparison)) {
-                     // Fail comparison on first mismatch               
-                     VERBOSE(Logger::Red, "Elements at ", i, " differ");
-                     return false;
-                  }
-               }
-
-               VERBOSE(Logger::Green,
-                  "Data is the same, all elements match ",
-                  Logger::Yellow, "(slow)");
-            }
-         }
-         else if (baseForComparison.mType) {
-            VERBOSE(Logger::Red,
-               "Can't compare related types because no == operator is reflected, "
-               "and they're not POD - common base for comparison was: ",
-               baseForComparison.mType);
-            return false;
-         }
-         else {
-            VERBOSE(Logger::Red,
-               "Can't compare unrelated types ", mType, " and ", right.mType);
-            return false;
-         }*/
-
          return true;
       }
    }
@@ -486,6 +290,7 @@ namespace Langulus::Anyness
 
          while (start != end) {
             if (*start == item)
+               // Match found                                           
                return start - GetRaw();
 
             if constexpr (REVERSE)
@@ -495,32 +300,6 @@ namespace Langulus::Anyness
          }
       }
       else {
-         // First check if element is contained inside this block's     
-         // memory, because if so, we can easily find it, without       
-         // calling a single compare function                           
-         //TODO these heurisrics are bad! the pattern may appear in memory,
-         // but there may be other occurences before that memory point! at best, we should
-         // simply narrow the search scope, and after scanning it, fallback to the
-         // one found pointer-wise
-         /*if constexpr (CT::Deep<ALT_T>) {
-            // Deep items have a bit looser type requirements           
-            if (IsDense<THIS>() and IsDeep<THIS>() and Owns<THIS>(&item)) {
-               const Offset index = &item - GetRawAs<ALT_T, THIS>();
-               // Check required, because Owns tests in reserved range  
-               return index < mCount ? index : IndexNone;
-            }
-         }
-         else {
-            // Search for a conventional item                           
-            if (IsExact<ALT_T>() and Owns<THIS>(&item)) {
-               const Offset index = &item - GetRawAs<ALT_T, THIS>();
-               // Check required, because Owns tests in reserved range  
-               return index < mCount ? index : IndexNone;
-            }
-         }*/
-
-         // Item is not in this block's memory, so we start comparing by
-         // values                                                      
          Offset i = REVERSE ? mCount - 1 - cookie : cookie;
          while (i < mCount) {
             if (GetElementInner(i) == item) {
@@ -600,6 +379,7 @@ namespace Langulus::Anyness
                and CT::POD<TypeOf<LB>, TypeOf<RB>>) {
                   // We can use batch-compare                           
                   if (0 == memcmp(rhs, lhs, bytesize))
+                     // Match found                                     
                      return cookie;
                }
                else {
@@ -611,6 +391,7 @@ namespace Langulus::Anyness
                   }
 
                   if (rhs == rhsEnd)
+                     // Match found                                     
                      return cookie;
                }
 
@@ -627,33 +408,6 @@ namespace Langulus::Anyness
          return IndexNone;
       }
       else {
-         // All of the participators are type-erased                    
-         // We do a slow and tedious RTTI-based compare                 
-
-         // First check if element is contained inside this block's     
-         // memory, because if so, we can easily find it, without       
-         // calling a single compare function                           
-
-         //TODO these heurisrics are bad! the pattern may appear in memory,
-         // but there may be other occurences before that memory point! at best, we should
-         // simply narrow the search scope, and after scanning it, fallback to the
-         // one found pointer-wise
-
-         /*if (item.IsDense() and item.IsDeep()) {
-            // Deep items have a bit looser type requirements           
-            if (IsDense<THIS>() and IsDeep<THIS>() and Owns<THIS>(item.mRaw)) {
-               const Offset index = (item.mRaw - mRaw) / sizeof(Block);
-               return index + item.GetCount() <= mCount ? index : IndexNone;
-            }
-         }
-         else {
-            // Search for a conventional item                           
-            if (IsExact(item.GetType()) and Owns<THIS>(item.mRaw)) {
-               const Offset index = (item.mRaw - mRaw) / mType->mSize;
-               return index + item.GetCount() <= mCount ? index : IndexNone;
-            }
-         }*/
-
          Offset i = REVERSE ? mCount - 1 - cookie : cookie;
          const auto iend = REVERSE
             ? static_cast<Offset>(-1)
@@ -661,6 +415,7 @@ namespace Langulus::Anyness
 
          while (i != iend) {
             if (CropInner(i, item.GetCount()) == item)
+               // Match found                                           
                return i;
 
             if constexpr (REVERSE)
