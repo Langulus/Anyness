@@ -70,17 +70,20 @@ namespace Langulus::Anyness
       template<CT::Data T>
       NOD() static Many From(DataState = {}) noexcept;
 
-      template<class AS = void, CT::Data...TN>
-      NOD() static Many Wrap(TN&&...);
+      template<class AS = void, CT::Data...TN> NOD()
+      static Many Wrap(TN&&...);
 
-      template<class...>
-      NOD() static Many Past() noexcept;
-      template<CT::String...T> requires (sizeof...(T) > 0)
-      NOD() static Many Past(T&&...);
-      template<class...>
-      NOD() static Many Future() noexcept;
-      template<CT::String...T> requires (sizeof...(T) > 0)
-      NOD() static Many Future(T&&...);
+      template<class...> NOD()
+      static Many Past() noexcept;
+      template<class...> NOD()
+      static Many Future() noexcept;
+
+      #if LANGULUS_FEATURE(MANAGED_REFLECTION)
+         template<CT::String...T> requires (sizeof...(T) > 0) NOD()
+         static Many Past(T&&...);
+         template<CT::String...T> requires (sizeof...(T) > 0) NOD()
+         static Many Future(T&&...);
+      #endif
 
       #if LANGULUS(DEBUG)
          using Base::TrackingReport;
