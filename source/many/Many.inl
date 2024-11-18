@@ -117,6 +117,18 @@ namespace Langulus::Anyness
       return result;
    }
 
+   /// Make a container with a missing future state and optional filter       
+   ///   @tparam T... - optionally add filter(s) for the missing future       
+   ///   @return a container marked as missing future with chosen filters     
+   template<class...T> LANGULUS(INLINED)
+   Many Many::Future() noexcept {
+      Many result;
+      result.MakeFuture();
+      (result << ... << MetaDataOf<T>());
+      return result;
+   }
+
+#if LANGULUS_FEATURE(MANAGED_REFLECTION)
    /// Make a container with a missing past state and optional filter         
    /// at runtime, using reflected tokens                                     
    ///   @param types... - reflected tokens                                   
@@ -137,17 +149,6 @@ namespace Langulus::Anyness
       };
 
       (filter(RTTI::DisambiguateMeta(types)), ...);
-      return result;
-   }
-
-   /// Make a container with a missing future state and optional filter       
-   ///   @tparam T... - optionally add filter(s) for the missing future       
-   ///   @return a container marked as missing future with chosen filters     
-   template<class...T> LANGULUS(INLINED)
-   Many Many::Future() noexcept {
-      Many result;
-      result.MakeFuture();
-      (result << ... << MetaDataOf<T>());
       return result;
    }
 
@@ -173,6 +174,7 @@ namespace Langulus::Anyness
       (filter(RTTI::DisambiguateMeta(types)), ...);
       return result;
    }
+#endif
 
    /// Refer assignment                                                       
    ///   @param rhs - the container to refer to                               
