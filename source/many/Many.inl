@@ -106,19 +106,71 @@ namespace Langulus::Anyness
       }
    }
 
-   /// Make an empty container with a missing past state                      
-   LANGULUS(INLINED)
+   /// Make a container with a missing past state and optional filter         
+   ///   @tparam T... - optionally add filter(s) for the missing past         
+   ///   @return a container marked as missing past with chosen filters       
+   template<class...T> LANGULUS(INLINED)
    Many Many::Past() noexcept {
       Many result;
       result.MakePast();
+      (result << ... << MetaDataOf<T>());
       return result;
    }
 
-   /// Make an empty container with a missing future state                    
-   LANGULUS(INLINED)
+   /// Make a container with a missing past state and optional filter         
+   /// at runtime, using reflected tokens                                     
+   ///   @param types... - reflected tokens                                   
+   ///   @return a container marked as missing past with chosen filters       
+   template<CT::String...T> requires (sizeof...(T) > 0) LANGULUS(INLINED)
+   Many Many::Past(T&&...types) {
+      Many result;
+      result.MakePast();
+
+      auto filter = [&result](const AMeta& meta) {
+         auto dmeta = meta.As<DMeta>();
+         if (dmeta)
+            result << dmeta;
+         else if (not meta)
+            LANGULUS_THROW(Meta, "Missing meta for past filter");
+         else
+            LANGULUS_THROW(Meta, "Past filter isn't a data type token");
+      };
+
+      (filter(RTTI::DisambiguateMeta(types)), ...);
+      return result;
+   }
+
+   /// Make a container with a missing future state and optional filter       
+   ///   @tparam T... - optionally add filter(s) for the missing future       
+   ///   @return a container marked as missing future with chosen filters     
+   template<class...T> LANGULUS(INLINED)
    Many Many::Future() noexcept {
       Many result;
       result.MakeFuture();
+      (result << ... << MetaDataOf<T>());
+      return result;
+   }
+
+   /// Make a container with a missing future state and optional filter       
+   /// at runtime, using reflected tokens                                     
+   ///   @param types... - reflected tokens                                   
+   ///   @return a container marked as missing future with chosen filters     
+   template<CT::String...T> requires (sizeof...(T) > 0) LANGULUS(INLINED)
+   Many Many::Future(T&&...types) {
+      Many result;
+      result.MakeFuture();
+
+      auto filter = [&result](const AMeta& meta) {
+         auto dmeta = meta.As<DMeta>();
+         if (dmeta)
+            result << dmeta;
+         else if (not meta)
+            LANGULUS_THROW(Meta, "Missing meta for future filter");
+         else
+            LANGULUS_THROW(Meta, "Future filter isn't a data type token");
+      };
+
+      (filter(RTTI::DisambiguateMeta(types)), ...);
       return result;
    }
 
