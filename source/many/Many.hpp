@@ -69,10 +69,18 @@ namespace Langulus::Anyness
       NOD() static Many FromState(const CT::Block auto&, DataState = {}) noexcept;
       template<CT::Data T>
       NOD() static Many From(DataState = {}) noexcept;
+
       template<class AS = void, CT::Data...TN>
       NOD() static Many Wrap(TN&&...);
+
+      template<class...>
       NOD() static Many Past() noexcept;
+      template<CT::String...T> requires (sizeof...(T) > 0)
+      NOD() static Many Past(T&&...);
+      template<class...>
       NOD() static Many Future() noexcept;
+      template<CT::String...T> requires (sizeof...(T) > 0)
+      NOD() static Many Future(T&&...);
 
       #if LANGULUS(DEBUG)
          using Base::TrackingReport;
