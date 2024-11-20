@@ -113,7 +113,7 @@ namespace Langulus::Anyness
    Many Many::Past() noexcept {
       Many result;
       result.MakePast();
-      (result << ... << MetaDataOf<T>());
+      (void) (result << ... << MetaDataOf<T>());
       return result;
    }
 
@@ -124,7 +124,7 @@ namespace Langulus::Anyness
    Many Many::Future() noexcept {
       Many result;
       result.MakeFuture();
-      (result << ... << MetaDataOf<T>());
+      (void) (result << ... << MetaDataOf<T>());
       return result;
    }
 

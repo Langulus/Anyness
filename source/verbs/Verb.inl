@@ -316,9 +316,10 @@ namespace Langulus::A
    }
    
    /// Serialize verb to any form of text                                     
-   ///   @return the serialized verb                                          
+   ///   @param out - [in/out] the serialized verb                            
    void Verb::SerializeVerb(CT::Serial auto& out) const {
       using OUT = Deref<decltype(out)>;
+      using Rules = typename OUT::SerializationRules;
       if (mSuccesses and mOutput) {
          // If verb has been executed with output, just dump the output 
          mOutput.Serialize(out);
@@ -328,63 +329,28 @@ namespace Langulus::A
       // If reached, then verb hasn't been executed yet                 
       // Let's check if there's a source in which verb is executed      
       if (mSource.IsValid()) {
-         OUT::SerializationRules::BeginScope(mSource, out);
+         Rules::BeginScope(mSource, out);
          mSource.Serialize(out);
-         OUT::SerializationRules::EndScope(mSource, out);
+         Rules::EndScope(mSource, out);
       }
 
       // After the source, we decide whether to write verb token or     
       // verb operator, depending on the verb definition, state and     
       // charge                                                         
       bool writtenAsToken = false;
-      if (not mVerb) {
-         // An invalid verb is always written as token                  
-         if (mSource.IsValid())
-            out += ' ';
-         out += NameOf<Verb>();
-         writtenAsToken = true;
-      }
-      else {
-         // A valid verb is written either as token, or as operator     
-         if (mMass < 0) {
-            if (not mVerb->mOperatorReverse.empty() and (GetCharge().operator*(-1)).IsDefault()) {
-               // Write as operator                                     
-               out += mVerb->mOperatorReverse;
-            }
-            else {
-               // Write as token                                        
-               if (mSource.IsValid())
-                  out += ' ';
-               out += mVerb->mTokenReverse;
-               out += static_cast<OUT>(GetCharge().operator*(-1));
-               writtenAsToken = true;
-            }
-         }
-         else {
-            if (not mVerb->mOperator.empty() and GetCharge().IsDefault()) {
-               // Write as operator                                     
-               out += mVerb->mOperator;
-            }
-            else {
-               // Write as token                                        
-               if (mSource.IsValid())
-                  out += ' ';
-               out += mVerb->mToken;
-               out += static_cast<OUT>(GetCharge());
-               writtenAsToken = true;
-            }
-         }
-      }
+      const auto token = GetOperatorToken(writtenAsToken);
+      if (writtenAsToken and mSource.IsValid())
+         out += ' ';
+      out += token;
 
       if (not IsValid())
          return;
       
-      if (not OUT::SerializationRules::BeginScope(GetArgument(), out)
-      and writtenAsToken)
+      if (not Rules::BeginScope(GetArgument(), out) and writtenAsToken)
          out += ' ';
 
       GetArgument().Serialize(out);
-      OUT::SerializationRules::EndScope(GetArgument(), out);
+      Rules::EndScope(GetArgument(), out);
    }
 
    /// Serialize verb for logger                                              
@@ -413,6 +379,48 @@ namespace Langulus::A
    LANGULUS(INLINED)
    bool Verb::operator == (VMeta rhs) const noexcept {
       return mVerb == rhs;
+   }
+   
+   /// Get the verb token or operator depending on context and energy         
+   ///   @return the token as a literal                                       
+   LANGULUS(INLINED)
+   auto Verb::GetOperatorToken(bool& tokenized) const -> Text {
+      Text out;
+      if (not mVerb) {
+         // An invalid verb is always written as token                  
+         out += NameOf<Verb>();
+         tokenized = true;
+         return out.Lowercase();
+      }
+
+      // A valid verb is written either as token, or as operator        
+      if (mMass < 0) {
+         if (not mVerb->mOperatorReverse.empty()
+         and (GetCharge().operator*(-1)).IsDefault()) {
+            // Write as operator                                        
+            out += mVerb->mOperatorReverse;
+         }
+         else {
+            // Write as token                                           
+            out += mVerb->mTokenReverse;
+            out += static_cast<Text>(GetCharge().operator*(-1));
+            tokenized = true;
+         }
+      }
+      else {
+         if (not mVerb->mOperator.empty() and GetCharge().IsDefault()) {
+            // Write as operator                                        
+            out += mVerb->mOperator;
+         }
+         else {
+            // Write as token                                           
+            out += mVerb->mToken;
+            out += static_cast<Text>(GetCharge());
+            tokenized = true;
+         }
+      }
+
+      return out.Lowercase();
    }
 
 } // namespace Langulus::A

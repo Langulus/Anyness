@@ -33,6 +33,7 @@ namespace Langulus::A
       using VMeta     = Anyness::VMeta;
       using VerbState = Anyness::VerbState;
       using Many      = Anyness::Many;
+      using Text      = Anyness::Text;
 
       // Verb meta, mass, rate, time and priority                       
       mutable VMeta mVerb {};
@@ -80,6 +81,7 @@ namespace Langulus::A
       NOD() auto GetRate() const noexcept -> Real;
       NOD() auto GetTime() const noexcept -> Real;
       NOD() auto GetPriority() const noexcept -> Real;
+      NOD() auto GetOperatorToken(bool& tokenized) const -> Text;
 
       NOD() auto GetSource() noexcept -> Many&;
       NOD() auto GetSource() const noexcept -> Many const&;
@@ -93,7 +95,7 @@ namespace Langulus::A
       NOD() auto operator -> () noexcept -> Many*;
       NOD() auto operator -> () const noexcept -> Many const*;
       
-      NOD() Count GetSuccesses() const noexcept;
+      NOD() auto GetSuccesses() const noexcept -> Count;
       NOD() auto GetVerbState() const noexcept -> VerbState;
       NOD() bool IsDone() const noexcept;
 
