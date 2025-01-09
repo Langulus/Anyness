@@ -66,24 +66,24 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Capsulation                                                       
       ///                                                                     
-      NOD() auto GetHandle() const -> Handle<T* const>;
-      NOD() auto GetHandle()       -> Handle<T*>;
-      NOD() constexpr auto GetAllocation() const noexcept -> const Allocation*;
-      NOD() constexpr auto GetUses() const noexcept -> Count;
+      auto GetHandle() const -> Handle<T* const>;
+      auto GetHandle()       -> Handle<T*>;
+      constexpr auto GetAllocation() const noexcept -> const Allocation*;
+      constexpr auto GetUses() const noexcept -> Count;
       
       using Base::operator bool;
       using Base::operator ->;
       using Base::operator *;
 
       /// Makes Ref CT::Resolvable                                            
-      NOD() auto GetBlock() const -> Block<T*>;
+      auto GetBlock() const -> Block<T*>;
 
       ///                                                                     
       ///   Services                                                          
       ///                                                                     
       void Reset();
 
-      NOD() operator Ref<const T>() const noexcept requires CT::Mutable<T>;
+      operator Ref<const T>() const noexcept requires CT::Mutable<T>;
    };
 
 

@@ -105,21 +105,21 @@ namespace Langulus::Anyness
       constexpr Index& operator = (const Index&) noexcept = default;
 
    public:
-      NOD() constexpr Index Constrained(Count) const noexcept;
-      NOD() Offset GetOffset() const;
-      NOD() Offset GetOffsetUnsafe() const noexcept;
+      constexpr Index Constrained(Count) const noexcept;
+      Offset GetOffset() const;
+      Offset GetOffsetUnsafe() const noexcept;
 
       constexpr void Constrain(Count) noexcept;
       constexpr void Concat(const Index&) noexcept;
 
-      NOD() constexpr bool IsValid() const noexcept;
-      NOD() constexpr bool IsInvalid() const noexcept;
-      NOD() constexpr bool IsSpecial() const noexcept;
-      NOD() constexpr bool IsReverse() const noexcept;
-      NOD() constexpr bool IsArithmetic() const noexcept;
+      constexpr bool IsValid() const noexcept;
+      constexpr bool IsInvalid() const noexcept;
+      constexpr bool IsSpecial() const noexcept;
+      constexpr bool IsReverse() const noexcept;
+      constexpr bool IsArithmetic() const noexcept;
 
-      NOD() explicit constexpr operator bool() const noexcept;
-      NOD() explicit constexpr operator const Type& () const noexcept;
+      explicit constexpr operator bool() const noexcept;
+      explicit constexpr operator const Type& () const noexcept;
 
       constexpr void operator ++ () noexcept;
       constexpr void operator -- () noexcept;
@@ -128,17 +128,17 @@ namespace Langulus::Anyness
       constexpr void operator *= (const Index&) noexcept;
       constexpr void operator /= (const Index&) noexcept;
 
-      NOD() constexpr Index operator + (const Index&) const noexcept;
-      NOD() constexpr Index operator - (const Index&) const noexcept;
-      NOD() constexpr Index operator * (const Index&) const noexcept;
-      NOD() constexpr Index operator / (const Index&) const noexcept;
-      NOD() constexpr Index operator - () const noexcept;
+      constexpr Index operator + (const Index&) const noexcept;
+      constexpr Index operator - (const Index&) const noexcept;
+      constexpr Index operator * (const Index&) const noexcept;
+      constexpr Index operator / (const Index&) const noexcept;
+      constexpr Index operator - () const noexcept;
 
-      NOD() constexpr bool operator == (const Index&) const noexcept;
-      NOD() constexpr bool operator <  (const Index&) const noexcept;
-      NOD() constexpr bool operator >  (const Index&) const noexcept;
-      NOD() constexpr bool operator <= (const Index&) const noexcept;
-      NOD() constexpr bool operator >= (const Index&) const noexcept;
+      constexpr bool operator == (const Index&) const noexcept;
+      constexpr bool operator <  (const Index&) const noexcept;
+      constexpr bool operator >  (const Index&) const noexcept;
+      constexpr bool operator <= (const Index&) const noexcept;
+      constexpr bool operator >= (const Index&) const noexcept;
    };
    
    constexpr Index IndexAll      {Index::All};

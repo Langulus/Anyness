@@ -77,7 +77,7 @@ namespace Langulus::Anyness
       ~TMany();
 
       template<CT::Data...TN>
-      NOD() static auto Wrap(TN&&...) -> TMany;
+      static auto Wrap(TN&&...) -> TMany;
 
       ///                                                                     
       ///   Assignment                                                        
@@ -91,8 +91,8 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Indexing                                                          
       ///                                                                     
-      NOD() auto Select(Offset, Count) IF_UNSAFE(noexcept) -> TMany;
-      NOD() auto Select(Offset, Count) const IF_UNSAFE(noexcept) -> TMany;
+      auto Select(Offset, Count)       IF_UNSAFE(noexcept) -> TMany;
+      auto Select(Offset, Count) const IF_UNSAFE(noexcept) -> TMany;
 
       ///                                                                     
       ///   RTTI                                                              
@@ -113,7 +113,7 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Insertion                                                         
       ///                                                                     
-      NOD() auto Extend(Count) -> TMany;
+      auto Extend(Count) -> TMany;
 
       template<class T1> requires CT::UnfoldMakableFrom<T, T1>
       auto operator << (T1&&) -> TMany&;
@@ -128,7 +128,7 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Concatenation                                                     
       ///                                                                     
-      template<class T1> requires CT::DeepMakable<T, T1> NOD()
+      template<class T1> requires CT::DeepMakable<T, T1>
       auto operator + (T1&&) const -> TMany;
 
       template<class T1> requires CT::DeepMakable<T, T1>

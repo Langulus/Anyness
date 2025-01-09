@@ -45,20 +45,20 @@ namespace Langulus::Anyness
          Real = DefaultPriority
       ) noexcept;
 
-      NOD() constexpr bool operator == (const Charge&) const noexcept;
+      constexpr bool    operator == (const Charge&) const noexcept;
 
-      NOD() constexpr Charge operator * (const Real&) const noexcept;
-      NOD() constexpr Charge operator ^ (const Real&) const noexcept;
+      constexpr Charge  operator *  (const Real&) const noexcept;
+      constexpr Charge  operator ^  (const Real&) const noexcept;
 
-      NOD() constexpr Charge& operator *= (const Real&) noexcept;
-      NOD() constexpr Charge& operator ^= (const Real&) noexcept;
+      constexpr Charge& operator *= (const Real&) noexcept;
+      constexpr Charge& operator ^= (const Real&) noexcept;
 
-      NOD() constexpr bool IsDefault() const noexcept;
-      NOD() constexpr bool IsFlowDependent() const noexcept;
-      NOD() Hash GetHash() const noexcept;
+      constexpr bool IsDefault() const noexcept;
+      constexpr bool IsFlowDependent() const noexcept;
+      Hash GetHash() const noexcept;
       void Reset() noexcept;
 
-      NOD() operator Text() const;
+      operator Text() const;
    };
 
 } // namespace Langulus::Anyness

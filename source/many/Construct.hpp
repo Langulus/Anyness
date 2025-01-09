@@ -56,49 +56,49 @@ namespace Langulus::Anyness
       Construct& operator = (S<Construct>&&);
 
    public:
-      NOD() Hash GetHash() const;
+      Hash GetHash() const;
 
       template<CT::Data, CT::Data T1, CT::Data...TN>
-      NOD() static Construct From(T1&&, TN&&...);
+      static Construct From(T1&&, TN&&...);
       template<CT::Data>
-      NOD() static Construct From();
+      static Construct From();
 
       #if LANGULUS_FEATURE(MANAGED_REFLECTION)
          template<CT::Data T1, CT::Data...TN>
-         NOD() static Construct FromToken(const Token&, T1&&, TN&&...);
-         NOD() static Construct FromToken(const Token&);
+         static Construct FromToken(const Token&, T1&&, TN&&...);
+         static Construct FromToken(const Token&);
       #endif
 
       // Intentionally undefined, because it requires Langulus::Flow    
       // and relies on Verbs::Create                                    
-      NOD() bool StaticCreation(Many&) const;
+      bool StaticCreation(Many&) const;
 
    public:
-      NOD() bool operator == (const Construct&) const;
+      bool operator == (const Construct&) const;
 
       template<CT::Data>
-      NOD() bool CastsTo() const;
-      NOD() bool CastsTo(DMeta) const;
+      bool CastsTo() const;
+      bool CastsTo(DMeta) const;
 
       template<CT::Data>
-      NOD() bool Is() const;
-      NOD() bool Is(DMeta) const;
+      bool Is() const;
+      bool Is(DMeta) const;
 
       template<CT::Data>
       void SetType();
       void SetType(DMeta) noexcept;
 
-      NOD() auto GetDescriptor() const noexcept -> Many const&;
-      NOD() auto GetDescriptor()       noexcept -> Many&;
-      NOD() auto GetCharge() const noexcept -> Charge const&;
-      NOD() auto GetCharge()       noexcept -> Charge&;
+      auto GetDescriptor() const noexcept -> Many const&;
+      auto GetDescriptor()       noexcept -> Many&;
+      auto GetCharge() const noexcept -> Charge const&;
+      auto GetCharge()       noexcept -> Charge&;
 
-      NOD() DMeta GetType() const noexcept;
-      NOD() Token GetToken() const noexcept;
-      NOD() DMeta GetProducer() const noexcept;
-      NOD() bool  IsExecutable() const noexcept;
-      NOD() bool  IsTyped() const noexcept;
-      NOD() bool  IsUntyped() const noexcept;
+      DMeta GetType() const noexcept;
+      Token GetToken() const noexcept;
+      DMeta GetProducer() const noexcept;
+      bool  IsExecutable() const noexcept;
+      bool  IsTyped() const noexcept;
+      bool  IsUntyped() const noexcept;
 
       void Clear();
       void Reset();

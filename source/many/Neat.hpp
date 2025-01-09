@@ -93,12 +93,12 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Encapsulation                                                     
       ///                                                                     
-      NOD() Hash GetHash() const;
-      NOD() bool IsEmpty() const noexcept;
-      NOD() bool IsMissingDeep() const;
-      NOD() bool IsExecutable() const noexcept;
+      Hash GetHash() const;
+      bool IsEmpty() const noexcept;
+      bool IsMissingDeep() const;
+      bool IsExecutable() const noexcept;
 
-      NOD() explicit operator bool() const noexcept;
+      explicit operator bool() const noexcept;
 
       template<CT::Trait>
       auto GetTraits() -> TraitList*;
@@ -137,8 +137,8 @@ namespace Langulus::Anyness
       auto ExtractDataAs(CT::Data auto&) const -> Count;
 
       template<CT::Trait>
-      NOD() auto GetTrait(Offset = 0)        const -> const Trait*;
-      NOD() auto GetTrait(TMeta, Offset = 0) const -> const Trait*;
+      auto GetTrait(Offset = 0)        const -> const Trait*;
+      auto GetTrait(TMeta, Offset = 0) const -> const Trait*;
 
    protected:
       template<CT::Trait>

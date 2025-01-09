@@ -87,17 +87,17 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Capsulation                                                       
       ///                                                                     
-      NOD() Hash GetHash() const requires CT::Hashable<K, V>;
+      Hash GetHash() const requires CT::Hashable<K, V>;
 
-      Block<K> GetKeyBlock() const noexcept;
-      Block<K> GetKeyBlock() noexcept;
-      Block<V> GetValueBlock() const noexcept;
-      Block<V> GetValueBlock() noexcept;
+      auto GetKeyBlock() const noexcept -> Block<K>;
+      auto GetKeyBlock()       noexcept -> Block<K>;
+      auto GetValueBlock() const noexcept -> Block<V>;
+      auto GetValueBlock()       noexcept -> Block<V>;
 
-      Handle<K> GetKeyHandle();
-      Handle<V> GetValueHandle();
-      Handle<const K> GetKeyHandle() const;
-      Handle<const V> GetValueHandle() const;
+      auto GetKeyHandle() -> Handle<K>;
+      auto GetValueHandle() -> Handle<V>;
+      auto GetKeyHandle() const -> Handle<const K>;
+      auto GetValueHandle() const -> Handle<const V>;
 
       ///                                                                     
       ///   Comparison                                                        

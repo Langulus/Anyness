@@ -364,7 +364,7 @@ namespace Langulus::Anyness
          // This byte size is used ONLY IF both types are binary        
          // compatible. It is simply precomputed here, so that it isn't 
          // recomputed in the loop.                                     
-         UNUSED() const auto bytesize = lb.GetBytesize();
+         [[maybe_unused]] const auto bytesize = lb.GetBytesize();
 
          while (lhs != lhsEnd) {
             if (*lhs == *rhs) {

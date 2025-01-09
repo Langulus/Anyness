@@ -98,7 +98,7 @@ namespace Langulus::Anyness
 
       ~Handle();
 
-      NOD() auto MakeConst() const noexcept -> Handle<const T, EMBED> {
+      auto MakeConst() const noexcept -> Handle<const T, EMBED> {
          return {mValue, mEntry};
       }
 
@@ -108,17 +108,17 @@ namespace Langulus::Anyness
       constexpr bool operator == (const auto&) const noexcept
       requires (not TypeErased or Sparse);
 
-      NOD() auto Get()       noexcept -> Type&;
-      NOD() auto Get() const noexcept -> Type const&;
+      auto Get()       noexcept -> Type&;
+      auto Get() const noexcept -> Type const&;
 
-      NOD() auto GetEntry()       noexcept -> AllocType&;
-      NOD() auto GetEntry() const noexcept -> AllocType const&;
+      auto GetEntry()       noexcept -> AllocType&;
+      auto GetEntry() const noexcept -> AllocType const&;
 
       void CreateWithIntent(auto&&, DMeta = {});
       void Assign(const Type&, AllocType = nullptr) noexcept requires (Embedded and Mutable);
       void AssignWithIntent(auto&&, DMeta = {}) requires Mutable;
       void Swap(CT::Handle auto&, DMeta = {}) requires Mutable;
-      NOD() bool Compare(const auto&, DMeta = {}) const;
+      bool Compare(const auto&, DMeta = {}) const;
 
       template<bool RESET = false, bool DEALLOCATE = true>
       void FreeInner(DMeta = {}) requires Mutable;
@@ -128,11 +128,11 @@ namespace Langulus::Anyness
       auto operator -- () noexcept -> Handle& requires Embedded;
 
       // Suffix operators                                               
-      NOD() auto operator ++ (int) const noexcept -> Handle requires Embedded;
-      NOD() auto operator -- (int) const noexcept -> Handle requires Embedded;
+      auto operator ++ (int) const noexcept -> Handle requires Embedded;
+      auto operator -- (int) const noexcept -> Handle requires Embedded;
 
-      NOD() auto operator + (Offset) const noexcept -> Handle requires Embedded;
-      NOD() auto operator - (Offset) const noexcept -> Handle requires Embedded;
+      auto operator +  (Offset) const noexcept -> Handle requires Embedded;
+      auto operator -  (Offset) const noexcept -> Handle requires Embedded;
 
       auto operator += (Offset) noexcept -> Handle& requires Embedded;
       auto operator -= (Offset) noexcept -> Handle& requires Embedded;

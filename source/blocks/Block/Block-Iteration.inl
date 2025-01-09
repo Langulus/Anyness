@@ -212,18 +212,19 @@ namespace Langulus::Anyness
       using F = Deref<decltype(f)>;
       using A = ArgumentOf<F>;
       using R = ReturnOf<F>;
+      using DA = Decay<A>;
+      using DT = Decay<T>;
 
       static_assert(CT::Slab<A> or CT::Constant<Deptr<A>> or MUTABLE,
          "Non-constant iterator for constant memory is not allowed");
 
-      UNUSED() static constexpr auto NOE = NoexceptIterator<decltype(f)>;
+      [[maybe_unused]]
+      static constexpr auto NOE = NoexceptIterator<decltype(f)>;
       LoopControl loop = Loop::NextLoop;
 
       if constexpr (not TypeErased) {
          // Container is not type-erased                                
-         if constexpr (CT::Deep<Decay<A>, Decay<T>>
-         or (not CT::Deep<Decay<A>> and CT::DerivedFrom<T, A>)
-         or (CT::Same<A, T>)) {
+         if constexpr (CT::Deep<DA, DT> or (not CT::Deep<DA> and CT::DerivedFrom<T, A>)) {
             loop = IterateInner<MUTABLE, REVERSE>(mCount,
                [&index, &f](T& element) noexcept(NOE) -> R {
                   ++index;
@@ -244,14 +245,60 @@ namespace Langulus::Anyness
          }
          else return Loop::NextLoop;
       }
-      else if (not CT::Trait<Decay<A>> and ((CT::Deep<Decay<A>> and IsDeep())
-      or      (not CT::Deep<Decay<A>>  and CastsTo<A, true>()))) {
+      else if constexpr (not CT::Trait<DA>) {
          // Container is type-erased                                    
+         // And we're NOT iterating using a trait                       
+         if ((CT::Deep<DA> and IsDeep()) or (not CT::Deep<DA> and CastsTo<A, true>())) {
+            if (mType->mIsSparse) {
+               // Iterate sparse container                              
+               loop = IterateInner<MUTABLE, REVERSE>(mCount,
+                  [&index, &f](void*& element) noexcept(NOE) -> R {
+                     ++index;
+                     if constexpr (CT::Dense<A>)
+                        return f(*reinterpret_cast<Deref<A>*>(element));
+                     else
+                        return f( reinterpret_cast<A>(element));
+                  }
+               );
+            }
+            else {
+               // Iterate dense container where A is binary-compatible  
+               // to the type, but may not match it exactly             
+               LANGULUS_ASSUME(DevAssumes, GetStride() % sizeof(DA) == 0, "Unaligned iterator");
+               loop = IterateInner<MUTABLE, REVERSE>(mCount * (GetStride() / sizeof(DA)),
+                  [&index, &f](DA& element) noexcept(NOE) -> R {
+                     ++index;
+                     if constexpr (CT::Dense<A>)
+                        return f( element);
+                     else
+                        return f(&element);
+                  }
+               );
+            }
+         }
+      }
+      else {
+         // Container is type-erased                                    
+         // And we're iterating using a trait                           
+         if (not CastsTo<Trait, true>())
+            return Loop::NextLoop;
+
+         // Container is type-erased and full of traits, iterator is    
+         // a static trait, so we iterate all traits, visiting only     
+         // those that match the trait type                             
          if (mType->mIsSparse) {
             // Iterate sparse container                                 
             loop = IterateInner<MUTABLE, REVERSE>(mCount,
-               [&index, &f](void*& element) noexcept(NOE) -> R {
+               [&index, &f](Trait*& element) noexcept(NOE) -> R {
+                  if constexpr (CT::Void<R>) {
+                     if (not element->template IsTrait<DA>())
+                        return;
+                  }
+                  else if (not element->template IsTrait<DA>())
+                     return Loop::Continue;
+
                   ++index;
+
                   if constexpr (CT::Dense<A>)
                      return f(*reinterpret_cast<Deref<A>*>(element));
                   else
@@ -262,65 +309,22 @@ namespace Langulus::Anyness
          else {
             // Iterate dense container                                  
             loop = IterateInner<MUTABLE, REVERSE>(mCount,
-               [&index, &f](Decay<A>& element) noexcept(NOE) -> R {
+               [&index, &f](Trait& element) noexcept(NOE) -> R {
+                  if constexpr (CT::Void<R>) {
+                     if (not element.template IsTrait<DA>())
+                        return;
+                  }
+                  else if (not element.template IsTrait<DA>())
+                     return Loop::Continue;
+
                   ++index;
                   if constexpr (CT::Dense<A>)
-                     return f( element);
+                     return f(reinterpret_cast<Deref<A>&>( element));
                   else
-                     return f(&element);
+                     return f(reinterpret_cast<Deref<A>*>(&element));
                }
             );
          }
-      }
-      else {
-         if constexpr (CT::Trait<Decay<A>>) {
-            if (not CastsTo<Trait, true>())
-               return Loop::NextLoop;
-
-            // Container is type-erased and full of traits, iterator is 
-            // a static trait, so we iterate all traits, visiting only  
-            // those that match the trait type                          
-            if (mType->mIsSparse) {
-               // Iterate sparse container                              
-               loop = IterateInner<MUTABLE, REVERSE>(mCount,
-                  [&index, &f](Trait*& element) noexcept(NOE) -> R {
-                     if constexpr (CT::Void<R>) {
-                        if (not element->template IsTrait<Decay<A>>())
-                           return;
-                     }
-                     else if (not element->template IsTrait<Decay<A>>())
-                        return Loop::Continue;
-
-                     ++index;
-
-                     if constexpr (CT::Dense<A>)
-                        return f(*reinterpret_cast<Deref<A>*>(element));
-                     else
-                        return f( reinterpret_cast<A>(element));
-                  }
-               );
-            }
-            else {
-               // Iterate dense container                               
-               loop = IterateInner<MUTABLE, REVERSE>(mCount,
-                  [&index, &f](Trait& element) noexcept(NOE) -> R {
-                     if constexpr (CT::Void<R>) {
-                        if (not element.template IsTrait<Decay<A>>())
-                           return;
-                     }
-                     else if (not element.template IsTrait<Decay<A>>())
-                        return Loop::Continue;
-
-                     ++index;
-                     if constexpr (CT::Dense<A>)
-                        return f(reinterpret_cast<Deref<A>&>( element));
-                     else
-                        return f(reinterpret_cast<Deref<A>*>(&element));
-                  }
-               );
-            }
-         }
-         else return Loop::NextLoop;
       }
 
       return loop;

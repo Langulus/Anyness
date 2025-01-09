@@ -348,7 +348,7 @@ namespace Langulus::Anyness
    template<class TYPE> template<class MASK> LANGULUS(INLINED)
    void Block<TYPE>::KeepInner(MASK mask) const noexcept {
       constexpr bool MASKED = not CT::Nullptr<MASK>;
-      UNUSED() Count remaining;
+      [[maybe_unused]] Count remaining;
       if constexpr (MASKED)
          remaining = GetCount();
 
@@ -529,7 +529,7 @@ namespace Langulus::Anyness
             auto data = GetRaw();
             const auto begMarker = data;
             const auto endMarker = data + count;
-            UNUSED() Count remaining;
+            [[maybe_unused]] Count remaining;
             if constexpr (MASKED)
                remaining = GetCount();
 
@@ -573,8 +573,8 @@ namespace Langulus::Anyness
             // This prevents leaks.                                     
             const auto count = not MASKED ? mCount : mReserved;
             auto data = mRaw;
-            UNUSED() int index;
-            UNUSED() Count remaining;
+            [[maybe_unused]] int index;
+            [[maybe_unused]] Count remaining;
             if constexpr (MASKED) {
                index = 0;
                remaining = GetCount();
@@ -658,14 +658,14 @@ namespace Langulus::Anyness
       auto handle = GetHandle<void*>(0);
       const auto begMarker = handle.mValue;
       const auto endMarker = handle.mValue + count;
-      UNUSED() Count remaining;
+      [[maybe_unused]] Count remaining;
       if constexpr (MASKED)
          remaining = GetCount();
 
       // Execute a call for each handle that matches current entry      
       const auto for_each_match = [&](auto&& call) {
          auto handle2 = handle + 1;
-         UNUSED() Count remaining2;
+         [[maybe_unused]] Count remaining2;
          if constexpr (MASKED)
             remaining2 = remaining;
 
@@ -748,7 +748,7 @@ namespace Langulus::Anyness
                   for_each_match([&](Handle<void*>& h) {
                      // We still have to make sure that per-instance    
                      // references are also affected                    
-                     UNUSED() Count remaining_refs = 0;
+                     [[maybe_unused]] Count remaining_refs = 0;
                      if constexpr (TypeErased) {
                         if (mType->mReference)
                            remaining_refs = mType->mReference(h.Get(), -1);

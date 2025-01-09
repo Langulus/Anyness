@@ -108,55 +108,55 @@ namespace Langulus::Anyness
       ///   Capsulation                                                       
       ///                                                                     
       template<CT::Set = UnorderedSet>
-      NOD() DMeta GetType() const noexcept;
+      DMeta GetType() const noexcept;
       template<CT::Set = UnorderedSet>
-      NOD() constexpr bool IsTyped() const noexcept;
+      constexpr bool IsTyped() const noexcept;
       template<CT::Set = UnorderedSet>
-      NOD() constexpr bool IsUntyped() const noexcept;
+      constexpr bool IsUntyped() const noexcept;
       template<CT::Set = UnorderedSet>
-      NOD() constexpr bool IsTypeConstrained() const noexcept;
+      constexpr bool IsTypeConstrained() const noexcept;
       template<CT::Set = UnorderedSet>
-      NOD() constexpr bool IsDeep() const noexcept;
+      constexpr bool IsDeep() const noexcept;
       template<CT::Set = UnorderedSet>
-      NOD() constexpr bool IsSparse() const noexcept;
+      constexpr bool IsSparse() const noexcept;
       template<CT::Set = UnorderedSet>
-      NOD() constexpr bool IsDense() const noexcept;
+      constexpr bool IsDense() const noexcept;
       template<CT::Set = UnorderedSet>
-      NOD() constexpr Size GetStride() const noexcept;
-      NOD() constexpr DataState GetState() const noexcept;
-      NOD() constexpr Count GetCount() const noexcept;
-      NOD() Count GetCountDeep() const noexcept;
-      NOD() Count GetCountElementsDeep() const noexcept;
-      NOD() constexpr Count GetReserved() const noexcept;
-      NOD() constexpr bool IsEmpty() const noexcept;
-      NOD() constexpr bool IsValid() const noexcept;
-      NOD() constexpr bool IsInvalid() const noexcept;
-      NOD() constexpr bool IsAllocated() const noexcept;
+      constexpr Size GetStride() const noexcept;
+      constexpr auto GetState() const noexcept -> DataState;
+      constexpr auto GetCount() const noexcept -> Count;
+      Count GetCountDeep() const noexcept;
+      Count GetCountElementsDeep() const noexcept;
+      constexpr auto GetReserved() const noexcept -> Count;
+      constexpr bool IsEmpty() const noexcept;
+      constexpr bool IsValid() const noexcept;
+      constexpr bool IsInvalid() const noexcept;
+      constexpr bool IsAllocated() const noexcept;
 
-      NOD() bool IsConstant() const noexcept;
-      NOD() bool IsCompressed() const noexcept;
-      NOD() bool IsEncrypted() const noexcept;
-      NOD() bool IsMissing() const noexcept;
+      bool IsConstant() const noexcept;
+      bool IsCompressed() const noexcept;
+      bool IsEncrypted() const noexcept;
+      bool IsMissing() const noexcept;
       template<CT::Set = UnorderedSet>
-      NOD() bool IsMissingDeep() const;
-
-      template<CT::Set = UnorderedSet>
-      NOD() bool IsExecutable() const noexcept;
-      template<CT::Set = UnorderedSet>
-      NOD() bool IsExecutableDeep() const;
+      bool IsMissingDeep() const;
 
       template<CT::Set = UnorderedSet>
-      NOD() constexpr bool IsInsertable(DMeta) const noexcept;
+      bool IsExecutable() const noexcept;
+      template<CT::Set = UnorderedSet>
+      bool IsExecutableDeep() const;
+
+      template<CT::Set = UnorderedSet>
+      constexpr bool IsInsertable(DMeta) const noexcept;
       template<CT::Data, CT::Set = UnorderedSet>
-      NOD() constexpr bool IsInsertable() const noexcept;
+      constexpr bool IsInsertable() const noexcept;
 
       template<CT::Set>
-      NOD() bool IsOrdered() const noexcept;
+      bool IsOrdered() const noexcept;
 
-      NOD() constexpr auto GetAllocation() const noexcept -> const Allocation*;
-      NOD() constexpr Count GetUses() const noexcept;
+      constexpr auto GetAllocation() const noexcept -> const Allocation*;
+      constexpr auto GetUses() const noexcept -> Count;
 
-      NOD() constexpr explicit operator bool() const noexcept;
+      constexpr explicit operator bool() const noexcept;
 
       #if LANGULUS(DEBUG)
          template<CT::Set> void Dump() const;
@@ -164,47 +164,47 @@ namespace Langulus::Anyness
 
    protected:
       template<CT::Set>
-      NOD() auto& GetValues() const noexcept;
+      auto& GetValues() const noexcept;
       template<CT::Set>
-      NOD() auto& GetValues() noexcept;
+      auto& GetValues() noexcept;
 
-      NOD() InfoType const* GetInfo() const noexcept;
-      NOD() InfoType*       GetInfo() noexcept;
-      NOD() InfoType const* GetInfoEnd() const noexcept;
+      auto GetInfo() const noexcept -> InfoType const*;
+      auto GetInfo()       noexcept -> InfoType*;
+      auto GetInfoEnd() const noexcept -> InfoType const*;
 
-      NOD() Count GetCountDeep(const Block<>&) const noexcept;
-      NOD() Count GetCountElementsDeep(const Block<>&) const noexcept;
+      Count GetCountDeep(const Block<>&) const noexcept;
+      Count GetCountElementsDeep(const Block<>&) const noexcept;
 
    public:
       ///                                                                     
       ///   Indexing                                                          
       ///                                                                     
       template<CT::Set = UnorderedSet>
-      NOD() decltype(auto) Get(CT::Index auto) const;
+      decltype(auto) Get(CT::Index auto) const;
 
       template<CT::Set = UnorderedSet>
-      NOD() decltype(auto) operator[] (CT::Index auto) const;
+      decltype(auto) operator[] (CT::Index auto) const;
 
    protected:
       template<CT::Set, CT::Index INDEX>
-      NOD() Offset SimplifyIndex(INDEX) const
+      Offset SimplifyIndex(INDEX) const
       noexcept(not LANGULUS_SAFE() and CT::BuiltinInteger<INDEX>);
 
-      NOD() static Offset GetBucket(Offset, const CT::NoIntent auto&) noexcept;
-      NOD() static Offset GetBucketUnknown(Offset, const Block<>&) noexcept;
+      static Offset GetBucket(Offset, const CT::NoIntent auto&) noexcept;
+      static Offset GetBucketUnknown(Offset, const Block<>&) noexcept;
 
       template<CT::Set = UnorderedSet>
-      NOD() decltype(auto) GetRaw(Offset)       IF_UNSAFE(noexcept);
+      decltype(auto) GetRaw(Offset)       IF_UNSAFE(noexcept);
       template<CT::Set = UnorderedSet>
-      NOD() decltype(auto) GetRaw(Offset) const IF_UNSAFE(noexcept);
+      decltype(auto) GetRaw(Offset) const IF_UNSAFE(noexcept);
 
       template<CT::Set = UnorderedSet>
-      NOD() decltype(auto) GetRef(Offset)       IF_UNSAFE(noexcept);
+      decltype(auto) GetRef(Offset)       IF_UNSAFE(noexcept);
       template<CT::Set = UnorderedSet>
-      NOD() decltype(auto) GetRef(Offset) const IF_UNSAFE(noexcept);
+      decltype(auto) GetRef(Offset) const IF_UNSAFE(noexcept);
 
       template<CT::Set = UnorderedSet>
-      NOD() auto GetHandle(Offset) IF_UNSAFE(noexcept);
+      auto GetHandle(Offset) IF_UNSAFE(noexcept);
 
    public:
       ///                                                                     
@@ -214,14 +214,14 @@ namespace Langulus::Anyness
       struct Iterator;
 
       template<CT::Set SET>
-      NOD() Iterator<SET> begin() noexcept;
+      auto begin() noexcept -> Iterator<SET>;
       template<CT::Set SET>
-      NOD() Iterator<const SET> begin() const noexcept;
+      auto begin() const noexcept -> Iterator<const SET>;
 
       template<CT::Set SET>
-      NOD() Iterator<SET> last() noexcept;
+      auto last() noexcept -> Iterator<SET>;
       template<CT::Set SET>
-      NOD() Iterator<const SET> last() const noexcept;
+      auto last() const noexcept -> Iterator<const SET>;
 
       constexpr A::IteratorEnd end() const noexcept { return {}; }
 
@@ -250,19 +250,19 @@ namespace Langulus::Anyness
       ///   RTTI                                                              
       ///                                                                     
       template<CT::Set, CT::Data, CT::Data...>
-      NOD() constexpr bool Is() const noexcept;
+      constexpr bool Is() const noexcept;
       template<CT::Set>
-      NOD() bool Is(DMeta) const noexcept;
+      bool Is(DMeta) const noexcept;
 
       template<CT::Set, CT::Data, CT::Data...>
-      NOD() constexpr bool IsSimilar() const noexcept;
+      constexpr bool IsSimilar() const noexcept;
       template<CT::Set>
-      NOD() bool IsSimilar(DMeta) const noexcept;
+      bool IsSimilar(DMeta) const noexcept;
 
       template<CT::Set, CT::Data, CT::Data...>
-      NOD() constexpr bool IsExact() const noexcept;
+      constexpr bool IsExact() const noexcept;
       template<CT::Set>
-      NOD() bool IsExact(DMeta) const noexcept;
+      bool IsExact(DMeta) const noexcept;
 
       template<bool CONSTRAIN = false, CT::Set = UnorderedSet>
       void SetType(DMeta);
@@ -276,7 +276,7 @@ namespace Langulus::Anyness
       bool Mutate(DMeta);
 
       template<CT::Set = UnorderedSet>
-      NOD() constexpr bool IsTypeCompatibleWith(CT::Set auto const&) const noexcept;
+      constexpr bool IsTypeCompatibleWith(CT::Set auto const&) const noexcept;
       
    public:
       ///                                                                     
@@ -286,23 +286,23 @@ namespace Langulus::Anyness
       bool operator == (const CT::NoIntent auto&) const;
 
       template<CT::Set = UnorderedSet>
-      NOD() Hash GetHash() const;
+      Hash GetHash() const;
 
       template<CT::Set = UnorderedSet>
-      NOD() bool Contains(const CT::NoIntent auto&) const;
+      bool Contains(const CT::NoIntent auto&) const;
 
       template<CT::Set = UnorderedSet>
-      NOD() Index Find(const CT::NoIntent auto&) const;
+      auto Find(const CT::NoIntent auto&) const -> Index;
       template<CT::Set THIS = UnorderedSet>
-      NOD() Iterator<THIS> FindIt(const CT::NoIntent auto&);
+      auto FindIt(const CT::NoIntent auto&) -> Iterator<THIS>;
       template<CT::Set THIS = UnorderedSet>
-      NOD() Iterator<const THIS> FindIt(const CT::NoIntent auto&) const;
+      auto FindIt(const CT::NoIntent auto&) const -> Iterator<const THIS>;
 
    protected:
       template<CT::Set>
-      NOD() Offset FindInner(const CT::NoIntent auto&) const;
+      Offset FindInner(const CT::NoIntent auto&) const;
       template<CT::Set>
-      NOD() Offset FindBlockInner(const Block<>&) const;
+      Offset FindBlockInner(const Block<>&) const;
 
    public:
       ///                                                                     
@@ -344,7 +344,7 @@ namespace Langulus::Anyness
       auto CreateValHandle(auto&&);
 
       template<CT::Set>
-      NOD() Size RequestKeyAndInfoSize(Count, Offset&) const IF_UNSAFE(noexcept);
+      Size RequestKeyAndInfoSize(Count, Offset&) const IF_UNSAFE(noexcept);
 
       template<CT::Set>
       void Rehash(Count);
@@ -382,8 +382,8 @@ namespace Langulus::Anyness
       Count RemoveKeyInner(const CT::NoIntent auto&);
 
    #if LANGULUS(TESTING)
-      public: NOD() constexpr const void* GetRawMemory() const noexcept;
-      public: NOD() const Allocation* GetEntry() const noexcept;
+      public: constexpr auto GetRawMemory() const noexcept -> const void*;
+      public: auto GetEntry() const noexcept -> const Allocation*;
    #endif
    };
 
@@ -425,16 +425,16 @@ namespace Langulus::Anyness
       constexpr Iterator& operator = (const Iterator&) noexcept = default;
       constexpr Iterator& operator = (Iterator&&) noexcept = default;
 
-      NOD() constexpr bool operator == (const Iterator&) const noexcept;
-      NOD() constexpr bool operator == (const A::IteratorEnd&) const noexcept;
+      constexpr bool operator == (const Iterator&) const noexcept;
+      constexpr bool operator == (const A::IteratorEnd&) const noexcept;
 
-      NOD() constexpr decltype(auto) operator * () const;
+      constexpr decltype(auto) operator * () const;
 
       // Prefix operator                                                
       constexpr Iterator& operator ++ () noexcept;
 
       // Suffix operator                                                
-      NOD() constexpr Iterator operator ++ (int) noexcept;
+      constexpr Iterator  operator ++ (int) noexcept;
 
       constexpr explicit operator bool() const noexcept;
       constexpr operator Iterator<const SET>() const noexcept requires Mutable;

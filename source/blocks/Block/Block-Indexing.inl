@@ -759,7 +759,7 @@ namespace Langulus::Anyness
       else if (result == IndexSmallest)
          return GetIndex<IndexSmallest>();
       else if (result == IndexMode) {
-         UNUSED() Count unused;
+         [[maybe_unused]] Count unused;
          return GetIndexMode(unused);
       }
 

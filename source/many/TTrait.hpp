@@ -31,13 +31,12 @@ namespace Langulus::Anyness
       TTrait(const TTrait&);
       TTrait(TTrait&&);
 
-      template<class T> requires (
-      CT::Trait<Deint<T>> and not CT::Same<typename T::TraitType, TRAIT>)
+      template<class T> requires (CT::Trait<Deint<T>> and not CT::Same<typename T::TraitType, TRAIT>)
       TTrait(T&&);
 
       template<CT::Data>
-      NOD() static TRAIT OfType();
-      NOD() static TRAIT OfType(DMeta);
+      static TRAIT OfType();
+      static TRAIT OfType(DMeta);
 
       TRAIT& operator = (const TTrait&);
       TRAIT& operator = (TTrait&&);
@@ -45,26 +44,26 @@ namespace Langulus::Anyness
 
    public:
       template<CT::Trait>
-      NOD() constexpr bool IsTrait() const;
-      NOD() constexpr bool IsTrait(TMeta, auto...) const;
+      constexpr bool IsTrait() const;
+      constexpr bool IsTrait(TMeta, auto...) const;
 
-      NOD() TMeta GetTrait() const noexcept;
+      TMeta GetTrait() const noexcept;
 
-      NOD() constexpr bool IsTraitValid() const noexcept;
-      NOD() constexpr bool IsTraitSimilar(const CT::TraitBased auto&) const noexcept;
-      NOD() constexpr bool HasCorrectData() const;
+      constexpr bool IsTraitValid() const noexcept;
+      constexpr bool IsTraitSimilar(const CT::TraitBased auto&) const noexcept;
+      constexpr bool HasCorrectData() const;
 
       ///                                                                     
       ///   Compare                                                           
       ///                                                                     
       template<CT::NoIntent T> requires CT::NotOwned<T>
-      NOD() bool operator == (const T&) const;
+      bool operator == (const T&) const;
 
       ///                                                                     
       ///   Concatenation                                                     
       ///                                                                     
-      NOD() TRAIT  operator +  (CT::UnfoldInsertable auto&&) const;
-            TRAIT& operator += (CT::UnfoldInsertable auto&&);
+      TRAIT  operator +  (CT::UnfoldInsertable auto&&) const;
+      TRAIT& operator += (CT::UnfoldInsertable auto&&);
 
       ///                                                                     
       ///   Conversion                                                        
@@ -93,8 +92,8 @@ namespace Langulus::Anyness
          using TTrait<T>::operator ==; \
          using TTrait<T>::operator +; \
          using TTrait<T>::operator +=; \
-         NOD() T Select(Offset s, Langulus::Count c) IF_UNSAFE(noexcept) { return {Many::Select(s, c)}; } \
-         NOD() T Select(Offset s, Langulus::Count c) const IF_UNSAFE(noexcept) { return {Many::Select(s, c)}; } \
+         T Select(Offset s, Langulus::Count c)       IF_UNSAFE(noexcept) { return {Many::Select(s, c)}; } \
+         T Select(Offset s, Langulus::Count c) const IF_UNSAFE(noexcept) { return {Many::Select(s, c)}; } \
       }; \
    }
 
@@ -113,8 +112,8 @@ namespace Langulus::Anyness
          using TTrait<T>::operator ==; \
          using TTrait<T>::operator +; \
          using TTrait<T>::operator +=; \
-         NOD() T Select(Offset s, Langulus::Count c) IF_UNSAFE(noexcept) { return {Many::Select(s, c)}; } \
-         NOD() T Select(Offset s, Langulus::Count c) const IF_UNSAFE(noexcept) { return {Many::Select(s, c)}; } \
+         T Select(Offset s, Langulus::Count c)       IF_UNSAFE(noexcept) { return {Many::Select(s, c)}; } \
+         T Select(Offset s, Langulus::Count c) const IF_UNSAFE(noexcept) { return {Many::Select(s, c)}; } \
          PROPERTIES; \
       }; \
    }

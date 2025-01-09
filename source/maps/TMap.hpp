@@ -88,34 +88,34 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Capsulation                                                       
       ///                                                                     
-      NOD() DMeta GetKeyType() const noexcept;
-      NOD() DMeta GetValueType() const noexcept;
-      NOD() constexpr bool IsKeyTyped() const noexcept;
-      NOD() constexpr bool IsValueTyped() const noexcept;
-      NOD() constexpr bool IsKeyUntyped() const noexcept;
-      NOD() constexpr bool IsValueUntyped() const noexcept;
-      NOD() constexpr bool IsKeyTypeConstrained() const noexcept;
-      NOD() constexpr bool IsValueTypeConstrained() const noexcept;
-      NOD() constexpr bool IsKeyDeep() const noexcept;
-      NOD() constexpr bool IsValueDeep() const noexcept;
-      NOD() constexpr bool IsKeySparse() const noexcept;
-      NOD() constexpr bool IsValueSparse() const noexcept;
-      NOD() constexpr bool IsKeyDense() const noexcept;
-      NOD() constexpr bool IsValueDense() const noexcept;
-      NOD() constexpr Size GetKeyStride() const noexcept;
-      NOD() constexpr Size GetValueStride() const noexcept;
-      NOD() Count GetKeyCountDeep() const noexcept;
-      NOD() Count GetKeyCountElementsDeep() const noexcept;
-      NOD() Count GetValueCountDeep() const noexcept;
-      NOD() Count GetValueCountElementsDeep() const noexcept;
+      DMeta GetKeyType() const noexcept;
+      DMeta GetValueType() const noexcept;
+      constexpr bool IsKeyTyped() const noexcept;
+      constexpr bool IsValueTyped() const noexcept;
+      constexpr bool IsKeyUntyped() const noexcept;
+      constexpr bool IsValueUntyped() const noexcept;
+      constexpr bool IsKeyTypeConstrained() const noexcept;
+      constexpr bool IsValueTypeConstrained() const noexcept;
+      constexpr bool IsKeyDeep() const noexcept;
+      constexpr bool IsValueDeep() const noexcept;
+      constexpr bool IsKeySparse() const noexcept;
+      constexpr bool IsValueSparse() const noexcept;
+      constexpr bool IsKeyDense() const noexcept;
+      constexpr bool IsValueDense() const noexcept;
+      constexpr Size GetKeyStride() const noexcept;
+      constexpr Size GetValueStride() const noexcept;
+      Count GetKeyCountDeep() const noexcept;
+      Count GetKeyCountElementsDeep() const noexcept;
+      Count GetValueCountDeep() const noexcept;
+      Count GetValueCountElementsDeep() const noexcept;
 
-      NOD() bool IsKeyMissingDeep() const;
-      NOD() bool IsValueMissingDeep() const;
+      bool IsKeyMissingDeep() const;
+      bool IsValueMissingDeep() const;
 
-      NOD() bool IsKeyExecutable() const;
-      NOD() bool IsValueExecutable() const;
-      NOD() bool IsKeyExecutableDeep() const;
-      NOD() bool IsValueExecutableDeep() const;
+      bool IsKeyExecutable() const;
+      bool IsValueExecutable() const;
+      bool IsKeyExecutableDeep() const;
+      bool IsValueExecutableDeep() const;
 
       using Base::GetCount;
       using Base::GetReserved;
@@ -127,28 +127,28 @@ namespace Langulus::Anyness
       ///   RTTI                                                              
       ///                                                                     
       template<CT::Data, CT::Data...>
-      NOD() constexpr bool IsKey() const noexcept;
-      NOD() bool IsKey(DMeta) const noexcept;
+      constexpr bool IsKey() const noexcept;
+      bool IsKey(DMeta) const noexcept;
 
       template<CT::Data, CT::Data...>
-      NOD() constexpr bool IsKeySimilar() const noexcept;
-      NOD() bool IsKeySimilar(DMeta) const noexcept;
+      constexpr bool IsKeySimilar() const noexcept;
+      bool IsKeySimilar(DMeta) const noexcept;
 
       template<CT::Data, CT::Data...>
-      NOD() constexpr bool IsKeyExact() const noexcept;
-      NOD() bool IsKeyExact(DMeta) const noexcept;
+      constexpr bool IsKeyExact() const noexcept;
+      bool IsKeyExact(DMeta) const noexcept;
 
       template<CT::Data, CT::Data...>
-      NOD() constexpr bool IsValue() const noexcept;
-      NOD() bool IsValue(DMeta) const noexcept;
+      constexpr bool IsValue() const noexcept;
+      bool IsValue(DMeta) const noexcept;
 
       template<CT::Data, CT::Data...>
-      NOD() constexpr bool IsValueSimilar() const noexcept;
-      NOD() bool IsValueSimilar(DMeta) const noexcept;
+      constexpr bool IsValueSimilar() const noexcept;
+      bool IsValueSimilar(DMeta) const noexcept;
 
       template<CT::Data, CT::Data...>
-      NOD() constexpr bool IsValueExact() const noexcept;
-      NOD() bool IsValueExact(DMeta) const noexcept;
+      constexpr bool IsValueExact() const noexcept;
+      bool IsValueExact(DMeta) const noexcept;
 
    protected:
       template<CT::NoIntent, CT::NoIntent>
@@ -159,12 +159,12 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Indexing                                                          
       ///                                                                     
-      NOD() auto GetKey  (CT::Index auto)       -> K&;
-      NOD() auto GetKey  (CT::Index auto) const -> K const&;
-      NOD() auto GetValue(CT::Index auto)       -> V&;
-      NOD() auto GetValue(CT::Index auto) const -> V const&;
-      NOD() auto GetPair (CT::Index auto)       -> PairRef;
-      NOD() auto GetPair (CT::Index auto) const -> PairConstRef;
+      auto GetKey  (CT::Index auto)       -> K&;
+      auto GetKey  (CT::Index auto) const -> K const&;
+      auto GetValue(CT::Index auto)       -> V&;
+      auto GetValue(CT::Index auto) const -> V const&;
+      auto GetPair (CT::Index auto)       -> PairRef;
+      auto GetPair (CT::Index auto) const -> PairConstRef;
 
    protected:
       using Base::GetBucket;
@@ -177,10 +177,10 @@ namespace Langulus::Anyness
       using Iterator = BlockMap::Iterator<TMap>;
       using ConstIterator = BlockMap::Iterator<const TMap>;
 
-      NOD() auto begin() noexcept -> Iterator;
-      NOD() auto last() noexcept -> Iterator;
-      NOD() auto begin() const noexcept -> ConstIterator;
-      NOD() auto last() const noexcept -> ConstIterator;
+      auto begin()       noexcept -> Iterator;
+      auto begin() const noexcept -> ConstIterator;
+      auto last()       noexcept -> Iterator;
+      auto last() const noexcept -> ConstIterator;
 
       template<bool REVERSE = false>
       Count ForEach(auto&&) const;
@@ -223,37 +223,37 @@ namespace Langulus::Anyness
       bool operator == (CT::Map  auto const&) const requires CT::Comparable<V, V>;
       bool operator == (CT::Pair auto const&) const requires CT::Comparable<V, V>;
 
-      NOD() Hash GetHash() const requires CT::Hashable<K, V>;
+      Hash GetHash() const requires CT::Hashable<K, V>;
 
       template<CT::NoIntent K1> requires CT::Comparable<K, K1>
-      NOD() bool ContainsKey(K1 const&) const;
+      bool ContainsKey(K1 const&) const;
 
       template<CT::NoIntent V1> requires CT::Comparable<V, V1>
-      NOD() bool ContainsValue(V1 const&) const;
+      bool ContainsValue(V1 const&) const;
 
       template<CT::Pair P> requires CT::Comparable<TPair<K, V>, P>
-      NOD() bool ContainsPair(P const&) const;
+      bool ContainsPair(P const&) const;
 
       template<CT::NoIntent K1> requires CT::Comparable<K, K1>
-      NOD() auto Find(K1 const&) const -> Index;
+      auto Find(K1 const&) const -> Index;
 
       template<CT::NoIntent K1> requires CT::Comparable<K, K1>
-      NOD() auto FindIt(K1 const&) -> Iterator;
+      auto FindIt(K1 const&) -> Iterator;
 
       template<CT::NoIntent K1> requires CT::Comparable<K, K1>
-      NOD() auto FindIt(K1 const&) const -> ConstIterator;
+      auto FindIt(K1 const&) const -> ConstIterator;
 
       template<CT::NoIntent K1> requires CT::Comparable<K, K1>
-      NOD() decltype(auto) At(K1 const&);
+      decltype(auto) At(K1 const&);
 
       template<CT::NoIntent K1> requires CT::Comparable<K, K1>
-      NOD() decltype(auto) At(K1 const&) const;
+      decltype(auto) At(K1 const&) const;
 
       template<CT::NoIntent K1> requires CT::Comparable<K, K1>
-      NOD() decltype(auto) operator[] (K1 const&);
+      decltype(auto) operator[] (K1 const&);
 
       template<CT::NoIntent K1> requires CT::Comparable<K, K1>
-      NOD() decltype(auto) operator[] (K1 const&) const;
+      decltype(auto) operator[] (K1 const&) const;
 
       ///                                                                     
       ///   Memory management                                                 
@@ -304,7 +304,7 @@ namespace Langulus::Anyness
       void Compact();
 
    protected:
-      NOD() static Size RequestValuesSize(Count) noexcept;
+      static Size RequestValuesSize(Count) noexcept;
    };
 
 } // namespace Langulus::Anyness

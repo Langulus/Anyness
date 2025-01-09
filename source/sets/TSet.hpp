@@ -83,23 +83,23 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Capsulation                                                       
       ///                                                                     
-      NOD() DMeta GetType() const;
-      NOD() constexpr bool IsTyped() const noexcept;
-      NOD() constexpr bool IsUntyped() const noexcept;
-      NOD() constexpr bool IsTypeConstrained() const noexcept;
-      NOD() constexpr bool IsDeep() const noexcept;
-      NOD() constexpr bool IsSparse() const noexcept;
-      NOD() constexpr bool IsDense() const noexcept;
-      NOD() constexpr Size GetStride() const noexcept;
+      DMeta GetType() const;
+      constexpr bool IsTyped() const noexcept;
+      constexpr bool IsUntyped() const noexcept;
+      constexpr bool IsTypeConstrained() const noexcept;
+      constexpr bool IsDeep() const noexcept;
+      constexpr bool IsSparse() const noexcept;
+      constexpr bool IsDense() const noexcept;
+      constexpr Size GetStride() const noexcept;
 
-      NOD() constexpr bool IsInsertable(DMeta) const noexcept;
+      constexpr bool IsInsertable(DMeta) const noexcept;
       template<CT::Data>
-      NOD() constexpr bool IsInsertable() const noexcept;
+      constexpr bool IsInsertable() const noexcept;
 
-      NOD() bool IsMissingDeep() const;
+      bool IsMissingDeep() const;
 
-      NOD() bool IsExecutable() const;
-      NOD() bool IsExecutableDeep() const;
+      bool IsExecutable() const;
+      bool IsExecutableDeep() const;
 
       using Base::GetReserved;
       using Base::GetInfo;
@@ -112,9 +112,9 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Indexing                                                          
       ///                                                                     
-      NOD() T const& Get(CT::Index auto) const;
+      T const& Get(CT::Index auto) const;
 
-      NOD() T const& operator[] (CT::Index auto) const;
+      T const& operator[] (CT::Index auto) const;
 
    public:
       ///                                                                     
@@ -123,10 +123,10 @@ namespace Langulus::Anyness
       using Iterator = BlockSet::Iterator<TSet>;
       using ConstIterator = BlockSet::Iterator<const TSet>;
 
-      NOD() auto begin() noexcept -> Iterator;
-      NOD() auto last()  noexcept -> Iterator;
-      NOD() auto begin() const noexcept -> ConstIterator;
-      NOD() auto last()  const noexcept -> ConstIterator;
+      auto begin() noexcept -> Iterator;
+      auto last()  noexcept -> Iterator;
+      auto begin() const noexcept -> ConstIterator;
+      auto last()  const noexcept -> ConstIterator;
       using Base::end;
 
       template<bool REVERSE = false>
@@ -148,16 +148,16 @@ namespace Langulus::Anyness
       ///   RTTI                                                              
       ///                                                                     
       template<CT::Data, CT::Data...>
-      NOD() constexpr bool Is() const noexcept;
-      NOD() bool Is(DMeta) const noexcept;
+      constexpr bool Is() const noexcept;
+      bool Is(DMeta) const noexcept;
 
       template<CT::Data, CT::Data...>
-      NOD() constexpr bool IsSimilar() const noexcept;
-      NOD() bool IsSimilar(DMeta) const noexcept;
+      constexpr bool IsSimilar() const noexcept;
+      bool IsSimilar(DMeta) const noexcept;
 
       template<CT::Data, CT::Data...>
-      NOD() constexpr bool IsExact() const noexcept;
-      NOD() bool IsExact(DMeta) const noexcept;
+      constexpr bool IsExact() const noexcept;
+      bool IsExact(DMeta) const noexcept;
 
    protected:
       template<CT::NoIntent>
@@ -172,18 +172,18 @@ namespace Langulus::Anyness
       bool operator == (const T1&) const;
 
       template<CT::NoIntent T1> requires CT::Comparable<T, T1>
-      NOD() bool Contains(T1 const&) const;
+      bool Contains(T1 const&) const;
       template<CT::NoIntent T1> requires (not CT::Comparable<T, T1>)
       static consteval bool Contains(T1 const&) { return false; }
 
       template<CT::NoIntent T1> requires CT::Comparable<T, T1>
-      NOD() auto Find(T1 const&) const -> Index;
+      auto Find(T1 const&) const -> Index;
 
       template<CT::NoIntent T1> requires CT::Comparable<T, T1>
-      NOD() auto FindIt(T1 const&) -> Iterator;
+      auto FindIt(T1 const&) -> Iterator;
 
       template<CT::NoIntent T1> requires CT::Comparable<T, T1>
-      NOD() auto FindIt(T1 const&) const ->ConstIterator;
+      auto FindIt(T1 const&) const -> ConstIterator;
 
       ///                                                                     
       ///   Memory management                                                 
@@ -212,8 +212,8 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Removal                                                           
       ///                                                                     
-      Count Remove(const T&);
-      Iterator RemoveIt(const Iterator&);
+      auto Remove(const T&) -> Count;
+      auto RemoveIt(const Iterator&) -> Iterator;
 
       void Clear();
       void Reset();

@@ -31,11 +31,11 @@ namespace Langulus::Anyness
       Path(const Text&);
       Path(Text&&);
 
-      NOD() auto GetExtension() const -> Text;
-      NOD() auto GetDirectory() const -> Path;
-      NOD() auto GetFilename()  const -> Path;
+      auto GetExtension() const -> Text;
+      auto GetDirectory() const -> Path;
+      auto GetFilename()  const -> Path;
 
-      NOD() auto operator / (const Text&) const -> Path;
+      auto operator /  (const Text&) const -> Path;
       auto operator /= (const Text&) -> Path&;
 
    private:

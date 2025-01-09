@@ -308,10 +308,10 @@ namespace Langulus::Anyness
       ~Text();
 
       template<class T> requires CT::String<Deint<T>>
-      NOD() static Text From(T&&, Count);
+      static Text From(T&&, Count);
 
       template<Count PRECISION = 0, CT::BuiltinNumber T>
-      NOD() static Text FromNumber(const T&);
+      static Text FromNumber(const T&);
 
       ///                                                                     
       ///   Assignment                                                        
@@ -325,17 +325,17 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Capsulation                                                       
       ///                                                                     
-      NOD() Count GetLineCount() const noexcept;
+      Count GetLineCount() const noexcept;
 
-      NOD() operator Token () const noexcept;
+      operator Token () const noexcept;
 
       ///                                                                     
       ///   Indexing                                                          
       ///                                                                     
-      NOD() Text Select(CT::Index auto, Count) const IF_UNSAFE(noexcept);
-      NOD() Text Select(CT::Index auto, Count) IF_UNSAFE(noexcept);
-      NOD() Text Select(CT::Index auto) const IF_UNSAFE(noexcept);
-      NOD() Text Select(CT::Index auto) IF_UNSAFE(noexcept);
+      Text Select(CT::Index auto, Count) const IF_UNSAFE(noexcept);
+      Text Select(CT::Index auto, Count)       IF_UNSAFE(noexcept);
+      Text Select(CT::Index auto) const IF_UNSAFE(noexcept);
+      Text Select(CT::Index auto)       IF_UNSAFE(noexcept);
 
       ///                                                                     
       ///   Comparison                                                        
@@ -350,7 +350,7 @@ namespace Langulus::Anyness
       ///   Insertion                                                         
       ///                                                                     
       Text Extend(Count);
-      NOD() Text Terminate() const;
+      Text Terminate() const;
 
       template<class T> requires CT::Stringifiable<Deint<T>>
       Text& operator << (T&&);
@@ -365,14 +365,15 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Removal                                                           
       ///                                                                     
-      NOD() Text Strip  (const CT::Text auto&) const;
-      NOD() Text Replace(const CT::Text auto& what, const CT::Text auto& with) const;
+      Text Strip  (const CT::Text auto&) const;
+      Text Replace(const CT::Text auto& what, const CT::Text auto& with) const;
 
       ///                                                                     
       ///   Concatenation                                                     
       ///                                                                     
       template<class T> requires CT::Stringifiable<Deint<T>>
-      NOD() Text operator + (T&&) const;
+      Text operator + (T&&) const;
+
       template<class T> requires (CT::Stringifiable<Deint<T>> and not CT::TextBased<T>)
       friend Text operator + (T&&, const Text&);
 
@@ -396,21 +397,21 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Services                                                          
       ///                                                                     
-      NOD() Text Lowercase() const;
-      NOD() Text Uppercase() const;
+      Text Lowercase() const;
+      Text Uppercase() const;
 
       #if LANGULUS_FEATURE(UNICODE)
-         NOD() TMany<char16_t> Widen16() const;
-         NOD() TMany<char32_t> Widen32() const;
+         TMany<char16_t> Widen16() const;
+         TMany<char32_t> Widen32() const;
       #endif
 
-      NOD() static Text Hex(const auto&);
+      static Text Hex(const auto&);
       template<class...ARGS>
-      NOD() static Text Template(const Token&, ARGS&&...);
+      static Text Template(const Token&, ARGS&&...);
       template<class...ARGS>
-      NOD() static Text TemplateRt(const Token&, ARGS&&...);
+      static Text TemplateRt(const Token&, ARGS&&...);
       template<class...ARGS>
-      NOD() static constexpr auto TemplateCheck(const Token&, ARGS&&...);
+      static constexpr auto TemplateCheck(const Token&, ARGS&&...);
 
    protected:
       template<::std::size_t...N>

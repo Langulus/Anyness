@@ -86,27 +86,26 @@ namespace Langulus
       explicit constexpr operator bool() const noexcept;
       constexpr bool operator == (const DataState&) const noexcept = default;
       
-      NOD() constexpr DataState operator + (const DataState&) const noexcept;
-      NOD() constexpr DataState operator - (const DataState&) const noexcept;
+      constexpr DataState  operator +  (const DataState&) const noexcept;
+      constexpr DataState  operator -  (const DataState&) const noexcept;
       constexpr DataState& operator += (const DataState&) noexcept;
       constexpr DataState& operator -= (const DataState&) noexcept;
       constexpr DataState& operator &= (const DataState&) noexcept;
       
-      NOD() constexpr bool operator & (const DataState&) const noexcept;
-      NOD() constexpr bool operator % (const DataState&) const noexcept;
+      constexpr bool operator & (const DataState&) const noexcept;
+      constexpr bool operator % (const DataState&) const noexcept;
       
-      NOD() constexpr bool IsDefault() const noexcept;
-      NOD() constexpr bool IsMissing() const noexcept;
-      NOD() constexpr bool IsCompressed() const noexcept;
-      NOD() constexpr bool IsEncrypted() const noexcept;
-      NOD() constexpr bool IsOr() const noexcept;
-      NOD() constexpr bool IsNow() const noexcept;
-      NOD() constexpr bool IsFuture() const noexcept;
-      NOD() constexpr bool IsPast() const noexcept;
-      //NOD() constexpr bool IsStatic() const noexcept;
-      NOD() constexpr bool IsConstant() const noexcept;
-      NOD() constexpr bool IsTyped() const noexcept;
-      NOD() constexpr bool IsConstrained() const noexcept;
+      constexpr bool IsDefault() const noexcept;
+      constexpr bool IsMissing() const noexcept;
+      constexpr bool IsCompressed() const noexcept;
+      constexpr bool IsEncrypted() const noexcept;
+      constexpr bool IsOr() const noexcept;
+      constexpr bool IsNow() const noexcept;
+      constexpr bool IsFuture() const noexcept;
+      constexpr bool IsPast() const noexcept;
+      constexpr bool IsConstant() const noexcept;
+      constexpr bool IsTyped() const noexcept;
+      constexpr bool IsConstrained() const noexcept;
       
       constexpr void Reset() noexcept;
    };

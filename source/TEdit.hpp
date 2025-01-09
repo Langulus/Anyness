@@ -54,13 +54,13 @@ namespace Langulus::Anyness
       Edit& Select(Offset, Offset);
       Edit& Select(Offset);
 
-      NOD() const T& GetSource() const noexcept;
-      NOD() Offset GetStart() const noexcept;
-      NOD() Offset GetEnd() const noexcept;
-      NOD() Count  GetLength() const noexcept;
+      auto GetSource() const noexcept -> const T&;
+      auto GetStart()  const noexcept -> Offset;
+      auto GetEnd()    const noexcept -> Offset;
+      auto GetLength() const noexcept -> Count;
 
-      NOD() auto& operator[] (Offset) const noexcept;
-      NOD() auto& operator[] (Offset) noexcept;
+      auto& operator[] (Offset) const noexcept;
+      auto& operator[] (Offset) noexcept;
 
       Edit& operator << (const T&);
       Edit& operator >> (const T&);

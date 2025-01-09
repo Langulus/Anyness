@@ -76,12 +76,12 @@ namespace Langulus
          ///                                                                  
          ///   Capsulation                                                    
          ///                                                                  
-         NOD() Hash GetHash() const;
+         Hash GetHash() const;
 
-         Many const& GetKeyBlock() const noexcept;
-         Many&       GetKeyBlock() noexcept;
-         Many const& GetValueBlock() const noexcept;
-         Many&       GetValueBlock() noexcept;
+         auto GetKeyBlock() const noexcept -> Many const&;
+         auto GetKeyBlock()       noexcept -> Many&;
+         auto GetValueBlock() const noexcept -> Many const&;
+         auto GetValueBlock()       noexcept -> Many&;
 
          ///                                                                  
          ///   Comparison                                                     

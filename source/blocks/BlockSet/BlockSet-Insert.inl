@@ -345,7 +345,7 @@ namespace Langulus::Anyness
       LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(oldCount),
          "Old count is not a power-of-two");
 
-      UNUSED() auto& me = reinterpret_cast<const THIS&>(*this);
+      [[maybe_unused]] auto& me = reinterpret_cast<const THIS&>(*this);
       auto oldKey = GetHandle<THIS>(0);
       auto oldInfo = GetInfo();
       const auto oldInfoEnd = oldInfo + oldCount;

@@ -48,19 +48,19 @@ namespace Langulus::Anyness
       explicit constexpr operator bool() const noexcept;
       constexpr bool operator == (const VerbState&) const noexcept = default;
       
-      NOD() constexpr VerbState operator + (const VerbState&) const noexcept;
-      NOD() constexpr VerbState operator - (const VerbState&) const noexcept;
+      constexpr VerbState  operator +  (const VerbState&) const noexcept;
+      constexpr VerbState  operator -  (const VerbState&) const noexcept;
       constexpr VerbState& operator += (const VerbState&) noexcept;
       constexpr VerbState& operator -= (const VerbState&) noexcept;
       
-      NOD() constexpr bool operator & (const VerbState&) const noexcept;
-      NOD() constexpr bool operator % (const VerbState&) const noexcept;
+      constexpr bool operator & (const VerbState&) const noexcept;
+      constexpr bool operator % (const VerbState&) const noexcept;
       
-      NOD() constexpr bool IsDefault() const noexcept;
-      NOD() constexpr bool IsMulticast() const noexcept;
-      NOD() constexpr bool IsMonocast() const noexcept;
-      NOD() constexpr bool IsShortCircuited() const noexcept;
-      NOD() constexpr bool IsLongCircuited() const noexcept;
+      constexpr bool IsDefault() const noexcept;
+      constexpr bool IsMulticast() const noexcept;
+      constexpr bool IsMonocast() const noexcept;
+      constexpr bool IsShortCircuited() const noexcept;
+      constexpr bool IsLongCircuited() const noexcept;
       
       constexpr void Reset() noexcept;
    };

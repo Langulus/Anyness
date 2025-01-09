@@ -144,156 +144,156 @@ namespace Langulus::Anyness
       ///   Capsulation                                                       
       ///                                                                     
       template<CT::Map = UnorderedMap>
-      NOD() DMeta GetKeyType() const noexcept;
+      DMeta GetKeyType() const noexcept;
       template<CT::Map = UnorderedMap>
-      NOD() DMeta GetValueType() const noexcept;
+      DMeta GetValueType() const noexcept;
 
       template<CT::Map = UnorderedMap>
-      NOD() constexpr bool IsKeyTyped() const noexcept;
+      constexpr bool IsKeyTyped() const noexcept;
       template<CT::Map = UnorderedMap>
-      NOD() constexpr bool IsValueTyped() const noexcept;
+      constexpr bool IsValueTyped() const noexcept;
 
       template<CT::Map = UnorderedMap>
-      NOD() constexpr bool IsKeyUntyped() const noexcept;
+      constexpr bool IsKeyUntyped() const noexcept;
       template<CT::Map = UnorderedMap>
-      NOD() constexpr bool IsValueUntyped() const noexcept;
+      constexpr bool IsValueUntyped() const noexcept;
 
       template<CT::Map = UnorderedMap>
-      NOD() constexpr bool IsKeyTypeConstrained() const noexcept;
+      constexpr bool IsKeyTypeConstrained() const noexcept;
       template<CT::Map = UnorderedMap>
-      NOD() constexpr bool IsValueTypeConstrained() const noexcept;
+      constexpr bool IsValueTypeConstrained() const noexcept;
 
       template<CT::Map = UnorderedMap>
-      NOD() constexpr bool IsKeyDeep() const noexcept;
+      constexpr bool IsKeyDeep() const noexcept;
       template<CT::Map = UnorderedMap>
-      NOD() constexpr bool IsValueDeep() const noexcept;
+      constexpr bool IsValueDeep() const noexcept;
 
       template<CT::Map = UnorderedMap>
-      NOD() constexpr bool IsKeySparse() const noexcept;
+      constexpr bool IsKeySparse() const noexcept;
       template<CT::Map = UnorderedMap>
-      NOD() constexpr bool IsValueSparse() const noexcept;
+      constexpr bool IsValueSparse() const noexcept;
 
       template<CT::Map = UnorderedMap>
-      NOD() constexpr bool IsKeyDense() const noexcept;
+      constexpr bool IsKeyDense() const noexcept;
       template<CT::Map = UnorderedMap>
-      NOD() constexpr bool IsValueDense() const noexcept;
+      constexpr bool IsValueDense() const noexcept;
 
       template<CT::Map = UnorderedMap>
-      NOD() constexpr Size GetKeyStride() const noexcept;
+      constexpr Size GetKeyStride() const noexcept;
       template<CT::Map = UnorderedMap>
-      NOD() constexpr Size GetValueStride() const noexcept;
+      constexpr Size GetValueStride() const noexcept;
 
       template<CT::Map = UnorderedMap>
-      NOD() Count GetKeyCountDeep() const noexcept;
+      Count GetKeyCountDeep() const noexcept;
       template<CT::Map = UnorderedMap>
-      NOD() Count GetKeyCountElementsDeep() const noexcept;
+      Count GetKeyCountElementsDeep() const noexcept;
       template<CT::Map = UnorderedMap>
-      NOD() Count GetValueCountDeep() const noexcept;
+      Count GetValueCountDeep() const noexcept;
       template<CT::Map = UnorderedMap>
-      NOD() Count GetValueCountElementsDeep() const noexcept;
+      Count GetValueCountElementsDeep() const noexcept;
 
-      NOD() constexpr DataState GetKeyState() const noexcept;
-      NOD() constexpr DataState GetValueState() const noexcept;
-      NOD() constexpr bool IsKeyCompressed() const noexcept;
-      NOD() constexpr bool IsValueCompressed() const noexcept;
-      NOD() constexpr bool IsKeyEncrypted() const noexcept;
-      NOD() constexpr bool IsValueEncrypted() const noexcept;
-      NOD() constexpr bool IsKeyConstant() const noexcept;
-      NOD() constexpr bool IsValueConstant() const noexcept;
-      NOD() constexpr Count GetCount() const noexcept;
-      NOD() constexpr Count GetReserved() const noexcept;
-      NOD() constexpr bool IsEmpty() const noexcept;
-      NOD() constexpr bool IsValid() const noexcept;
-      NOD() constexpr bool IsInvalid() const noexcept;
-      NOD() constexpr bool IsAllocated() const noexcept;
+      constexpr auto GetKeyState() const noexcept -> DataState;
+      constexpr auto GetValueState() const noexcept -> DataState;
+      constexpr bool IsKeyCompressed() const noexcept;
+      constexpr bool IsValueCompressed() const noexcept;
+      constexpr bool IsKeyEncrypted() const noexcept;
+      constexpr bool IsValueEncrypted() const noexcept;
+      constexpr bool IsKeyConstant() const noexcept;
+      constexpr bool IsValueConstant() const noexcept;
+      constexpr auto GetCount() const noexcept -> Count;
+      constexpr auto GetReserved() const noexcept -> Count;
+      constexpr bool IsEmpty() const noexcept;
+      constexpr bool IsValid() const noexcept;
+      constexpr bool IsInvalid() const noexcept;
+      constexpr bool IsAllocated() const noexcept;
 
-      NOD() bool IsKeyMissing() const noexcept;
-      NOD() bool IsValueMissing() const noexcept;
+      bool IsKeyMissing() const noexcept;
+      bool IsValueMissing() const noexcept;
       template<CT::Map = UnorderedMap>
-      NOD() bool IsKeyMissingDeep() const;
+      bool IsKeyMissingDeep() const;
       template<CT::Map = UnorderedMap>
-      NOD() bool IsValueMissingDeep() const;
+      bool IsValueMissingDeep() const;
 
       template<CT::Map = UnorderedMap>
-      NOD() bool IsKeyExecutable() const noexcept;
+      bool IsKeyExecutable() const noexcept;
       template<CT::Map = UnorderedMap>
-      NOD() bool IsValueExecutable() const noexcept;
+      bool IsValueExecutable() const noexcept;
       template<CT::Map = UnorderedMap>
-      NOD() bool IsKeyExecutableDeep() const;
+      bool IsKeyExecutableDeep() const;
       template<CT::Map = UnorderedMap>
-      NOD() bool IsValueExecutableDeep() const;
+      bool IsValueExecutableDeep() const;
 
-      NOD() constexpr explicit operator bool() const noexcept;
+      constexpr explicit operator bool() const noexcept;
 
       template<CT::Map>
       void Dump() const;
 
       template<CT::Map = UnorderedMap>
-      NOD() auto& GetKeys() const noexcept;
+      auto& GetKeys() const noexcept;
       template<CT::Map = UnorderedMap>
-      NOD() auto& GetKeys() noexcept;
+      auto& GetKeys() noexcept;
       template<CT::Map = UnorderedMap>
-      NOD() auto  GetVals() const noexcept;
+      auto  GetVals() const noexcept;
 
-      NOD() auto GetInfo() const noexcept -> const InfoType*;
-      NOD() auto GetInfo()       noexcept -> InfoType*;
-      NOD() auto GetInfoEnd() const noexcept -> const InfoType*;
+      auto GetInfo() const noexcept -> const InfoType*;
+      auto GetInfo()       noexcept -> InfoType*;
+      auto GetInfoEnd() const noexcept -> const InfoType*;
 
    protected:
-      NOD() Count GetCountDeep(const CT::Block auto&) const noexcept;
-      NOD() Count GetCountElementsDeep(const CT::Block auto&) const noexcept;
+      Count GetCountDeep(const CT::Block auto&) const noexcept;
+      Count GetCountElementsDeep(const CT::Block auto&) const noexcept;
 
    public:
       ///                                                                     
       ///   Indexing                                                          
       ///                                                                     
       template<CT::Map>
-      NOD() decltype(auto) GetKey(CT::Index auto);
+      decltype(auto) GetKey(CT::Index auto);
       template<CT::Map>
-      NOD() decltype(auto) GetKey(CT::Index auto) const;
+      decltype(auto) GetKey(CT::Index auto) const;
       template<CT::Map>
-      NOD() decltype(auto) GetValue(CT::Index auto);
+      decltype(auto) GetValue(CT::Index auto);
       template<CT::Map>
-      NOD() decltype(auto) GetValue(CT::Index auto) const;
+      decltype(auto) GetValue(CT::Index auto) const;
       template<CT::Map>
-      NOD() auto GetPair (CT::Index auto);
+      auto GetPair (CT::Index auto);
       template<CT::Map>
-      NOD() auto GetPair (CT::Index auto) const;
+      auto GetPair (CT::Index auto) const;
 
    protected:
       template<CT::Map, CT::Index INDEX>
-      NOD() Offset SimplifyIndex(INDEX) const
+      Offset SimplifyIndex(INDEX) const
       noexcept(not LANGULUS_SAFE() and CT::BuiltinInteger<INDEX>);
 
-      NOD() static Offset GetBucket(Offset, const CT::NoIntent auto&) noexcept;
-      NOD() static Offset GetBucketUnknown(Offset, const Block<>&) noexcept;
+      static Offset GetBucket(Offset, const CT::NoIntent auto&) noexcept;
+      static Offset GetBucketUnknown(Offset, const Block<>&) noexcept;
 
       template<CT::Map>
-      NOD() decltype(auto) GetRawKey(Offset) const IF_UNSAFE(noexcept);
+      decltype(auto) GetRawKey(Offset) const IF_UNSAFE(noexcept);
       template<CT::Map>
-      NOD() decltype(auto) GetRawKey(Offset)       IF_UNSAFE(noexcept);
+      decltype(auto) GetRawKey(Offset)       IF_UNSAFE(noexcept);
       template<CT::Map>
-      NOD() decltype(auto) GetKeyRef(Offset) const IF_UNSAFE(noexcept);
+      decltype(auto) GetKeyRef(Offset) const IF_UNSAFE(noexcept);
       template<CT::Map>
-      NOD() decltype(auto) GetKeyRef(Offset)       IF_UNSAFE(noexcept);
+      decltype(auto) GetKeyRef(Offset)       IF_UNSAFE(noexcept);
 
       template<CT::Map>
-      NOD() decltype(auto) GetRawVal(Offset) const IF_UNSAFE(noexcept);
+      decltype(auto) GetRawVal(Offset) const IF_UNSAFE(noexcept);
       template<CT::Map>
-      NOD() decltype(auto) GetRawVal(Offset)       IF_UNSAFE(noexcept);
+      decltype(auto) GetRawVal(Offset)       IF_UNSAFE(noexcept);
       template<CT::Map>
-      NOD() decltype(auto) GetValRef(Offset) const IF_UNSAFE(noexcept);
+      decltype(auto) GetValRef(Offset) const IF_UNSAFE(noexcept);
       template<CT::Map>
-      NOD() decltype(auto) GetValRef(Offset)       IF_UNSAFE(noexcept);
+      decltype(auto) GetValRef(Offset)       IF_UNSAFE(noexcept);
 
       template<CT::Map>
-      NOD() auto GetKeyHandle(Offset)       IF_UNSAFE(noexcept);
+      auto GetKeyHandle(Offset)       IF_UNSAFE(noexcept);
       template<CT::Map>
-      NOD() auto GetKeyHandle(Offset) const IF_UNSAFE(noexcept);
+      auto GetKeyHandle(Offset) const IF_UNSAFE(noexcept);
       template<CT::Map>
-      NOD() auto GetValHandle(Offset)       IF_UNSAFE(noexcept);
+      auto GetValHandle(Offset)       IF_UNSAFE(noexcept);
       template<CT::Map>
-      NOD() auto GetValHandle(Offset) const IF_UNSAFE(noexcept);
+      auto GetValHandle(Offset) const IF_UNSAFE(noexcept);
 
    public:
       ///                                                                     
@@ -303,14 +303,14 @@ namespace Langulus::Anyness
       struct Iterator;
 
       template<CT::Map MAP>
-      NOD() auto begin()       noexcept -> Iterator<MAP>;
+      auto begin()       noexcept -> Iterator<MAP>;
       template<CT::Map MAP>
-      NOD() auto begin() const noexcept -> Iterator<const MAP>;
+      auto begin() const noexcept -> Iterator<const MAP>;
 
       template<CT::Map MAP>
-      NOD() auto last()       noexcept -> Iterator<MAP>;
+      auto last()       noexcept -> Iterator<MAP>;
       template<CT::Map MAP>
-      NOD() auto last() const noexcept -> Iterator<const MAP>;
+      auto last() const noexcept -> Iterator<const MAP>;
 
       constexpr A::IteratorEnd end() const noexcept { return {}; }
 
@@ -350,34 +350,34 @@ namespace Langulus::Anyness
       ///   RTTI                                                              
       ///                                                                     
       template<CT::Map THIS, CT::Data, CT::Data...>
-      NOD() constexpr bool IsKey() const noexcept;
+      constexpr bool IsKey() const noexcept;
       template<CT::Map THIS>
-      NOD() bool IsKey(DMeta) const noexcept;
+      bool IsKey(DMeta) const noexcept;
 
       template<CT::Map THIS, CT::Data, CT::Data...>
-      NOD() constexpr bool IsKeySimilar() const noexcept;
+      constexpr bool IsKeySimilar() const noexcept;
       template<CT::Map THIS>
-      NOD() bool IsKeySimilar(DMeta) const noexcept;
+      bool IsKeySimilar(DMeta) const noexcept;
 
       template<CT::Map THIS, CT::Data, CT::Data...>
-      NOD() constexpr bool IsKeyExact() const noexcept;
+      constexpr bool IsKeyExact() const noexcept;
       template<CT::Map THIS>
-      NOD() bool IsKeyExact(DMeta) const noexcept;
+      bool IsKeyExact(DMeta) const noexcept;
 
       template<CT::Map THIS, CT::Data, CT::Data...>
-      NOD() constexpr bool IsValue() const noexcept;
+      constexpr bool IsValue() const noexcept;
       template<CT::Map THIS>
-      NOD() bool IsValue(DMeta) const noexcept;
+      bool IsValue(DMeta) const noexcept;
 
       template<CT::Map THIS, CT::Data, CT::Data...>
-      NOD() constexpr bool IsValueSimilar() const noexcept;
+      constexpr bool IsValueSimilar() const noexcept;
       template<CT::Map THIS>
-      NOD() bool IsValueSimilar(DMeta) const noexcept;
+      bool IsValueSimilar(DMeta) const noexcept;
 
       template<CT::Map THIS, CT::Data, CT::Data...>
-      NOD() constexpr bool IsValueExact() const noexcept;
+      constexpr bool IsValueExact() const noexcept;
       template<CT::Map THIS>
-      NOD() bool IsValueExact(DMeta) const noexcept;
+      bool IsValueExact(DMeta) const noexcept;
 
    protected:
       template<CT::Map, CT::NoIntent, CT::NoIntent>
@@ -386,9 +386,9 @@ namespace Langulus::Anyness
       void Mutate(DMeta, DMeta);
 
       template<CT::Map>
-      NOD() constexpr bool IsTypeCompatibleWith(CT::Map  auto const&) const noexcept;
+      constexpr bool IsTypeCompatibleWith(CT::Map  auto const&) const noexcept;
       template<CT::Map>
-      NOD() constexpr bool IsTypeCompatibleWith(CT::Pair auto const&) const noexcept;
+      constexpr bool IsTypeCompatibleWith(CT::Pair auto const&) const noexcept;
 
    public:
       ///                                                                     
@@ -400,37 +400,37 @@ namespace Langulus::Anyness
       bool operator == (CT::Pair auto const&) const;
 
       template<CT::Map = UnorderedMap>
-      NOD() Hash GetHash() const;
+      Hash GetHash() const;
 
       template<CT::Map = UnorderedMap>
-      NOD() bool ContainsKey(const CT::NoIntent auto&) const;
+      bool ContainsKey(const CT::NoIntent auto&) const;
       template<CT::Map = UnorderedMap>
-      NOD() bool ContainsValue(const CT::NoIntent auto&) const;
+      bool ContainsValue(const CT::NoIntent auto&) const;
       template<CT::Map = UnorderedMap>
-      NOD() bool ContainsPair(const CT::Pair auto&) const;
+      bool ContainsPair(const CT::Pair auto&) const;
 
       template<CT::Map = UnorderedMap>
-      NOD() auto Find(const CT::NoIntent auto&) const -> Index;
+      auto Find(const CT::NoIntent auto&) const -> Index;
       template<CT::Map THIS = UnorderedMap>
-      NOD() auto FindIt(const CT::NoIntent auto&) -> Iterator<THIS>;
+      auto FindIt(const CT::NoIntent auto&) -> Iterator<THIS>;
       template<CT::Map THIS = UnorderedMap>
-      NOD() auto FindIt(const CT::NoIntent auto&) const -> Iterator<const THIS>;
+      auto FindIt(const CT::NoIntent auto&) const -> Iterator<const THIS>;
 
       template<CT::Map = UnorderedMap>
-      NOD() decltype(auto) At(const CT::NoIntent auto&);
+      decltype(auto) At(const CT::NoIntent auto&);
       template<CT::Map = UnorderedMap>
-      NOD() decltype(auto) At(const CT::NoIntent auto&) const;
+      decltype(auto) At(const CT::NoIntent auto&) const;
 
       template<CT::Map = UnorderedMap>
-      NOD() decltype(auto) operator[] (const CT::NoIntent auto&);
+      decltype(auto) operator[] (const CT::NoIntent auto&);
       template<CT::Map = UnorderedMap>
-      NOD() decltype(auto) operator[] (const CT::NoIntent auto&) const;
+      decltype(auto) operator[] (const CT::NoIntent auto&) const;
 
    protected:
       template<CT::Map>
-      NOD() Offset FindInner(const CT::NoIntent auto&) const;
+      Offset FindInner(const CT::NoIntent auto&) const;
       template<CT::Map>
-      NOD() Offset FindBlockInner(const Block<>&) const;
+      Offset FindBlockInner(const Block<>&) const;
 
    public:
       ///                                                                     
@@ -475,8 +475,8 @@ namespace Langulus::Anyness
       auto CreateValHandle(auto&&);
 
       template<CT::Map>
-      NOD() Size RequestKeyAndInfoSize(Count, Offset&) const IF_UNSAFE(noexcept);
-      NOD() Size RequestValuesSize(Count) const IF_UNSAFE(noexcept);
+      Size RequestKeyAndInfoSize(Count, Offset&) const IF_UNSAFE(noexcept);
+      Size RequestValuesSize(Count) const IF_UNSAFE(noexcept);
       
       template<CT::Map>
       void RehashBoth(Count);
@@ -535,8 +535,8 @@ namespace Langulus::Anyness
       void RemoveInner(Offset);
 
    #if LANGULUS(TESTING)
-      public: NOD() constexpr const void* GetRawKeysMemory() const noexcept;
-      public: NOD() constexpr const void* GetRawValsMemory() const noexcept;
+      public: constexpr const void* GetRawKeysMemory() const noexcept;
+      public: constexpr const void* GetRawValsMemory() const noexcept;
    #endif
    };
 
@@ -601,16 +601,16 @@ namespace Langulus::Anyness
       constexpr Iterator& operator = (const Iterator&) noexcept = default;
       constexpr Iterator& operator = (Iterator&&) noexcept = default;
 
-      NOD() constexpr bool operator == (const Iterator&) const noexcept;
-      NOD() constexpr bool operator == (const A::IteratorEnd&) const noexcept;
+      constexpr bool operator == (const Iterator&) const noexcept;
+      constexpr bool operator == (const A::IteratorEnd&) const noexcept;
 
-      NOD() constexpr auto operator * () const;
+      constexpr auto operator * () const;
 
       // Prefix operator                                                
       constexpr Iterator& operator ++ () noexcept;
 
       // Suffix operator                                                
-      NOD() constexpr Iterator operator ++ (int) noexcept;
+      constexpr Iterator operator ++ (int) noexcept;
 
       constexpr explicit operator bool() const noexcept;
       constexpr operator Iterator<const MAP>() const noexcept requires Mutable {

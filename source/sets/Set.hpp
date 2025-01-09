@@ -49,9 +49,9 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Indexing                                                          
       ///                                                                     
-      NOD() decltype(auto) Get(CT::Index auto) const;
+      decltype(auto) Get(CT::Index auto) const;
 
-      NOD() decltype(auto) operator[] (CT::Index auto) const;
+      decltype(auto) operator[] (CT::Index auto) const;
 
       ///                                                                     
       ///   Iteration                                                         
@@ -59,10 +59,10 @@ namespace Langulus::Anyness
       using Iterator = BlockSet::Iterator<Set>;
       using ConstIterator = BlockSet::Iterator<const Set>;
 
-      NOD() auto begin() noexcept -> Iterator;
-      NOD() auto last()  noexcept -> Iterator;
-      NOD() auto begin() const noexcept -> ConstIterator;
-      NOD() auto last()  const noexcept -> ConstIterator;
+      auto begin()       noexcept -> Iterator;
+      auto begin() const noexcept -> ConstIterator;
+      auto last()        noexcept -> Iterator;
+      auto last()  const noexcept -> ConstIterator;
 
       template<bool REVERSE = false>
       Count ForEach(auto&&...);
@@ -83,25 +83,25 @@ namespace Langulus::Anyness
       ///   RTTI                                                              
       ///                                                                     
       template<CT::Data, CT::Data...>
-      NOD() constexpr bool Is() const noexcept;
-      NOD() bool Is(DMeta) const noexcept;
+      constexpr bool Is() const noexcept;
+      bool Is(DMeta) const noexcept;
 
       template<CT::Data, CT::Data...>
-      NOD() constexpr bool IsSimilar() const noexcept;
-      NOD() bool IsSimilar(DMeta) const noexcept;
+      constexpr bool IsSimilar() const noexcept;
+      bool IsSimilar(DMeta) const noexcept;
 
       template<CT::Data, CT::Data...>
-      NOD() constexpr bool IsExact() const noexcept;
-      NOD() bool IsExact(DMeta) const noexcept;
+      constexpr bool IsExact() const noexcept;
+      bool IsExact(DMeta) const noexcept;
 
       ///                                                                     
       ///   Comparison                                                        
       ///                                                                     
       using BlockSet::operator ==;
 
-      NOD() auto Find  (const CT::NoIntent auto&) const -> Index;
-      NOD() auto FindIt(const CT::NoIntent auto&)       -> Iterator;
-      NOD() auto FindIt(const CT::NoIntent auto&) const -> ConstIterator;
+      auto Find  (const CT::NoIntent auto&) const -> Index;
+      auto FindIt(const CT::NoIntent auto&)       -> Iterator;
+      auto FindIt(const CT::NoIntent auto&) const -> ConstIterator;
 
       ///                                                                     
       ///   Memory management                                                 

@@ -126,8 +126,8 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Indexing                                                          
       ///                                                                     
-      NOD() Bytes Select(Offset, Count) const IF_UNSAFE(noexcept);
-      NOD() Bytes Select(Offset, Count) IF_UNSAFE(noexcept);
+      Bytes Select(Offset, Count) const IF_UNSAFE(noexcept);
+      Bytes Select(Offset, Count)       IF_UNSAFE(noexcept);
 
       ///                                                                     
       ///   Comparison                                                        
@@ -138,7 +138,7 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Insertion                                                         
       ///                                                                     
-      NOD() Bytes Extend(Count);
+      Bytes Extend(Count);
 
       template<class T> requires CT::Binable<Deint<T>>
       Bytes& operator << (T&&);
@@ -149,7 +149,7 @@ namespace Langulus::Anyness
       ///   Concatenation                                                     
       ///                                                                     
       template<class T> requires CT::Binable<Deint<T>>
-      NOD() Bytes operator + (T&&) const;
+      Bytes operator + (T&&) const;
 
       template<class T> requires CT::Binable<Deint<T>>
       Bytes& operator += (T&&);
@@ -166,7 +166,7 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Deserialization                                                   
       ///                                                                     
-      NOD() Count Deserialize(CT::Data auto&) const;
+      Count Deserialize(CT::Data auto&) const;
 
       ///                                                                     
       ///   Conversion                                                        

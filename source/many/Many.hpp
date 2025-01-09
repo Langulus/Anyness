@@ -64,24 +64,24 @@ namespace Langulus::Anyness
 
       ~Many();
 
-      NOD() static Many FromMeta(DMeta, DataState = {}) noexcept;
-      NOD() static Many FromBlock(const CT::Block auto&, DataState = {}) noexcept;
-      NOD() static Many FromState(const CT::Block auto&, DataState = {}) noexcept;
+      static Many FromMeta(DMeta, DataState = {}) noexcept;
+      static Many FromBlock(const CT::Block auto&, DataState = {}) noexcept;
+      static Many FromState(const CT::Block auto&, DataState = {}) noexcept;
       template<CT::Data T>
-      NOD() static Many From(DataState = {}) noexcept;
+      static Many From(DataState = {}) noexcept;
 
-      template<class AS = void, CT::Data...TN> NOD()
+      template<class AS = void, CT::Data...TN>
       static Many Wrap(TN&&...);
 
-      template<class...> NOD()
+      template<class...>
       static Many Past() noexcept;
-      template<class...> NOD()
+      template<class...>
       static Many Future() noexcept;
 
       #if LANGULUS_FEATURE(MANAGED_REFLECTION)
-         template<CT::String...T> requires (sizeof...(T) > 0) NOD()
+         template<CT::String...T> requires (sizeof...(T) > 0)
          static Many Past(T&&...);
-         template<CT::String...T> requires (sizeof...(T) > 0) NOD()
+         template<CT::String...T> requires (sizeof...(T) > 0)
          static Many Future(T&&...);
       #endif
 
@@ -99,8 +99,8 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Indexing                                                          
       ///                                                                     
-      NOD() Many Select(Offset, Count) const IF_UNSAFE(noexcept);
-      NOD() Many Select(Offset, Count) IF_UNSAFE(noexcept);
+      Many Select(Offset, Count) const IF_UNSAFE(noexcept);
+      Many Select(Offset, Count)       IF_UNSAFE(noexcept);
 
       ///                                                                     
       ///   Comparison                                                        
@@ -119,8 +119,8 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Concatenation                                                     
       ///                                                                     
-      NOD() Many  operator +  (CT::UnfoldInsertable auto&&) const;
-            Many& operator += (CT::UnfoldInsertable auto&&);
+      Many  operator +  (CT::UnfoldInsertable auto&&) const;
+      Many& operator += (CT::UnfoldInsertable auto&&);
    };
 
 } // namespace Langulus::Anyness

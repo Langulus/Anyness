@@ -74,45 +74,45 @@ namespace Langulus::A
       ///                                                                     
       ///   Capsulation                                                       
       ///                                                                     
-      NOD() auto GetVerb() const noexcept -> VMeta;
-      NOD() auto GetHash() const -> Hash;
-      NOD() auto GetCharge() const noexcept -> const Charge&;
-      NOD() auto GetMass() const noexcept -> Real;
-      NOD() auto GetRate() const noexcept -> Real;
-      NOD() auto GetTime() const noexcept -> Real;
-      NOD() auto GetPriority() const noexcept -> Real;
-      NOD() auto GetOperatorToken(bool& tokenized) const -> Text;
+      auto GetVerb() const noexcept -> VMeta;
+      auto GetHash() const -> Hash;
+      auto GetCharge() const noexcept -> const Charge&;
+      auto GetMass() const noexcept -> Real;
+      auto GetRate() const noexcept -> Real;
+      auto GetTime() const noexcept -> Real;
+      auto GetPriority() const noexcept -> Real;
+      auto GetOperatorToken(bool& tokenized) const -> Text;
 
-      NOD() auto GetSource() noexcept -> Many&;
-      NOD() auto GetSource() const noexcept -> Many const&;
+      auto GetSource()       noexcept -> Many&;
+      auto GetSource() const noexcept -> Many const&;
 
-      NOD() auto GetArgument() noexcept -> Many&;
-      NOD() auto GetArgument() const noexcept -> Many const&;
+      auto GetArgument()       noexcept -> Many&;
+      auto GetArgument() const noexcept -> Many const&;
 
-      NOD() auto GetOutput() noexcept -> Many&;
-      NOD() auto GetOutput() const noexcept -> Many const&;
+      auto GetOutput()       noexcept -> Many&;
+      auto GetOutput() const noexcept -> Many const&;
 
-      NOD() auto operator -> () noexcept -> Many*;
-      NOD() auto operator -> () const noexcept -> Many const*;
+      auto operator -> ()       noexcept -> Many*;
+      auto operator -> () const noexcept -> Many const*;
       
-      NOD() auto GetSuccesses() const noexcept -> Count;
-      NOD() auto GetVerbState() const noexcept -> VerbState;
-      NOD() bool IsDone() const noexcept;
+      auto GetSuccesses() const noexcept -> Count;
+      auto GetVerbState() const noexcept -> VerbState;
+      bool IsDone() const noexcept;
 
-      NOD() constexpr bool IsMulticast() const noexcept;
-      NOD() constexpr bool IsMonocast() const noexcept;
-      NOD() constexpr bool IsShortCircuited() const noexcept;
-      NOD() constexpr bool IsLongCircuited() const noexcept;
+      constexpr bool IsMulticast() const noexcept;
+      constexpr bool IsMonocast() const noexcept;
+      constexpr bool IsShortCircuited() const noexcept;
+      constexpr bool IsLongCircuited() const noexcept;
 
-      NOD() bool IsMissing() const noexcept;
-      NOD() bool IsMissingDeep() const noexcept;
-      NOD() bool Validate(Anyness::Index) const noexcept;
+      bool IsMissing() const noexcept;
+      bool IsMissingDeep() const noexcept;
+      bool Validate(Anyness::Index) const noexcept;
 
       void Done(Count) noexcept;
       void Done() noexcept;
       void Undo() noexcept;
 
-      NOD() explicit operator Anyness::Text() const;
+      explicit operator Anyness::Text() const;
 
    protected:
       void SerializeVerb(CT::Serial auto&) const;
@@ -121,14 +121,14 @@ namespace Langulus::A
       ///                                                                     
       ///   Comparison                                                        
       ///                                                                     
-      NOD() bool operator == (const Verb&) const;
-      NOD() bool operator == (VMeta) const noexcept;
+      bool operator == (const Verb&) const;
+      bool operator == (VMeta) const noexcept;
 
-      NOD() bool operator <  (const Verb&) const noexcept;
-      NOD() bool operator >  (const Verb&) const noexcept;
+      bool operator <  (const Verb&) const noexcept;
+      bool operator >  (const Verb&) const noexcept;
 
-      NOD() bool operator <= (const Verb&) const noexcept;
-      NOD() bool operator >= (const Verb&) const noexcept;
+      bool operator <= (const Verb&) const noexcept;
+      bool operator >= (const Verb&) const noexcept;
 
       ///                                                                     
       ///   Removal                                                           

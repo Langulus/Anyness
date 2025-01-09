@@ -400,10 +400,16 @@ namespace Langulus::A
             // Write as operator                                        
             out += mVerb->mOperatorReverse;
          }
-         else {
+         else if (not mVerb->mTokenReverse.empty()) {
             // Write as token                                           
             out += mVerb->mTokenReverse;
             out += static_cast<Text>(GetCharge().operator*(-1));
+            tokenized = true;
+         }
+         else {
+            // Write as token                                           
+            out += mVerb->mToken;
+            out += static_cast<Text>(GetCharge());
             tokenized = true;
          }
       }

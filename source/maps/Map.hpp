@@ -56,12 +56,12 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Indexing                                                          
       ///                                                                     
-      NOD() auto GetKey  (CT::Index auto) -> Block<>;
-      NOD() auto GetKey  (CT::Index auto) const -> Block<>;
-      NOD() auto GetValue(CT::Index auto) -> Block<>;
-      NOD() auto GetValue(CT::Index auto) const -> Block<>;
-      NOD() auto GetPair (CT::Index auto) -> Pair;
-      NOD() auto GetPair (CT::Index auto) const -> Pair;
+      auto GetKey  (CT::Index auto)       -> Block<>;
+      auto GetKey  (CT::Index auto) const -> Block<>;
+      auto GetValue(CT::Index auto)       -> Block<>;
+      auto GetValue(CT::Index auto) const -> Block<>;
+      auto GetPair (CT::Index auto)       -> Pair;
+      auto GetPair (CT::Index auto) const -> Pair;
 
       ///                                                                     
       ///   Iteration                                                         
@@ -69,10 +69,10 @@ namespace Langulus::Anyness
       using Iterator      = BlockMap::Iterator<Map>;
       using ConstIterator = BlockMap::Iterator<const Map>;
 
-      NOD() auto begin() noexcept -> Iterator;
-      NOD() auto last() noexcept -> Iterator;
-      NOD() auto begin() const noexcept -> ConstIterator;
-      NOD() auto last() const noexcept -> ConstIterator;
+      auto begin()       noexcept -> Iterator;
+      auto begin() const noexcept -> ConstIterator;
+      auto last()       noexcept -> Iterator;
+      auto last() const noexcept -> ConstIterator;
 
       template<bool REVERSE = false>
       Count ForEach(auto&&) const;
@@ -113,43 +113,43 @@ namespace Langulus::Anyness
       ///   RTTI                                                              
       ///                                                                     
       template<CT::Data, CT::Data...>
-      NOD() constexpr bool IsKey() const noexcept;
-      NOD() bool IsKey(DMeta) const noexcept;
+      constexpr bool IsKey() const noexcept;
+      bool IsKey(DMeta) const noexcept;
 
       template<CT::Data, CT::Data...>
-      NOD() constexpr bool IsKeySimilar() const noexcept;
-      NOD() bool IsKeySimilar(DMeta) const noexcept;
+      constexpr bool IsKeySimilar() const noexcept;
+      bool IsKeySimilar(DMeta) const noexcept;
 
       template<CT::Data, CT::Data...>
-      NOD() constexpr bool IsKeyExact() const noexcept;
-      NOD() bool IsKeyExact(DMeta) const noexcept;
+      constexpr bool IsKeyExact() const noexcept;
+      bool IsKeyExact(DMeta) const noexcept;
 
       template<CT::Data, CT::Data...>
-      NOD() constexpr bool IsValue() const noexcept;
-      NOD() bool IsValue(DMeta) const noexcept;
+      constexpr bool IsValue() const noexcept;
+      bool IsValue(DMeta) const noexcept;
 
       template<CT::Data, CT::Data...>
-      NOD() constexpr bool IsValueSimilar() const noexcept;
-      NOD() bool IsValueSimilar(DMeta) const noexcept;
+      constexpr bool IsValueSimilar() const noexcept;
+      bool IsValueSimilar(DMeta) const noexcept;
 
       template<CT::Data, CT::Data...>
-      NOD() constexpr bool IsValueExact() const noexcept;
-      NOD() bool IsValueExact(DMeta) const noexcept;
+      constexpr bool IsValueExact() const noexcept;
+      bool IsValueExact(DMeta) const noexcept;
 
       ///                                                                     
       ///   Comparison                                                        
       ///                                                                     
       using BlockMap::operator ==;
 
-      NOD() auto Find(const CT::NoIntent auto&) const -> Index;
-      NOD() auto FindIt(const CT::NoIntent auto&) -> Iterator;
-      NOD() auto FindIt(const CT::NoIntent auto&) const -> ConstIterator;
+      auto Find  (const CT::NoIntent auto&) const -> Index;
+      auto FindIt(const CT::NoIntent auto&) -> Iterator;
+      auto FindIt(const CT::NoIntent auto&) const -> ConstIterator;
 
-      NOD() decltype(auto) At(const CT::NoIntent auto&);
-      NOD() decltype(auto) At(const CT::NoIntent auto&) const;
+      decltype(auto) At(const CT::NoIntent auto&);
+      decltype(auto) At(const CT::NoIntent auto&) const;
 
-      NOD() decltype(auto) operator[] (const CT::NoIntent auto&);
-      NOD() decltype(auto) operator[] (const CT::NoIntent auto&) const;
+      decltype(auto) operator[] (const CT::NoIntent auto&);
+      decltype(auto) operator[] (const CT::NoIntent auto&) const;
 
       ///                                                                     
       ///   Memory management                                                 

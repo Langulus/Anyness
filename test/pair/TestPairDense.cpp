@@ -53,7 +53,7 @@ TEMPLATE_TEST_CASE("Dense TPair/Pair", "[pair]",
    Any_Helper_TestType<K>(lp.GetKeyBlock());
    Any_Helper_TestType<V>(lp.GetValueBlock());
 
-   UNUSED() const auto sp = CreatePair<stdT, K, V>("five hundred", 555);
+   [[maybe_unused]] const auto sp = CreatePair<stdT, K, V>("five hundred", 555);
 
 
    GIVEN("A default-initialized pair instance") {

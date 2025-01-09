@@ -460,7 +460,7 @@ namespace Langulus::Anyness
          "Can't deepen with incompatible type");
 
       // Back up the state so that we can restore it if not moved over  
-      UNUSED() const DataState state = mState.mState & DataState::Or;
+      [[maybe_unused]] const DataState state = mState.mState & DataState::Or;
       if constexpr (not TRANSFER_OR)
          mState -= state;
 

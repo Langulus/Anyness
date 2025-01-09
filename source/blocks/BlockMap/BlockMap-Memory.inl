@@ -157,7 +157,7 @@ namespace Langulus::Anyness
       // Reinsert all pairs to rehash                                   
       mKeys.mCount = 0;
 
-      UNUSED() auto& me = reinterpret_cast<const THIS&>(*this);
+      [[maybe_unused]] auto& me = reinterpret_cast<const THIS&>(*this);
       auto key = old.GetKeyHandle<THIS>(0);
       auto val = old.GetValHandle<THIS>(0);
       const auto hashmask = GetReserved() - 1;

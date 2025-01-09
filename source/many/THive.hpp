@@ -92,15 +92,15 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Capsulation                                                       
       ///                                                                     
-      NOD() auto Owns(const void*) const noexcept -> const Frame*;
-      NOD() auto GetType() const noexcept -> DMeta;
-      NOD() auto GetCount() const noexcept -> Count;
-      NOD() bool IsEmpty() const noexcept;
-      NOD() constexpr explicit operator bool() const noexcept;
+      auto Owns(const void*) const noexcept -> const Frame*;
+      auto GetType() const noexcept -> DMeta;
+      auto GetCount() const noexcept -> Count;
+      bool IsEmpty() const noexcept;
+      constexpr explicit operator bool() const noexcept;
 
    #if LANGULUS(TESTING)
       auto  GetReusable() const { return mReusable; }
-      auto& GetFrames() const { return mFrames; }
+      auto& GetFrames()   const { return mFrames; }
    #endif
 
       ///                                                                     
@@ -109,11 +109,11 @@ namespace Langulus::Anyness
       template<class>
       struct Iterator;
 
-      NOD() constexpr auto begin()       noexcept -> Iterator<THive>;
-      NOD() constexpr auto begin() const noexcept -> Iterator<THive const>;
+      constexpr auto begin()       noexcept -> Iterator<THive>;
+      constexpr auto begin() const noexcept -> Iterator<THive const>;
 
-      NOD() constexpr auto last()        noexcept -> Iterator<THive>;
-      NOD() constexpr auto last()  const noexcept -> Iterator<THive const>;
+      constexpr auto last()        noexcept -> Iterator<THive>;
+      constexpr auto last()  const noexcept -> Iterator<THive const>;
 
       constexpr A::IteratorEnd end() const noexcept { return {}; }
 
@@ -207,20 +207,20 @@ namespace Langulus::Anyness
       constexpr Iterator(Iterator&&) noexcept = default;
       constexpr Iterator(const A::IteratorEnd&) noexcept;
 
-      constexpr auto operator = (const Iterator&) noexcept -> Iterator& = default;
-      constexpr auto operator = (Iterator&&) noexcept -> Iterator& = default;
+      constexpr auto operator =  (const Iterator&) noexcept -> Iterator& = default;
+      constexpr auto operator =  (Iterator&&) noexcept -> Iterator& = default;
 
-      NOD() constexpr bool operator == (const Iterator&) const noexcept;
-      NOD() constexpr bool operator == (const A::IteratorEnd&) const noexcept;
+      constexpr bool operator == (const Iterator&) const noexcept;
+      constexpr bool operator == (const A::IteratorEnd&) const noexcept;
 
-      NOD() constexpr decltype(auto) operator *  () const noexcept;
-      NOD() constexpr decltype(auto) operator -> () const noexcept;
+      constexpr decltype(auto) operator *  () const noexcept;
+      constexpr decltype(auto) operator -> () const noexcept;
 
       // Prefix operator                                                
       constexpr auto operator ++ () noexcept -> Iterator&;
 
       // Suffix operator                                                
-      NOD() constexpr auto operator ++ (int) noexcept -> Iterator;
+      constexpr auto operator ++ (int) noexcept -> Iterator;
 
       constexpr explicit operator bool() const noexcept;
       constexpr operator Iterator<const HIVE>() const noexcept requires Mutable;

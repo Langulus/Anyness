@@ -130,34 +130,34 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Capsulation                                                       
       ///                                                                     
-      NOD() DMeta GetType() const;
-      NOD() Hash  GetHash() const requires CT::Hashable<T>;
-      NOD() constexpr auto Get() const noexcept -> T const&;
-      NOD() constexpr auto Get()       noexcept -> T&;
+      DMeta GetType() const;
+      Hash  GetHash() const requires CT::Hashable<T>;
+      constexpr auto Get() const noexcept -> T const&;
+      constexpr auto Get()       noexcept -> T&;
 
       template<class>
-      NOD() auto As() const noexcept requires CT::Sparse<T>;
+      auto As() const noexcept requires CT::Sparse<T>;
 
-      NOD() constexpr auto operator -> () const;
-      NOD() constexpr auto operator -> ();
+      constexpr auto operator -> () const;
+      constexpr auto operator -> ();
 
-      NOD() constexpr auto& operator * () const IF_UNSAFE(noexcept)
+      constexpr auto& operator * () const IF_UNSAFE(noexcept)
          requires (CT::Sparse<T> and not CT::Void<Decay<T>>);
-      NOD() constexpr auto& operator * ()       IF_UNSAFE(noexcept)
+      constexpr auto& operator * ()       IF_UNSAFE(noexcept)
          requires (CT::Sparse<T> and not CT::Void<Decay<T>>);
 
-      NOD() auto GetHandle() const;
+      auto GetHandle() const;
 
       /// Makes Own CT::Resolvable                                            
-      NOD() constexpr auto GetBlock() const -> Block<T>;
+      constexpr auto GetBlock() const -> Block<T>;
 
       ///                                                                     
       ///   Services                                                          
       ///                                                                     
       void Reset();
 
-      NOD() explicit constexpr operator bool() const noexcept;
-      NOD() constexpr operator T&() const noexcept;
+      explicit constexpr operator bool() const noexcept;
+      constexpr operator T&() const noexcept;
    };
 
 } // namespace Langulus::Anyness

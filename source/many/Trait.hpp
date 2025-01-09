@@ -88,12 +88,12 @@ namespace Langulus::Anyness
       Trait& operator = (CT::UnfoldInsertable auto&&);
 
       template<CT::Trait, CT::Data>
-      NOD() static Trait From();
-      NOD() static Trait FromMeta(TMeta, DMeta);
+      static Trait From();
+      static Trait FromMeta(TMeta, DMeta);
 
       template<CT::Trait>
-      NOD() static Trait From(auto&&);
-      NOD() static Trait From(TMeta, auto&&);
+      static Trait From(auto&&);
+      static Trait From(TMeta, auto&&);
 
       ///                                                                     
       ///   Capsulation                                                       
@@ -103,41 +103,41 @@ namespace Langulus::Anyness
       void SetTrait(TMeta) noexcept;
 
       template<CT::Trait, CT::TraitBased = Trait>
-      NOD() constexpr bool IsTrait() const;
+      constexpr bool IsTrait() const;
 
       template<CT::TraitBased = Trait, class...TN>
       requires CT::Exact<TMeta, TMeta, TN...>
-      NOD() bool IsTrait(TMeta, TN...) const;
+      bool IsTrait(TMeta, TN...) const;
 
       template<CT::TraitBased = Trait>
-      NOD() TMeta GetTrait() const noexcept;
+      TMeta GetTrait() const noexcept;
 
       template<CT::TraitBased = Trait>
-      NOD() bool IsTraitValid() const noexcept;
+      bool IsTraitValid() const noexcept;
 
       template<CT::TraitBased = Trait>
-      NOD() bool IsTraitSimilar(const CT::TraitBased auto&) const noexcept;
+      bool IsTraitSimilar(const CT::TraitBased auto&) const noexcept;
 
       template<CT::TraitBased = Trait>
-      NOD() bool HasCorrectData() const;
+      bool HasCorrectData() const;
 
       ///                                                                     
       ///   Indexing                                                          
       ///                                                                     
-      NOD() Trait Select(Offset, Count) IF_UNSAFE(noexcept);
-      NOD() Trait Select(Offset, Count) const IF_UNSAFE(noexcept);
+      Trait Select(Offset, Count)       IF_UNSAFE(noexcept);
+      Trait Select(Offset, Count) const IF_UNSAFE(noexcept);
 
       ///                                                                     
       ///   Compare                                                           
       ///                                                                     
       template<CT::TraitBased = Trait, CT::NoIntent T> requires CT::NotOwned<T>
-      NOD() bool operator == (const T&) const;
+      bool operator == (const T&) const;
 
       ///                                                                     
       ///   Concatenation                                                     
       ///                                                                     
       template<CT::TraitBased THIS = Trait>
-      NOD() THIS operator + (CT::UnfoldInsertable auto&&) const;
+      THIS operator + (CT::UnfoldInsertable auto&&) const;
 
       template<CT::TraitBased THIS = Trait>
       THIS& operator += (CT::UnfoldInsertable auto&&);
