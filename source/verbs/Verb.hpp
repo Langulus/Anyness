@@ -99,8 +99,8 @@ namespace Langulus::A
       auto GetVerbState() const noexcept -> VerbState;
       bool IsDone() const noexcept;
 
-      constexpr bool IsMulticast() const noexcept;
-      constexpr bool IsMonocast() const noexcept;
+      /*constexpr bool IsMulticast() const noexcept;
+      constexpr bool IsMonocast() const noexcept;*/
       constexpr bool IsShortCircuited() const noexcept;
       constexpr bool IsLongCircuited() const noexcept;
 

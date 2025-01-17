@@ -251,7 +251,7 @@ namespace Langulus::Anyness
       while (info != infoEnd) {
          const auto index = info - GetInfo();
          if (*info)
-            Logger::Info('[', index, "] -", (*info-1), " -> ", GetRaw<THIS>(index).GetHash().mHash);
+            Logger::Info('[', index, "] -", (*info-1), " -> ", GetRaw<THIS>(index).GetHash());
          else
             Logger::Info('[', index, "] empty");
 

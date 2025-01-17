@@ -201,6 +201,18 @@ namespace Langulus::Anyness
    ///   @return true if both constructs are the same                         
    LANGULUS(INLINED)
    bool Construct::operator == (const Construct& rhs) const {
+      VERBOSE_COMPARE_TAB("Comparing Construct of type ",
+         Logger::PushWhite, mType, Logger::Pop, " with construct of type ",
+         Logger::PushWhite, rhs.mType
+      );
+
+      if (GetHash() != rhs.GetHash())
+         VERBOSE_COMPARE(Logger::Red, "Hashes differ: ", GetHash(), " != ", rhs.GetHash());
+      if (!(mType & rhs.mType))
+         VERBOSE_COMPARE(Logger::Red, "Types not compatible");
+      if (mDescriptor != rhs.mDescriptor)
+         VERBOSE_COMPARE(Logger::Red, "Contents differ");
+
       return GetHash() == rhs.GetHash()
          and mType & rhs.mType
          and mDescriptor == rhs.mDescriptor;

@@ -78,7 +78,7 @@ namespace Langulus::Anyness
    }
    
    /// Check if state is multicast                                            
-   LANGULUS(INLINED)
+   /*LANGULUS(INLINED)
    constexpr bool VerbState::IsMulticast() const noexcept {
       return (mState & VerbState::Monocast) == 0;
    }
@@ -87,7 +87,7 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    constexpr bool VerbState::IsMonocast() const noexcept {
       return mState & VerbState::Monocast;
-   }
+   }*/
    
    /// Check if state is long-circuited                                       
    LANGULUS(INLINED)

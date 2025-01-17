@@ -149,3 +149,11 @@ namespace Langulus
    } // namespace Langulus::Anyness
 
 } // namespace Langulus
+
+#if 0
+   #define VERBOSE_COMPARE(...)     Logger::Verbose(__VA_ARGS__)
+   #define VERBOSE_COMPARE_TAB(...) const auto tab = Logger::Verbose(__VA_ARGS__, Logger::Tabs {})
+#else
+   #define VERBOSE_COMPARE(...)     LANGULUS(NOOP)
+   #define VERBOSE_COMPARE_TAB(...) LANGULUS(NOOP)
+#endif

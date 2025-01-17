@@ -34,7 +34,7 @@ namespace Langulus::Anyness
          // When verb is monocast (as opposite to multicast) it will    
          // not iterate deep items, but be executed on the context once 
          // as a whole. Used extensively when executing at compile-time 
-         Monocast = 2
+         //Monocast = 2
       };
 
       using Type = TypeOf<Enum>;
@@ -57,8 +57,8 @@ namespace Langulus::Anyness
       constexpr bool operator % (const VerbState&) const noexcept;
       
       constexpr bool IsDefault() const noexcept;
-      constexpr bool IsMulticast() const noexcept;
-      constexpr bool IsMonocast() const noexcept;
+      /*constexpr bool IsMulticast() const noexcept;
+      constexpr bool IsMonocast() const noexcept;*/
       constexpr bool IsShortCircuited() const noexcept;
       constexpr bool IsLongCircuited() const noexcept;
       

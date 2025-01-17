@@ -9,14 +9,6 @@
 #include "../Block.hpp"
 #include "../../text/Text.hpp"
 
-#if 0
-   #define VERBOSE(...)     Logger::Verbose(__VA_ARGS__)
-   #define VERBOSE_TAB(...) const auto tab = Logger::Verbose(__VA_ARGS__, Logger::Tabs {})
-#else
-   #define VERBOSE(...)     LANGULUS(NOOP)
-   #define VERBOSE_TAB(...) LANGULUS(NOOP)
-#endif
-
 
 namespace Langulus::Anyness
 {
@@ -45,7 +37,7 @@ namespace Langulus::Anyness
    template<class TYPE> template<bool RESOLVE>
    bool Block<TYPE>::Compare(const CT::Block auto& right) const {
       using RHS = Deref<decltype(right)>;
-      VERBOSE_TAB("Comparing ",
+      VERBOSE_COMPARE_TAB("Comparing ",
          Logger::PushWhite, mCount, " elements of ", GetToken(),
          Logger::Pop, " with ",
          Logger::PushWhite, right.mCount, " elements of ", right.GetToken()
@@ -55,18 +47,25 @@ namespace Langulus::Anyness
          // Both blocks are statically typed - leverage it              
          if constexpr (not CT::Similar<TYPE, TypeOf<RHS>>) { //TODO but what if differently typed pointers to the same virtual objects?
             // Types are different                                      
+            VERBOSE_COMPARE(Logger::Red, "Types differ (compile-time): ",
+               NameOf<TYPE>(), " != ", NameOf<TypeOf<RHS>>());
             return false;
          }
          else {
             // Types are similar                                        
             if (mRaw == right.mRaw)
                return mCount == right.mCount;
-            else if (mCount != right.mCount)
+            else if (mCount != right.mCount) {
+               VERBOSE_COMPARE(Logger::Red, "Different count (compile-time): ", mCount, " != ", right.mCount);
                return false;
+            }
 
             if constexpr (CT::POD<TYPE>) {
                // Batch compare pods or pointers                        
-               return 0 == ::std::memcmp(mRaw, right.mRaw, GetBytesize());
+               const bool same = 0 == ::std::memcmp(mRaw, right.mRaw, GetBytesize());
+               if (not same)
+                  VERBOSE_COMPARE(Logger::Red, "Different POD memory after memcmp (compile-time)");
+               return same;
             }
             else if constexpr (CT::Comparable<TYPE, TYPE>) {
                // Use comparison operator between all elements          
@@ -77,16 +76,25 @@ namespace Langulus::Anyness
                   ++t1;
                   ++t2;
                }
+
+               if (t1 != t1end)
+                  VERBOSE_COMPARE(Logger::Red, "Element #", t1 - GetRaw(), " differs (compile-time)");
                return t1 == t1end;
             }
-            else return false;
+            else {
+               VERBOSE_COMPARE(Logger::Red, "Type not comparable (compile-time): ", NameOf<TYPE>());
+               return false;
+            }
          }
       }
       else if constexpr (not TypeErased or not RHS::TypeErased) {
          // One of the blocks is statically typed - a runtime type      
          // check is required                                           
-         if ((mCount or right.mCount) and not IsSimilar(right))  //TODO but what if differently typed pointers to the same virtual objects?
+         if ((mCount or right.mCount) and not IsSimilar(right)) { //TODO but what if differently typed pointers to the same virtual objects?
+            VERBOSE_COMPARE(Logger::Red, "Types differ (runtime): ",
+               GetType(), " != ", right.GetType());
             return false;
+         }
 
          if constexpr (not TypeErased)
             return Compare<RESOLVE>(reinterpret_cast<const Block<TYPE>&>(right));
@@ -94,18 +102,26 @@ namespace Langulus::Anyness
             return right.template Compare<RESOLVE>(reinterpret_cast<const RHS&>(*this));
       }
       else {
-         if (not IsSimilar(right))  //TODO but what if differently typed pointers to the same virtual objects?
+         if (not IsSimilar(right)) { //TODO but what if differently typed pointers to the same virtual objects?
+            VERBOSE_COMPARE(Logger::Red, "Types differ (runtime): ",
+               mType, " != ", right.mType);
             return false;
+         }
 
          // Types are similar                                           
          if (mRaw == right.mRaw)
             return mCount == right.mCount;
-         else if (mCount != right.mCount)
+         else if (mCount != right.mCount) {
+            VERBOSE_COMPARE(Logger::Red, "Different count (runtime): ", mCount, " != ", right.mCount);
             return false;
+         }
 
          if (mType->mIsPOD or mType->mIsSparse) {
             // Batch-compare memory if POD or sparse                    
-            return 0 == memcmp(mRaw, right.mRaw, GetBytesize());
+            const bool same = 0 == ::std::memcmp(mRaw, right.mRaw, GetBytesize());
+            if (not same)
+               VERBOSE_COMPARE(Logger::Red, "Different POD memory after memcmp (runtime)");
+            return same;
          }
          else if (mType->mComparer) {
             // Call compare operator for each element pair              
@@ -113,15 +129,21 @@ namespace Langulus::Anyness
             auto rhs = right.mRaw;
             const auto lhsEnd = GetRawEnd<Byte>();
             while (lhs != lhsEnd) {
-               if (not mType->mComparer(lhs, rhs))
+               if (not mType->mComparer(lhs, rhs)) {
+                  VERBOSE_COMPARE(Logger::Red, "Element #", (lhs - mRaw) / mType->mSize, " differs (runtime)");
                   return false;
+               }
+
                lhs += mType->mSize;
                rhs += mType->mSize;
             }
 
             return true;
          }
-         else LANGULUS_OOPS(Compare, "No == operator reflected for type ", mType);
+         else {
+            VERBOSE_COMPARE(Logger::Red, "Type not comparable (runtime): ", mType);
+            LANGULUS_OOPS(Compare, "No == operator reflected for type ", mType);
+         }
 
          return true;
       }
@@ -464,7 +486,7 @@ namespace Langulus::Anyness
             // Other is derived from this, but it has to be binary      
             // compatible to be able to compare them                    
             if (not common.mBinaryCompatible) {
-               VERBOSE(Logger::Red,
+               VERBOSE_COMPARE(Logger::Red,
                   "Data types are related, but not binary compatible: ",
                   GetToken(), " != ", right.GetToken());
                return false;
@@ -476,7 +498,7 @@ namespace Langulus::Anyness
             // This is derived from other, but it has to be binary      
             // compatible to be able to compare them                    
             if (not common.mBinaryCompatible) {
-               VERBOSE(Logger::Red,
+               VERBOSE_COMPARE(Logger::Red,
                   "Data types are related, but not binary compatible: ",
                   GetToken(), " != ", right.GetToken());
                return false;
@@ -507,8 +529,8 @@ namespace Langulus::Anyness
    ///   @return true if comparison returns true                              
    template<class TYPE> LANGULUS(INLINED)
    bool Block<TYPE>::CallComparer(const Block& right, const RTTI::Base& base) const {
-      return  mRaw == right.mRaw or (mRaw and right.mRaw
-         and  base.mType->mComparer(mRaw, right.mRaw));
+      return mRaw == right.mRaw or (mRaw and right.mRaw
+         and base.mType->mComparer(mRaw, right.mRaw));
    }
 
    /// Gather items from input container, and fill output                     
@@ -721,6 +743,3 @@ namespace Langulus::Anyness
    }
 
 } // namespace Langulus::Anyness
-
-#undef VERBOSE_TAB
-#undef VERBOSE

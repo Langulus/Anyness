@@ -100,7 +100,7 @@ namespace Langulus::A
 
    /// Check if verb is multicast                                             
    ///   @return true if verb is multicast                                    
-   LANGULUS(INLINED)
+   /*LANGULUS(INLINED)
    constexpr bool Verb::IsMulticast() const noexcept {
       return mState.IsMulticast();
    }
@@ -110,7 +110,7 @@ namespace Langulus::A
    LANGULUS(INLINED)
    constexpr bool Verb::IsMonocast() const noexcept {
       return mState.IsMonocast();
-   }
+   }*/
 
    /// Check if verb is short-circuited                                       
    ///   @return true if verb is short-circuited                              
