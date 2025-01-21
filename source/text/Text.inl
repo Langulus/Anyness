@@ -181,6 +181,22 @@ namespace Langulus::Anyness
       mCount = 2;
    }
 
+   /// Stringify a boolean, by writing either `yes` or `no`                   
+   ///   @param from - the boolean to stringify                               
+   LANGULUS(INLINED)
+   Text::Text(bool from) {
+      mType = MetaDataOf<Letter>();
+      AllocateFresh(RequestSize(4));
+      if (from) {
+         fmt::format_to_n(mRaw, 3, "{}", "yes");
+         mCount = 3;
+      }
+      else {
+         fmt::format_to_n(mRaw, 2, "{}", "no");
+         mCount = 2;
+      }
+   }
+
    /// Stringify a serialization operator                                     
    ///   @param from - the op to stringify                                    
    LANGULUS(INLINED)

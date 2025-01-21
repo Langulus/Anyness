@@ -351,13 +351,14 @@ namespace Langulus::Anyness
       [[maybe_unused]] Count remaining;
       if constexpr (MASKED)
          remaining = GetCount();
+      const auto count = MASKED ? mReserved : mCount;
 
       if constexpr (not TypeErased) {
          if constexpr (Sparse and CT::Referencable<Deptr<TYPE>>) {
             // Statically typed and sparse                              
             const auto entryBeg = GetEntries();
             auto entry = entryBeg;
-            const auto entryEnd = entry + mCount;
+            const auto entryEnd = entry + count;
 
             while (entry != entryEnd) {
                if constexpr (MASKED) {
@@ -384,7 +385,7 @@ namespace Langulus::Anyness
             // Statically typed and dense                               
             const auto rawBeg = GetRaw();
             auto raw = rawBeg;
-            const auto rawEnd = raw + mCount;
+            const auto rawEnd = raw + count;
 
             while (raw != rawEnd) {
                if constexpr (MASKED) {
@@ -408,7 +409,7 @@ namespace Langulus::Anyness
          const auto reference = mType->mReference;
          const auto entryBeg = GetEntries();
          auto entry = entryBeg;
-         const auto entryEnd = entry + mCount;
+         const auto entryEnd = entry + count;
 
          while (entry != entryEnd) {
             if constexpr (MASKED) {
@@ -436,7 +437,7 @@ namespace Langulus::Anyness
          const auto reference = mType->mReference;
          const auto rawBeg = mRaw;
          auto raw = rawBeg;
-         const auto rawEnd = mRaw + mType->mSize * mCount;
+         const auto rawEnd = mRaw + mType->mSize * count;
 
          while (raw != rawEnd) {
             if constexpr (MASKED) {

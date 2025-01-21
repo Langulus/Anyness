@@ -319,12 +319,13 @@ namespace Langulus::Anyness
       }
       else {
          // We're cloning, so we guarantee, that data is no longer      
-         // static and constant (unless mType is constant)              
+         // static and constant                                         
          mState -= DataState::Constant;
          if (0 == from.mCount)
             return;
-         
+
          // Pick a preferably typed block to optimize the construction  
+         mType = mType->mDecvq;
          if constexpr (B::TypeErased) {
             // A runtime check is required before allocating            
             LANGULUS_ASSERT(mType->mCloneConstructor, Construct,

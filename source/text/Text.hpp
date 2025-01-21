@@ -292,10 +292,10 @@ namespace Langulus::Anyness
       Text(const CT::Meta auto&);
       Text(const CT::Exception auto&);
       Text(const CT::Bytes auto&);
-      Text(Byte);
-      
-      explicit Text(Operator);
 
+      explicit Text(Byte);
+      explicit Text(bool);
+      explicit Text(Operator);
       explicit Text(const CT::HasNamedValues auto&);
 
       template<CT::BuiltinNumber T> requires (not CT::Character<T>)
