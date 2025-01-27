@@ -322,7 +322,30 @@ namespace Langulus::Anyness
       };
    #endif
 
-   
+   /// A reference to an embedded sparse element inside a block               
+   template<CT::Sparse T>
+   struct LocalRef {
+      T*                 mPointer;
+      Allocation const** mEntry;
+
+      LANGULUS(ALWAYS_INLINED)
+      operator T () const noexcept { return *mPointer; }
+
+      auto operator = (T newPointer) noexcept -> LocalRef&;
+
+      template<class...A>
+      auto New(A&&...) -> LocalRef&;
+
+      LANGULUS(ALWAYS_INLINED)
+      auto operator -> () const noexcept { return *mPointer; }
+
+      LANGULUS(ALWAYS_INLINED)
+      auto& operator * () const IF_UNSAFE(noexcept) {
+         LANGULUS_ASSUME(UserAssumes, *mPointer, "Dereferening null pointer");
+         return **mPointer;
+      }
+   };
+
    ///                                                                        
    ///	Memory block                                                         
    ///                                                                        
@@ -1179,3 +1202,11 @@ namespace Langulus::Anyness
    };
 
 } // namespace Langulus::Anyness
+
+namespace Langulus::CT::TI
+{
+   template<CT::Sparse T>
+   struct SparseTrait<::Langulus::Anyness::LocalRef<T>> {
+      static constexpr bool Value = true;
+   };
+}

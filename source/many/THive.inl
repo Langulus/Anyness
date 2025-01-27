@@ -119,7 +119,7 @@ namespace Langulus::Anyness
    /// Get iterator to first element                                          
    ///   @return an iterator to the first element, or end if empty            
    TEMPLATE() LANGULUS(INLINED)
-   constexpr auto THive<T>::begin() noexcept -> Iterator<THive> {
+   constexpr auto THive<T>::begin() noexcept -> Iterator<true> {
       if (IsEmpty())
          return end();
 
@@ -136,14 +136,14 @@ namespace Langulus::Anyness
    }
 
    TEMPLATE() LANGULUS(INLINED)
-   constexpr auto THive<T>::begin() const noexcept -> Iterator<const THive> {
+   constexpr auto THive<T>::begin() const noexcept -> Iterator<false> {
       return const_cast<THive*>(this)->begin();
    }
 
    /// Get iterator to the last element                                       
    ///   @return an iterator to the last element, or end if empty             
    TEMPLATE() LANGULUS(INLINED)
-   constexpr auto THive<T>::last() noexcept -> Iterator<THive> {
+   constexpr auto THive<T>::last() noexcept -> Iterator<true> {
       if (IsEmpty())
          return end();
 
@@ -160,7 +160,7 @@ namespace Langulus::Anyness
    }
 
    TEMPLATE() LANGULUS(INLINED)
-   constexpr auto THive<T>::last() const noexcept -> Iterator<const THive> {
+   constexpr auto THive<T>::last() const noexcept -> Iterator<false> {
       return const_cast<THive*>(this)->last();
    }
 
@@ -302,8 +302,8 @@ namespace Langulus::Anyness
 
 
 
-#define TEMPLATE_IT() TEMPLATE() template<class HIVE>
-#define TME_IT() THive<T>::Iterator<HIVE>
+#define TEMPLATE_IT() TEMPLATE() template<bool MUTABLE>
+#define TME_IT() THive<T>::Iterator<MUTABLE>
 
 
    /// Construct an iterator                                                  
@@ -397,9 +397,9 @@ namespace Langulus::Anyness
       return *this != A::IteratorEnd {};
    }
 
-   /// Implicitly convert to a constant iterator                              
+   /// Implicitly convert to a immutable iterator                             
    TEMPLATE_IT() LANGULUS(INLINED)
-   constexpr TME_IT()::operator Iterator<const HIVE>() const noexcept requires Mutable {
+   constexpr TME_IT()::operator Iterator<false>() const noexcept requires Mutable {
       return {mCell, mCellEnd, mFrame, mFrameLast};
    }
 

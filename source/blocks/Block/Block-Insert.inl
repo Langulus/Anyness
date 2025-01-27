@@ -401,7 +401,7 @@ namespace Langulus::Anyness
    
    /// Construct an item of this container's type at the specified position   
    /// by forwarding A... as constructor arguments                            
-   /// Since this container is type-erased and exact constructor signatures   
+   /// If this container is type-erased and exact constructor signatures      
    /// aren't reflected, the following constructors will be attempted:        
    ///   1. If A is a single argument of exactly the same type, the reflected 
    ///      move constructor will be used, if available                       
@@ -444,8 +444,10 @@ namespace Langulus::Anyness
       ++mCount;
       if constexpr (TypeErased)
          return selection;
+      else if constexpr (Sparse)
+         return selection[0];
       else
-         return *selection.GetRaw(); //TODO should return a handle if sparse!
+         return *selection.GetRaw();
    }
    
    /// Wrap all contained elements inside a sub-block, making this one deep   
@@ -1715,6 +1717,42 @@ namespace Langulus::Anyness
             lhs.mRaw += size;
          }
       }
+   }
+
+   /// Overwrite a selected pointer                                           
+   ///   @param newPointer - the new pointer to set                           
+   ///   @return a reference to the selected pointer                          
+   template<CT::Sparse T>
+   auto LocalRef<T>::operator = (T newPointer) noexcept -> LocalRef& {
+      // Leverage handle code to overwrite pointer and reference        
+      Handle<T> interface {mPointer, mEntry};
+      interface.AssignWithIntent(Refer(newPointer));
+      return *this;
+   }
+
+   /// Construct a new item behind a selected pointer                         
+   ///   @param arguments.. - constructor arguments                           
+   ///   @return a reference to the selected pointer                          
+   template<CT::Sparse T> template<class...A>
+   auto LocalRef<T>::New(A&&...arguments) -> LocalRef& {
+      static_assert(::std::constructible_from<Deptr<T>, A...>,
+         "Type behind pointer isn't constructible with these arguments");
+      LANGULUS_ASSERT(mEntry, Construct,
+         "Can't create a new pointer inside a sparse block which is out of jurisdiction!");
+
+      // Leverage handle code to free the element, if valid             
+      Handle<T> interface {mPointer, mEntry};
+      interface.template FreeInner<false, true>();
+
+      // Analogous to what happens in Ref::New                          
+      using DT = Decvq<Deptr<T>>;
+      *mEntry = Allocator::Allocate(MetaDataOf<DT>(), sizeof(DT));
+      LANGULUS_ASSERT(*mEntry, Allocate, "Out of memory");
+      *mPointer = reinterpret_cast<DT*>((*mEntry)->GetBlockStart());
+      new (const_cast<DT*>(*mPointer)) DecvqAll<DT> {
+         Forward<A>(arguments)...
+      };
+      return *this;
    }
 
 } // namespace Langulus::Anyness

@@ -36,8 +36,12 @@ namespace Langulus::Anyness
    decltype(auto) Block<TYPE>::operator[] (CT::Index auto idx) {
       const auto index = SimplifyIndex(idx);
       LANGULUS_ASSERT(index < mCount, Access, "Index out of range");
-      if constexpr (TypeErased)  return GetElement(index);
-      else                       return GetRaw()[index];
+      if constexpr (TypeErased)
+         return GetElement(index);
+      else if constexpr (CT::Sparse<TYPE>)
+         return LocalRef {GetRaw() + index, mEntry ? GetEntries() + index : nullptr};
+      else
+         return GetRaw()[index];
    }
 
    template<class TYPE> LANGULUS(INLINED)
@@ -219,7 +223,7 @@ namespace Langulus::Anyness
             // Optimize if we're interpreting as a container            
             static_assert(CT::Deep<Decay<TYPE>>, "Type mismatch");
             const auto idx = SimplifyIndex(index);
-            auto& result = (*this)[idx];
+            auto& result = GetRaw()[idx];
 
             if constexpr (CT::Typed<T>) {
                // Additional check, if T is a typed block               
@@ -246,9 +250,9 @@ namespace Langulus::Anyness
             const auto idx = SimplifyIndex(index);
             Decvq<T> ptr;
             if constexpr (Sparse)
-               ptr = dynamic_cast<T>( (*this)[idx]);
+               ptr = dynamic_cast<T>( GetRaw()[idx]);
             else
-               ptr = dynamic_cast<T>(&(*this)[idx]);
+               ptr = dynamic_cast<T>(&GetRaw()[idx]);
             LANGULUS_ASSERT(ptr, Access, "Failed dynamic_cast");
             return ptr;
          }
@@ -258,15 +262,15 @@ namespace Langulus::Anyness
 
             if constexpr (CT::Sparse<T>) {
                if constexpr (Sparse)
-                  return static_cast<T >( (*this)[idx]);
+                  return static_cast<T >( GetRaw()[idx]);
                else
-                  return static_cast<T >(&(*this)[idx]);
+                  return static_cast<T >(&GetRaw()[idx]);
             }
             else {
                if constexpr (Sparse)
-                  return static_cast<T&>(*(*this)[idx]);
+                  return static_cast<T&>(*GetRaw()[idx]);
                else
-                  return static_cast<T&>( (*this)[idx]);
+                  return static_cast<T&>( GetRaw()[idx]);
             }
          }
       }

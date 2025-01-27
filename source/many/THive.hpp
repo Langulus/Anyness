@@ -106,14 +106,14 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Iteration                                                         
       ///                                                                     
-      template<class>
+      template<bool MUTABLE>
       struct Iterator;
 
-      constexpr auto begin()       noexcept -> Iterator<THive>;
-      constexpr auto begin() const noexcept -> Iterator<THive const>;
+      constexpr auto begin()       noexcept -> Iterator<true>;
+      constexpr auto begin() const noexcept -> Iterator<false>;
 
-      constexpr auto last()        noexcept -> Iterator<THive>;
-      constexpr auto last()  const noexcept -> Iterator<THive const>;
+      constexpr auto last()        noexcept -> Iterator<true>;
+      constexpr auto last()  const noexcept -> Iterator<false>;
 
       constexpr A::IteratorEnd end() const noexcept { return {}; }
 
@@ -177,10 +177,9 @@ namespace Langulus::Anyness
    ///                                                                        
    ///   Hive iterator                                                        
    ///                                                                        
-   template<CT::Data T> template<class HIVE>
+   template<CT::Data T> template<bool MUTABLE>
    struct THive<T>::Iterator {
-      static_assert(CT::Hive<HIVE>, "HIVE must be a CT::Hive type");
-      static constexpr bool Mutable = CT::Mutable<HIVE>;
+      static constexpr bool Mutable = MUTABLE;
 
       LANGULUS(ABSTRACT) false;
       LANGULUS(TYPED) T;
@@ -223,7 +222,10 @@ namespace Langulus::Anyness
       constexpr auto operator ++ (int) noexcept -> Iterator;
 
       constexpr explicit operator bool() const noexcept;
-      constexpr operator Iterator<const HIVE>() const noexcept requires Mutable;
+
+      // Implicit cast to an immutable iterator is allowed, but not vice
+      // versa                                                          
+      constexpr operator Iterator<false>() const noexcept requires Mutable;
    };
 
 } // namespace Langulus::Flow
