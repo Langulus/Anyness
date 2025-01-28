@@ -346,7 +346,7 @@ namespace Langulus::Anyness
 
          nextKey.Swap(key);
          GetValHandle<THIS>(wrapped).Swap(val);
-         mInfo[wrapped] = attempt + 1;
+         mInfo[wrapped] = static_cast<InfoType>(attempt + 1);
 
          // Where does the next element want to go?                     
          Offset moveTo2 = 0;
@@ -390,7 +390,7 @@ namespace Langulus::Anyness
          mInfo[current] = 0;
       }
 
-      mInfo[wrapped] = attempt + 1;
+      mInfo[wrapped] = static_cast<InfoType>(attempt + 1);
    }
 
    /// Rehashes and reinserts each pair in the same block                     
