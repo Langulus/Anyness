@@ -6,8 +6,8 @@
 /// SPDX-License-Identifier: GPL-3.0-or-later                                 
 ///                                                                           
 #pragma once
-#include <Core/Utilities.hpp>
-#include <RTTI/Assume.hpp>
+#include <Langulus/Core/Utilities.hpp>
+#include <Langulus/RTTI/Assume.hpp>
 
 
 namespace Langulus::Anyness

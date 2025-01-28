@@ -5,8 +5,8 @@
 ///                                                                           
 /// SPDX-License-Identifier: GPL-3.0-or-later                                 
 ///                                                                           
-#include <Anyness/Bytes.hpp>
-#include <Anyness/Text.hpp>
+#include <Langulus/Anyness/Bytes.hpp>
+#include <Langulus/Anyness/Text.hpp>
 #include "Common.hpp"
 
 

@@ -6,5 +6,4 @@
 /// SPDX-License-Identifier: GPL-3.0-or-later                                 
 ///                                                                           
 #pragma once
-#include "../../source/text/Text.inl"
-#include "../../source/maps/TMap.inl"
+#include "../../../source/TEdit.inl"

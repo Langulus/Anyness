@@ -6,4 +6,5 @@
 /// SPDX-License-Identifier: GPL-3.0-or-later                                 
 ///                                                                           
 #pragma once
-#include "../../source/maps/Map.inl"
+#include "../../../source/many/THive.inl"
+#include "../../../source/maps/TMap.inl"

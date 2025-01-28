@@ -8,9 +8,9 @@
 
 /// INTENTIONALLY NOT GUARDED                                                 
 /// Include this file once in each cpp file, after all other headers          
-#include <Anyness/Text.hpp>
-#include <Anyness/Trait.hpp>
-#include <Anyness/Many.hpp>
+#include <Langulus/Anyness/Text.hpp>
+#include <Langulus/Anyness/Trait.hpp>
+#include <Langulus/Anyness/Many.hpp>
 #include "../Common.hpp"
 
 

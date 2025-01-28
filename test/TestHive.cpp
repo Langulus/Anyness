@@ -6,7 +6,7 @@
 /// SPDX-License-Identifier: GPL-3.0-or-later                                 
 ///                                                                           
 #include "Main.hpp"
-#include <Anyness/THive.hpp>
+#include <Langulus/Anyness/THive.hpp>
 #include <catch2/catch.hpp>
 
 

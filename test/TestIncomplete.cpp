@@ -5,11 +5,11 @@
 ///                                                                           
 /// SPDX-License-Identifier: GPL-3.0-or-later                                 
 ///                                                                           
-#include <Anyness/Text.hpp>
-#include <Anyness/Trait.hpp>
-#include <Anyness/Own.hpp>
-#include <Anyness/Ref.hpp>
-#include <Anyness/TMap.hpp>
+#include <Langulus/Anyness/Text.hpp>
+#include <Langulus/Anyness/Trait.hpp>
+#include <Langulus/Anyness/Own.hpp>
+#include <Langulus/Anyness/Ref.hpp>
+#include <Langulus/Anyness/TMap.hpp>
 #include "Common.hpp"
 
 

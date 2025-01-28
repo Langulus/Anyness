@@ -5,7 +5,7 @@
 ///                                                                           
 /// SPDX-License-Identifier: GPL-3.0-or-later                                 
 ///                                                                           
-#include <Anyness/Neat.hpp>
+#include <Langulus/Anyness/Neat.hpp>
 #include "Common.hpp"
 
 

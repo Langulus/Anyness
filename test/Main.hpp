@@ -6,7 +6,7 @@
 /// SPDX-License-Identifier: GPL-3.0-or-later                                 
 ///                                                                           
 #pragma once
-#include <Anyness/Many.hpp>
+#include <Langulus/Anyness/Many.hpp>
 
 using namespace Langulus;
 using namespace Langulus::Anyness;

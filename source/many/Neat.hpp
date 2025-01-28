@@ -10,7 +10,7 @@
 #include "Trait.hpp"
 #include "Construct.hpp"
 #include "../maps/TMap.hpp"
-#include <Core/Sequences.hpp>
+#include <Langulus/Core/Sequences.hpp>
 
 
 namespace Langulus::Anyness

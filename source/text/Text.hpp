@@ -8,7 +8,7 @@
 #pragma once
 #include "../many/TMany.hpp"
 #include "../many/Bytes.hpp"
-#include <Logger/Logger.hpp> // Logger has some core fmt::formatters defined  
+#include <Langulus/Logger/Logger.hpp> // Logger has some core fmt::formatters defined  
 
 
 namespace Langulus::Anyness::Serial

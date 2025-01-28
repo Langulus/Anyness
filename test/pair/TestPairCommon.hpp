@@ -8,10 +8,10 @@
 
 /// INTENTIONALLY NOT GUARDED                                                 
 /// Include this file once in each cpp file, after all other headers          
-#include <Anyness/Text.hpp>
-#include <Anyness/Trait.hpp>
-#include <Anyness/Pair.hpp>
-#include <Anyness/TPair.hpp>
+#include <Langulus/Anyness/Text.hpp>
+#include <Langulus/Anyness/Trait.hpp>
+#include <Langulus/Anyness/Pair.hpp>
+#include <Langulus/Anyness/TPair.hpp>
 #include <unordered_map>
 #include "../many/TestManyCommon.hpp"
 

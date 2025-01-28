@@ -6,6 +6,4 @@
 /// SPDX-License-Identifier: GPL-3.0-or-later                                 
 ///                                                                           
 #pragma once
-#include "../../source/many/TMany.inl"
-#include "../../source/many/Bytes.inl"
-#include "../../source/maps/TMap.inl"
+#include "../../../source/many/TTrait.inl"

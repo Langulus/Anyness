@@ -8,10 +8,10 @@
 
 /// INTENTIONALLY NOT GUARDED                                                 
 /// Include this file once in each cpp file, after all other headers          
-#include <Anyness/Text.hpp>
-#include <Anyness/Trait.hpp>
-#include <Anyness/TSet.hpp>
-#include <Anyness/Set.hpp>
+#include <Langulus/Anyness/Text.hpp>
+#include <Langulus/Anyness/Trait.hpp>
+#include <Langulus/Anyness/TSet.hpp>
+#include <Langulus/Anyness/Set.hpp>
 #include <unordered_set>
 #include "../Common.hpp"
 
