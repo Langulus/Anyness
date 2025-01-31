@@ -286,7 +286,20 @@ namespace Langulus::Anyness
             if constexpr (PRECISION) {
                // We can truncate even more                             
                if (lastChar > dot + PRECISION) {
-                  --lastChar;
+                  if (lastChar == dot + PRECISION + 1 and *lastChar > '4') {
+                     // Round up                                        
+                     while (*lastChar == '9') {
+                        // Propagate up until <9 or .                   
+                        --lastChar;
+                     }
+
+                     if (*lastChar == '.')
+                        ++(*(--lastChar));
+                     else
+                        ++(*lastChar);
+                  }
+                  else --lastChar;
+
                   approximate = true;
                   continue;
                }
