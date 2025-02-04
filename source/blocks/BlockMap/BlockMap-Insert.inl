@@ -398,11 +398,11 @@ namespace Langulus::Anyness
          const Offset current = info - mInfo;
          auto key = [&] {
             if constexpr (ReusingKeys) return GetKeyHandle<THIS>(current);
-            else return oldKeys.GetKeyHandle<THIS>(current);
+            else return oldKeys.template GetKeyHandle<THIS>(current);
          }();
          auto val = [&] {
             if constexpr (ReusingVals) return GetValHandle<THIS>(current);
-            else return oldVals.GetValHandle<THIS>(current);
+            else return oldVals.template GetValHandle<THIS>(current);
          }();
 
          Offset moveTo = 0;
