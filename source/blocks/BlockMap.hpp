@@ -29,8 +29,15 @@ namespace Langulus
          static constexpr bool CTTI_Container = true;
          static constexpr bool Sequential = false;
          static constexpr Offset InvalidOffset = -1;
+
+         // Smallest possible table size                                
+         // Has to be a power-of-two                                    
          static constexpr Count MinimalAllocation = 8;
-         static constexpr Count AllowedMisses = 128;
+
+         // How many consecutive cells can be dedicated to a single     
+         // hash. The bigger the number, the more serial compares may   
+         // need to be performed per hash, but maps will be smaller.    
+         static constexpr InfoType AllowedMisses = 64;
 
       protected:
          // A precomputed pointer for the info/ordering bytes           
@@ -444,9 +451,9 @@ namespace Langulus::Anyness
       template<CT::Map>
       void AllocateFresh(Count);
       template<CT::Map, bool REUSE>
-      void AllocateData(Count);
+      bool AllocateData(Count);
       template<CT::Map>
-      void AllocateInner(Count);
+      void AllocateMore();
 
       template<CT::Map, bool DEEP = false>
       void Keep() const noexcept;
@@ -478,14 +485,9 @@ namespace Langulus::Anyness
       Size RequestKeyAndInfoSize(Count, Offset&) const IF_UNSAFE(noexcept);
       Size RequestValuesSize(Count) const IF_UNSAFE(noexcept);
       
-      template<CT::Map>
-      void RehashBoth(Count);
-      template<CT::Map>
-      void RehashKeys(BlockMap&);
-      template<CT::Map>
-      void RehashVals(BlockMap&);
-      template<CT::Map>
-      void RehashInner(const Count hashmask, const Offset current, Offset& moveTo, auto& key, auto& val);
+      template<CT::Map, class KEY_SOURCE, class VAL_SOURCE>
+      bool Rehash(const InfoType* oldInfo, Count oldCount, KEY_SOURCE&, VAL_SOURCE&);
+
       template<CT::Map>
       void ShiftPairs();
 
@@ -567,13 +569,13 @@ namespace Langulus::Anyness
       VA mValue;
 
       friend struct BlockMap;
-      const InfoType* mInfo;
-      const InfoType* mSentinel;
+      const InfoType* mInfo = nullptr;
+      const InfoType* mSentinel = nullptr;
 
       constexpr Iterator(const InfoType*, const InfoType*, const KA&, const VA&) noexcept;
 
    public:
-      Iterator() noexcept = delete;
+      constexpr Iterator() noexcept = default;
       constexpr Iterator(const Iterator&) noexcept = default;
       constexpr Iterator(Iterator&&) noexcept = default;
       constexpr Iterator(const A::IteratorEnd&) noexcept;
@@ -598,19 +600,20 @@ namespace Langulus::Anyness
          else                                   return *mValue;
       }
 
-      constexpr Iterator& operator = (const Iterator&) noexcept = default;
-      constexpr Iterator& operator = (Iterator&&) noexcept = default;
+      constexpr auto operator = (const Iterator&) noexcept -> Iterator& = default;
+      constexpr auto operator = (Iterator&&)      noexcept -> Iterator& = default;
 
       constexpr bool operator == (const Iterator&) const noexcept;
       constexpr bool operator == (const A::IteratorEnd&) const noexcept;
 
-      constexpr auto operator * () const;
+      constexpr auto operator *  () const;
+      constexpr auto operator -> () const noexcept { return &GetValue(); }
 
       // Prefix operator                                                
-      constexpr Iterator& operator ++ () noexcept;
+      constexpr auto operator ++ () noexcept -> Iterator&;
 
       // Suffix operator                                                
-      constexpr Iterator operator ++ (int) noexcept;
+      constexpr auto operator ++ (int) noexcept -> Iterator;
 
       constexpr explicit operator bool() const noexcept;
       constexpr operator Iterator<const MAP>() const noexcept requires Mutable {

@@ -517,24 +517,26 @@ namespace Langulus::Anyness
    /// Construct from end point                                               
    template<class T> LANGULUS(INLINED)
    constexpr BlockMap::Iterator<T>::Iterator(const A::IteratorEnd&) noexcept
-      : mKey {}
-      , mValue {} 
-      , mInfo {}
-      , mSentinel {} {}
+      : Iterator {} {}
 
    /// Prefix increment operator                                              
    /// Moves pointers to the right, unless end has been reached               
    ///   @return the modified iterator                                        
    template<class T> LANGULUS(INLINED)
-   constexpr BlockMap::Iterator<T>& BlockMap::Iterator<T>::operator ++ () noexcept {
-      if (mInfo == mSentinel)
-         return *this;
+   constexpr auto BlockMap::Iterator<T>::operator ++ () noexcept -> Iterator& {
+      LANGULUS_ASSUME(UserAssumes, mInfo < mSentinel,
+         "Don't ++ an iterator if end was reached");
 
       // Seek next valid info, or hit sentinel at the end               
       const auto previous = mInfo;
-      while (not *++mInfo)
-         ;
+      do ++mInfo;
+      while (not *mInfo);
 
+      // No point in doing anything if end was reached                  
+      if (mInfo >= mSentinel)
+         return *this;
+
+      // Move all pointers forward                                      
       const auto offset = mInfo - previous;
       if constexpr (CT::Typed<T>) {
          const_cast<KA&>(mKey)   += offset;
@@ -558,7 +560,7 @@ namespace Langulus::Anyness
    /// Moves pointers to the right, unless end has been reached               
    ///   @return the previous value of the iterator                           
    template<class T> LANGULUS(INLINED)
-   constexpr BlockMap::Iterator<T> BlockMap::Iterator<T>::operator ++ (int) noexcept {
+   constexpr auto BlockMap::Iterator<T>::operator ++ (int) noexcept -> Iterator {
       const auto backup = *this;
       operator ++ ();
       return backup;
@@ -585,8 +587,8 @@ namespace Langulus::Anyness
    ///   @return the pair at the current iterator position                    
    template<class T> LANGULUS(INLINED)
    constexpr auto BlockMap::Iterator<T>::operator * () const {
-      if (mInfo >= mSentinel)
-         LANGULUS_OOPS(Access, "Trying to access end of iteration");
+      LANGULUS_ASSUME(UserAssumes, mInfo < mSentinel,
+         "Accessing an end operator");
 
       const auto me = const_cast<Iterator<T>*>(this);
       using B = Conditional<CT::Mutable<T>, Block<>&, const Block<>&>;

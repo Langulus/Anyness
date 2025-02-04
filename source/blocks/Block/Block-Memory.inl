@@ -400,7 +400,7 @@ namespace Langulus::Anyness
                   --remaining;
                }
 
-               (raw++)->Reference(1);
+               DecvqCast(raw++)->Reference(1);
             }
          }
       }
@@ -570,7 +570,7 @@ namespace Langulus::Anyness
          and (DESTROY or mType->mReference)) {
             // Destroy every dense element                              
             // Notice that fully dereferenced elements WILL be destroyed
-            // regardless if DESTROY has been request or not            
+            // regardless if DESTROY has been requested or not          
             // This prevents leaks.                                     
             const auto count = not MASKED ? mCount : mReserved;
             auto data = mRaw;

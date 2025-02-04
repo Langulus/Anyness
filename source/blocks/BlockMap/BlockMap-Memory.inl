@@ -17,12 +17,22 @@ namespace Langulus::Anyness
    ///   @param count - number of pairs to allocate                           
    template<CT::Map THIS> LANGULUS(INLINED)
    void BlockMap::Reserve(const Count count) {
-      AllocateInner<THIS>(
-         Roof2(count < MinimalAllocation ? MinimalAllocation : count)
-      );
+      if (GetReserved()) {
+         while (count > GetReserved())
+            AllocateMore<THIS>();
+      }
+      else if (count) {
+         AllocateFresh<THIS>(
+            Roof2(count < MinimalAllocation ? MinimalAllocation : count)
+         );
+
+         // Zero the info array and set the sentinel at the end         
+         ZeroMemory(mInfo, GetReserved());
+         mInfo[GetReserved()] = 1;
+      }
    }
    
-   /// Allocate a fresh set keys and values (for internal use only)           
+   /// Allocate a fresh set of keys and values (for internal use only)        
    ///   @attention doesn't initialize anything, but the memory state         
    ///   @attention doesn't modify count, doesn't set info sentinel           
    ///   @attention assumes count is a power-of-two                           
@@ -59,8 +69,9 @@ namespace Langulus::Anyness
    ///   @attention assumes key and value types have been set prior           
    ///   @tparam REUSE - true to reallocate, false to allocate fresh          
    ///   @param count - the new number of pairs                               
+   ///   @return true if another resize is required after this one            
    template<CT::Map THIS, bool REUSE>
-   void BlockMap::AllocateData(const Count count) {
+   bool BlockMap::AllocateData(const Count count) {
       LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(count),
          "Table reallocation count is not a power-of-two");
       LANGULUS_ASSUME(DevAssumes, mKeys.mType and mValues.mType,
@@ -118,30 +129,17 @@ namespace Langulus::Anyness
          if (mKeys.mEntry == old.mKeys.mEntry
          or mValues.mEntry == old.mValues.mEntry) {
             // No escape from this scope                                
-            // Check if keys were reused                                
+            std::nullptr_t force_reuse;
+            bool continue_resizing;
             if (mKeys.mEntry == old.mKeys.mEntry) {
-               if (mValues.mEntry == old.mValues.mEntry) {
-                  // Both keys and values come from 'this'              
-                  // Reusing keys means reusing info, but it shifts     
-                  // Moving memory to account for potential overlap     
-                  //TODO is overlap really possible, if map always doubles??
-                  MoveMemory(mInfo, old.mInfo, old.GetReserved());
-                  // Make sure new info data is zeroed                  
-                  ZeroMemory(mInfo + old.GetReserved(), count - old.GetReserved());
-
-                  RehashBoth<THIS>(old.GetReserved());
-               }
-               else {
-                  // Keys come from 'this', values come from 'old'      
-                  RehashKeys<THIS>(old);
-               }
+               if (mValues.mEntry == old.mValues.mEntry)
+                  continue_resizing = Rehash<THIS>(old.mInfo, old.GetReserved(), force_reuse, force_reuse);
+               else
+                  continue_resizing = Rehash<THIS>(old.mInfo, old.GetReserved(), force_reuse, old);
             }
-            else {
-               // Keys come from 'old', values come from 'this'         
-               RehashVals<THIS>(old);
-            }
+            else continue_resizing = Rehash<THIS>(old.mInfo, old.GetReserved(), old, force_reuse);
 
-            return;
+            return continue_resizing;
          }
       }
 
@@ -150,24 +148,25 @@ namespace Langulus::Anyness
       if (old.IsEmpty()) {
          // There are no old values, the previous map was empty         
          // Just do an early return right here                          
-         return;
+         return false;
       }
 
       // If reached, then keys or values (or both) moved                
       // Reinsert all pairs to rehash                                   
       mKeys.mCount = 0;
 
-      [[maybe_unused]] auto& me = reinterpret_cast<const THIS&>(*this);
       auto key = old.GetKeyHandle<THIS>(0);
       auto val = old.GetValHandle<THIS>(0);
-      const auto hashmask = GetReserved() - 1;
       const auto infoend = old.GetInfoEnd();
 
+      // This should gracefully handle oversaturation by nesting        
+      // the AllocateData calls. Shouldn't affect anything but the      
+      // hashmask, because the iterators are in the old block...        
       while (old.mInfo != infoend) {
          if (*old.mInfo) {
             if constexpr (CT::TypedMap<THIS>) {
                InsertInner<THIS, false>(
-                  GetBucket(hashmask, key.Get()),
+                  GetBucket(GetReserved() - 1, key.Get()),
                   Abandon(key), Abandon(val)
                );
                key.FreeInner();
@@ -175,19 +174,15 @@ namespace Langulus::Anyness
             }
             else {
                InsertBlockInner<THIS, false>(
-                  GetBucketUnknown(hashmask, key),
+                  GetBucketUnknown(GetReserved() - 1, key),
                   Abandon(key), Abandon(val)
                );
 
-               if (key)
-                  key.FreeInner();
-               else
-                  key.mCount = 1;
+               if (key) key.FreeInner();
+               else key.mCount = 1;
 
-               if (val)
-                  val.FreeInner();
-               else
-                  val.mCount = 1;
+               if (val) val.FreeInner();
+               else val.mCount = 1;
             }
          }
 
@@ -200,11 +195,17 @@ namespace Langulus::Anyness
       if constexpr (REUSE) {
          // When reusing, keys and values can potentially remain same   
          // Avoid deallocating them if that's the case                  
-         if (old.mValues.mEntry != mValues.mEntry)
+         if (old.mValues.mEntry != mValues.mEntry) {
+            LANGULUS_ASSUME(DevAssumes, old.mValues.mEntry->GetUses() == 1,
+               "Shouln't happen");
             Allocator::Deallocate(const_cast<Allocation*>(old.mValues.mEntry));
+         }
 
-         if (old.mKeys.mEntry != mKeys.mEntry)
+         if (old.mKeys.mEntry != mKeys.mEntry) {
+            LANGULUS_ASSUME(DevAssumes, old.mKeys.mEntry->GetUses() == 1,
+               "Shouln't happen");
             Allocator::Deallocate(const_cast<Allocation*>(old.mKeys.mEntry));
+         }
       }
       else {
          // Not reusing, so either deallocate, or dereference           
@@ -222,24 +223,20 @@ namespace Langulus::Anyness
                Allocator::Deallocate(const_cast<Allocation*>(old.mValues.mEntry));
          }
       }
+
+      return false;
    }
 
-   /// Reserves space for the specified number of pairs                       
-   ///   @attention does nothing if reserving less than current reserve       
-   ///   @attention assumes count is a power-of-two number                    
-   ///   @param count - number of pairs to allocate                           
+   /// Doubles the reserved memory                                            
    template<CT::Map THIS> LANGULUS(INLINED)
-   void BlockMap::AllocateInner(Count count) {
-      // Shrinking is never allowed, you'll have to do it explicitly    
-      // via Compact()                                                  
-      if (count <= GetReserved())
-         return;
+   void BlockMap::AllocateMore() {
+      LANGULUS_ASSUME(DevAssumes, GetReserved(),
+         "Can't AllocateMore, needs to AllocateFresh first");
 
-      // Allocate/Reallocate the keys and info                          
       if (IsAllocated() and mKeys.GetUses() == 1 and mValues.GetUses() == 1)
-         AllocateData<THIS, true>(count);
+         while (AllocateData<THIS, true>(GetReserved() * 2));
       else
-         AllocateData<THIS, false>(count);
+         while (AllocateData<THIS, false>(GetReserved() * 2));
    }
    
    /// Reference memory block once                                            

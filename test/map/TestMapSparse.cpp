@@ -7,7 +7,6 @@
 ///                                                                           
 #include "TestMapCommon.hpp"
 
-
 #define MAP_TESTS(MANAGED) \
    (MapTest<TUnorderedMap<Text, Trait*>, Text, Trait*, MANAGED>), \
    (MapTest<UnorderedMap, Text, RT*, MANAGED>), \
@@ -289,9 +288,21 @@ TEMPLATE_TEST_CASE(
          for (auto& comparer : darray1)
             REQUIRE(map[comparer.mKey] == comparer.mValue);
 
+
+         /*Logger::SpecialTab("Map before: ");
+         for (auto p : map)
+            Logger::Append(p.mKey->As<Text>(), ", ");*/
+
          map << darray2[3];
-         for (auto& comparer : darray1)
+
+         /*Logger::SpecialTab("Map after: ");
+         for (auto p : map)
+            Logger::Append(p.mKey->As<Text>(), ", ");*/
+
+         for (auto& comparer : darray1) {
+            //Logger::Special("Searching for: ", comparer.mKey->As<Text>());
             REQUIRE(map[comparer.mKey] == comparer.mValue);
+         }
 
          map << darray2[4];
          for (auto& comparer : darray1)
@@ -848,6 +859,99 @@ TEMPLATE_TEST_CASE(
       DestroyPair<MANAGED>(i);
    for (auto& i : darray2std)
       DestroyPair<MANAGED>(i);
+
+   REQUIRE(memoryState.Assert());
+}
+
+TEMPLATE_TEST_CASE("Sparse templated map stress test", "[map]",
+   (MapTest<TUnorderedMap<int, int*>, int, int*>),
+   (MapTest<TUnorderedMap<int, Trait*>, int, Trait*>),
+   (MapTest<TUnorderedMap<int, Traits::Count*>, int, Traits::Count*>),
+   (MapTest<TUnorderedMap<int, Many*>, int, Many*>),
+
+   (MapTest<TOrderedMap<int, int*>, int, int*>),
+   (MapTest<TOrderedMap<int, Trait*>, int, Trait*>),
+   (MapTest<TOrderedMap<int, Traits::Count*>, int, Traits::Count*>),
+   (MapTest<TOrderedMap<int, Many*>, int, Many*>),
+
+   (MapTest<TUnorderedMap<int*, int>, int*, int>),
+   (MapTest<TUnorderedMap<int*, Trait>, int*, Trait>),
+   (MapTest<TUnorderedMap<int*, Traits::Count>, int*, Traits::Count>),
+   (MapTest<TUnorderedMap<int*, Many>, int*, Many>),
+
+   (MapTest<TOrderedMap<int*, int>, int*, int>),
+   (MapTest<TOrderedMap<int*, Trait>, int*, Trait>),
+   (MapTest<TOrderedMap<int*, Traits::Count>, int*, Traits::Count>),
+   (MapTest<TOrderedMap<int*, Many>, int*, Many>),
+
+   (MapTest<TUnorderedMap<int*, int*>, int*, int*>),
+   (MapTest<TUnorderedMap<int*, Trait*>, int*, Trait*>),
+   (MapTest<TUnorderedMap<int*, Traits::Count*>, int*, Traits::Count*>),
+   (MapTest<TUnorderedMap<int*, Many*>, int*, Many*>),
+
+   (MapTest<TOrderedMap<int*, int*>, int*, int*>),
+   (MapTest<TOrderedMap<int*, Trait*>, int*, Trait*>),
+   (MapTest<TOrderedMap<int*, Traits::Count*>, int*, Traits::Count*>),
+   (MapTest<TOrderedMap<int*, Many*>, int*, Many*>)
+) {
+   Allocator::CollectGarbage();
+   static Allocator::State memoryState;
+
+   using T = typename TestType::Container;
+   using K = typename TestType::Key;
+   using V = typename TestType::Value;
+
+   const V darray[5] {
+      CreateElement<V>(111),
+      CreateElement<V>(222),
+      CreateElement<V>(333),
+      CreateElement<V>(444),
+      CreateElement<V>(555)
+   };
+
+   GIVEN("Map with some items") {
+      T map {};
+
+      // Insert 5,000,000 elements at random places                     
+      // Tested with up to that many, but takes a lot of time, so i've  
+      // lowered the number. 14'980 has shown historically to be        
+      // associated with some bugs in the past, so it's a number of     
+      // interest.                                                      
+      for (int i = 0; i < 1'000; ++i) {
+         for (auto& item : darray) {
+            //if (i == 14'979)
+            //   Logger::Fatal("Break to debug");
+
+            map.Insert(CreateElement<K>(i), item);
+
+            // Check integrity                                          
+            Count iterated = 0;
+            for (auto pair : map)
+               ++iterated;
+
+            if (iterated != map.GetCount())
+               Logger::Fatal("Map integrity check failure after inserting ", i);
+
+            REQUIRE(iterated == map.GetCount());
+         }
+      }
+
+      WHEN("Iterated") {
+         Count iterated = 0;
+         for (auto pair : map)
+            ++iterated;
+
+         if constexpr (CT::Sparse<K>)
+            REQUIRE(iterated == 1'000*5);
+         else
+            REQUIRE(iterated == 1'000);
+      }
+   }
+
+   // Friendly note for a future Dimo: If you ever get memory manager   
+   // integrity failures, its due to lack of these destruction calls    
+   for (auto& i : darray)
+      DestroyElement(i);
 
    REQUIRE(memoryState.Assert());
 }

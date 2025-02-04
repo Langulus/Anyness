@@ -627,6 +627,9 @@ namespace Langulus::Anyness
    template<CT::Map THIS>
    bool BlockMap::BranchOut() {
       if (mKeys.GetUses() > 1) {
+         if (mKeys.GetUses() <= 1 or mValues.GetUses() <= 1)
+            TODO();
+
          LANGULUS_ASSUME(DevAssumes,
             mKeys.GetUses() > 1 and mValues.GetUses() > 1,
             "Shouldn't be possible"

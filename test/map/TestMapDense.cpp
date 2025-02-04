@@ -34,8 +34,7 @@ TEMPLATE_TEST_CASE(
    (MapTest<OrderedMap, Text, Traits::Count>),
    (MapTest<OrderedMap, Text, Many>)
 ) {
-   IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
-
+   Allocator::CollectGarbage();
    static Allocator::State memoryState;
 
    using T = typename TestType::Container;
@@ -218,7 +217,16 @@ TEMPLATE_TEST_CASE(
          for (auto& comparer : darray1)
             REQUIRE(map[comparer.mKey] == comparer.mValue);
 
+         /*Logger::SpecialTab("Map before: ");
+         for (auto p : map)
+            Logger::Append(p.mKey.As<Text>(), ", ");*/
+
          map << darray2[3];
+
+         /*Logger::SpecialTab("Map after: ");
+         for (auto p : map)
+            Logger::Append(p.mKey.As<Text>(), ", ");*/
+
          for (auto& comparer : darray1)
             REQUIRE(map[comparer.mKey] == comparer.mValue);
 
@@ -781,6 +789,55 @@ TEMPLATE_TEST_CASE(
 
          REQUIRE(i == map.GetCount());
          REQUIRE(i == done);
+      }
+   }
+
+   REQUIRE(memoryState.Assert());
+}
+
+TEMPLATE_TEST_CASE("Dense templated map stress test", "[map]",
+   (MapTest<TUnorderedMap<int, int>, int, int>),
+   (MapTest<TUnorderedMap<int, Trait>, int, Trait>),
+   (MapTest<TUnorderedMap<int, Traits::Count>, int, Traits::Count>),
+   (MapTest<TUnorderedMap<int, Many>, int, Many>),
+
+   (MapTest<TOrderedMap<int, int>, int, int>),
+   (MapTest<TOrderedMap<int, Trait>, int, Trait>),
+   (MapTest<TOrderedMap<int, Traits::Count>, int, Traits::Count>),
+   (MapTest<TOrderedMap<int, Many>, int, Many>)
+) {
+   Allocator::CollectGarbage();
+   static Allocator::State memoryState;
+
+   using T = typename TestType::Container;
+   using K = typename TestType::Key;
+   using V = typename TestType::Value;
+
+   const V darray[5] {
+      CreateElement<V>(111),
+      CreateElement<V>(222),
+      CreateElement<V>(333),
+      CreateElement<V>(444),
+      CreateElement<V>(555)
+   };
+
+   GIVEN("Map with some items") {
+      T map {};
+
+      // Insert 5,000,000 elements at random places                     
+      // Tested with up to that many, but takes a lot of time, so i've  
+      // lowered the number                                             
+      for (int i = 0; i < 2'000; ++i) {
+         for (auto& item : darray)
+            map.Insert(i, item);
+      }
+
+      WHEN("Iterated") {
+         Count iterated = 0;
+         for (auto pair : map)
+            ++iterated;
+
+         REQUIRE(iterated == 2'000);
       }
    }
 

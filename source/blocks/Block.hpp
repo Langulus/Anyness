@@ -340,9 +340,14 @@ namespace Langulus::Anyness
       auto operator -> () const noexcept { return *mPointer; }
 
       LANGULUS(ALWAYS_INLINED)
-      auto& operator * () const IF_UNSAFE(noexcept) {
+      decltype(auto) operator * () const IF_UNSAFE(noexcept) {
          LANGULUS_ASSUME(UserAssumes, *mPointer, "Dereferening null pointer");
          return **mPointer;
+      }
+
+      LANGULUS(ALWAYS_INLINED)
+      decltype(auto) operator & () const noexcept {
+         return mPointer;
       }
    };
 
@@ -1159,15 +1164,14 @@ namespace Langulus::Anyness
       using TypeInner = Conditional<B::TypeErased, B, Type*>;
 
       // Current iterator position pointer                              
-      TypeInner   mValue;
+      TypeInner   mValue = nullptr;
       // Iterator position which is considered the 'end' iterator       
-      Type const* mEnd;
+      Type const* mEnd = nullptr;
 
       constexpr TBlockIterator(const TypeInner&, Type const*) noexcept;
 
    public:
-      TBlockIterator() noexcept = delete;
-
+      constexpr TBlockIterator() noexcept = default;
       constexpr TBlockIterator(const TBlockIterator&) noexcept = default;
       constexpr TBlockIterator(TBlockIterator&&) noexcept = default;
       constexpr TBlockIterator(A::IteratorEnd) noexcept;

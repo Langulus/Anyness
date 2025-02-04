@@ -37,12 +37,6 @@ namespace Langulus::Anyness
          // And make sure that type is set to the contained value type  
          result.mType = mKeys.mType;
          return result;
-
-         /*auto result = Many::FromMeta(mKeys.mType);
-         result.AllocateFresh(result.RequestSize(1));
-         result.CreateWithIntent(S::Nest(key));
-         ++result.mCount;
-         return result;*/
       }
    }
 
@@ -69,12 +63,6 @@ namespace Langulus::Anyness
          // And make sure that type is set to the contained value type  
          result.mType = mValues.mType;
          return result;
-
-         /*auto result = Many::FromMeta(mValues.mType);
-         result.AllocateFresh(result.RequestSize(1));
-         result.CreateWithIntent(S::Nest(val));
-         ++result.mCount;
-         return result;*/
       }
    }
 
@@ -316,89 +304,17 @@ namespace Langulus::Anyness
       return valueByteSize;
    }
 
-   ///                                                                        
-   template<CT::Map THIS>
-   void BlockMap::RehashInner(const Count hashmask, const Offset current, Offset& moveTo, auto& key, auto& val) {
-      Offset attempt = 0;
-      Offset wrapped = moveTo + attempt >= GetReserved()
-         ? (moveTo + attempt) - GetReserved()
-         : moveTo + attempt;
-
-      while (mInfo[wrapped]) {
-         if (wrapped == current)
-            break; // Don't swap with self                              
-
-         // While there's something on the rehashed slot - swap         
-         // with it and continue swapping                               
-         auto nextKey = GetKeyHandle<THIS>(wrapped);
-         if constexpr (CT::TypedMap<THIS>) {
-            LANGULUS_ASSUME(DevAssumes, key.Get() != nextKey.Get(),
-               "Duplicated key - are map keys interfaced as static and change outside the map?"
-               " You should clone them when inserting!"
-            );
-         }
-         else {
-            LANGULUS_ASSUME(DevAssumes, key != nextKey,
-               "Duplicated key - are map keys interfaced as static and change outside the map?"
-               " You should clone them when inserting!"
-            );
-         }
-
-         nextKey.Swap(key);
-         GetValHandle<THIS>(wrapped).Swap(val);
-         mInfo[wrapped] = static_cast<InfoType>(attempt + 1);
-
-         // Where does the next element want to go?                     
-         Offset moveTo2 = 0;
-         if constexpr (CT::TypedMap<THIS>)
-            moveTo2 = GetBucket(hashmask, key.Get());
-         else
-            moveTo2 = GetBucketUnknown(hashmask, key);
-
-         // Does it want to return here again?                          
-         // If so, continuously insert next to it                       
-         if ((moveTo2 >= moveTo and moveTo2 <= moveTo + attempt)
-         or (moveTo2 + GetReserved() >= moveTo
-            and moveTo2 + GetReserved() <= moveTo + attempt)) {
-            ++attempt;
-
-            wrapped = moveTo + attempt >= GetReserved()
-               ? (moveTo + attempt) - GetReserved()
-               : moveTo + attempt;
-
-            if (attempt == AllowedMisses) {
-               // Attempts go beyond the allowed count - the map        
-               // has to be widened further                             
-               throw Except::Overflow();
-            }
-         }
-         else {
-            moveTo = moveTo2;
-            attempt = 0;
-            wrapped = moveTo;
-         }
-      }
-
-      if (wrapped != current) {
-         // This is reached when an empty desired slot was found        
-         GetKeyHandle<THIS>(wrapped).CreateWithIntent(Abandon(key));
-         key.FreeInner();
-
-         GetValHandle<THIS>(wrapped).CreateWithIntent(Abandon(val));
-         val.FreeInner();
-
-         mInfo[current] = 0;
-      }
-
-      mInfo[wrapped] = static_cast<InfoType>(attempt + 1);
-   }
-
-   /// Rehashes and reinserts each pair in the same block                     
+   /// Rehashes the table, by optionally reusing parts of the map             
    ///   @attention assumes count and oldCount are power-of-two               
    ///   @attention assumes count > oldCount                                  
+   ///   @attention will deallocate oldKeys and oldVals if provided           
+   ///   @param oldInfo - pointer to old info (used only if reusing keys)     
    ///   @param oldCount - the old number of pairs                            
-   template<CT::Map THIS>
-   void BlockMap::RehashBoth(const Count oldCount) {
+   ///   @param oldKeys - source of keys (use nullptr to reuse the current)   
+   ///   @param oldVals - source of values (use nullptr to reuse the current) 
+   ///   @return true if map requires another resize and rehash (very rare)   
+   template<CT::Map THIS, class KEY_SOURCE, class VAL_SOURCE>
+   bool BlockMap::Rehash(const InfoType* oldInfo, const Count oldCount, KEY_SOURCE& oldKeys, VAL_SOURCE& oldVals) {
       LANGULUS_ASSUME(DevAssumes, mKeys.mReserved > oldCount,
          "New count is not larger than oldCount");
       LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(mKeys.mReserved),
@@ -406,186 +322,235 @@ namespace Langulus::Anyness
       LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(oldCount),
          "Old count is not a power-of-two");
 
-      // Keys were reused, but their entries shift forward              
-      if (IsKeySparse<THIS>()) {
-         MoveMemory(
-            mKeys.mRawSparse + GetReserved(),
-            mKeys.mRawSparse + oldCount,
-            oldCount
-         );
-      };
+      constexpr bool ReusingKeys = CT::Nullptr<KEY_SOURCE>;
+      constexpr bool ReusingVals = CT::Nullptr<VAL_SOURCE>;
+      static_assert(ReusingKeys or ReusingVals,
+         "No need for a rehash call when nothing is reused "
+         "- just reinsert instead"
+      );
 
-      // Vals were reused, but their entries shift forward              
-      if (IsValueSparse<THIS>()) {
-         MoveMemory(
-            mValues.mRawSparse + GetReserved(),
-            mValues.mRawSparse + oldCount,
-            oldCount
-         );
-      };
-            
+      if (IsEmpty()) {
+         ZeroMemory(mInfo, GetReserved());
+
+         // We should discard the old keys or values before returning   
+         if constexpr (not ReusingKeys) {
+            LANGULUS_ASSUME(DevAssumes, oldKeys.mKeys.mEntry->GetUses() == 1,
+               "Deallocating old keys data that is still in use");
+            Allocator::Deallocate(const_cast<Allocation*>(oldKeys.mKeys.mEntry));
+         }
+
+         if constexpr (not ReusingVals) {
+            LANGULUS_ASSUME(DevAssumes, oldVals.mValues.mEntry->GetUses() == 1,
+               "Deallocating old values data that is still in use");
+            Allocator::Deallocate(const_cast<Allocation*>(oldVals.mValues.mEntry));
+         }
+         return false;
+      }
+      else {
+         // Make sure new info data is zeroed                           
+         // Moving memory to account for overlap                        
+         // IT IS CRITICAL THAT THIS IS DONE BEFORE ENTRIES!            
+         MoveMemory(mInfo, oldInfo, oldCount);
+         ZeroMemory(mInfo + oldCount, GetReserved() - oldCount);
+      }
+
+      if constexpr (ReusingKeys) {
+         // Keys were reused, but their entries shift forward           
+         if (IsKeySparse<THIS>()) {
+            MoveMemory(
+               mKeys.mRawSparse + GetReserved(),
+               mKeys.mRawSparse + oldCount,
+               oldCount
+            );
+         };
+      }
+
+      if constexpr (ReusingVals) {
+         // Vals were reused, but their entries shift forward           
+         if (IsValueSparse<THIS>()) {
+            MoveMemory(
+               mValues.mRawSparse + GetReserved(),
+               mValues.mRawSparse + oldCount,
+               oldCount
+            );
+         };
+      }
+      
+      (void) oldInfo;
       auto info = mInfo;
       const auto infoend = info + oldCount;
       const auto hashmask = GetReserved() - 1;
+      constexpr auto MarkedForReinsertion = AllowedMisses;
 
+      // In order to minimize swaps, we do the rehash in three passes   
+      // First pass immediately moves any pair into an empty slot, if   
+      // such exists after a rehash (rehashing onto itself also counts).
+      // This provides the table with some breathing room. The rest of  
+      // the pairs are marked for next pass by their offset being       
+      // exactly AllowedMisses                                          
       while (info != infoend) {
-         if (*info) {
-            // Use the 'current' slot as a swapper                      
-            const Offset current = info - mInfo;
-            auto key = GetKeyHandle<THIS>(current);
-
-            // Where does the pair want to move after a rehash?         
-            Offset moveTo = 0;
-            if constexpr (CT::TypedMap<THIS>)
-               moveTo = GetBucket(hashmask, key.Get());
-            else
-               moveTo = GetBucketUnknown(hashmask, key);
-
-            // If it's the same position then we just move on, just     
-            // make sure that info has been set to 1                    
-            if (moveTo == current) {
-               mInfo[moveTo] = 1;
-               ++info;
-               continue;
-            }
-
-            auto val = GetValHandle<THIS>(current);
-            RehashInner<THIS>(hashmask, current, moveTo, key, val);
+         if (not *info) {
+            ++info;
+            continue;
          }
 
-         ++info;
-      }
-   }
-   
-   /// Rehashes and reinserts each key in the same block, and moves all       
-   /// values in from the provided block                                      
-   ///   @attention assumes count and oldCount are power-of-two               
-   ///   @attention assumes count > oldCount                                  
-   ///   @param old - the old block, where keys and values come from          
-   template<CT::Map THIS>
-   void BlockMap::RehashKeys(BlockMap& old) {
-      LANGULUS_ASSUME(DevAssumes, GetReserved() > old.GetReserved(),
-         "New count is not larger than oldCount");
-      LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(GetReserved()),
-         "New count is not a power-of-two");
+         // Where does the pair want to move after a rehash?            
+         const Offset current = info - mInfo;
+         auto key = [&] {
+            if constexpr (ReusingKeys) return GetKeyHandle<THIS>(current);
+            else return oldKeys.GetKeyHandle<THIS>(current);
+         }();
+         auto val = [&] {
+            if constexpr (ReusingVals) return GetValHandle<THIS>(current);
+            else return oldVals.GetValHandle<THIS>(current);
+         }();
 
-      // Keys were reused, but their entries shift forward              
-      if (IsKeySparse<THIS>()) {
-         MoveMemory(
-            mKeys.mRawSparse + GetReserved(),
-            mKeys.mRawSparse + old.GetReserved(),
-            old.GetReserved()
-         );
-      };
+         Offset moveTo = 0;
+         if constexpr (CT::TypedMap<THIS>)
+            moveTo = GetBucket(hashmask, key.Get());
+         else
+            moveTo = GetBucketUnknown(hashmask, key);
 
-      // Reusing keys means reusing info, but we still have to mark     
-      // which values have been initialized. So we move the info array  
-      // to a temporary, and rebuild the one in the map.                
-      TMany<InfoType> temp_info {Copy(MakeBlock(old.mInfo, old.GetReserved()))};
-      ZeroMemory(mInfo, GetReserved());
-
-      auto info = temp_info.GetRaw();
-      const auto infoend = info + old.GetReserved();
-      const auto hashmask = GetReserved() - 1;
-
-      while (info != infoend) {
-         if (*info) {
-            const Offset current = info - temp_info.GetRaw();
-            auto key = GetKeyHandle<THIS>(current);
-            auto val = GetValHandle<THIS>(current);
-            auto oldVal = old.GetValHandle<THIS>(current);
-            val.CreateWithIntent(Abandon(oldVal));
-            oldVal.FreeInner();
-
-            // Where does the pair want to move after a rehash?         
-            Offset moveTo = 0;
-            if constexpr (CT::TypedMap<THIS>)
-               moveTo = GetBucket(hashmask, key.Get());
-            else
-               moveTo = GetBucketUnknown(hashmask, key);
-
-            // If it's the same position, then just initialize value,   
-            // and make sure that info has been reset to 1              
-            if (moveTo == current) {
-               mInfo[moveTo] = 1;
-               ++info;
-               continue;
+         if (moveTo == current) {
+            // It rehashes onto itself                                  
+            // Reset the offset and don't forget to copy from sources   
+            if constexpr (not ReusingKeys) {
+               GetKeyHandle<THIS>(current).CreateWithIntent(Abandon(key));
+               key.FreeInner();
+            }
+            if constexpr (not ReusingVals) {
+               GetValHandle<THIS>(current).CreateWithIntent(Abandon(val));
+               val.FreeInner();
             }
 
-            RehashInner<THIS>(hashmask, current, moveTo, key, val);
+            *info = 1;
+         }
+         else if (not mInfo[moveTo]) {
+            // Immediately move it if destination is empty              
+            mInfo[moveTo] = 1;
+            GetKeyHandle<THIS>(moveTo).CreateWithIntent(Abandon(key));
+            GetValHandle<THIS>(moveTo).CreateWithIntent(Abandon(val));
+            key.FreeInner();
+            val.FreeInner();
+
+            *info = 0;
+         }
+         else {
+            // Other mark for stage 2. Just make sure data that is from 
+            // outside is moved in                                      
+            if constexpr (not ReusingKeys) {
+               GetKeyHandle<THIS>(current).CreateWithIntent(Abandon(key));
+               key.FreeInner();
+            }
+            if constexpr (not ReusingVals) {
+               GetValHandle<THIS>(current).CreateWithIntent(Abandon(val));
+               val.FreeInner();
+            }
+
+            *info = MarkedForReinsertion;
          }
 
          ++info;
       }
 
-      // We can discard the old values                                  
-      LANGULUS_ASSUME(DevAssumes, old.mValues.mEntry->GetUses() == 1,
-         "Deallocating old values data that is still in use");
-      Allocator::Deallocate(const_cast<Allocation*>(old.mValues.mEntry));
-   }
-   
-   /// Rehashes and reinserts each value in the same block, and moves all     
-   /// keys in from the provided block                                        
-   ///   @attention assumes count and oldCount are power-of-two               
-   ///   @attention assumes count > oldCount                                  
-   ///   @param old - the old block, where keys and values come from          
-   template<CT::Map THIS>
-   void BlockMap::RehashVals(BlockMap& old) {
-      LANGULUS_ASSUME(DevAssumes, GetReserved() > old.GetReserved(),
-         "New count is not larger than oldCount");
-      LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(GetReserved()),
-         "New count is not a power-of-two");
+      // We can discard the old keys or values at this point, because   
+      // the second stage works only with local stuff                   
+      if constexpr (not ReusingKeys) {
+         LANGULUS_ASSUME(DevAssumes, oldKeys.mKeys.mEntry->GetUses() == 1,
+            "Deallocating old keys data that is still in use");
+         Allocator::Deallocate(const_cast<Allocation*>(oldKeys.mKeys.mEntry));
+      }
 
-      // Vals were reused, but their entries shift forward              
-      if (IsValueSparse<THIS>()) {
-         MoveMemory(
-            mValues.mRawSparse + GetReserved(),
-            mValues.mRawSparse + old.GetReserved(),
-            old.GetReserved()
-         );
-      };
+      if constexpr (not ReusingVals) {
+         LANGULUS_ASSUME(DevAssumes, oldVals.mValues.mEntry->GetUses() == 1,
+            "Deallocating old values data that is still in use");
+         Allocator::Deallocate(const_cast<Allocation*>(oldVals.mValues.mEntry));
+      }
 
-      // Not reusing keys means not reusing info                        
-      ZeroMemory(mInfo, GetReserved());
-
-      auto info = old.GetInfo();
-      const auto infoend = old.GetInfoEnd();
-      const auto hashmask = GetReserved() - 1;
-
+      // The second pass is interested only in pairs that have offset   
+      // of exactly AllowedMisses. A duplicate is inserted by as many   
+      // swaps as needed, after which the old slot is freed.            
+      info = mInfo;
       while (info != infoend) {
-         if (*info) {
-            const Offset current = info - old.GetInfo();
-            auto key = GetKeyHandle<THIS>(current);
-            auto val = GetValHandle<THIS>(current);
-            auto oldKey = old.GetKeyHandle<THIS>(current);
-            key.CreateWithIntent(Abandon(oldKey));
-            oldKey.FreeInner();
-
-            // Where does the pair want to move after a rehash?         
-            Offset moveTo = 0;
-            if constexpr (CT::TypedMap<THIS>)
-               moveTo = GetBucket(hashmask, key.Get());
-            else
-               moveTo = GetBucketUnknown(hashmask, key);
-
-            // If it's the same position, then just initialize key, and 
-            // make sure that info has been set to 1                    
-            if (moveTo == current) {
-               mInfo[moveTo] = 1;
-               ++info;
-               continue;
-            }
-
-            RehashInner<THIS>(hashmask, current, moveTo, key, val);
+         if (*info != MarkedForReinsertion) {
+            ++info;
+            continue;
          }
 
+         // Where does the pair want to move after a rehash?            
+         const Offset current = info - mInfo;
+         auto key = GetKeyHandle<THIS>(current);
+         auto val = GetValHandle<THIS>(current);
+         Offset moveTo = 0;
+         if constexpr (CT::TypedMap<THIS>)
+            moveTo = GetBucket(hashmask, key.Get());
+         else
+            moveTo = GetBucketUnknown(hashmask, key);
+
+         // Insert, swap if we have to                                  
+         {
+            // This is like a simplified InsertInner, keep it in sync   
+            // Get the starting index based on the key hash             
+            auto psl = mInfo + moveTo;
+            const auto pslEnd = GetInfoEnd();
+            InfoType attempts = 1;
+            while (*psl) {
+               const auto index = psl - GetInfo();
+               if (attempts > *psl) {
+                  // Pair we're inserting is closer to bucket, so swap  
+                  GetKeyHandle<THIS>(index).Swap(key);
+                  GetValHandle<THIS>(index).Swap(val);
+                  ::std::swap(attempts, *psl);
+               }
+
+               if (attempts >= AllowedMisses) {
+                  // Oh boy, we need a resize while resizing!           
+                  // Stop whatever we're doing, just dump the last thing
+                  // anywhere that is empty. The offsets will be wrong  
+                  // but it doesn't matter mid-rehashing. Just inform   
+                  // we need another one, and it should tidy things up. 
+                  // This can repeat indefinitely until RAM ends.       
+                  Logger::Special("Sequential resize triggered, ", GetCount(), "/", GetReserved(), " full");
+                  Offset last = 0;
+                  while (mInfo[last] and last < GetReserved())
+                     ++last;
+
+                  LANGULUS_ASSUME(DevAssumes, last < GetReserved(),
+                     "Shouldn't ever happen, but better safe than sorry");
+
+                  GetKeyHandle<THIS>(last).CreateWithIntent(Abandon(key));
+                  GetValHandle<THIS>(last).CreateWithIntent(Abandon(val));
+                  key.FreeInner();
+                  val.FreeInner();
+                  mInfo[last] = 1;
+                  return true;
+               }
+
+               ++attempts;
+
+               // Wrap around and start from the beginning if we have to
+               if (psl < pslEnd - 1) ++psl;
+               else psl = mInfo;
+            }
+
+            const auto index = psl - GetInfo();
+            LANGULUS_ASSUME(DevAssumes, current != index,
+               "Shouldn't ever happen, but better safe than sorry");
+
+            GetKeyHandle<THIS>(index).CreateWithIntent(Abandon(key));
+            GetValHandle<THIS>(index).CreateWithIntent(Abandon(val));
+            key.FreeInner();
+            val.FreeInner();
+            *psl = attempts;
+         }
+
+         *info = 0;
          ++info;
       }
 
-      // We can discard the old keys                                    
-      LANGULUS_ASSUME(DevAssumes, old.mKeys.mEntry->GetUses() == 1,
-         "Deallocating old keys data that is still in use");
-      Allocator::Deallocate(const_cast<Allocation*>(old.mKeys.mEntry));
+      // Third pass shifts element left wherever possible to fill haps  
+      ShiftPairs<THIS>();
+      return false;
    }
    
    /// Shift elements left where possible                                     
@@ -619,21 +584,23 @@ namespace Langulus::Anyness
                if (not mInfo[to] and attempt < *oldInfo) {
                   // Empty spot found, so move pair there               
                   auto key = GetKeyHandle<THIS>(oldIndex);
-                  GetKeyHandle<THIS>(to).CreateWithIntent(Abandon(key));
-                  key.FreeInner();
-
                   auto val = GetValHandle<THIS>(oldIndex);
+                  GetKeyHandle<THIS>(to).CreateWithIntent(Abandon(key));
                   GetValHandle<THIS>(to).CreateWithIntent(Abandon(val));
+                  key.FreeInner();
                   val.FreeInner();
 
                   mInfo[to] = attempt;
                   *oldInfo = 0;
                   ++moves_performed;
+                  //Logger::Verbose(Logger::Red, oldIndex, " shifted to ", to);
                }
             }
 
             ++oldInfo;
          }
+
+         //Logger::Verbose(moves_performed, " moves performed");
 
       } while (moves_performed);
    }
@@ -647,7 +614,7 @@ namespace Langulus::Anyness
    ///   @param val - value to insert, with or without intent                 
    ///   @return the offset at which pair was inserted                        
    template<CT::Map THIS, bool CHECK_FOR_MATCH>
-   Offset BlockMap::InsertInner(const Offset start, auto&& key, auto&& val) {
+   Offset BlockMap::InsertInner(Offset start, auto&& key, auto&& val) {
       BranchOut<THIS>();
       using SK = IntentOf<decltype(key)>;
       using SV = IntentOf<decltype(val)>;
@@ -656,7 +623,7 @@ namespace Langulus::Anyness
 
       // Get the starting index based on the key hash                   
       auto psl = GetInfo() + start;
-      const auto pslEnd = GetInfoEnd();
+      auto pslEnd = GetInfoEnd();
       InfoType attempts = 1;
       Offset insertedAt = mKeys.mReserved;
       while (*psl) {
@@ -680,13 +647,34 @@ namespace Langulus::Anyness
                insertedAt = index;
          }
 
-         ++attempts;
+         if (attempts >= AllowedMisses) {
+            // Oops, this is bad - we've reached the limit of the       
+            // robin-hood algorithm. The map is too saturated, and we   
+            // need to widen its table. We should also do it while      
+            // conscious of the loop we're in currently, so that we     
+            // don't break anything.                                    
+            Logger::Special("Attempt will go out of bounds (", AllowedMisses,
+               ") - map is ", GetCount(), "/", GetReserved(), " full");
 
-         if (attempts == AllowedMisses) {
-            // Attempts go beyond the allowed count - the map has to    
-            // be widened further                                       
-            throw Except::Overflow();
+            // Make map twice as big. This will invalidate any iterator 
+            // Can repeat indefinitely                                  
+            while (AllocateData<THIS, true>(GetReserved() * 2));
+
+            // Rehash the key that currently resides in keyswapper      
+            if constexpr (CT::TypedMap<THIS>)
+               start = GetBucket(GetReserved() - 1, keyswapper.Get());
+            else
+               start = GetBucketUnknown(GetReserved() - 1, keyswapper);
+
+            // Refresh all local variables before continuing the loop   
+            psl = GetInfo() + start;
+            pslEnd = GetInfoEnd();
+            attempts = 1;
+            // Continue as if nothing had happened                      
+            continue;
          }
+
+         ++attempts;
 
          // Wrap around and start from the beginning if we have to      
          if (psl < pslEnd - 1)
@@ -708,7 +696,7 @@ namespace Langulus::Anyness
 
       *psl = attempts;
       ++mKeys.mCount;
-      return insertedAt;
+      return insertedAt; //TODO insertedAt will mostly likely be invalid if (attempts >= AllowedMisses) branch happened!!!!! can't figure out a way to compensate for that :(
    }
    
    /// Inner insertion function based on reflected move-assignment            
@@ -753,6 +741,9 @@ namespace Langulus::Anyness
             if (insertedAt == mKeys.mReserved)
                insertedAt = index;
          }
+
+         LANGULUS_ASSUME(DevAssumes, attempts < AllowedMisses,
+            "Attempt will go out of bounds");
 
          ++attempts;
 
@@ -802,16 +793,16 @@ namespace Langulus::Anyness
          // Insert a statically typed pair                              
          InsertInner<THIS, CHECK_FOR_MATCH>(
             GetBucket(hashmask, pair->mKey),
-            S<T>::Nest(pair->GetKeyHandle()),
-            S<T>::Nest(pair->GetValueHandle())
+            pair.Nest(pair->GetKeyHandle()),
+            pair.Nest(pair->GetValueHandle())
          );
       }
       else {
          // Insert a type-erased pair                                   
          InsertBlockInner<THIS, CHECK_FOR_MATCH>(
             GetBucketUnknown(hashmask, pair->mKey),
-            S<T>::Nest(pair->mKey),
-            S<T>::Nest(pair->mValue)
+            pair.Nest(pair->mKey),
+            pair.Nest(pair->mValue)
          );
       }
       return GetCount() - initialCount;
