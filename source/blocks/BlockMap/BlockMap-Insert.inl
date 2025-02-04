@@ -510,7 +510,7 @@ namespace Langulus::Anyness
                   // but it doesn't matter mid-rehashing. Just inform   
                   // we need another one, and it should tidy things up. 
                   // This can repeat indefinitely until RAM ends.       
-                  Logger::Special("Sequential resize triggered, ", GetCount(), "/", GetReserved(), " full");
+                  //Logger::Special("Sequential resize triggered, ", GetCount(), "/", GetReserved(), " full");
                   Offset last = 0;
                   while (mInfo[last] and last < GetReserved())
                      ++last;
@@ -653,8 +653,8 @@ namespace Langulus::Anyness
             // need to widen its table. We should also do it while      
             // conscious of the loop we're in currently, so that we     
             // don't break anything.                                    
-            Logger::Special("Attempt will go out of bounds (", AllowedMisses,
-               ") - map is ", GetCount(), "/", GetReserved(), " full");
+            //Logger::Special("Attempt will go out of bounds (", AllowedMisses,
+            //   ") - map is ", GetCount(), "/", GetReserved(), " full");
 
             // Make map twice as big. This will invalidate any iterator 
             // Can repeat indefinitely                                  
