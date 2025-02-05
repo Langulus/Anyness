@@ -834,8 +834,10 @@ TEMPLATE_TEST_CASE("Dense templated map stress test", "[map]",
 
       WHEN("Iterated") {
          Count iterated = 0;
-         for (auto pair : map)
+         for (auto pair : map) {
+            (void) pair;
             ++iterated;
+         }
 
          REQUIRE(iterated == 2'000);
       }

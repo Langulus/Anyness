@@ -926,8 +926,10 @@ TEMPLATE_TEST_CASE("Sparse templated map stress test", "[map]",
 
             // Check integrity                                          
             Count iterated = 0;
-            for (auto pair : map)
+            for (auto pair : map) {
+               (void) pair;
                ++iterated;
+            }
 
             if (iterated != map.GetCount())
                Logger::Fatal("Map integrity check failure after inserting ", i);
@@ -938,8 +940,10 @@ TEMPLATE_TEST_CASE("Sparse templated map stress test", "[map]",
 
       WHEN("Iterated") {
          Count iterated = 0;
-         for (auto pair : map)
+         for (auto pair : map) {
+            (void) pair;
             ++iterated;
+         }
 
          if constexpr (CT::Sparse<K>)
             REQUIRE(iterated == 1'000*5);
