@@ -917,6 +917,8 @@ namespace Langulus::Anyness
                   while (ent != entEnd)
                      *(ent++) = allocation;
                   const_cast<Allocation*>(allocation)->Keep(mCount);
+                  if constexpr (CT::Referencable<Deptr<TYPE>>)
+                     (*GetRaw())->Reference(mCount);
                }
                else memset(ent, 0, mCount * sizeof(void*));
             }
@@ -925,7 +927,7 @@ namespace Langulus::Anyness
       }
       else {
          // Constructing type-erased items                              
-         // We expect, that type has been previously set                
+         // We expect that type has been previously set                 
          LANGULUS_ASSUME(DevAssumes, IsTyped(),
             "Block was expected to be typed");
 
@@ -963,6 +965,8 @@ namespace Langulus::Anyness
                         while (ent != entEnd)
                            *(ent++) = allocation;
                         const_cast<Allocation*>(allocation)->Keep(mCount);
+                        if (mType->mReference)
+                           mType->mReference(*GetRaw<void*>(), mCount);
                      }
                      else memset(ent, 0, mCount * sizeof(void*));
                   }

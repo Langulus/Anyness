@@ -64,19 +64,21 @@ namespace Langulus::Anyness
       using D = Deref<decltype(value)>;
       Count progress = 0;
 
-      ForEachDeep([&](const Deext<D>& data) {
-         if constexpr (CT::Array<D>) {
+      if constexpr (CT::Vector<D> or CT::Array<D>) {
+         ForEachDeep([&](const TypeOf<D>& data) {
             //TODO can be optimized-out for POD
             value[progress] = data;
             ++progress;
-            return (progress >= ExtentOf<D>) ? Loop::Break : Loop::Continue;
-         }
-         else {
+            return (progress >= CountOf<D>) ? Loop::Break : Loop::Continue;
+         });
+      }
+      else {
+         ForEachDeep([&](const D& data) {
             value = data;
             ++progress;
             return Loop::Break;
-         }
-      });
+         });
+      }
 
       return progress;
    }
@@ -90,18 +92,18 @@ namespace Langulus::Anyness
       Count progress = 0;
 
       ForEachDeep([&](const Many& group) {
-         if constexpr (CT::Array<D>) {
-            const auto toscan = ::std::min(ExtentOf<D> - progress, group.GetCount());
+         if constexpr (CT::Vector<D> or CT::Array<D>) {
+            const auto toscan = ::std::min(CountOf<D> - progress, group.GetCount());
             for (Offset i = 0; i < toscan; ++i) {
                //TODO can be optimized-out for POD
                try {
-                  value[progress] = group.template AsCast<Deext<D>>(i);
+                  value[progress] = group.template AsCast<TypeOf<D>>(i);
                   ++progress;
                }
                catch (...) {}
             }
 
-            return (progress >= ExtentOf<D>) ? Loop::Break : Loop::Continue;
+            return (progress >= CountOf<D>) ? Loop::Break : Loop::Continue;
          }
          else {
             try {
@@ -196,11 +198,9 @@ namespace Langulus::Anyness
             value = static_cast<const Many&>(trait);
             satisfied = true;
          }
-         else try {
-            value = trait.template AsCast<D>();
+         else if (trait.ExtractDataAs(value))
             satisfied = true;
-         }
-         catch (...) {}
+
          return Loop::Break;
       });
 
