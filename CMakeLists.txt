@@ -13,9 +13,9 @@ if (PROJECT_IS_TOP_LEVEL OR NOT LANGULUS)
 
     fetch_langulus_module(RTTI GIT_TAG 7939e19460c6f2518f5bc808577abea1894df65e)
     if(LANGULUS_FEATURE_MANAGED_MEMORY)
-        fetch_langulus_module(Fractalloc GIT_TAG 17e6b33093cc8a0bf8ba234227eceb757caa40d6)
+        fetch_langulus_module(Fractalloc GIT_TAG e5b0245cd29dd4b12d19e2173c67892a68b4264f)
     endif()
-    fetch_langulus_module(SIMD GIT_TAG d059ea5c1f428b35f670acbd21e149141788569e)
+    fetch_langulus_module(SIMD GIT_TAG 9f2931972c3f02ccf3371f6f8526ebc0b1952ba9)
 endif()
 
 file(GLOB_RECURSE

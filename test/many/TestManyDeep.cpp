@@ -10,8 +10,7 @@
 
 TEMPLATE_TEST_CASE("Deep sequential containers 1", "[any]", int, RT, int*, RT*) {
    BANK.Reset();
-   IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
-
+   (void) Allocator::CollectGarbage();
    static Allocator::State memoryState;
 
    static_assert(sizeof(A::Block) == sizeof(Block<>));
@@ -475,7 +474,7 @@ TEMPLATE_TEST_CASE("Deep sequential containers 1", "[any]", int, RT, int*, RT*) 
 }
 
 TEMPLATE_TEST_CASE("Deep sequential containers 2", "[any]", int, RT, int*, RT*) {
-   IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
+   (void) Allocator::CollectGarbage();
 
    static Allocator::State memoryState;
    static_assert(sizeof(A::Block) == sizeof(Block<>));

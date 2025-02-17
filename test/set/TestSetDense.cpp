@@ -37,8 +37,7 @@ TEMPLATE_TEST_CASE(
    (SetTest<OrderedSet, Traits::Count>),
    (SetTest<OrderedSet, Many>)
 ) {
-   IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
-
+   (void) Allocator::CollectGarbage();
    static Allocator::State memoryState;
 
    using T = typename TestType::Container;

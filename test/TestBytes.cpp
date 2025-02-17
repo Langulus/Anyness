@@ -11,15 +11,13 @@
 
 
 SCENARIO("Byte manipulation", "[bytes]") {
-   IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
+   (void) Allocator::CollectGarbage();
    static Allocator::State memoryState;
 
    GIVEN("An empty byte container") {
       Bytes data;
 
       WHEN("Capacity is reserved, via Allocate()") {
-         IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
-
          data.Reserve(500);
          auto memory = data.GetRaw();
 

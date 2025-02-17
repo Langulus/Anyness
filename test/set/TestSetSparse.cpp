@@ -53,8 +53,7 @@ TEMPLATE_TEST_CASE(
    SET_TESTS(false)
 ) {
 #endif
-   IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
-
+   (void) Allocator::CollectGarbage();
    static Allocator::State memoryState;
 
    using T = typename TestType::Container;

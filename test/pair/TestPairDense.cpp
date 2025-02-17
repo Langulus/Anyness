@@ -22,7 +22,7 @@ TEMPLATE_TEST_CASE("Dense TPair/Pair", "[pair]",
    (MapTest<Pair, Text, Traits::Count>),
    (MapTest<Pair, Text, Many>)
 ) {
-   IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
+   (void) Allocator::CollectGarbage();
    static Allocator::State memoryState;
 
    using T = typename TestType::Container;

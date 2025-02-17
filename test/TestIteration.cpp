@@ -10,7 +10,7 @@
 
 
 SCENARIO("Iterating containers", "[iteration]") {
-   IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
+   (void) Allocator::CollectGarbage();
 
    GIVEN("Templated Any with some POD items") {
       TMany<int> dense;

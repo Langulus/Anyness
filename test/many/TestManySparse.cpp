@@ -32,6 +32,7 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
    (TypePair<Many, Text*>),
    (TypePair<Many, RT*>)
 ) {
+   (void) Allocator::CollectGarbage();
    static Allocator::State memoryState;
 
    using T = typename TestType::LHS;
@@ -83,7 +84,6 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
 
       #ifdef LANGULUS_STD_BENCHMARK
          BENCHMARK_ADVANCED("default construction") (timer meter) {
-            IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
             some<uninitialized<T>> storage(meter.runs());
             meter.measure([&](int i) {
                return storage[i].construct();
@@ -91,7 +91,6 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
          };
 
          BENCHMARK_ADVANCED("std::vector::default construction") (timer meter) {
-            IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
             some<uninitialized<StdT>> storage(meter.runs());
             meter.measure([&](int i) {
                return storage[i].construct();
@@ -99,7 +98,6 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
          };
 
          BENCHMARK_ADVANCED("std::any::default construction") (timer meter) {
-            IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
             some<uninitialized<std::any>> storage(meter.runs());
             meter.measure([&](int i) {
                return storage[i].construct();
@@ -115,7 +113,6 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
 
          #ifdef LANGULUS_STD_BENCHMARK
             BENCHMARK_ADVANCED("operator = (single value copy)") (timer meter) {
-               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<T> storage(meter.runs());
                meter.measure([&](int i) {
                   return storage[i] = value;
@@ -123,7 +120,6 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
             };
 
             BENCHMARK_ADVANCED("std::vector::operator = (single value copy)") (timer meter) {
-               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<StdT> storage(meter.runs());
                meter.measure([&](int i) {
                   return storage[i] = {value};
@@ -131,7 +127,6 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
             };
 
             BENCHMARK_ADVANCED("std::any::operator = (single value copy)") (timer meter) {
-               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<std::any> storage(meter.runs());
                meter.measure([&](int i) {
                   return storage[i] = value;
@@ -163,7 +158,6 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
 
          #ifdef LANGULUS_STD_BENCHMARK
             BENCHMARK_ADVANCED("operator = (single value move)") (timer meter) {
-               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<T> storage(meter.runs());
                meter.measure([&](int i) {
                   return storage[i] = ::std::move(value);
@@ -171,7 +165,6 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
             };
 
             BENCHMARK_ADVANCED("std::vector::operator = (single value move)") (timer meter) {
-               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<StdT> storage(meter.runs());
                meter.measure([&](int i) {
                   return storage[i] = {::std::move(value)};
@@ -179,7 +172,6 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
             };
 
             BENCHMARK_ADVANCED("std::any::operator = (single value move)") (timer meter) {
-               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<std::any> storage(meter.runs());
                meter.measure([&](int i) {
                   return storage[i] = ::std::move(value);
@@ -204,7 +196,6 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
 
          #ifdef LANGULUS_STD_BENCHMARK
             BENCHMARK_ADVANCED("operator = (single disowned value)") (timer meter) {
-               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<T> storage(meter.runs());
                meter.measure([&](int i) {
                   return storage[i] = Disown(value);
@@ -212,7 +203,6 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
             };
 
             BENCHMARK_ADVANCED("std::vector::operator = (single value copy)") (timer meter) {
-               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<StdT> storage(meter.runs());
                meter.measure([&](int i) {
                   return storage[i] = {value};
@@ -220,7 +210,6 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
             };
 
             BENCHMARK_ADVANCED("std::any::operator = (single value copy)") (timer meter) {
-               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<std::any> storage(meter.runs());
                meter.measure([&](int i) {
                   return storage[i] = value;
@@ -248,27 +237,24 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
 
          #ifdef LANGULUS_STD_BENCHMARK
             BENCHMARK_ADVANCED("operator = (single cloned value)") (timer meter) {
-               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<T> storage(meter.runs());
                meter.measure([&](int i) {
                   return storage[i] = Clone(value);
-                  });
+               });
             };
 
             BENCHMARK_ADVANCED("std::vector::operator = (single value copy)") (timer meter) {
-               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<StdT> storage(meter.runs());
                meter.measure([&](int i) {
                   return storage[i] = {value};
-                  });
+               });
             };
 
             BENCHMARK_ADVANCED("std::any::operator = (single value copy)") (timer meter) {
-               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<std::any> storage(meter.runs());
                meter.measure([&](int i) {
                   return storage[i] = value;
-                  });
+               });
             };
          #endif
          }
@@ -283,7 +269,6 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
 
          #ifdef LANGULUS_STD_BENCHMARK
             BENCHMARK_ADVANCED("operator = (single abandoned value)") (timer meter) {
-               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<T> storage(meter.runs());
                meter.measure([&](int i) {
                   return storage[i] = Abandon(value);
@@ -291,7 +276,6 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
             };
 
             BENCHMARK_ADVANCED("std::vector::operator = (single value move)") (timer meter) {
-               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<StdT> storage(meter.runs());
                meter.measure([&](int i) {
                   return storage[i] = {::std::move(value)};
@@ -299,7 +283,6 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
             };
 
             BENCHMARK_ADVANCED("std::any::operator = (single value move)") (timer meter) {
-               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<std::any> storage(meter.runs());
                meter.measure([&](int i) {
                   return storage[i] = ::std::move(value);
@@ -315,7 +298,6 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
 
          #ifdef LANGULUS_STD_BENCHMARK
             BENCHMARK_ADVANCED("operator = (self)") (timer meter) {
-               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<T> storage(meter.runs());
                meter.measure([&](int i) {
                   return storage[i] = storage[i];
@@ -323,7 +305,6 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
             };
 
             BENCHMARK_ADVANCED("std::vector::operator = (self)") (timer meter) {
-               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<StdT> storage(meter.runs());
                meter.measure([&](int i) {
                   return storage[i] = storage[i];
@@ -331,7 +312,6 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
             };
 
             BENCHMARK_ADVANCED("std::any::operator = (self)") (timer meter) {
-               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<std::any> storage(meter.runs());
                meter.measure([&](int i) {
                   return storage[i] = storage[i];
@@ -900,7 +880,7 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
          const auto foreachit = const_cast<const T&>(pack).ForEach(
             [&](const int&)   {FAIL();},
             [&](const Trait&) {FAIL();},
-            [&](const Many&)   {FAIL();}
+            [&](const Many&)  {FAIL();}
          );
 
          REQUIRE(0 == foreachit);
@@ -910,7 +890,7 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
          const auto foreachit = const_cast<T&>(pack).ForEach(
             [&](int&)         {FAIL(); },
             [&](Trait&)       {FAIL(); },
-            [&](Many&)         {FAIL(); }
+            [&](Many&)        {FAIL(); }
          );
 
          REQUIRE(0 == foreachit);
@@ -920,7 +900,7 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
          const auto foreachit = const_cast<const T&>(pack).ForEach(
             [&](const int*)   {FAIL(); },
             [&](const Trait*) {FAIL(); },
-            [&](const Many*)   {FAIL(); }
+            [&](const Many*)  {FAIL(); }
          );
 
          REQUIRE(0 == foreachit);
@@ -930,7 +910,7 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
          const auto foreachit = const_cast<T&>(pack).ForEach(
             [&](int*)         {FAIL(); },
             [&](Trait*)       {FAIL(); },
-            [&](Many*)         {FAIL(); }
+            [&](Many*)        {FAIL(); }
          );
 
          REQUIRE(0 == foreachit);
@@ -940,7 +920,7 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
          const auto foreachit = const_cast<const T&>(pack).ForEachRev(
             [&](const int&)   {FAIL(); },
             [&](const Trait&) {FAIL(); },
-            [&](const Many&)   {FAIL(); }
+            [&](const Many&)  {FAIL(); }
          );
 
          REQUIRE(0 == foreachit);
@@ -950,7 +930,7 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
          const auto foreachit = pack.ForEachRev(
             [&](const int&)   {FAIL(); },
             [&](const Trait&) {FAIL(); },
-            [&](const Many&)   {FAIL(); }
+            [&](const Many&)  {FAIL(); }
          );
 
          REQUIRE(0 == foreachit);
@@ -960,7 +940,7 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
          const auto foreachit = const_cast<const T&>(pack).ForEachRev(
             [&](const int*)   {FAIL(); },
             [&](const Trait*) {FAIL(); },
-            [&](const Many*)   {FAIL(); }
+            [&](const Many*)  {FAIL(); }
          );
 
          REQUIRE(0 == foreachit);
@@ -970,7 +950,7 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
          const auto foreachit = pack.ForEachRev(
             [&](const int*)   {FAIL(); },
             [&](const Trait*) {FAIL(); },
-            [&](const Many*)   {FAIL(); }
+            [&](const Many*)  {FAIL(); }
          );
 
          REQUIRE(0 == foreachit);
@@ -996,7 +976,6 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
 
          #ifdef LANGULUS_STD_BENCHMARK
             BENCHMARK_ADVANCED("construction (single container copy)") (timer meter) {
-               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<uninitialized<T>> storage(meter.runs());
                meter.measure([&](int i) {
                   return storage[i].construct(source);
@@ -1004,7 +983,6 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
             };
 
             BENCHMARK_ADVANCED("std::vector::construction (single container copy)") (timer meter) {
-               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                StdT source {1, 555};
                some<uninitialized<StdT>> storage(meter.runs());
                meter.measure([&](int i) {
@@ -1013,7 +991,6 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
             };
 
             BENCHMARK_ADVANCED("std::any::construction (single container copy)") (timer meter) {
-               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                std::any source {555};
                some<uninitialized<std::any>> storage(meter.runs());
                meter.measure([&](int i) {
@@ -1042,7 +1019,6 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
 
          #ifdef LANGULUS_STD_BENCHMARK
             BENCHMARK_ADVANCED("construction (single value copy)") (timer meter) {
-               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<uninitialized<T>> storage(meter.runs());
                meter.measure([&](int i) {
                   return storage[i].construct(value);
@@ -1050,7 +1026,6 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
             };
 
             BENCHMARK_ADVANCED("std::vector::construction (single value copy)") (timer meter) {
-               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<uninitialized<StdT>> storage(meter.runs());
                meter.measure([&](int i) {
                   return storage[i].construct(1, value);
@@ -1058,7 +1033,6 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
             };
 
             BENCHMARK_ADVANCED("std::any::construction (single value copy)") (timer meter) {
-               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<uninitialized<std::any>> storage(meter.runs());
                meter.measure([&](int i) {
                   return storage[i].construct(value);
@@ -1084,7 +1058,6 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
 
             #ifdef LANGULUS_STD_BENCHMARK
                BENCHMARK_ADVANCED("operator = (single value copy)") (timer meter) {
-                  IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                   some<T> storage(meter.runs(), element);
                   meter.measure([&](int i) {
                      return storage[i] = value;
@@ -1092,7 +1065,6 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
                };
 
                BENCHMARK_ADVANCED("std::vector::operator = (single value copy)") (timer meter) {
-                  IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                   some<StdT> storage(meter.runs(), element);
                   meter.measure([&](int i) {
                      return storage[i] = {value};
@@ -1100,7 +1072,6 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
                };
 
                BENCHMARK_ADVANCED("std::any::operator = (single value copy)") (timer meter) {
-                  IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                   some<std::any> storage(meter.runs(), element);
                   meter.measure([&](int i) {
                      return storage[i] = value;
@@ -1128,7 +1099,6 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
 
             #ifdef LANGULUS_STD_BENCHMARK
                BENCHMARK_ADVANCED("operator = (single value move)") (timer meter) {
-                  IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                   some<T> storage(meter.runs(), element);
                   meter.measure([&](int i) {
                      return storage[i] = ::std::move(value);
@@ -1136,7 +1106,6 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
                };
 
                BENCHMARK_ADVANCED("std::vector::operator = (single value move)") (timer meter) {
-                  IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                   some<StdT> storage(meter.runs(), element);
                   meter.measure([&](int i) {
                      return storage[i] = {::std::move(value)};
@@ -1144,7 +1113,6 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
                };
 
                BENCHMARK_ADVANCED("std::any::operator = (single value move)") (timer meter) {
-                  IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                   some<std::any> storage(meter.runs(), element);
                   meter.measure([&](int i) {
                      return storage[i] = ::std::move(value);
@@ -1171,7 +1139,6 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
 
             #ifdef LANGULUS_STD_BENCHMARK
                BENCHMARK_ADVANCED("operator = (single disowned value)") (timer meter) {
-                  IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                   some<T> storage(meter.runs(), element);
                   meter.measure([&](int i) {
                      return storage[i] = Disown(value);
@@ -1179,7 +1146,6 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
                };
 
                BENCHMARK_ADVANCED("std::vector::operator = (single value copy)") (timer meter) {
-                  IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                   some<StdT> storage(meter.runs(), element);
                   meter.measure([&](int i) {
                      return storage[i] = {value};
@@ -1187,7 +1153,6 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
                };
 
                BENCHMARK_ADVANCED("std::any::operator = (single value copy)") (timer meter) {
-                  IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                   some<std::any> storage(meter.runs(), element);
                   meter.measure([&](int i) {
                      return storage[i] = value;
@@ -1215,7 +1180,6 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
 
             #ifdef LANGULUS_STD_BENCHMARK
                BENCHMARK_ADVANCED("operator = (single abandoned value)") (timer meter) {
-                  IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                   some<T> storage(meter.runs(), element);
                   meter.measure([&](int i) {
                      return storage[i] = Abandon(value);
@@ -1223,7 +1187,6 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
                };
 
                BENCHMARK_ADVANCED("std::vector::operator = (single value move)") (timer meter) {
-                  IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                   some<StdT> storage(meter.runs(), element);
                   meter.measure([&](int i) {
                      return storage[i] = {::std::move(value)};
@@ -1231,7 +1194,6 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
                };
 
                BENCHMARK_ADVANCED("std::any::operator = (single value move)") (timer meter) {
-                  IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                   some<std::any> storage(meter.runs(), element);
                   meter.measure([&](int i) {
                      return storage[i] = ::std::move(value);
@@ -1247,7 +1209,6 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
 
             #ifdef LANGULUS_STD_BENCHMARK
                BENCHMARK_ADVANCED("operator = (self)") (timer meter) {
-                  IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                   some<T> storage(meter.runs(), element);
                   meter.measure([&](int i) {
                      return storage[i] = storage[i];
@@ -1255,7 +1216,6 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
                };
 
                BENCHMARK_ADVANCED("std::vector::operator = (self)") (timer meter) {
-                  IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                   some<StdT> storage(meter.runs(), element);
                   meter.measure([&](int i) {
                      return storage[i] = storage[i];
@@ -1263,7 +1223,6 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
                };
 
                BENCHMARK_ADVANCED("std::any::operator = (self)") (timer meter) {
-                  IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                   some<std::any> storage(meter.runs(), element);
                   meter.measure([&](int i) {
                      return storage[i] = storage[i];
@@ -1281,7 +1240,6 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
 
          #ifdef LANGULUS_STD_BENCHMARK
             BENCHMARK_ADVANCED("operator = (self)") (timer meter) {
-               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<T> storage(meter.runs(), element);
                meter.measure([&](int i) {
                   return storage[i] = storage[i];
@@ -1289,7 +1247,6 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
             };
 
             BENCHMARK_ADVANCED("std::vector::operator = (self)") (timer meter) {
-               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<StdT> storage(meter.runs(), element);
                meter.measure([&](int i) {
                   return storage[i] = storage[i];
@@ -1297,7 +1254,6 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
             };
 
             BENCHMARK_ADVANCED("std::any::operator = (self)") (timer meter) {
-               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<std::any> storage(meter.runs(), element);
                meter.measure([&](int i) {
                   return storage[i] = storage[i];
@@ -1333,7 +1289,6 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
 
          #ifdef LANGULUS_STD_BENCHMARK
             BENCHMARK_ADVANCED("construction (single value move)") (timer meter) {
-               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<uninitialized<T>> storage(meter.runs());
                meter.measure([&](int i) {
                   return storage[i].construct(::std::move(value));
@@ -1341,7 +1296,6 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
             };
 
             BENCHMARK_ADVANCED("std::vector::construction (single value move)") (timer meter) {
-               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<uninitialized<StdT>> storage(meter.runs());
                meter.measure([&](int i) {
                   return storage[i].construct(1, ::std::move(value));
@@ -1349,7 +1303,6 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
             };
 
             BENCHMARK_ADVANCED("std::any::construction (single value move)") (timer meter) {
-               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<uninitialized<std::any>> storage(meter.runs());
                meter.measure([&](int i) {
                   return storage[i].construct(::std::move(value));
@@ -1380,7 +1333,6 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
 
          #ifdef LANGULUS_STD_BENCHMARK
             BENCHMARK_ADVANCED("construction (single disowned value)") (timer meter) {
-               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<uninitialized<T>> storage(meter.runs());
                meter.measure([&](int i) {
                   return storage[i].construct(Disowned(value));
@@ -1388,7 +1340,6 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
             };
 
             BENCHMARK_ADVANCED("std::vector::construction (single value copy)") (timer meter) {
-               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<uninitialized<StdT>> storage(meter.runs());
                meter.measure([&](int i) {
                   return storage[i].construct(1, value);
@@ -1396,7 +1347,6 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
             };
 
             BENCHMARK_ADVANCED("std::any::construction (single value copy)") (timer meter) {
-               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<uninitialized<std::any>> storage(meter.runs());
                meter.measure([&](int i) {
                   return storage[i].construct(value);
@@ -1430,7 +1380,6 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
 
          #ifdef LANGULUS_STD_BENCHMARK
             BENCHMARK_ADVANCED("construction (single abandoned value)") (timer meter) {
-               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<uninitialized<T>> storage(meter.runs());
                meter.measure([&](int i) {
                   return storage[i].construct(Abandon(value));
@@ -1438,7 +1387,6 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
             };
 
             BENCHMARK_ADVANCED("std::vector::construction (single value move)") (timer meter) {
-               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<uninitialized<StdT>> storage(meter.runs());
                meter.measure([&](int i) {
                   return storage[i].construct(1, ::std::move(value));
@@ -1446,7 +1394,6 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
             };
 
             BENCHMARK_ADVANCED("std::any::construction (single value move)") (timer meter) {
-               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<uninitialized<std::any>> storage(meter.runs());
                meter.measure([&](int i) {
                   return storage[i].construct(::std::move(value));
@@ -2169,7 +2116,7 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
          if constexpr (CT::Same<E, int>) {
             // Works only if E doesn't move entries around
             WHEN("Pack is reset, then immediately allocated again") {
-               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
+               (void) Allocator::CollectGarbage();
                pack.Reset();
                pack << darray2;
                REQUIRE(pack.GetRaw() == memory);

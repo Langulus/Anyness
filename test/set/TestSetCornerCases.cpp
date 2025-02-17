@@ -67,7 +67,7 @@ TEMPLATE_TEST_CASE("Set of outside-referenced elements", "[set]",
    UnorderedSet,
    OrderedSet
 ) {
-   IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
+   (void) Allocator::CollectGarbage();
    static Allocator::State memoryState;
    using T = TestType;
    TMany<RT> factory {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};

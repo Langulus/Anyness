@@ -70,8 +70,7 @@ TEMPLATE_TEST_CASE(
    MAP_TESTS(false)
 ) {
 #endif
-   IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
-
+   (void) Allocator::CollectGarbage();
    static Allocator::State memoryState;
 
    using T = typename TestType::Container;
@@ -894,7 +893,7 @@ TEMPLATE_TEST_CASE("Sparse templated map stress test", "[map]",
    (MapTest<TOrderedMap<int*, Traits::Count*>, int*, Traits::Count*>),
    (MapTest<TOrderedMap<int*, Many*>, int*, Many*>)
 ) {
-   Allocator::CollectGarbage();
+   (void) Allocator::CollectGarbage();
    static Allocator::State memoryState;
 
    using T = typename TestType::Container;

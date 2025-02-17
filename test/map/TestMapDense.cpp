@@ -34,7 +34,7 @@ TEMPLATE_TEST_CASE(
    (MapTest<OrderedMap, Text, Traits::Count>),
    (MapTest<OrderedMap, Text, Many>)
 ) {
-   Allocator::CollectGarbage();
+   (void) Allocator::CollectGarbage();
    static Allocator::State memoryState;
 
    using T = typename TestType::Container;
@@ -806,7 +806,7 @@ TEMPLATE_TEST_CASE("Dense templated map stress test", "[map]",
    (MapTest<TOrderedMap<int, Traits::Count>, int, Traits::Count>),
    (MapTest<TOrderedMap<int, Many>, int, Many>)
 ) {
-   Allocator::CollectGarbage();
+   (void) Allocator::CollectGarbage();
    static Allocator::State memoryState;
 
    using T = typename TestType::Container;
