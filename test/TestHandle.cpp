@@ -14,7 +14,7 @@ template<class T, class...FROM>
 TMany<T> CreateManagedElements(FROM&&...from) {
    static_assert(CT::MakableFrom<Decay<T>, Decay<FROM>...>);
 #if LANGULUS_FEATURE(MANAGED_MEMORY)
-   TMany<Decay<T>> base {DecayCast(from)...};
+   TMany<Decay<T>> base {TypedCast(from)...};
    if constexpr (CT::Similar<T, Decay<T>>)
       return base;
    else {
@@ -425,6 +425,10 @@ TEMPLATE_TEST_CASE("Handles from sequential containers", "[handle]",
    }
 
    REQUIRE(memoryState.Assert());
+
+   // Destroy BANK before static data - otherwise problems happen if    
+   // not using managed reflection                                      
+   BANK.Reset();
 }
 
 
@@ -648,4 +652,8 @@ TEMPLATE_TEST_CASE("Managed handle swapping", "[handle]", RT*, RT, int, int*) {
    }
 
    REQUIRE(memoryState.Assert());
+
+   // Destroy BANK before static data - otherwise problems happen if    
+   // not using managed reflection                                      
+   BANK.Reset();
 }

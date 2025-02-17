@@ -34,7 +34,10 @@ SCENARIO("Hashing different kinds of containers", "[hash]") {
       REQUIRE(HashOf(same1) == HashBytes("Same1", 5));
    }
 
+   // Destroy BANK before static data - otherwise problems happen if    
+   // not using managed reflection                                      
    BANK.Reset();
+
    REQUIRE_FALSE(Allocator::CollectGarbage());
 }
 
@@ -87,7 +90,10 @@ TEMPLATE_TEST_CASE(
       DestroyPair(pair);
    }
 
+   // Destroy BANK before static data - otherwise problems happen if    
+   // not using managed reflection                                      
    BANK.Reset();
+
    REQUIRE_FALSE(Allocator::CollectGarbage());
 }
 
@@ -131,6 +137,9 @@ TEMPLATE_TEST_CASE(
       DestroyElement(element);
    }
 
+   // Destroy BANK before static data - otherwise problems happen if    
+   // not using managed reflection                                      
    BANK.Reset();
+
    REQUIRE_FALSE(Allocator::CollectGarbage());
 }

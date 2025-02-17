@@ -5,9 +5,8 @@
 ///                                                                           
 /// SPDX-License-Identifier: GPL-3.0-or-later                                 
 ///                                                                           
-#include "Main.hpp"
 #include <Langulus/Anyness/THive.hpp>
-#include <catch2/catch.hpp>
+#include "Common.hpp"
 
 
 struct Producible : Referenced {
@@ -55,4 +54,8 @@ SCENARIO("Test hives", "[hive]") {
    const_cast<Producible&>(two).Reference(-1);
 
    REQUIRE(memoryState.Assert());
+
+   // Destroy BANK before static data - otherwise problems happen if    
+   // not using managed reflection                                      
+   BANK.Reset();
 }

@@ -51,4 +51,8 @@ SCENARIO("Testing incomplete type hierarchy", "[incomplete]") {
    GIVEN("A thing instance") {
       Thing thing;
    }
+
+   // Destroy BANK before static data - otherwise problems happen if    
+   // not using managed reflection                                      
+   BANK.Reset();
 }

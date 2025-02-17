@@ -552,4 +552,8 @@ SCENARIO("Iterating containers", "[iteration]") {
          REQUIRE(subpack3.GetUses() == 1);
       }
    }
+
+   // Destroy BANK before static data - otherwise problems happen if    
+   // not using managed reflection                                      
+   BANK.Reset();
 }

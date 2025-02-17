@@ -25,4 +25,8 @@ SCENARIO("Constructs", "[construct]") {
 	}
 
    REQUIRE(memoryState.Assert());
+
+   // Destroy BANK before static data - otherwise problems happen if    
+   // not using managed reflection                                      
+   BANK.Reset();
 }

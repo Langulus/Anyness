@@ -9,6 +9,7 @@
 #include "../Block.hpp"
 #include "../../text/Text.hpp"
 #include "Block-Indexing.inl"
+#include <Langulus/Core/Memory.hpp>
 
 
 namespace Langulus::Anyness
@@ -918,7 +919,7 @@ namespace Langulus::Anyness
                      *(ent++) = allocation;
                   const_cast<Allocation*>(allocation)->Keep(mCount);
                   if constexpr (CT::Referencable<Deptr<TYPE>>)
-                     (*GetRaw())->Reference(mCount);
+                     (*GetRaw())->Reference(static_cast<int>(mCount));
                }
                else memset(ent, 0, mCount * sizeof(void*));
             }
@@ -966,7 +967,7 @@ namespace Langulus::Anyness
                            *(ent++) = allocation;
                         const_cast<Allocation*>(allocation)->Keep(mCount);
                         if (mType->mReference)
-                           mType->mReference(*GetRaw<void*>(), mCount);
+                           mType->mReference(*GetRaw<void*>(), static_cast<int>(mCount));
                      }
                      else memset(ent, 0, mCount * sizeof(void*));
                   }

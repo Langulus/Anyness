@@ -7,6 +7,7 @@
 ///                                                                           
 #pragma once
 #include "../BlockSet.hpp"
+#include <Langulus/Core/Memory.hpp>
 
 
 namespace Langulus::Anyness

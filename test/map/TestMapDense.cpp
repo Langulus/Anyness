@@ -810,7 +810,7 @@ TEMPLATE_TEST_CASE("Dense templated map stress test", "[map]",
    static Allocator::State memoryState;
 
    using T = typename TestType::Container;
-   using K = typename TestType::Key;
+   //using K = typename TestType::Key;
    using V = typename TestType::Value;
 
    const V darray[5] {

@@ -25,7 +25,7 @@ namespace Langulus::Anyness
    T* AlignedAllocate(Offset size) noexcept {
       const auto finalSize = T::GetNewAllocationSize(size) + Alignment;
       const auto base = ::std::malloc(finalSize);
-      if (not base) UNLIKELY()
+      if (not base)
          return nullptr;
 
       // Align pointer to the alignment LANGULUS was built with         
@@ -49,14 +49,14 @@ namespace Langulus::Anyness
          consteval bool Assert() const noexcept { return true; }
       };
 
-      NOD() LANGULUS(INLINED)
+      LANGULUS(INLINED)
       static Allocation* Allocate(DMeta, Offset size) IF_UNSAFE(noexcept) {
          LANGULUS_ASSUME(DevAssumes, size, "Zero allocation is not allowed");
          return AlignedAllocate<Allocation>(size);
       }
 
-      NOD() LANGULUS(INLINED)
-      static Allocation* Reallocate(Offset size, UNUSED() Allocation* previous) IF_UNSAFE(noexcept) {
+      LANGULUS(INLINED)
+      static Allocation* Reallocate(Offset size, Allocation* previous) IF_UNSAFE(noexcept) {
          LANGULUS_ASSUME(DevAssumes, previous,
             "Reallocating nullptr");
          LANGULUS_ASSUME(DevAssumes, size != previous->GetAllocatedSize(),
@@ -66,6 +66,7 @@ namespace Langulus::Anyness
          LANGULUS_ASSUME(DevAssumes, previous->mReferences,
             "Deallocating an unused allocation");
 
+         (void) previous;
          return Allocator::Allocate(nullptr, size);
       }
 

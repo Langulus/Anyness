@@ -177,4 +177,8 @@ TEMPLATE_TEST_CASE("Shared pointer", "[Ref]",
    }
 
    REQUIRE(memoryState.Assert());
+
+   // Destroy BANK before static data - otherwise problems happen if    
+   // not using managed reflection                                      
+   BANK.Reset();
 }

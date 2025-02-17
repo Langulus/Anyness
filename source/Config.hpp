@@ -6,8 +6,7 @@
 /// SPDX-License-Identifier: GPL-3.0-or-later                                 
 ///                                                                           
 #pragma once
-#include <Langulus/Core/Common.hpp>
-#include <Langulus/RTTI/Meta.hpp>
+#include <Langulus/MetaOf.hpp>
 
 
 #if defined(LANGULUS_EXPORT_ALL) or defined(LANGULUS_EXPORT_ANYNESS)
@@ -18,7 +17,7 @@
 
 /// Enable memory manager                                                     
 #if LANGULUS_FEATURE(MANAGED_MEMORY)
-   #include <Langulus/Fractalloc/Allocator.hpp>
+   #include <Langulus/Fractalloc.hpp>
 #else
    #include "memory/NoAllocator.hpp"
 #endif

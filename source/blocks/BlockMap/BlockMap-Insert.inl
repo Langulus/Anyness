@@ -533,7 +533,7 @@ namespace Langulus::Anyness
                else psl = mInfo;
             }
 
-            const auto index = psl - GetInfo();
+            const Offset index = psl - GetInfo();
             LANGULUS_ASSUME(DevAssumes, current != index,
                "Shouldn't ever happen, but better safe than sorry");
 

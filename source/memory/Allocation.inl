@@ -7,7 +7,6 @@
 ///                                                                           
 #pragma once
 #include "Allocation.hpp"
-#include <Core/Utilities.hpp>
 
 
 namespace Langulus::Anyness
@@ -63,8 +62,8 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    constexpr Allocation::Allocation(Offset bytes, Pool* pool) noexcept
       : mAllocatedBytes {bytes}
-      , mReferences {1}
-      , mPool {pool} {}
+      , mReferences     {1}
+      , mPool           {pool} {}
 
    /// Get the size of the Allocation structure, rounded up for alignment     
    ///   @return the byte size of the entry, including alignment              
@@ -96,21 +95,21 @@ namespace Langulus::Anyness
    /// Check if the memory of the entry is in use                             
    ///   @return true if entry has any references                             
    LANGULUS(INLINED)
-   constexpr Count Allocation::GetUses() const noexcept {
+   auto Allocation::GetUses() const noexcept -> Count {
       return mReferences;
    }
 
    /// Return the end of usable block memory (always const)                   
    ///   @return pointer to the entry's memory end                            
    LANGULUS(INLINED)
-   Byte const* Allocation::GetBlockEnd() const noexcept {
+   auto Allocation::GetBlockEnd() const noexcept -> Byte const* {
       return GetBlockStart() + mAllocatedBytes;
    }
 
    /// Return the aligned start of usable block memory                        
    ///   @return pointer to the entry's publicly usable memory                
    LANGULUS(INLINED)
-   Byte* Allocation::GetBlockStart() const noexcept {
+   auto Allocation::GetBlockStart() const noexcept -> Byte* {
       const auto entryStart = reinterpret_cast<const Byte*>(this);
       return const_cast<Byte*>(entryStart + Allocation::GetSize());
    }
@@ -118,14 +117,14 @@ namespace Langulus::Anyness
    /// Get the total of the entry, and its allocated data, in bytes           
    ///   @return the byte size of the entry plus the usable region after it   
    LANGULUS(INLINED)
-   constexpr Offset Allocation::GetTotalSize() const noexcept {
+   Offset Allocation::GetTotalSize() const noexcept {
       return Allocation::GetSize() + mAllocatedBytes;
    }
 
    /// Get the number of allocated bytes in this entry                        
    ///   @return the byte size of usable memory region                        
    LANGULUS(INLINED)
-   constexpr Offset Allocation::GetAllocatedSize() const noexcept {
+   Offset Allocation::GetAllocatedSize() const noexcept {
       return mAllocatedBytes;
    }
 
@@ -154,8 +153,7 @@ namespace Langulus::Anyness
    ///   @return a pointer to the first element                               
    template<class T> LANGULUS(INLINED)
    T* Allocation::As() const noexcept {
-      return reinterpret_cast<T*>(
-         const_cast<Allocation*>(this)->GetBlockStart());
+      return reinterpret_cast<T*>(const_cast<Allocation*>(this)->GetBlockStart());
    }
 
    /// Reference the entry once                                               

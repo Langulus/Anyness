@@ -342,6 +342,10 @@ TEMPLATE_TEST_CASE("Testing text containers", "[text]",
    }
 
    REQUIRE(memoryState.Assert());
+
+   // Destroy BANK before static data - otherwise problems happen if    
+   // not using managed reflection                                      
+   BANK.Reset();
 }
 
 TEMPLATE_TEST_CASE("Unsigned number stringification", "[text]",
@@ -376,6 +380,10 @@ TEMPLATE_TEST_CASE("Unsigned number stringification", "[text]",
    }
 
    REQUIRE(memoryState.Assert());
+
+   // Destroy BANK before static data - otherwise problems happen if    
+   // not using managed reflection                                      
+   BANK.Reset();
 }
 
 TEMPLATE_TEST_CASE("Signed number stringification", "[text]", int8_t, int16_t, int32_t, int64_t) {
@@ -408,6 +416,10 @@ TEMPLATE_TEST_CASE("Signed number stringification", "[text]", int8_t, int16_t, i
    }
 
    REQUIRE(memoryState.Assert());
+
+   // Destroy BANK before static data - otherwise problems happen if    
+   // not using managed reflection                                      
+   BANK.Reset();
 }
 
 TEMPLATE_TEST_CASE("Logging text containers", "[text]", Text, Path) {
@@ -415,6 +427,10 @@ TEMPLATE_TEST_CASE("Logging text containers", "[text]", Text, Path) {
 
    Logger::Info() << "You should see " << text;
    Logger::Info("You should also see ", text);
+
+   // Destroy BANK before static data - otherwise problems happen if    
+   // not using managed reflection                                      
+   BANK.Reset();
 }
 
 TEMPLATE_TEST_CASE("Reflected coverters to text", "[text]", /*Stringifiable,*/ StringifiableConst) {
@@ -438,6 +454,10 @@ TEMPLATE_TEST_CASE("Reflected coverters to text", "[text]", /*Stringifiable,*/ S
    }
 
    REQUIRE(memoryState.Assert());
+
+   // Destroy BANK before static data - otherwise problems happen if    
+   // not using managed reflection                                      
+   BANK.Reset();
 }
 
 TEMPLATE_TEST_CASE("Text container interoperability", "[text]",
@@ -480,6 +500,10 @@ TEMPLATE_TEST_CASE("Text container interoperability", "[text]",
    }
 
    REQUIRE(memoryState.Assert());
+
+   // Destroy BANK before static data - otherwise problems happen if    
+   // not using managed reflection                                      
+   BANK.Reset();
 }
 
 TEMPLATE_TEST_CASE("Text container conversion at runtime", "[text]",
@@ -500,6 +524,10 @@ TEMPLATE_TEST_CASE("Text container conversion at runtime", "[text]",
    }
 
    REQUIRE(memoryState.Assert());
+
+   // Destroy BANK before static data - otherwise problems happen if    
+   // not using managed reflection                                      
+   BANK.Reset();
 }
 
 TEMPLATE_TEST_CASE("Containing literals", "[text]",
@@ -550,6 +578,10 @@ TEMPLATE_TEST_CASE("Containing literals", "[text]",
    }
 
    REQUIRE(memoryState.Assert());
+
+   // Destroy BANK before static data - otherwise problems happen if    
+   // not using managed reflection                                      
+   BANK.Reset();
 }
 
 void Text_CheckState_Default(const Text& text) {

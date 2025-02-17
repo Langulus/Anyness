@@ -6,7 +6,7 @@
 /// SPDX-License-Identifier: GPL-3.0-or-later                                 
 ///                                                                           
 #pragma once
-#include <RTTI/Meta.hpp>
+#include <Langulus/MetaOf.hpp>
 
 
 namespace Langulus::Anyness
@@ -64,20 +64,20 @@ namespace Langulus::Anyness
 
       constexpr Allocation(Offset, Pool*) noexcept;
 
-      NOD() static constexpr Offset GetSize() noexcept;
-      NOD() static constexpr Offset GetNewAllocationSize(Offset) noexcept;
-      NOD() static constexpr Offset GetMinAllocation() noexcept;
+      static constexpr Offset GetSize() noexcept;
+      static constexpr Offset GetNewAllocationSize(Offset) noexcept;
+      static constexpr Offset GetMinAllocation() noexcept;
 
-      NOD() constexpr Count GetUses() const noexcept;
-      NOD() Byte* GetBlockStart() const noexcept;
-      NOD() Byte const* GetBlockEnd() const noexcept;
-      NOD() constexpr Offset GetTotalSize() const noexcept;
-      NOD() constexpr Offset GetAllocatedSize() const noexcept;
-      NOD() bool Contains(const void*) const noexcept;
-      NOD() bool CollisionFree(const Allocation&) const noexcept;
+      auto GetUses() const noexcept -> Count;
+      auto GetBlockStart() const noexcept -> Byte*;
+      auto GetBlockEnd() const noexcept -> Byte const*;
+      auto GetTotalSize() const noexcept -> Offset;
+      auto GetAllocatedSize() const noexcept -> Offset;
+      bool Contains(const void*) const noexcept;
+      bool CollisionFree(const Allocation&) const noexcept;
 
       template<class T>
-      NOD() T* As() const noexcept;
+      T* As() const noexcept;
 
       constexpr void Keep() noexcept;
       constexpr void Keep(Count) noexcept;

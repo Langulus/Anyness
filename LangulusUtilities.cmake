@@ -1,17 +1,28 @@
 include(FetchContent)
 
+
+# Utility for fetching Langulus libraries using FetchContent					
 function(fetch_langulus_module NAME GIT_TAG TAG)
+	if (LANGULUS)
+		message(FATAL_ERROR "You can't fetch Langulus::${NAME}, because this build \
+		indicates LANGULUS is being build along your project. The library you're \
+		trying to fetch should already be available locally.")
+	endif()
+
     if(NOT DEFINED LANGULUS_EXTERNAL_DIRECTORY)
         set(LANGULUS_EXTERNAL_DIRECTORY "${CMAKE_SOURCE_DIR}/external" CACHE PATH
             "Place where external dependencies will be downloaded")
-        message(WARNING "LANGULUS_EXTERNAL_DIRECTORY not defined, using default: ${LANGULUS_EXTERNAL_DIRECTORY}")
+        message(WARNING "LANGULUS_EXTERNAL_DIRECTORY not defined, using default: \
+		${LANGULUS_EXTERNAL_DIRECTORY}")
     endif()
 
-	# Completely avoid downloading or updating anything, once the appropriate folder exists
+	# Completely avoid downloading or updating anything, once the appropriate	
+	# folder exists																
 	string(TOUPPER ${NAME} UPPERCASE_NAME)
 	if (EXISTS "${LANGULUS_EXTERNAL_DIRECTORY}/${NAME}-src")
 		set(FETCHCONTENT_SOURCE_DIR_LANGULUS${UPPERCASE_NAME} "${LANGULUS_EXTERNAL_DIRECTORY}/${NAME}-src" CACHE INTERNAL "" FORCE)
-		message(STATUS "Reusing external library Langulus::${NAME}... (delete ${LANGULUS_EXTERNAL_DIRECTORY}/${NAME}-src manually in order to redownload)")
+		message(STATUS "Reusing external library Langulus::${NAME}... \
+		(delete ${LANGULUS_EXTERNAL_DIRECTORY}/${NAME}-src manually in order to redownload)")
 	else()
 		unset(FETCHCONTENT_SOURCE_DIR_LANGULUS${UPPERCASE_NAME} CACHE)
 		message(STATUS "Downloading external library Langulus::${NAME}...")
@@ -28,18 +39,23 @@ function(fetch_langulus_module NAME GIT_TAG TAG)
     FetchContent_MakeAvailable(Langulus${NAME})
 endfunction()
 
+
+# Utility for fetching external libraries using FetchContent					
 function(fetch_external_module NAME GIT_REPOSITORY REPO GIT_TAG TAG)
     if(NOT DEFINED LANGULUS_EXTERNAL_DIRECTORY)
         set(LANGULUS_EXTERNAL_DIRECTORY "${CMAKE_SOURCE_DIR}/external" CACHE PATH
             "Place where external dependencies will be downloaded")
-        message(WARNING "LANGULUS_EXTERNAL_DIRECTORY not defined, using default: ${LANGULUS_EXTERNAL_DIRECTORY}")
+        message(WARNING "LANGULUS_EXTERNAL_DIRECTORY not defined, \
+		using default: ${LANGULUS_EXTERNAL_DIRECTORY}")
     endif()
 
-	# Completely avoid downloading or updating anything, once the appropriate folder exists
+	# Completely avoid downloading or updating anything, once the appropriate	
+	# folder exists																
 	string(TOUPPER ${NAME} UPPERCASE_NAME)
 	if (EXISTS "${LANGULUS_EXTERNAL_DIRECTORY}/${NAME}-src")
 		set(FETCHCONTENT_SOURCE_DIR_${UPPERCASE_NAME} "${LANGULUS_EXTERNAL_DIRECTORY}/${NAME}-src" CACHE INTERNAL "" FORCE)
-		message(STATUS "Reusing external library ${NAME}... (delete ${LANGULUS_EXTERNAL_DIRECTORY}/${NAME}-src manually in order to redownload)")
+		message(STATUS "Reusing external library ${NAME}... \
+		(delete ${LANGULUS_EXTERNAL_DIRECTORY}/${NAME}-src manually in order to redownload)")
 	else()
 		unset(FETCHCONTENT_SOURCE_DIR_${UPPERCASE_NAME} CACHE)
 		message(STATUS "Downloading external library ${NAME}...")
