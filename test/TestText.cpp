@@ -346,6 +346,8 @@ TEMPLATE_TEST_CASE("Testing text containers", "[text]",
    // Destroy BANK before static data - otherwise problems happen if    
    // not using managed reflection                                      
    BANK.Reset();
+
+   REQUIRE_FALSE(Allocator::CollectGarbage());
 }
 
 TEMPLATE_TEST_CASE("Unsigned number stringification", "[text]",
@@ -384,6 +386,8 @@ TEMPLATE_TEST_CASE("Unsigned number stringification", "[text]",
    // Destroy BANK before static data - otherwise problems happen if    
    // not using managed reflection                                      
    BANK.Reset();
+
+   REQUIRE_FALSE(Allocator::CollectGarbage());
 }
 
 TEMPLATE_TEST_CASE("Signed number stringification", "[text]", int8_t, int16_t, int32_t, int64_t) {
@@ -420,17 +424,31 @@ TEMPLATE_TEST_CASE("Signed number stringification", "[text]", int8_t, int16_t, i
    // Destroy BANK before static data - otherwise problems happen if    
    // not using managed reflection                                      
    BANK.Reset();
+
+   REQUIRE_FALSE(Allocator::CollectGarbage());
 }
 
 TEMPLATE_TEST_CASE("Logging text containers", "[text]", Text, Path) {
-   TestType text {"some text"};
+   static Allocator::State memoryState;
 
-   Logger::Info() << "You should see " << text;
-   Logger::Info("You should also see ", text);
+   WHEN("Logging") {
+      TestType text {"some text"};
+      Logger::Info() << "You should see " << text;
+      Logger::Info("You should also see ", text);
+   }
+
+   WHEN("Logging literal") {
+      Logger::Info() << "You should see " << "some text"_text;
+      Logger::Info("You should also see ", "some text"_text);
+   }
+
+   REQUIRE(memoryState.Assert());
 
    // Destroy BANK before static data - otherwise problems happen if    
    // not using managed reflection                                      
    BANK.Reset();
+
+   REQUIRE_FALSE(Allocator::CollectGarbage());
 }
 
 TEMPLATE_TEST_CASE("Reflected coverters to text", "[text]", /*Stringifiable,*/ StringifiableConst) {
@@ -458,6 +476,8 @@ TEMPLATE_TEST_CASE("Reflected coverters to text", "[text]", /*Stringifiable,*/ S
    // Destroy BANK before static data - otherwise problems happen if    
    // not using managed reflection                                      
    BANK.Reset();
+
+   REQUIRE_FALSE(Allocator::CollectGarbage());
 }
 
 TEMPLATE_TEST_CASE("Text container interoperability", "[text]",
@@ -504,6 +524,8 @@ TEMPLATE_TEST_CASE("Text container interoperability", "[text]",
    // Destroy BANK before static data - otherwise problems happen if    
    // not using managed reflection                                      
    BANK.Reset();
+
+   REQUIRE_FALSE(Allocator::CollectGarbage());
 }
 
 TEMPLATE_TEST_CASE("Text container conversion at runtime", "[text]",
@@ -528,6 +550,8 @@ TEMPLATE_TEST_CASE("Text container conversion at runtime", "[text]",
    // Destroy BANK before static data - otherwise problems happen if    
    // not using managed reflection                                      
    BANK.Reset();
+
+   REQUIRE_FALSE(Allocator::CollectGarbage());
 }
 
 TEMPLATE_TEST_CASE("Containing literals", "[text]",
@@ -582,6 +606,8 @@ TEMPLATE_TEST_CASE("Containing literals", "[text]",
    // Destroy BANK before static data - otherwise problems happen if    
    // not using managed reflection                                      
    BANK.Reset();
+
+   REQUIRE_FALSE(Allocator::CollectGarbage());
 }
 
 void Text_CheckState_Default(const Text& text) {

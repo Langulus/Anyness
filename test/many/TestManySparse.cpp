@@ -32,7 +32,6 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
    (TypePair<Many, Text*>),
    (TypePair<Many, RT*>)
 ) {
-   (void) Allocator::CollectGarbage();
    static Allocator::State memoryState;
 
    using T = typename TestType::LHS;
@@ -2754,4 +2753,10 @@ TEMPLATE_TEST_CASE("Sparse Many/TMany", "[many]",
    }
 
    REQUIRE(memoryState.Assert());
+
+   // Destroy BANK before static data - otherwise problems happen if    
+   // not using managed reflection                                      
+   BANK.Reset();
+
+   REQUIRE_FALSE(Allocator::CollectGarbage());
 }

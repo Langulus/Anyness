@@ -58,6 +58,12 @@ TEMPLATE_TEST_CASE("Set corner cases", "[set]",
          REQUIRE_FALSE(set.Contains("VulkanRenderable"));
       }
    }
+
+   // Destroy BANK before static data - otherwise problems happen if    
+   // not using managed reflection                                      
+   BANK.Reset();
+
+   REQUIRE_FALSE(Allocator::CollectGarbage());
 }
 
 /// Testing some corner cases encountered during the use of the container     
@@ -67,7 +73,6 @@ TEMPLATE_TEST_CASE("Set of outside-referenced elements", "[set]",
    UnorderedSet,
    OrderedSet
 ) {
-   (void) Allocator::CollectGarbage();
    static Allocator::State memoryState;
    using T = TestType;
    TMany<RT> factory {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
@@ -118,5 +123,13 @@ TEMPLATE_TEST_CASE("Set of outside-referenced elements", "[set]",
       }
    }}
 
+   factory.Reset();
+
    REQUIRE(memoryState.Assert());
+
+   // Destroy BANK before static data - otherwise problems happen if    
+   // not using managed reflection                                      
+   BANK.Reset();
+
+   REQUIRE_FALSE(Allocator::CollectGarbage());
 }

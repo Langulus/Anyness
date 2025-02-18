@@ -70,7 +70,6 @@ TEMPLATE_TEST_CASE(
    MAP_TESTS(false)
 ) {
 #endif
-   (void) Allocator::CollectGarbage();
    static Allocator::State memoryState;
 
    using T = typename TestType::Container;
@@ -80,12 +79,9 @@ TEMPLATE_TEST_CASE(
    using StdPair = ::std::pair<K, V>;
    constexpr bool MANAGED = TestType::Managed;
 
-   const auto pair
-      = CreatePair<Pair,    K, V, MANAGED>("five hundred", 555);
-   const auto pairMissing
-      = CreatePair<Pair,    K, V, MANAGED>("missing", 554);
-   const auto stdpair
-      = CreatePair<StdPair, K, V, MANAGED>("five hundred", 555);
+   const auto pair        = CreatePair<Pair,    K, V, MANAGED>("five hundred", 555);
+   const auto pairMissing = CreatePair<Pair,    K, V, MANAGED>("missing",      554);
+   const auto stdpair     = CreatePair<StdPair, K, V, MANAGED>("five hundred", 555);
 
    const Pair darray1[5] {
       CreatePair<Pair, K, V, MANAGED>("one", 1),
@@ -860,9 +856,17 @@ TEMPLATE_TEST_CASE(
       DestroyPair<MANAGED>(i);
 
    REQUIRE(memoryState.Assert());
+
+   // Destroy BANK before static data - otherwise problems happen if    
+   // not using managed reflection                                      
+   BANK.Reset();
+
+   REQUIRE_FALSE(Allocator::CollectGarbage());
 }
 
 TEMPLATE_TEST_CASE("Sparse templated map stress test", "[map]",
+   (MapTest<TUnorderedMap<int*, Trait>, int*, Trait>),
+
    (MapTest<TUnorderedMap<int, int*>, int, int*>),
    (MapTest<TUnorderedMap<int, Trait*>, int, Trait*>),
    (MapTest<TUnorderedMap<int, Traits::Count*>, int, Traits::Count*>),
@@ -874,7 +878,6 @@ TEMPLATE_TEST_CASE("Sparse templated map stress test", "[map]",
    (MapTest<TOrderedMap<int, Many*>, int, Many*>),
 
    (MapTest<TUnorderedMap<int*, int>, int*, int>),
-   (MapTest<TUnorderedMap<int*, Trait>, int*, Trait>),
    (MapTest<TUnorderedMap<int*, Traits::Count>, int*, Traits::Count>),
    (MapTest<TUnorderedMap<int*, Many>, int*, Many>),
 
@@ -893,7 +896,6 @@ TEMPLATE_TEST_CASE("Sparse templated map stress test", "[map]",
    (MapTest<TOrderedMap<int*, Traits::Count*>, int*, Traits::Count*>),
    (MapTest<TOrderedMap<int*, Many*>, int*, Many*>)
 ) {
-   (void) Allocator::CollectGarbage();
    static Allocator::State memoryState;
 
    using T = typename TestType::Container;
@@ -949,6 +951,9 @@ TEMPLATE_TEST_CASE("Sparse templated map stress test", "[map]",
          else
             REQUIRE(iterated == 1'000);
       }
+
+      for (auto i : map)
+         DestroyElement(i.mKey);
    }
 
    // Friendly note for a future Dimo: If you ever get memory manager   
@@ -957,4 +962,10 @@ TEMPLATE_TEST_CASE("Sparse templated map stress test", "[map]",
       DestroyElement(i);
 
    REQUIRE(memoryState.Assert());
+
+   // Destroy BANK before static data - otherwise problems happen if    
+   // not using managed reflection                                      
+   BANK.Reset();
+
+   REQUIRE_FALSE(Allocator::CollectGarbage());
 }

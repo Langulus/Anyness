@@ -11,7 +11,6 @@
 
 
 SCENARIO("Byte manipulation", "[bytes]") {
-   (void) Allocator::CollectGarbage();
    static Allocator::State memoryState;
 
    GIVEN("An empty byte container") {
@@ -159,4 +158,6 @@ SCENARIO("Byte manipulation", "[bytes]") {
    // Destroy BANK before static data - otherwise problems happen if    
    // not using managed reflection                                      
    BANK.Reset();
+
+   REQUIRE_FALSE(Allocator::CollectGarbage());
 }

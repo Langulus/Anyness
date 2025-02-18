@@ -34,7 +34,6 @@ TEMPLATE_TEST_CASE(
    (MapTest<OrderedMap, Text, Traits::Count>),
    (MapTest<OrderedMap, Text, Many>)
 ) {
-   (void) Allocator::CollectGarbage();
    static Allocator::State memoryState;
 
    using T = typename TestType::Container;
@@ -791,8 +790,27 @@ TEMPLATE_TEST_CASE(
          REQUIRE(i == done);
       }
    }
+   
+   DestroyPair(pair);
+   DestroyPair(stdpair);
+
+   for (auto& i : darray1)
+      DestroyPair(i);
+   for (auto& i : darray2)
+      DestroyPair(i);
+
+   for (auto& i : darray1std)
+      DestroyPair(i);
+   for (auto& i : darray2std)
+      DestroyPair(i);
 
    REQUIRE(memoryState.Assert());
+
+   // Destroy BANK before static data - otherwise problems happen if    
+   // not using managed reflection                                      
+   BANK.Reset();
+
+   REQUIRE_FALSE(Allocator::CollectGarbage());
 }
 
 TEMPLATE_TEST_CASE("Dense templated map stress test", "[map]",
@@ -806,7 +824,6 @@ TEMPLATE_TEST_CASE("Dense templated map stress test", "[map]",
    (MapTest<TOrderedMap<int, Traits::Count>, int, Traits::Count>),
    (MapTest<TOrderedMap<int, Many>, int, Many>)
 ) {
-   (void) Allocator::CollectGarbage();
    static Allocator::State memoryState;
 
    using T = typename TestType::Container;
@@ -843,5 +860,14 @@ TEMPLATE_TEST_CASE("Dense templated map stress test", "[map]",
       }
    }
 
+   for (auto& i : darray)
+      DestroyElement(i);
+
    REQUIRE(memoryState.Assert());
+
+   // Destroy BANK before static data - otherwise problems happen if    
+   // not using managed reflection                                      
+   BANK.Reset();
+
+   REQUIRE_FALSE(Allocator::CollectGarbage());
 }

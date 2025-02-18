@@ -10,8 +10,6 @@
 
 
 SCENARIO("Iterating containers", "[iteration]") {
-   (void) Allocator::CollectGarbage();
-
    GIVEN("Templated Any with some POD items") {
       TMany<int> dense;
       dense << int(1) << int(2) << int(3) << int(4) << int(5);
@@ -556,4 +554,6 @@ SCENARIO("Iterating containers", "[iteration]") {
    // Destroy BANK before static data - otherwise problems happen if    
    // not using managed reflection                                      
    BANK.Reset();
+
+   REQUIRE_FALSE(Allocator::CollectGarbage());
 }

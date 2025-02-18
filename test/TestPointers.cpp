@@ -181,4 +181,6 @@ TEMPLATE_TEST_CASE("Shared pointer", "[Ref]",
    // Destroy BANK before static data - otherwise problems happen if    
    // not using managed reflection                                      
    BANK.Reset();
+
+   REQUIRE_FALSE(Allocator::CollectGarbage());
 }

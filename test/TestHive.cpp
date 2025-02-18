@@ -21,6 +21,7 @@ struct Producible : Referenced {
 
 SCENARIO("Test hives", "[hive]") {
    static Allocator::State memoryState;
+
    const Producible one {1};
    const Producible two {2};
 
@@ -58,4 +59,6 @@ SCENARIO("Test hives", "[hive]") {
    // Destroy BANK before static data - otherwise problems happen if    
    // not using managed reflection                                      
    BANK.Reset();
+
+   REQUIRE_FALSE(Allocator::CollectGarbage());
 }

@@ -53,7 +53,6 @@ TEMPLATE_TEST_CASE(
    SET_TESTS(false)
 ) {
 #endif
-   (void) Allocator::CollectGarbage();
    static Allocator::State memoryState;
 
    using T = typename TestType::Container;
@@ -526,21 +525,18 @@ TEMPLATE_TEST_CASE(
       }
    }
    
-   if constexpr (CT::Referencable<Deptr<K>>)
-      element->Reference(-1);
-   delete element;
+   DestroyElement(element);
 
-   for (auto item : darray1) {
-      if constexpr (CT::Referencable<Deptr<K>>)
-         item->Reference(-1);
-      delete item;
-   }
-
-   for (auto item : darray2) {
-      if constexpr (CT::Referencable<Deptr<K>>)
-         item->Reference(-1);
-      delete item;
-   }
+   for (auto& i : darray1)
+      DestroyElement(i);
+   for (auto& i : darray2)
+      DestroyElement(i);
 
    REQUIRE(memoryState.Assert());
+
+   // Destroy BANK before static data - otherwise problems happen if    
+   // not using managed reflection                                      
+   BANK.Reset();
+
+   REQUIRE_FALSE(Allocator::CollectGarbage());
 }

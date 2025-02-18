@@ -429,6 +429,8 @@ TEMPLATE_TEST_CASE("Handles from sequential containers", "[handle]",
    // Destroy BANK before static data - otherwise problems happen if    
    // not using managed reflection                                      
    BANK.Reset();
+
+   REQUIRE_FALSE(Allocator::CollectGarbage());
 }
 
 
@@ -443,25 +445,24 @@ TEMPLATE_TEST_CASE("Managed handle swapping", "[handle]", RT*, RT, int, int*) {
    constexpr Count refs1_1 = CT::Sparse<T> and LANGULUS_FEATURE(MANAGED_MEMORY) ? 11 : 1;
    constexpr Count refs2 = CT::Sparse<T> and LANGULUS_FEATURE(MANAGED_MEMORY) ? 2 : 1;
 
-   TMany<T> factory1 = CreateManagedElements<T>(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
-   REQUIRE(factory1.GetAllocation()->GetUses() == 1);
-
    GIVEN("A stack-based swapper") {
-      TMany<T> factory2 = CreateManagedElements<T>(100);
-      REQUIRE(factory2.GetAllocation()->GetUses() == 1);
-
-      // Create a handle to an element inside factory2                  
-      // The entry will be searched for in the memory manager           
-      // Since we're using a local handle, the element will be reffed   
-      HandleLocal<T> swapper {factory2[0]};
-
-      if constexpr (sparse)
-         REQUIRE(swapper.GetEntry()->GetUses() == refs2);
-      if constexpr (referenced)
-         REQUIRE(DenseCast(swapper.Get()).GetReferences() == 2);
-
+      TMany<T> factory1 = CreateManagedElements<T>(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+      REQUIRE(factory1.GetAllocation()->GetUses() == 1);
 
       WHEN("Swap through all elements and insert at the end") {
+         TMany<T> factory2 = CreateManagedElements<T>(100);
+         REQUIRE(factory2.GetAllocation()->GetUses() == 1);
+
+         // Create a handle to an element inside factory2               
+         // The entry will be searched for in the memory manager        
+         // Since we're using a local handle, the element will be reffed
+         HandleLocal<T> swapper {factory2[0]};
+
+         if constexpr (sparse)
+            REQUIRE(swapper.GetEntry()->GetUses() == refs2);
+         if constexpr (referenced)
+            REQUIRE(DenseCast(swapper.Get()).GetReferences() == 2);
+
          {
             auto h = factory1.GetHandle(0);
             if constexpr (LANGULUS_FEATURE(MANAGED_MEMORY))
@@ -630,30 +631,32 @@ TEMPLATE_TEST_CASE("Managed handle swapping", "[handle]", RT*, RT, int, int*) {
                   REQUIRE(DenseCast(hi.Get()).GetReferences() == 1);
             }
          }
-      } 
-   }
-   
-   REQUIRE(factory1.GetAllocation()->GetUses() == 1);
+      }
 
-   auto start = factory1.GetHandle(0);
-   if constexpr (LANGULUS_FEATURE(MANAGED_MEMORY))
-      REQUIRE(start.GetEntry()->GetUses() == 1);
-   REQUIRE(DenseCast(start.Get()) == 100);
-   if constexpr (referenced)
-      REQUIRE(DenseCast(start.Get()).GetReferences() == 1);
+      REQUIRE(factory1.GetAllocation()->GetUses() == 1);
 
-   for (Count i = 1; i < factory1.GetCount(); ++i) {
-      auto h = factory1.GetHandle(i);
+      auto start = factory1.GetHandle(0);
       if constexpr (LANGULUS_FEATURE(MANAGED_MEMORY))
-         REQUIRE(h.GetEntry()->GetUses() == refs1);
-      REQUIRE(DenseCast(h.Get()) == static_cast<int>(i));
+         REQUIRE(start.GetEntry()->GetUses() == 1);
+      REQUIRE(DenseCast(start.Get()) == 100);
       if constexpr (referenced)
-         REQUIRE(DenseCast(h.Get()).GetReferences() == 1);
-   }
+         REQUIRE(DenseCast(start.Get()).GetReferences() == 1);
 
-   REQUIRE(memoryState.Assert());
+      for (Count i = 1; i < factory1.GetCount(); ++i) {
+         auto h = factory1.GetHandle(i);
+         if constexpr (LANGULUS_FEATURE(MANAGED_MEMORY))
+            REQUIRE(h.GetEntry()->GetUses() == refs1);
+         REQUIRE(DenseCast(h.Get()) == static_cast<int>(i));
+         if constexpr (referenced)
+            REQUIRE(DenseCast(h.Get()).GetReferences() == 1);
+      }
+
+      REQUIRE(memoryState.Assert());
+   }
 
    // Destroy BANK before static data - otherwise problems happen if    
    // not using managed reflection                                      
    BANK.Reset();
+
+   REQUIRE_FALSE(Allocator::CollectGarbage());
 }

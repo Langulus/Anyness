@@ -166,6 +166,8 @@ void DestroyPair(auto& pair) {
                   pair.mKey->~Decay<K>();
                free(pair.mKey.Get());
             }
+            else if constexpr (requires (K k) { k.Reset(); })
+               DecvqCast(pair.mKey).Reset();
 
             if constexpr (CT::Sparse<V>) {
                if constexpr (CT::Referencable<Deptr<V>>)
@@ -174,6 +176,8 @@ void DestroyPair(auto& pair) {
                   pair.mValue->~Decay<V>();
                free(pair.mValue.Get());
             }
+            else if constexpr (requires (V v) { v.Reset(); })
+               DecvqCast(pair.mValue).Reset();
          }
          else {
             if (pair.mKey.IsSparse()) {
@@ -183,6 +187,8 @@ void DestroyPair(auto& pair) {
                   pair.mKey.GetType()->mDestructor(*pair.mKey.template GetRaw<void*>());
                free(*pair.mKey.template GetRaw<void*>());
             }
+            
+            DecvqCast(pair.mKey).Reset();
 
             if (pair.mValue.IsSparse()) {
                if (pair.mValue.GetType()->mReference)
@@ -191,6 +197,8 @@ void DestroyPair(auto& pair) {
                   pair.mValue.GetType()->mDestructor(*pair.mValue.template GetRaw<void*>());
                free(*pair.mValue.template GetRaw<void*>());
             }
+            
+            DecvqCast(pair.mValue).Reset();
          }
       }
       else if constexpr (requires { pair.first; }) {
@@ -205,6 +213,8 @@ void DestroyPair(auto& pair) {
                pair.first->~Decay<K>();
             free(pair.first);
          }
+         else if constexpr (requires (K k) { k.Reset(); })
+            DecvqCast(pair.first).Reset();
 
          if constexpr (CT::Sparse<V>) {
             if constexpr (CT::Referencable<Deptr<V>>)
@@ -213,6 +223,8 @@ void DestroyPair(auto& pair) {
                pair.second->~Decay<V>();
             free(pair.second);
          }
+         else if constexpr (requires (V v) { v.Reset(); })
+            DecvqCast(pair.second).Reset();
       }
       else static_assert(false, "What kind of pair is this? Are you making stuff up?");
    }

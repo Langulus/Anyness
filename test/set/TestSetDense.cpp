@@ -37,7 +37,6 @@ TEMPLATE_TEST_CASE(
    (SetTest<OrderedSet, Traits::Count>),
    (SetTest<OrderedSet, Many>)
 ) {
-   (void) Allocator::CollectGarbage();
    static Allocator::State memoryState;
 
    using T = typename TestType::Container;
@@ -698,5 +697,18 @@ TEMPLATE_TEST_CASE(
       }
    }
 
+   DestroyElement(element);
+
+   for (auto& i : darray1)
+      DestroyElement(i);
+   for (auto& i : darray2)
+      DestroyElement(i);
+
    REQUIRE(memoryState.Assert());
+
+   // Destroy BANK before static data - otherwise problems happen if    
+   // not using managed reflection                                      
+   BANK.Reset();
+
+   REQUIRE_FALSE(Allocator::CollectGarbage());
 }

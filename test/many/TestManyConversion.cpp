@@ -34,4 +34,10 @@ TEMPLATE_TEST_CASE("Converting to text", "[many]",
    }
 
    REQUIRE(memoryState.Assert());
+
+   // Destroy BANK before static data - otherwise problems happen if    
+   // not using managed reflection                                      
+   BANK.Reset();
+
+   REQUIRE_FALSE(Allocator::CollectGarbage());
 }

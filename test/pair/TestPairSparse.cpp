@@ -32,7 +32,6 @@ TEMPLATE_TEST_CASE("Sparse TPair/Pair", "[pair]",
    PAIR_TESTS(false)
 ) {
 #endif
-   (void) Allocator::CollectGarbage();
    static Allocator::State memoryState;
 
    using T = typename TestType::Container;
@@ -62,7 +61,6 @@ TEMPLATE_TEST_CASE("Sparse TPair/Pair", "[pair]",
       static_assert(CT::CloneAssignable<T>);
       static_assert(CT::DisownAssignable<T>);
    }
-
 
    GIVEN("A default-initialized pair instance") {
       T pair {};
@@ -209,5 +207,12 @@ TEMPLATE_TEST_CASE("Sparse TPair/Pair", "[pair]",
 
    DestroyPair<MANAGED>(lp);
    DestroyPair<MANAGED>(sp);
+
    REQUIRE(memoryState.Assert());
+
+   // Destroy BANK before static data - otherwise problems happen if    
+   // not using managed reflection                                      
+   BANK.Reset();
+
+   REQUIRE_FALSE(Allocator::CollectGarbage());
 }

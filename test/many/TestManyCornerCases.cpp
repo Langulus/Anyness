@@ -9,8 +9,6 @@
 
 
 SCENARIO("Pushing one sparse container, and then two more, one being the first", "[many]") {
-   BANK.Reset();
-
    static Allocator::State memoryState;
 
    auto p1 = CreateElement<Many*, true>(1);
@@ -136,4 +134,10 @@ SCENARIO("Pushing one sparse container, and then two more, one being the first",
    #endif
 
    REQUIRE(memoryState.Assert());
+
+   // Destroy BANK before static data - otherwise problems happen if    
+   // not using managed reflection                                      
+   BANK.Reset();
+
+   REQUIRE_FALSE(Allocator::CollectGarbage());
 }

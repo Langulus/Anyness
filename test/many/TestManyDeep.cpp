@@ -8,11 +8,8 @@
 #include "TestManyCommon.hpp"
 
 
-TEMPLATE_TEST_CASE("Deep sequential containers 1", "[any]", int, RT, int*, RT*) {
-   BANK.Reset();
-   (void) Allocator::CollectGarbage();
+TEMPLATE_TEST_CASE("Deep sequential containers 1", "[any]", RT*, int, RT, int*) {
    static Allocator::State memoryState;
-
    static_assert(sizeof(A::Block) == sizeof(Block<>));
    using E = TestType;
 
@@ -28,7 +25,6 @@ TEMPLATE_TEST_CASE("Deep sequential containers 1", "[any]", int, RT, int*, RT*) 
       CreateElement<E, true>(9),
       CreateElement<E, true>(10)
    };
-
 
    GIVEN("Any with some deep items") {
       Many pack;
@@ -468,14 +464,19 @@ TEMPLATE_TEST_CASE("Deep sequential containers 1", "[any]", int, RT, int*, RT*) 
       }
    }
 
-   BANK.Reset();
+   for (auto& i : darray)
+      DestroyElement<true>(i);
 
    REQUIRE(memoryState.Assert());
+
+   // Destroy BANK before static data - otherwise problems happen if    
+   // not using managed reflection                                      
+   BANK.Reset();
+
+   REQUIRE_FALSE(Allocator::CollectGarbage());
 }
 
 TEMPLATE_TEST_CASE("Deep sequential containers 2", "[any]", int, RT, int*, RT*) {
-   (void) Allocator::CollectGarbage();
-
    static Allocator::State memoryState;
    static_assert(sizeof(A::Block) == sizeof(Block<>));
    using E = TestType;
@@ -492,7 +493,6 @@ TEMPLATE_TEST_CASE("Deep sequential containers 2", "[any]", int, RT, int*, RT*) 
       CreateElement<E, true>(9),
       CreateElement<E, true>(10)
    };
-
 
    GIVEN("Any with some deep items, and their Blocks coalesced") {
       Many pack;
@@ -542,9 +542,16 @@ TEMPLATE_TEST_CASE("Deep sequential containers 2", "[any]", int, RT, int*, RT*) 
       }
    }
 
-   BANK.Reset();
+   for (auto& i : darray)
+      DestroyElement<true>(i);
 
    REQUIRE(memoryState.Assert());
+
+   // Destroy BANK before static data - otherwise problems happen if    
+   // not using managed reflection                                      
+   BANK.Reset();
+
+   REQUIRE_FALSE(Allocator::CollectGarbage());
 }
 
 SCENARIO("Test BlockCast", "[block]") {

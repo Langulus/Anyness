@@ -22,7 +22,6 @@ TEMPLATE_TEST_CASE("Dense TPair/Pair", "[pair]",
    (MapTest<Pair, Text, Traits::Count>),
    (MapTest<Pair, Text, Many>)
 ) {
-   (void) Allocator::CollectGarbage();
    static Allocator::State memoryState;
 
    using T = typename TestType::Container;
@@ -191,5 +190,14 @@ TEMPLATE_TEST_CASE("Dense TPair/Pair", "[pair]",
       }
    }
 
+   DestroyPair(lp);
+   DestroyPair(sp);
+
    REQUIRE(memoryState.Assert());
+
+   // Destroy BANK before static data - otherwise problems happen if    
+   // not using managed reflection                                      
+   BANK.Reset();
+
+   REQUIRE_FALSE(Allocator::CollectGarbage());
 }

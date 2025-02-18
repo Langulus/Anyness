@@ -95,4 +95,10 @@ TEMPLATE_TEST_CASE("Map corner cases", "[map]",
          REQUIRE       (map[MetaOf<Cursor>()] == "Cursor");
       }
    }
+
+   // Destroy BANK before static data - otherwise problems happen if    
+   // not using managed reflection                                      
+   BANK.Reset();
+
+   REQUIRE_FALSE(Allocator::CollectGarbage());
 }

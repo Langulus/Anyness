@@ -24,16 +24,12 @@ TEMPLATE_TEST_CASE("Dense Many/TMany", "[many]",
    (TypePair<Many, Many>),
    (TypePair<Many, Text>)
 ) {
-   (void) Allocator::CollectGarbage();
    static Allocator::State memoryState;
 
    using T = typename TestType::LHS;
    using E = typename TestType::RHS;
-   using DenseE = Decay<E>;
       
-   E element = CreateElement<E>(555);
-   const DenseE& denseValue {DenseCast(element)};
-   const DenseE* const sparseValue {SparseCast(element)};
+   const E element = CreateElement<E>(555);
 
    const E darray1[5] {
       CreateElement<E>(1),
@@ -103,8 +99,8 @@ TEMPLATE_TEST_CASE("Dense Many/TMany", "[many]",
          if constexpr (CT::Flat<E>) {
             Any_CheckState_OwnedFull<E>(pack);
 
-            REQUIRE(pack.template As<DenseE>() == denseValue);
-            REQUIRE(*pack.template As<DenseE*>() == denseValue);
+            REQUIRE(pack.template As<E>() == element);
+            REQUIRE(*pack.template As<E*>() == element);
             REQUIRE(pack.GetUses() == 1);
          }
          else if constexpr (CT::Same<E, T>) {
@@ -154,8 +150,8 @@ TEMPLATE_TEST_CASE("Dense Many/TMany", "[many]",
          if constexpr (CT::Flat<E>) {
             Any_CheckState_OwnedFull<E>(pack);
 
-            REQUIRE(pack.template As<DenseE>() == denseValue);
-            REQUIRE(*pack.template As<DenseE*>() == denseValue);
+            REQUIRE(pack.template As<E>() == element);
+            REQUIRE(*pack.template As<E*>() == element);
             REQUIRE(pack.GetUses() == 1);
          }
          else if constexpr (CT::Same<E, T>) {
@@ -202,8 +198,8 @@ TEMPLATE_TEST_CASE("Dense Many/TMany", "[many]",
          if constexpr (CT::Flat<E>) {
             Any_CheckState_OwnedFull<E>(pack);
 
-            REQUIRE(pack.template As<DenseE>() == denseValue);
-            REQUIRE(*pack.template As<DenseE*>() == denseValue);
+            REQUIRE(pack.template As<E>() == element);
+            REQUIRE(*pack.template As<E*>() == element);
             REQUIRE(pack.GetUses() == 1);
          }
          else if constexpr (CT::Same<E, T>) {
@@ -253,8 +249,8 @@ TEMPLATE_TEST_CASE("Dense Many/TMany", "[many]",
          if constexpr (CT::Flat<E>) {
             Any_CheckState_OwnedFull<E>(pack);
 
-            REQUIRE(pack.template As<DenseE>() == denseValue);
-            REQUIRE(*pack.template As<DenseE*>() == denseValue);
+            REQUIRE(pack.template As<E>() == element);
+            REQUIRE(*pack.template As<E*>() == element);
             REQUIRE(pack.GetUses() == 1);
          }
          else if constexpr (CT::Same<E, T>) {
@@ -989,8 +985,8 @@ TEMPLATE_TEST_CASE("Dense Many/TMany", "[many]",
 
       if constexpr (CT::Flat<E>) {
          Any_CheckState_OwnedFull<E>(pack);
-         REQUIRE(pack.template As<DenseE>() == denseValue);
-         REQUIRE(*pack.template As<DenseE*>() == denseValue);
+         REQUIRE(pack.template As<E>() == element);
+         REQUIRE(*pack.template As<E*>() == element);
          REQUIRE(pack.GetUses() == 2);
       }
       else if constexpr (CT::Same<E, T>) {
@@ -1035,8 +1031,8 @@ TEMPLATE_TEST_CASE("Dense Many/TMany", "[many]",
 
       if constexpr (CT::Flat<E>) {
          Any_CheckState_OwnedFull<E>(pack);
-         REQUIRE(pack.template As<DenseE>() == denseValue);
-         REQUIRE(*pack.template As<DenseE*>() == denseValue);
+         REQUIRE(pack.template As<E>() == element);
+         REQUIRE(*pack.template As<E*>() == element);
          REQUIRE(pack.GetUses() == 1);
       }
       else if constexpr (CT::Same<E, T>) {
@@ -1077,8 +1073,8 @@ TEMPLATE_TEST_CASE("Dense Many/TMany", "[many]",
 
          if constexpr (CT::Flat<E>) {
             Any_CheckState_OwnedFull<E>(pack);
-            REQUIRE(pack.template As<DenseE>() == denseValue);
-            REQUIRE(*pack.template As<DenseE*>() == denseValue);
+            REQUIRE(pack.template As<E>() == element);
+            REQUIRE(*pack.template As<E*>() == element);
             REQUIRE(pack.GetUses() == 1);
          }
          else if constexpr (CT::Same<E, T>) {
@@ -1127,8 +1123,8 @@ TEMPLATE_TEST_CASE("Dense Many/TMany", "[many]",
 
          if constexpr (CT::Flat<E>) {
             Any_CheckState_OwnedFull<E>(pack);
-            REQUIRE(pack.template As<DenseE>() == denseValue);
-            REQUIRE(*pack.template As<DenseE*>() == denseValue);
+            REQUIRE(pack.template As<E>() == element);
+            REQUIRE(*pack.template As<E*>() == element);
             REQUIRE(pack.GetUses() == 1);
          }
          else if constexpr (CT::Same<E, T>) {
@@ -1172,8 +1168,8 @@ TEMPLATE_TEST_CASE("Dense Many/TMany", "[many]",
 
          if constexpr (CT::Flat<E>) {
             Any_CheckState_OwnedFull<E>(pack);
-            REQUIRE(pack.template As<DenseE>() == denseValue);
-            REQUIRE(*pack.template As<DenseE*>() == denseValue);
+            REQUIRE(pack.template As<E>() == element);
+            REQUIRE(*pack.template As<E*>() == element);
             REQUIRE(pack.GetUses() == 1);
          }
          else if constexpr (CT::Same<E, T>) {
@@ -1221,8 +1217,8 @@ TEMPLATE_TEST_CASE("Dense Many/TMany", "[many]",
 
          if constexpr (CT::Flat<E>) {
             Any_CheckState_OwnedFull<E>(pack);
-            REQUIRE(pack.template As<DenseE>() == denseValue);
-            REQUIRE(*pack.template As<DenseE*>() == denseValue);
+            REQUIRE(pack.template As<E>() == element);
+            REQUIRE(*pack.template As<E*>() == element);
             REQUIRE(pack.GetUses() == 1);
          }
          else if constexpr (CT::Same<E, T>) {
@@ -1336,8 +1332,8 @@ TEMPLATE_TEST_CASE("Dense Many/TMany", "[many]",
 
       if constexpr (CT::Flat<E>) {
          Any_CheckState_OwnedFull<E>(pack);
-         REQUIRE(pack.template As<DenseE>() == denseValue);
-         REQUIRE(*pack.template As<DenseE*>() == denseValue);
+         REQUIRE(pack.template As<E>() == element);
+         REQUIRE(*pack.template As<E*>() == element);
          REQUIRE(pack.GetUses() == 1);
       }
       else if constexpr (CT::Same<E, T>) {
@@ -1347,16 +1343,16 @@ TEMPLATE_TEST_CASE("Dense Many/TMany", "[many]",
          REQUIRE(pack.GetAllocation() == element.GetAllocation());
       }
       else {
-         REQUIRE(pack.template As<DenseE>().GetRaw() == sparseValue->GetRaw());
+         REQUIRE(pack.template As<E>().GetRaw() == element.GetRaw());
          if constexpr (CT::Typed<T>)
             REQUIRE(pack.template IsExact<TypeOf<T>>());
-         REQUIRE(pack.template As<DenseE>() == denseValue);
-         REQUIRE(*pack.template As<DenseE*>() == denseValue);
-         REQUIRE_FALSE(pack.template As<DenseE>().IsStatic());
-         REQUIRE_FALSE(pack.template As<DenseE>().IsConstant());
-         REQUIRE(pack.template As<DenseE>().GetAllocation());
-         REQUIRE(pack.template As<DenseE>().GetUses() == 2);
-         REQUIRE(pack.template As<DenseE>() == element);
+         REQUIRE(pack.template As<E>() == element);
+         REQUIRE(*pack.template As<E*>() == element);
+         REQUIRE_FALSE(pack.template As<E>().IsStatic());
+         REQUIRE_FALSE(pack.template As<E>().IsConstant());
+         REQUIRE(pack.template As<E>().GetAllocation());
+         REQUIRE(pack.template As<E>().GetUses() == 2);
+         REQUIRE(pack.template As<E>() == element);
          //REQUIRE(pack != element);
          REQUIRE(pack == element);
          REQUIRE(pack.GetUses() == 1);
@@ -1400,8 +1396,8 @@ TEMPLATE_TEST_CASE("Dense Many/TMany", "[many]",
 
       if constexpr (CT::Flat<E>) {
          Any_CheckState_OwnedFull<E>(pack);
-         REQUIRE(pack.template As<DenseE>() == denseValue);
-         REQUIRE(*pack.template As<DenseE*>() == denseValue);
+         REQUIRE(pack.template As<E>() == element);
+         REQUIRE(*pack.template As<E*>() == element);
          REQUIRE(pack.GetUses() == 1);
       }
       else if constexpr (CT::Same<E, T>) {
@@ -1411,16 +1407,16 @@ TEMPLATE_TEST_CASE("Dense Many/TMany", "[many]",
          REQUIRE_FALSE(pack.GetAllocation());
       }
       else {
-         REQUIRE(pack.template As<DenseE>().GetRaw() == sparseValue->GetRaw());
+         REQUIRE(pack.template As<E>().GetRaw() == element.GetRaw());
          if constexpr (CT::Typed<T>)
             REQUIRE(pack.template IsExact<TypeOf<T>>());
-         REQUIRE(pack.template As<DenseE>() == denseValue);
-         REQUIRE(*pack.template As<DenseE*>() == denseValue);
-         REQUIRE(pack.template As<DenseE>().IsStatic());
-         REQUIRE_FALSE(pack.template As<DenseE>().IsConstant());
-         REQUIRE_FALSE(pack.template As<DenseE>().GetAllocation());
-         REQUIRE(pack.template As<DenseE>().GetUses() == 0);
-         REQUIRE(pack.template As<DenseE>() == element);
+         REQUIRE(pack.template As<E>() == element);
+         REQUIRE(*pack.template As<E*>() == element);
+         REQUIRE(pack.template As<E>().IsStatic());
+         REQUIRE_FALSE(pack.template As<E>().IsConstant());
+         REQUIRE_FALSE(pack.template As<E>().GetAllocation());
+         REQUIRE(pack.template As<E>().GetUses() == 0);
+         REQUIRE(pack.template As<E>() == element);
          REQUIRE(pack == element);
          //REQUIRE(pack != element);
          REQUIRE(pack.GetUses() == 1);
@@ -1468,8 +1464,8 @@ TEMPLATE_TEST_CASE("Dense Many/TMany", "[many]",
 
       if constexpr (CT::Flat<E>) {
          Any_CheckState_OwnedFull<E>(pack);
-         REQUIRE(pack.template As<DenseE>() == denseValue);
-         REQUIRE(*pack.template As<DenseE*>() == denseValue);
+         REQUIRE(pack.template As<E>() == element);
+         REQUIRE(*pack.template As<E*>() == element);
          REQUIRE(pack.GetUses() == 1);
       }
       else if constexpr (CT::Same<E, T>) {
@@ -1480,16 +1476,16 @@ TEMPLATE_TEST_CASE("Dense Many/TMany", "[many]",
          REQUIRE(pack.GetAllocation() == element.GetAllocation());
       }
       else {
-         REQUIRE(pack.template As<DenseE>().GetRaw() == sparseValue->GetRaw());
+         REQUIRE(pack.template As<E>().GetRaw() == element.GetRaw());
          if constexpr (CT::Typed<T>)
             REQUIRE(pack.template IsExact<TypeOf<T>>());
-         REQUIRE(pack.template As<DenseE>() == denseValue);
-         REQUIRE(*pack.template As<DenseE*>() == denseValue);
-         REQUIRE_FALSE(pack.template As<DenseE>().IsStatic());
-         REQUIRE_FALSE(pack.template As<DenseE>().IsConstant());
-         REQUIRE(pack.template As<DenseE>().GetAllocation());
-         REQUIRE(pack.template As<DenseE>().GetUses() == 2);
-         REQUIRE(pack.template As<DenseE>() == element);
+         REQUIRE(pack.template As<E>() == element);
+         REQUIRE(*pack.template As<E*>() == element);
+         REQUIRE_FALSE(pack.template As<E>().IsStatic());
+         REQUIRE_FALSE(pack.template As<E>().IsConstant());
+         REQUIRE(pack.template As<E>().GetAllocation());
+         REQUIRE(pack.template As<E>().GetUses() == 2);
+         REQUIRE(pack.template As<E>() == element);
          //REQUIRE(pack != element);
          REQUIRE(pack == element);
          REQUIRE(pack.GetUses() == 1);
@@ -1542,13 +1538,13 @@ TEMPLATE_TEST_CASE("Dense Many/TMany", "[many]",
 
    GIVEN("Container constructed by static list of somewhat different shallow-copied elements") {
       if constexpr (CT::Untyped<T>) {
-         const T pack {denseValue, sparseValue};
+         const T pack {element, &element};
 
          Any_CheckState_OwnedFull<Many>(pack);
          REQUIRE(pack.GetCount() == 2);
          REQUIRE(pack.GetReserved() >= 2);
-         REQUIRE(pack[0] == Many {denseValue});
-         REQUIRE(pack[1] == Many {sparseValue});
+         REQUIRE(pack[0] == Many {element});
+         REQUIRE(pack[1] == Many {&element});
       }
    }
 
@@ -2494,7 +2490,7 @@ TEMPLATE_TEST_CASE("Dense Many/TMany", "[many]",
                ++it;
             },
             [&](const Many& i) {
-               const auto temp = CreateElement<DenseE>(it + 1);
+               const auto temp = CreateElement<E>(it + 1);
                REQUIRE(i == static_cast<const Many&>(temp));
                ++it;
             }
@@ -2519,7 +2515,7 @@ TEMPLATE_TEST_CASE("Dense Many/TMany", "[many]",
                ++it;
             },
             [&](const Many& i) {
-               const auto temp = CreateElement<DenseE>(it + 1);
+               const auto temp = CreateElement<E>(it + 1);
                REQUIRE(i == static_cast<const Many&>(temp));
                ++it;
             }
@@ -2545,7 +2541,7 @@ TEMPLATE_TEST_CASE("Dense Many/TMany", "[many]",
                ++it;
             },
             [&](const Many& i) {
-               const auto temp = CreateElement<DenseE>(5 - it);
+               const auto temp = CreateElement<E>(5 - it);
                REQUIRE(i == static_cast<const Many&>(temp));
                ++it;
             }
@@ -2571,7 +2567,7 @@ TEMPLATE_TEST_CASE("Dense Many/TMany", "[many]",
                ++it;
             },
             [&](const Many& i) {
-               const auto temp = CreateElement<DenseE>(5 - it);
+               const auto temp = CreateElement<E>(5 - it);
                REQUIRE(i == static_cast<const Many&>(temp));
                ++it;
             }
@@ -2707,5 +2703,19 @@ TEMPLATE_TEST_CASE("Dense Many/TMany", "[many]",
       }
    }
 
+   if constexpr (requires(E e) { e.Reset(); }) {
+      const_cast<E&>(element).Reset();
+      for (auto& i : darray1)
+         const_cast<E&>(i).Reset();
+      for (auto& i : darray2)
+         const_cast<E&>(i).Reset();
+   }
+
    REQUIRE(memoryState.Assert());
+
+   // Destroy BANK before static data - otherwise problems happen if    
+   // not using managed reflection                                      
+   BANK.Reset();
+
+   REQUIRE_FALSE(Allocator::CollectGarbage());
 }
