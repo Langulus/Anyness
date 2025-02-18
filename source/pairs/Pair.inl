@@ -49,6 +49,18 @@ namespace Langulus::Anyness
    /// Get the contained key                                                  
    ///   @return a reference to the contained key                             
    LANGULUS(INLINED)
+   Many const& Pair::GetKey() const noexcept {
+      return mKey;
+   }
+
+   LANGULUS(INLINED)
+   Many& Pair::GetKey() noexcept {
+      return mKey;
+   }
+
+   /// Get the contained key                                                  
+   ///   @return a reference to the contained key                             
+   LANGULUS(INLINED)
    Many const& Pair::GetKeyBlock() const noexcept {
       return mKey;
    }
@@ -56,6 +68,18 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    Many& Pair::GetKeyBlock() noexcept {
       return mKey;
+   }
+
+   /// Get the contained value                                                
+   ///   @return a reference to the contained key                             
+   LANGULUS(INLINED)
+   Many const& Pair::GetValue() const noexcept {
+      return mValue;
+   }
+
+   LANGULUS(INLINED)
+   Many& Pair::GetValue() noexcept {
+      return mValue;
    }
 
    /// Get the contained value                                                

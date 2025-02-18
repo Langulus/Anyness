@@ -121,20 +121,44 @@ namespace Langulus::Anyness
 
    /// Get the bucket index, based on the provided value's hash               
    ///   @param mask - a mask for ANDing the relevant part of the hash        
-   ///   @param value - the value to hash                                     
+   ///   @param key - the key to hash                                         
    ///   @return the bucket index                                             
-   LANGULUS(ALWAYS_INLINED)
-   Offset BlockMap::GetBucket(Offset mask, const CT::NoIntent auto& value) noexcept {
-      return HashOf(value).mHash & mask;
+   template<CT::Map THIS> LANGULUS(INLINED)
+   Offset BlockMap::GetBucket(Offset mask, const CT::NoIntent auto& key) const IF_UNSAFE(noexcept) {
+      using K_ALT = Deref<decltype(key)>;
+
+      if constexpr (CT::Typed<THIS>) {
+         using K = typename THIS::Key;
+
+         if constexpr (CT::Similar<K, K_ALT>)
+            return HashOf(key).mHash & mask;
+         else {
+            // Make sure we hash the contained type for correct results 
+            return HashOf(static_cast<K>(key)).mHash & mask;
+         }
+      }
+      else {
+         LANGULUS_ASSUME(DevAssumes,
+            mKeys.IsSimilar<K_ALT>() or (CT::Sparse<K_ALT> and mKeys.IsSparse()),
+            "Key type ", MetaDataOf<K_ALT>(), " differs from contained type ", mKeys.GetType(),
+            ", hash integrity is compromised "
+         );
+         return HashOf(key).mHash & mask;
+      }
    }
    
    /// Get the bucket index, based on the wrapped value's hash                
    ///   @param mask - a mask for ANDing the relevant part of the hash        
-   ///   @param value - the value to hash, wrapped in a block                 
+   ///   @param key - the key to hash, wrapped in a block                     
    ///   @return the bucket index                                             
-   LANGULUS(ALWAYS_INLINED)
-   Offset BlockMap::GetBucketUnknown(Offset mask, const Block<>& value) noexcept {
-      return value.GetHash().mHash & mask;
+   LANGULUS(INLINED)
+   Offset BlockMap::GetBucketUnknown(Offset mask, const Block<>& key) const IF_UNSAFE(noexcept) {
+      LANGULUS_ASSUME(DevAssumes,
+         mKeys.IsSimilar(key.GetType()) or (key.IsSparse() and mKeys.IsSparse()),
+         "Key type ", key.GetType(), " differs from contained type ", mKeys.GetType(),
+         ", hash integrity is compromised "
+      );
+      return key.GetHash().mHash & mask;
    }
 
    /// Get a key reference if THIS is typed, otherwise get a block            

@@ -78,6 +78,18 @@ namespace Langulus::Anyness
    }
 
    /// Get contained key                                                      
+   ///   @return the key                                                      
+   TEMPLATE() LANGULUS(INLINED)
+   auto PAIR()::GetKey() noexcept -> Conditional<CT::Dense<K>, K&, K> {
+      return mKey;
+   }
+   
+   TEMPLATE() LANGULUS(ALWAYS_INLINED)
+   auto PAIR()::GetKey() const noexcept -> const K& {
+      return mKey;
+   }
+
+   /// Get contained key as a block                                           
    ///   @return the key block                                                
    TEMPLATE() LANGULUS(INLINED)
    Block<K> PAIR()::GetKeyBlock() noexcept {
@@ -93,7 +105,34 @@ namespace Langulus::Anyness
       return block;
    }
 
+   /// Get contained key as a handle                                          
+   ///   @return the handle                                                   
+   TEMPLATE() LANGULUS(INLINED)
+      Handle<K> PAIR()::GetKeyHandle() {
+      if constexpr (CT::Sparse<K> and not CT::Reference<K>)
+         return mKey.GetHandle();
+      else
+         return {&mKey};
+   }
+
+   TEMPLATE() LANGULUS(ALWAYS_INLINED)
+      Handle<const K> PAIR()::GetKeyHandle() const {
+      return const_cast<PAIR()*>(this)->GetKeyHandle().MakeConst();
+   }
+
    /// Get contained value                                                    
+   ///   @return the value                                                    
+   TEMPLATE() LANGULUS(INLINED)
+   auto PAIR()::GetValue() noexcept -> Conditional<CT::Dense<V>, V&, V> {
+      return mValue;
+   }
+
+   TEMPLATE() LANGULUS(ALWAYS_INLINED)
+   auto PAIR()::GetValue() const noexcept -> const V& {
+      return mValue;
+   }
+
+   /// Get contained value as a block                                         
    ///   @return the value block                                              
    TEMPLATE() LANGULUS(INLINED)
    Block<V> PAIR()::GetValueBlock() noexcept {
@@ -109,25 +148,14 @@ namespace Langulus::Anyness
       return block;
    }
 
-   TEMPLATE() LANGULUS(INLINED)
-   Handle<K> PAIR()::GetKeyHandle() {
-      if constexpr (CT::Sparse<K> and not CT::Reference<K>)
-         return mKey.GetHandle();
-      else
-         return {&mKey};
-   }
-
+   /// Get contained value as a handle                                        
+   ///   @return the handle                                                   
    TEMPLATE() LANGULUS(INLINED)
    Handle<V> PAIR()::GetValueHandle() {
       if constexpr (CT::Sparse<V> and not CT::Reference<V>)
          return mValue.GetHandle();
       else
          return {&mValue};
-   }
-   
-   TEMPLATE() LANGULUS(ALWAYS_INLINED)
-   Handle<const K> PAIR()::GetKeyHandle() const {
-      return const_cast<PAIR()*>(this)->GetKeyHandle().MakeConst();
    }
 
    TEMPLATE() LANGULUS(ALWAYS_INLINED)

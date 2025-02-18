@@ -166,7 +166,7 @@ namespace Langulus::Anyness
          if (*old.mInfo) {
             if constexpr (CT::TypedMap<THIS>) {
                InsertInner<THIS, false>(
-                  GetBucket(GetReserved() - 1, key.Get()),
+                  GetBucket<THIS>(GetReserved() - 1, key.Get()),
                   Abandon(key), Abandon(val)
                );
                key.FreeInner();

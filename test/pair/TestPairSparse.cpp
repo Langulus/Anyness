@@ -92,8 +92,8 @@ TEMPLATE_TEST_CASE("Sparse TPair/Pair", "[pair]",
          Pair_CheckState_Default<K, V>(movablePair);
          Pair_CheckState_OwnedFull<K, V>(pair);
 
-         REQUIRE(pair.mKey == lp.mKey);
-         REQUIRE(pair.mValue == lp.mValue);
+         REQUIRE(pair.GetKey() == lp.GetKey());
+         REQUIRE(pair.GetValue() == lp.GetValue());
          REQUIRE(pair == lp);
 
          #ifdef LANGULUS_STD_BENCHMARK
@@ -127,8 +127,8 @@ TEMPLATE_TEST_CASE("Sparse TPair/Pair", "[pair]",
 
       Pair_CheckState_OwnedFull<K, V>(pair);
 
-      REQUIRE(pair.mKey == lp.mKey);
-      REQUIRE(pair.mValue == lp.mValue);
+      REQUIRE(pair.GetKey() == lp.GetKey());
+      REQUIRE(pair.GetValue() == lp.GetValue());
       REQUIRE(pair == lp);
       //TODO benchmark
    }
@@ -154,8 +154,8 @@ TEMPLATE_TEST_CASE("Sparse TPair/Pair", "[pair]",
          Pair_CheckState_OwnedFull<K, V>(pair);
          Pair_CheckState_OwnedFull<K, V>(copy);
 
-         REQUIRE(copy.mKey == pair.mKey);
-         REQUIRE(copy.mValue == pair.mValue);
+         REQUIRE(copy.GetKey() == pair.GetKey());
+         REQUIRE(copy.GetValue() == pair.GetValue());
          REQUIRE(copy == pair);
          REQUIRE(copy == lp);
          //TODO benchmark  
@@ -168,8 +168,8 @@ TEMPLATE_TEST_CASE("Sparse TPair/Pair", "[pair]",
             Pair_CheckState_OwnedFull<K, V>(pair);
             Pair_CheckState_OwnedFull<K, V>(clone);
 
-            REQUIRE(clone.mKey != pair.mKey);
-            REQUIRE(clone.mValue != pair.mValue);
+            REQUIRE(clone.GetKey() != pair.GetKey());
+            REQUIRE(clone.GetValue() != pair.GetValue());
             REQUIRE(clone != pair);
          }
          else if constexpr (CT::Untyped<T>) {
@@ -185,8 +185,8 @@ TEMPLATE_TEST_CASE("Sparse TPair/Pair", "[pair]",
          Pair_CheckState_Default<K, V>(movable);
          Pair_CheckState_OwnedFull<K, V>(moved);
 
-         REQUIRE(moved.mKey == pair.mKey);
-         REQUIRE(moved.mValue == pair.mValue);
+         REQUIRE(moved.GetKey() == pair.GetKey());
+         REQUIRE(moved.GetValue() == pair.GetValue());
          REQUIRE(moved != movable);
          REQUIRE(moved == pair);
          //TODO benchmark  

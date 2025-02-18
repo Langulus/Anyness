@@ -274,7 +274,7 @@ namespace Langulus::Anyness
                // allocations                                           
                for (auto pair : *asFrom) {
                   coalescedKeys.template InsertInner<void, false>(
-                     IndexBack, SS::Nest(*pair.mKey));
+                     IndexBack, SS::Nest(*pair.GetKey()));
                }
 
                const_cast<Allocation*>(coalescedKeys.mEntry)
@@ -334,7 +334,7 @@ namespace Langulus::Anyness
                // allocations                                           
                for (auto pair : *asFrom) {
                   coalescedKeys.template InsertBlockInner<void, false>(
-                     IndexBack, SS::Nest(*pair.mKey));
+                     IndexBack, SS::Nest(*pair.GetKey()));
                }
 
                const_cast<Allocation*>(coalescedKeys.mEntry)
@@ -394,7 +394,7 @@ namespace Langulus::Anyness
             coalescedVals.Reserve(asFrom->GetCount());
             for (auto pair : *asFrom) {
                coalescedVals.template InsertInner<void, false>(
-                  IndexBack, SS::Nest(*pair.mValue));
+                  IndexBack, SS::Nest(*pair.GetValue()));
             }
 
             // We're using Handle::Create, instead of CreateWithIntent  
@@ -458,7 +458,7 @@ namespace Langulus::Anyness
             coalescedVals.Reserve(asFrom->GetCount());
             for (auto pair : *asFrom) {
                coalescedVals.template InsertBlockInner<void, false>(
-                  IndexBack, SS::Nest(*pair.mValue));
+                  IndexBack, SS::Nest(*pair.GetValue()));
             }
 
             const_cast<Allocation*>(coalescedVals.mEntry)
@@ -492,6 +492,7 @@ namespace Langulus::Anyness
    ///   @attention assumes key and value types are clone-constructible       
    template<template<class> class S, CT::Map B> requires CT::Intent<S<B>>
    void BlockMap::CloneValuesReinsertInner(CT::Block auto& coalescedKeys, S<B>&& asFrom) {
+      LANGULUS_ASSUME(DevAssumes, IsKeySparse(), "Keys should be sparse");
       using SS = S<B>;
 
       if constexpr (CT::Typed<B>) {
@@ -513,7 +514,7 @@ namespace Langulus::Anyness
 
             while (ptr != ptrEnd) {
                InsertInner<B, false>(
-                  GetBucket(GetReserved() - 1, ptr),
+                  GetBucket<B>(GetReserved() - 1, ptr),
                   Abandon(HandleLocal<K> {ptr, coalescedKeys.mEntry}),
                   SS::Nest(asFrom->template GetValHandle<B>(valIdx))
                );
@@ -534,7 +535,7 @@ namespace Langulus::Anyness
             coalescedVals.Reserve(asFrom->GetCount());
             for (auto pair : *asFrom) {
                coalescedVals.template InsertInner<void, false>(
-                  IndexBack, SS::Nest(*pair.mValue));
+                  IndexBack, SS::Nest(*pair.GetValue()));
             }
 
             const_cast<Allocation*>(coalescedVals.mEntry)
@@ -543,7 +544,7 @@ namespace Langulus::Anyness
             auto ptrVal = coalescedVals.GetRaw();
             while (ptr != ptrEnd) {
                InsertInner<B, false>(
-                  GetBucket(GetReserved() - 1, ptr),
+                  GetBucket<B>(GetReserved() - 1, ptr),
                   Abandon(HandleLocal<K> {ptr,    coalescedKeys.mEntry}),
                   Abandon(HandleLocal<V> {ptrVal, coalescedVals.mEntry})
                );
@@ -575,7 +576,7 @@ namespace Langulus::Anyness
 
             while (ptr != ptrEnd) {
                InsertInner<B, false>(
-                  GetBucket(GetReserved() - 1, ptr),
+                  GetBucket<B>(GetReserved() - 1, ptr),
                   Abandon(HandleLocal<void*> {ptr, coalescedKeys.mEntry}),
                   SS::Nest(asFrom->template GetValHandle<B>(valIdx))
                );
@@ -595,7 +596,7 @@ namespace Langulus::Anyness
             coalescedVals.Reserve(asFrom->GetCount());
             for (auto pair : *asFrom) {
                coalescedVals.template InsertBlockInner<void, false>(
-                  IndexBack, SS::Nest(*pair.mValue));
+                  IndexBack, SS::Nest(*pair.GetValue()));
             }
 
             const_cast<Allocation*>(coalescedVals.mEntry)
@@ -605,7 +606,7 @@ namespace Langulus::Anyness
             const Size valstride = coalescedVals.GetStride();
             while (ptr != ptrEnd) {
                InsertInner<B, false>(
-                  GetBucket(GetReserved() - 1, ptr),
+                  GetBucket<B>(GetReserved() - 1, ptr),
                   Abandon(HandleLocal<void*> {ptr, coalescedKeys.mEntry}),
                   Abandon(HandleLocal<void*> {ptrVal, coalescedVals.mEntry})
                );

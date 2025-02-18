@@ -263,7 +263,7 @@ namespace Langulus::Anyness
          }
 
          // Get the starting index based on the key hash                
-         const auto start = GetBucket(GetReserved() - 1, match);
+         const auto start = GetBucket<THIS>(GetReserved() - 1, match);
          auto info = GetInfo() + start;
          if (not *info)
             return InvalidOffset;

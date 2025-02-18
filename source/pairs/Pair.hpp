@@ -52,9 +52,11 @@ namespace Langulus
       struct Pair : A::Pair {
          LANGULUS_ABSTRACT() false;
 
+      private:
          Many mKey;
          Many mValue;
 
+      public:
          ///                                                                  
          ///   Construction & Assignment                                      
          ///                                                                  
@@ -78,8 +80,13 @@ namespace Langulus
          ///                                                                  
          Hash GetHash() const;
 
-         auto GetKeyBlock() const noexcept -> Many const&;
-         auto GetKeyBlock()       noexcept -> Many&;
+         auto GetKey()        const noexcept -> Many const&;
+         auto GetKey()              noexcept -> Many&;
+         auto GetKeyBlock()   const noexcept -> Many const&;
+         auto GetKeyBlock()         noexcept -> Many&;
+
+         auto GetValue()      const noexcept -> Many const&;
+         auto GetValue()            noexcept -> Many&;
          auto GetValueBlock() const noexcept -> Many const&;
          auto GetValueBlock()       noexcept -> Many&;
 

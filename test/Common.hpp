@@ -153,7 +153,7 @@ void DestroyPair(auto& pair) {
    using P = Deref<decltype(pair)>;
 
    if constexpr (not MANAGED) {
-      if constexpr (requires { pair.mKey; }) {
+      if constexpr (requires { pair.GetKey(); }) {
          if constexpr (CT::Typed<P>) {
             // It's a statically typed langulus pair                    
             using K = typename P::Key;
@@ -161,44 +161,44 @@ void DestroyPair(auto& pair) {
 
             if constexpr (CT::Sparse<K>) {
                if constexpr (CT::Referencable<Deptr<K>>)
-                  REQUIRE(pair.mKey->Reference(-1) == 0);
+                  REQUIRE(pair.GetKey()->Reference(-1) == 0);
                if constexpr (CT::Destroyable<Decay<K>>)
-                  pair.mKey->~Decay<K>();
-               free(pair.mKey.Get());
+                  pair.GetKey()->~Decay<K>();
+               free(pair.GetKey());
             }
             else if constexpr (requires (K k) { k.Reset(); })
-               DecvqCast(pair.mKey).Reset();
+               DecvqCast(pair.GetKey()).Reset();
 
             if constexpr (CT::Sparse<V>) {
                if constexpr (CT::Referencable<Deptr<V>>)
-                  REQUIRE(pair.mValue->Reference(-1) == 0);
+                  REQUIRE(pair.GetValue()->Reference(-1) == 0);
                if constexpr (CT::Destroyable<Decay<V>>)
-                  pair.mValue->~Decay<V>();
-               free(pair.mValue.Get());
+                  pair.GetValue()->~Decay<V>();
+               free(pair.GetValue());
             }
             else if constexpr (requires (V v) { v.Reset(); })
-               DecvqCast(pair.mValue).Reset();
+               DecvqCast(pair.GetValue()).Reset();
          }
          else {
-            if (pair.mKey.IsSparse()) {
-               if (pair.mKey.GetType()->mReference)
-                  REQUIRE(pair.mKey.GetType()->mReference(*pair.mKey.template GetRaw<void*>(), -1) == 0);
-               if (pair.mKey.GetType()->mDestructor)
-                  pair.mKey.GetType()->mDestructor(*pair.mKey.template GetRaw<void*>());
-               free(*pair.mKey.template GetRaw<void*>());
+            if (pair.GetKey().IsSparse()) {
+               if (pair.GetKey().GetType()->mReference)
+                  REQUIRE(pair.GetKey().GetType()->mReference(*pair.GetKey().template GetRaw<void*>(), -1) == 0);
+               if (pair.GetKey().GetType()->mDestructor)
+                  pair.GetKey().GetType()->mDestructor(*pair.GetKey().template GetRaw<void*>());
+               free(*pair.GetKey().template GetRaw<void*>());
             }
             
-            DecvqCast(pair.mKey).Reset();
+            DecvqCast(pair.GetKey()).Reset();
 
-            if (pair.mValue.IsSparse()) {
-               if (pair.mValue.GetType()->mReference)
-                  REQUIRE(pair.mValue.GetType()->mReference(*pair.mValue.template GetRaw<void*>(), -1) == 0);
-               if (pair.mValue.GetType()->mDestructor)
-                  pair.mValue.GetType()->mDestructor(*pair.mValue.template GetRaw<void*>());
-               free(*pair.mValue.template GetRaw<void*>());
+            if (pair.GetValue().IsSparse()) {
+               if (pair.GetValue().GetType()->mReference)
+                  REQUIRE(pair.GetValue().GetType()->mReference(*pair.GetValue().template GetRaw<void*>(), -1) == 0);
+               if (pair.GetValue().GetType()->mDestructor)
+                  pair.GetValue().GetType()->mDestructor(*pair.GetValue().template GetRaw<void*>());
+               free(*pair.GetValue().template GetRaw<void*>());
             }
             
-            DecvqCast(pair.mValue).Reset();
+            DecvqCast(pair.GetValue()).Reset();
          }
       }
       else if constexpr (requires { pair.first; }) {

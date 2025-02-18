@@ -272,8 +272,9 @@ namespace Langulus::Anyness
       Offset SimplifyIndex(INDEX) const
       noexcept(not LANGULUS_SAFE() and CT::BuiltinInteger<INDEX>);
 
-      static Offset GetBucket(Offset, const CT::NoIntent auto&) noexcept;
-      static Offset GetBucketUnknown(Offset, const Block<>&) noexcept;
+      template<CT::Map>
+      Offset GetBucket(Offset, const CT::NoIntent auto&) const IF_UNSAFE(noexcept);
+      Offset GetBucketUnknown(Offset, const Block<>&)    const IF_UNSAFE(noexcept);
 
       template<CT::Map>
       decltype(auto) GetRawKey(Offset) const IF_UNSAFE(noexcept);

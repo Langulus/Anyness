@@ -59,9 +59,11 @@ namespace Langulus::Anyness
       LANGULUS_ABSTRACT() false;
       LANGULUS(TYPED) TPair<K, V>;
 
+   private:
       Conditional<CT::Reference<K> or CT::Dense<K>, K, Ref<Deptr<K>>> mKey;
       Conditional<CT::Reference<V> or CT::Dense<V>, V, Ref<Deptr<V>>> mValue;
 
+   public:
       ///                                                                     
       ///   Construction & Assignment                                         
       ///                                                                     
@@ -89,14 +91,18 @@ namespace Langulus::Anyness
       ///                                                                     
       Hash GetHash() const requires CT::Hashable<K, V>;
 
-      auto GetKeyBlock() const noexcept -> Block<K>;
-      auto GetKeyBlock()       noexcept -> Block<K>;
-      auto GetValueBlock() const noexcept -> Block<V>;
-      auto GetValueBlock()       noexcept -> Block<V>;
+      auto GetKey()         const noexcept -> const K&;
+      auto GetKey()               noexcept -> Conditional<CT::Dense<K>, K&, K>;
+      auto GetKeyBlock()    const noexcept -> Block<K>;
+      auto GetKeyBlock()          noexcept -> Block<K>;
+      auto GetKeyHandle()         -> Handle<K>;
+      auto GetKeyHandle()   const -> Handle<const K>;
 
-      auto GetKeyHandle() -> Handle<K>;
-      auto GetValueHandle() -> Handle<V>;
-      auto GetKeyHandle() const -> Handle<const K>;
+      auto GetValue()       const noexcept -> const V&;
+      auto GetValue()             noexcept -> Conditional<CT::Dense<V>, V&, V>;
+      auto GetValueBlock()  const noexcept -> Block<V>;
+      auto GetValueBlock()        noexcept -> Block<V>;
+      auto GetValueHandle()       -> Handle<V>;
       auto GetValueHandle() const -> Handle<const V>;
 
       ///                                                                     

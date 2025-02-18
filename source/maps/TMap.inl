@@ -510,14 +510,14 @@ namespace Langulus::Anyness
    TEMPLATE() LANGULUS(INLINED)
    auto TABLE()::operator += (const TABLE()& rhs) -> TMap& {
       for (auto pair : rhs) {
-         auto found = Find(pair.mKey);
+         auto found = Find(pair.GetKey());
          if (found) {
             if constexpr (requires (V& lhs) { lhs += rhs; })
-               GetValue(found) += pair.mValue;
+               GetValue(found) += pair.GetValue();
             else
                LANGULUS_THROW(Concat, "No concat operator available");
          }
-         else Insert(pair.mKey, pair.mValue);
+         else Insert(pair.GetKey(), pair.GetValue()); //TODO use handles instead? or better yed - directly insert pair?
       }
 
       return *this;

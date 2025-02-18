@@ -189,7 +189,7 @@ namespace Langulus::Anyness
       Mutate<THIS, TypeOf<SK>, TypeOf<SV>>();
       Reserve<THIS>(GetCount() + 1);
       InsertInner<THIS, true>(
-         GetBucket(GetReserved() - 1, DeintCast(key)), 
+         GetBucket<THIS>(GetReserved() - 1, DeintCast(key)), 
          SK::Nest(key), SV::Nest(val)
       );
       return 1;
@@ -238,7 +238,7 @@ namespace Langulus::Anyness
             // Static type insertion                                    
             auto& keyRef = DeintCast(key)[i];
             InsertInner<THIS, true>(
-               GetBucket(GetReserved() - 1, keyRef),
+               GetBucket<THIS>(GetReserved() - 1, keyRef),
                SK::Nest(keyRef),
                SV::Nest(DeintCast(val)[i])
             );
@@ -407,7 +407,7 @@ namespace Langulus::Anyness
 
          Offset moveTo = 0;
          if constexpr (CT::TypedMap<THIS>)
-            moveTo = GetBucket(hashmask, key.Get());
+            moveTo = GetBucket<THIS>(hashmask, key.Get());
          else
             moveTo = GetBucketUnknown(hashmask, key);
 
@@ -483,7 +483,7 @@ namespace Langulus::Anyness
          auto val = GetValHandle<THIS>(current);
          Offset moveTo = 0;
          if constexpr (CT::TypedMap<THIS>)
-            moveTo = GetBucket(hashmask, key.Get());
+            moveTo = GetBucket<THIS>(hashmask, key.Get());
          else
             moveTo = GetBucketUnknown(hashmask, key);
 
@@ -662,7 +662,7 @@ namespace Langulus::Anyness
 
             // Rehash the key that currently resides in keyswapper      
             if constexpr (CT::TypedMap<THIS>)
-               start = GetBucket(GetReserved() - 1, keyswapper.Get());
+               start = GetBucket<THIS>(GetReserved() - 1, keyswapper.Get());
             else
                start = GetBucketUnknown(GetReserved() - 1, keyswapper);
 
@@ -792,7 +792,7 @@ namespace Langulus::Anyness
       if constexpr (CT::Typed<T>) {
          // Insert a statically typed pair                              
          InsertInner<THIS, CHECK_FOR_MATCH>(
-            GetBucket(hashmask, pair->mKey),
+            GetBucket<THIS>(hashmask, pair->GetKey()),
             pair.Nest(pair->GetKeyHandle()),
             pair.Nest(pair->GetValueHandle())
          );
@@ -800,9 +800,9 @@ namespace Langulus::Anyness
       else {
          // Insert a type-erased pair                                   
          InsertBlockInner<THIS, CHECK_FOR_MATCH>(
-            GetBucketUnknown(hashmask, pair->mKey),
-            pair.Nest(pair->mKey),
-            pair.Nest(pair->mValue)
+            GetBucketUnknown(hashmask, pair->GetKey()),
+            pair.Nest(pair->GetKey()),
+            pair.Nest(pair->GetValue())
          );
       }
       return GetCount() - initialCount;

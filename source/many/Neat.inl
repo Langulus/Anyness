@@ -428,7 +428,7 @@ namespace Langulus::Anyness
          // Fill a bounded array                                        
          Count scanned = 0;
          for (auto pair : mAnythingElse) {
-            for (auto& group : pair.mValue) {
+            for (auto& group : pair.GetValue()) {
                const auto toscan = ::std::min(ExtentOf<D> - scanned, group.GetCount());
                for (Offset i = 0; i < toscan; ++i) {
                   //TODO can be optimized-out for POD
@@ -449,7 +449,7 @@ namespace Langulus::Anyness
       else {
          // Fill a single value                                         
          for (auto pair : mAnythingElse) {
-            for (auto& group : pair.mValue) {
+            for (auto& group : pair.GetValue()) {
                try {
                   value = group.template AsCast<D>();
                   return 1;
@@ -928,7 +928,7 @@ namespace Langulus::Anyness
       else {
          // Iterate all traits, either using type-erased trait, or deep 
          for (auto group : mTraits) {
-            for (auto& data : group.mValue) {
+            for (auto& data : group.GetValue()) {
                if constexpr (CT::Deep<A>) {
                   auto wrapper = MakeBlock<Decay<A>>(data);
                   if constexpr (CT::Bool<R>) {
@@ -981,7 +981,7 @@ namespace Langulus::Anyness
       // Iterate all constructs                                         
       Count index = 0;
       for (auto group : mConstructs) {
-         for (auto& data : group.mValue) {
+         for (auto& data : group.GetValue()) {
             if constexpr (CT::Deep<A>) {
                // Iterate using deep A                                  
                auto wrapper = MakeBlock<Decay<A>>(data);
@@ -1051,7 +1051,7 @@ namespace Langulus::Anyness
       else if constexpr (CT::Deep<A>) {
          // Type-erased container provided, iterate the entire tail     
          for (auto group : mAnythingElse) {
-            for (auto& data : group.mValue) {
+            for (auto& data : group.GetValue()) {
                if constexpr (CT::Bool<R>) {
                   if (not call(data))
                      return index + 1;
@@ -1120,12 +1120,12 @@ namespace Langulus::Anyness
       }
 
       Count count = 0;
-      for (auto data : KeepIterator(found.GetValue())) {
+      for (auto data : KeepIterator(found.mValue)) {
          if (not *data)
             continue;
 
          // Remove only matching data entries, that aren't empty        
-         data = found.GetValue().RemoveIt(data);
+         data = found.mValue.RemoveIt(data);
          ++count;
       }
 
@@ -1216,33 +1216,33 @@ namespace Langulus::Anyness
 
       bool separator = false;
       for (auto pair : mAnythingElse) {
-         for (auto& group : pair.mValue) {
+         for (auto& group : pair.GetValue()) {
             if (separator)
                to += ", ";
 
             if (group.IsValid())
                group.SerializeToText<void>(to);
             else
-               to += static_cast<OUT>(pair.mKey);
+               to += static_cast<OUT>(pair.GetKey());
             separator = true;
          }
       }
 
       for (auto pair : mTraits) {
-         for (auto& trait : pair.mValue) {
+         for (auto& trait : pair.GetValue()) {
             if (separator)
                to += ", ";
 
             if (trait.IsValid())
                trait.Serialize(to);
             else
-               to += static_cast<OUT>(pair.mKey);
+               to += static_cast<OUT>(pair.GetKey());
             separator = true;
          }
       }
 
       for (auto pair : mConstructs) {
-         for (auto& construct : pair.mValue) {
+         for (auto& construct : pair.GetValue()) {
             if (separator)
                to += ", ";
 
@@ -1250,7 +1250,7 @@ namespace Langulus::Anyness
             or not construct.GetCharge().IsDefault())
                construct.Serialize(to);
             else
-               to += static_cast<OUT>(pair.mKey);
+               to += static_cast<OUT>(pair.GetKey());
             separator = true;
          }
       }
