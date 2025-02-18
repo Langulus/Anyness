@@ -15,7 +15,7 @@ if (PROJECT_IS_TOP_LEVEL OR NOT LANGULUS)
     if(LANGULUS_FEATURE_MANAGED_MEMORY)
         fetch_langulus_module(Fractalloc GIT_TAG e5b0245cd29dd4b12d19e2173c67892a68b4264f)
     endif()
-    fetch_langulus_module(SIMD GIT_TAG 25fdea0f369eaf3e523f9fca3c73e068e1869cb2)
+    fetch_langulus_module(SIMD GIT_TAG 2760451c65a5f15ee5344354c521d2103d01516b)
 endif()
 
 file(GLOB_RECURSE
