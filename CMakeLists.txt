@@ -11,11 +11,11 @@ if (PROJECT_IS_TOP_LEVEL OR NOT LANGULUS)
 	set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
     include(LangulusUtilities.cmake)
 
-    fetch_langulus_module(RTTI GIT_TAG c7620c931c2cf26ac345a9155b569631f5223896)
+    fetch_langulus_module(RTTI GIT_TAG af0c2f6bf25d0436caf098b354350c7b681d1036)
     if(LANGULUS_FEATURE_MANAGED_MEMORY)
-        fetch_langulus_module(Fractalloc GIT_TAG f3f7d6c2a3b080ae3ecb39ea73791d057510876c)
+        fetch_langulus_module(Fractalloc GIT_TAG cbb71d9b33c741e8856e8522632559b3082a39e9)
     endif()
-    fetch_langulus_module(SIMD GIT_TAG a3dce7f6405bf64e576b884de9a134855292573c)
+    fetch_langulus_module(SIMD GIT_TAG f11882f84426ff2b815ad09365503f6efdc394ed)
 endif()
 
 file(GLOB_RECURSE
