@@ -252,8 +252,10 @@ namespace Langulus::Anyness
       if (mEntry->GetUses() == 1) {
          // Entry is used only in this block, so it's safe to           
          // destroy all elements. We will reuse the entry and type      
-         FreeInner();
-         mCount = 0;
+         if (mCount) {
+            FreeInner();
+            mCount = 0;
+         }
       }
       else {
          // If reached, then data is referenced from multiple places    
