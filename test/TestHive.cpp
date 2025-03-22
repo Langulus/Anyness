@@ -49,6 +49,35 @@ SCENARIO("Test hives", "[hive]") {
 			REQUIRE(hive.GetFrames()[0].GetRaw()[0].mData == one);
 			REQUIRE(hive.GetFrames()[0].GetRaw()[1].mData == two);
 		}
+
+		WHEN("30 elements produced") {
+         for (int i = 1; i <= 30; ++i)
+            REQUIRE(hive.New(i));
+
+			REQUIRE(hive.GetCount() == 30);
+			REQUIRE(hive.GetFrames().GetCount() == 2);
+         //REQUIRE(hive.GetReusable() == nullptr);
+         REQUIRE(hive.GetType() == MetaOf<Producible>());
+
+         for (Count i = 0; i < hive.GetFrames()[0].GetReserved(); ++i) {
+            auto v = hive.GetFrames()[0].GetRaw()[i].mData;
+            REQUIRE(v.v == i + 1);
+         }
+
+         for (Count i = hive.GetFrames()[0].GetReserved(); i < hive.GetFrames()[0].GetReserved() + hive.GetFrames()[1].GetReserved() - 1; ++i) {
+            auto v = hive.GetFrames()[1].GetRaw()[i - hive.GetFrames()[0].GetReserved()].mData;
+            REQUIRE(v.v == i + 1);
+         }
+
+         THEN("Iterated using range") {
+            int counter = 0;
+            for (auto& i : hive) {
+               ++counter;
+               REQUIRE(i == counter);
+            }
+            REQUIRE(counter == 30);
+         }
+		}
    }
 
    const_cast<Producible&>(one).Reference(-1);

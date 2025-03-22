@@ -124,44 +124,17 @@ namespace Langulus::Anyness
          return end();
 
       auto& firstFrame = mFrames[0];
-      Cell* cell = firstFrame.GetRaw();
-      Cell const* const cellEnd = cell + firstFrame.GetReserved();
-      while (cell->mNextFreeCell and cell < cellEnd)
-         ++cell;
-
       return {
-         cell, cellEnd,
-         &firstFrame, &firstFrame + mFrames.GetCount() - 1
+         firstFrame.GetRaw(),
+         firstFrame.GetRaw() + firstFrame.GetReserved(),
+         &firstFrame,
+         &firstFrame + mFrames.GetCount()
       };
    }
 
    TEMPLATE() LANGULUS(INLINED)
    constexpr auto THive<T>::begin() const noexcept -> Iterator<false> {
       return const_cast<THive*>(this)->begin();
-   }
-
-   /// Get iterator to the last element                                       
-   ///   @return an iterator to the last element, or end if empty             
-   TEMPLATE() LANGULUS(INLINED)
-   constexpr auto THive<T>::last() noexcept -> Iterator<true> {
-      if (IsEmpty())
-         return end();
-
-      auto& lastFrame = mFrames.Last();
-      auto cell = lastFrame.GetRaw() + (lastFrame.GetReserved() - 1);
-      const auto cellEnd = lastFrame.GetRaw();
-      while (cell->mNextFreeCell and cell >= cellEnd)
-         --cell;
-
-      return {
-         cell, cell + lastFrame.GetReserved(),
-         &lastFrame, &lastFrame
-      };
-   }
-
-   TEMPLATE() LANGULUS(INLINED)
-   constexpr auto THive<T>::last() const noexcept -> Iterator<false> {
-      return const_cast<THive*>(this)->last();
    }
 
    /// Emplace a new instance inside the hive                                 
@@ -185,17 +158,18 @@ namespace Langulus::Anyness
          // Reuse a slot                                                
          const auto nextReusable = mReusable->mNextFreeCell;
          try { result = new (mReusable) Cell {Forward<A>(args)...}; }
-         catch (...) { return nullptr; }
+         catch (...) {
+            mReusable->mNextFreeCell = nextReusable;
+            return nullptr;
+         }
 
-         mReusable = nextReusable;
+         auto frame = Owns(mReusable);
+         const_cast<Frame*>(frame)->mCount += 1;
 
          // Make sure that the mReusable is inside limits, as it may    
          // go out of bounds in edge cases                              
-         auto frame = Owns(mReusable);
-         if (not frame)
-            mReusable = nullptr;
-         else
-            ++const_cast<Frame*>(frame)->mCount;
+         mReusable->mNextFreeCell = nullptr;
+         mReusable = Owns(nextReusable) ? nextReusable : nullptr;
       }
       else {
          // Add new frame                                               
@@ -204,7 +178,7 @@ namespace Langulus::Anyness
             : DefaultFrameSize;
 
          // Use first cell to initialize our object                     
-         Frame* frame = nullptr;
+         Frame* volatile frame = nullptr;
          try {
             mFrames.New(1);
             frame = &mFrames.Last();
@@ -215,10 +189,12 @@ namespace Langulus::Anyness
          catch (...) {
             // Pass through all new unused cells, and set their markers 
             // We allocated a new frame, let's not let it go to waste   
-            mReusable = frame->GetRaw();
-            const auto cellEnd = frame->GetRaw() + frame->GetReserved();
-            for (auto cell = mReusable; cell < cellEnd; ++cell)
-               cell->mNextFreeCell = cell + 1;
+            if (frame->GetRaw()) {
+               mReusable = frame->GetRaw();
+               const auto cellEnd = frame->GetRaw() + frame->GetReserved();
+               for (auto cell = mReusable; cell < cellEnd; ++cell)
+                  cell->mNextFreeCell = cell + 1;
+            }
             return nullptr;
          }
 
@@ -311,12 +287,15 @@ namespace Langulus::Anyness
    ///   @param end - the ending marker                                       
    TEMPLATE_IT() LANGULUS(INLINED)
    constexpr TME_IT()::Iterator(
-      Cell* start, Cell const* end, Frame* startf, Frame const* lastf
+      Cell* start, Cell const* end, Frame* startf, Frame const* endf
    ) noexcept
       : mCell      {start}
       , mCellEnd   {end}
       , mFrame     {startf}
-      , mFrameLast {lastf} {}
+      , mFrameEnd  {endf} {
+      while (mCell and mCell->mNextFreeCell)
+         operator ++ ();
+   }
 
    /// Construct an end iterator                                              
    TEMPLATE_IT() LANGULUS(INLINED)
@@ -324,7 +303,7 @@ namespace Langulus::Anyness
       : mCell      {nullptr}
       , mCellEnd   {nullptr}
       , mFrame     {nullptr}
-      , mFrameLast {nullptr} {}
+      , mFrameEnd  {nullptr} {}
 
    /// Compare two iterators                                                  
    ///   @param rhs - the other iterator                                      
@@ -339,7 +318,7 @@ namespace Langulus::Anyness
    ///   @return true element is at or beyond the end marker                  
    TEMPLATE_IT() LANGULUS(INLINED)
    constexpr bool TME_IT()::operator == (const A::IteratorEnd&) const noexcept {
-      return mCell ? mCell >= mFrameLast->GetRawEnd() : true;
+      return mFrame == mFrameEnd;
    }
    
    /// Iterator access operator                                               
@@ -364,18 +343,19 @@ namespace Langulus::Anyness
       ++mCell;
 
       // Skip uninitialized cells                                       
+   skip_empty:
       while (mCell->mNextFreeCell and mCell < mCellEnd)
          ++mCell;
 
-      if (mCell >= mCellEnd) {
+      if (mCell == mCellEnd) {
          // If end of frame was reached, move to the next frame         
          ++mFrame;
 
-         if (mFrame <= mFrameLast) {
+         if (mFrame != mFrameEnd) {
             mCell = mFrame->GetRaw();
             mCellEnd = mCell + mFrame->GetReserved();
+            goto skip_empty;
          }
-         else mCell = nullptr;
       }
 
       return *this;
@@ -400,7 +380,7 @@ namespace Langulus::Anyness
    /// Implicitly convert to a immutable iterator                             
    TEMPLATE_IT() LANGULUS(INLINED)
    constexpr TME_IT()::operator Iterator<false>() const noexcept requires Mutable {
-      return {mCell, mCellEnd, mFrame, mFrameLast};
+      return {mCell, mCellEnd, mFrame, mFrameEnd};
    }
 
 } // namespace Langulus::Flow
