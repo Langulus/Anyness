@@ -540,7 +540,9 @@ namespace Langulus::Anyness
       );
 
       if constexpr (CT::Dense<A>) {
-         LANGULUS_ASSUME(DevAssumes, (CastsTo<A, true>()),
+         using DA = Decay<A>;
+         LANGULUS_ASSUME(DevAssumes,
+            (CT::Deep<DA> and IsDeep()) or (not CT::Deep<DA> and CastsTo<A, true>()),
             "Incompatible iterator type", " `", MetaDataOf<A>(),
             "` (iterating block of type `", mType, "`)"
          );
